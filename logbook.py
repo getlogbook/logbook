@@ -822,9 +822,6 @@ class LoggerAdapter(object):
         """
         return self.logger.isEnabledFor(level)
 
-root = RootLogger(WARNING)
-Logger.root = root
-Logger.manager = Manager(Logger.root)
 
 #---------------------------------------------------------------------------
 # Configuration classes and functions
@@ -864,6 +861,7 @@ def basicConfig(**kwargs):
     using sys.stdout or sys.stderr), whereas FileHandler closes its stream
     when the handler is closed.
     """
+    # XXX needs to be completely rewritten
     if len(root.handlers) == 0:
         filename = kwargs.get("filename")
         if filename:
