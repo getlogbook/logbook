@@ -193,7 +193,7 @@ class Formatter(object):
     attributes in a LogRecord are described by:
 
     %(name)s            Name of the logger (logging channel)
-    %(levelno)s         Numeric logging level for the message (DEBUG, INFO,
+    %(level)s           Numeric logging level for the message (DEBUG, INFO,
                         WARNING, ERROR, CRITICAL)
     %(levelname)s       Text logging level for the message ("DEBUG", "INFO",
                         "WARNING", "ERROR", "CRITICAL")
@@ -664,7 +664,7 @@ class Logger(object):
         while c:
             for hdlr in c.handlers:
                 found = found + 1
-                if record.levelno >= hdlr.level:
+                if record.level >= hdlr.level:
                     hdlr.handle(record)
             if not c.propagate:
                 c = None    #break out

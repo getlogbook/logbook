@@ -244,6 +244,8 @@ class BuiltinLevelsTest(BaseTest):
         ])
 
 
+'''
+
 #
 #   First, we define our levels. There can be as many as you want - the only
 #     limitations are that they should be integers, the lowest should be > 0 and
@@ -281,7 +283,6 @@ my_logging_levels = {
     CHATTERBOX  : 'Chatterbox',
     BORING      : 'Boring',
 }
-
 
 class CustomLevelsTest(BaseTest):
 
@@ -328,7 +329,7 @@ class CustomLevelsTest(BaseTest):
             ])
         finally:
             self.root_logger.handlers[0].setLevel(logging.NOTSET)
-
+'''
 
 class MemoryHandlerTest(BaseTest):
 
@@ -759,7 +760,7 @@ class EncodingTest(BaseTest):
         # the non-ascii data we write to the log.
         data = "foo\x80"
         try:
-            handler = logging.FileHandler(fn)
+            handler = logging.StreamHandler(file(fn, 'a'))
             log.addHandler(handler)
             try:
                 # write non-ascii data to the log.
