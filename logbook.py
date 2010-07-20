@@ -216,7 +216,7 @@ class Handler(object):
 
     def _get_level_name(self):
         return get_level_name(self.level)
-    def _set_level_name(self, value):
+    def _set_level_name(self, level):
         self.level = _lookup_level(level)
     level_name = property(_get_level_name, _set_level_name)
     del _get_level_name, _set_level_name
@@ -418,8 +418,6 @@ class Logger(object):
         """
         if self.isEnabledFor(CRITICAL):
             self._log(CRITICAL, msg, args, **kwargs)
-
-    fatal = critical
 
     def log(self, level, msg, *args, **kwargs):
         """
