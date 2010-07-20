@@ -477,7 +477,6 @@ class StreamHandler(Handler):
             self.handleError(record)
 
 
-
 #---------------------------------------------------------------------------
 #   Logger classes and functions
 #---------------------------------------------------------------------------
@@ -726,38 +725,6 @@ class Logger(object):
             return 0
         return level >= self.getEffectiveLevel()
 
-    def getChild(self, suffix):
-        """
-        Get a logger which is a descendant to this one.
-
-        This is a convenience method, such that
-
-        logging.getLogger('abc').getChild('def.ghi')
-
-        is the same as
-
-        logging.getLogger('abc.def.ghi')
-
-        It's useful, for example, when the parent logger is named using
-        __name__ rather than a literal string.
-        """
-        if self.root is not self:
-            suffix = '.'.join((self.name, suffix))
-        return self.manager.getLogger(suffix)
-
-class RootLogger(Logger):
-    """
-    A root logger is not that different to any other logger, except that
-    it must have a logging level and there is only one instance of it in
-    the hierarchy.
-    """
-    def __init__(self, level):
-        """
-        Initialize the logger with the name "root".
-        """
-        Logger.__init__(self, "root", level)
-
-_loggerClass = Logger
 
 class LoggerAdapter(object):
     """
