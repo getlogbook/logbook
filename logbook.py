@@ -197,6 +197,14 @@ class SimpleFormatter(Formatter):
         return rv
 
 
+def _level_name_property():
+    def _get_level_name(self):
+        return get_level_name(self.level)
+    def _set_level_name(self, value):
+        self.level = _lookup_level(level)
+    return property(_get_level_name, _set_level_name)
+
+
 class Handler(object):
     """Handler instances dispatch logging events to specific destinations.
 
@@ -207,24 +215,12 @@ class Handler(object):
     """
 
     def __init__(self, level=NOTSET):
-        """
-        Initializes the instance - basically setting the formatter to None.
-        """
         self.name = None
         self.level = _lookup_level(level)
         self.formatter = None
         self.lock = threading.RLock()
 
-    def _get_level_name(self):
-        return get_level_name(self.level)
-    def _set_level_name(self, value):
-        self.level = _lookup_level(level)
-    level_name = property(_get_level_name, _set_level_name)
-    del _get_level_name, _set_level_name
-
-    def setFormatter(self, formatter):
-        # b/w comp
-        self.formatter = formatter
+    level_name = _level_name_property()
 
     def format(self, record):
         """Format the specified record with the formatter on the handler."""
@@ -233,20 +229,17 @@ class Handler(object):
             return fmt.format(record)
 
     def handle(self, record):
-        """
-        Emit the specified logging record.
+        """Emits and falls back."""
+        try:
+            self.emit(record)
+        except Exception:
+            self.handle_error(record, sys.exc_info())
+
+    def emit(self, record):
+        """Emit the specified logging record.
 
         Wrap the actual emission of the record with acquisition/release of
         the I/O thread lock.
-        """
-        with self.lock:
-            self.emit(record)
-
-    def emit(self, record):
-        """Do whatever it takes to actually log the specified logging record.
-
-        This version is intended to be implemented by subclasses and so
-        raises a NotImplementedError.
         """
 
     def flush(self):
@@ -255,74 +248,49 @@ class Handler(object):
         This version does nothing and is intended to be implemented by
         subclasses.
         """
-        pass
 
     def close(self):
         """Tidy up any resources used by the handler."""
-        pass
 
-    def handleError(self, record):
+    def handle_error(self, record, exc_info):
         """Handle errors which occur during an emit() call."""
-        ei = sys.exc_info()
         try:
-            traceback.print_exception(ei[0], ei[1], ei[2],
-                                      None, sys.stderr)
+            traceback.print_exception(*(exc_info + (None, sys.stderr)))
             sys.stderr.write('Logged from file %s, line %s\n' % (
                              record.filename, record.lineno))
         except IOError:
-            pass    # see issue 5971
-        finally:
-            del ei
+            pass
+
 
 class StreamHandler(Handler):
-    """
-    A handler class which writes logging records, appropriately formatted,
-    to a stream. Note that this class does not close the stream, as
-    sys.stdout or sys.stderr may be used.
+    """a handler class which writes logging records, appropriately formatted,
+    to a stream. note that this class does not close the stream, as sys.stdout
+    or sys.stderr may be used.
     """
 
     def __init__(self, stream=None):
-        """
-        Initialize the handler.
-
-        If stream is not specified, sys.stderr is used.
-        """
         Handler.__init__(self)
         if stream is None:
             stream = sys.stderr
         self.stream = stream
+        self.lock = threading.RLock()
 
     def flush(self):
-        """
-        Flushes the stream.
-        """
-        if self.stream and hasattr(self.stream, "flush"):
+        """Flushes the stream."""
+        if self.stream and hasattr(self.stream, 'flush'):
             self.stream.flush()
 
     def emit(self, record):
-        """
-        Emit a record.
-
-        If a formatter is specified, it is used to format the record.
-        The record is then written to the stream with a trailing newline.  If
-        exception information is present, it is formatted using
-        traceback.print_exception and appended to the stream.  If the stream
-        has an 'encoding' attribute, it is used to determine how to do the
-        output to the stream.
-        """
-        try:
+        with self.lock:
             msg = self.format(record)
             stream = self.stream
             enc = getattr(stream, 'encoding', None) or 'utf-8'
             stream.write(('%s\n' % msg).encode(enc, 'replace'))
             self.flush()
-        except Exception:
-            self.handleError(record)
 
 
 class Logger(object):
-    """
-    Instances of the Logger class represent a single logging channel. A
+    """Instances of the Logger class represent a single logging channel. A
     "logging channel" indicates an area of an application. Exactly how an
     "area" is defined is up to the application developer. Since an
     application can have any number of areas, logging channels are identified
@@ -335,10 +303,8 @@ class Logger(object):
     level, and "input.csv", "input.xls" and "input.gnu" for the sub-levels.
     There is no arbitrary limit to the depth of nesting.
     """
+
     def __init__(self, name, level=NOTSET):
-        """
-        Initialize the logger with a name and an optional level.
-        """
         self.name = name
         self.level = _lookup_level(level)
         self.parent = None
@@ -346,11 +312,7 @@ class Logger(object):
         self.handlers = []
         self.disabled = 0
 
-    def setLevel(self, level):
-        """
-        Set the logging level of this logger.
-        """
-        self.level = _lookup_level(level)
+    level_name = _level_name_property()
 
     def debug(self, msg, *args, **kwargs):
         """

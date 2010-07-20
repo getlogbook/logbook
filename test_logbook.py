@@ -60,7 +60,7 @@ class BaseTest(unittest.TestCase):
         self.original_logging_level = self.root_logger.getEffectiveLevel()
 
         self.stream = cStringIO.StringIO()
-        self.root_logger.setLevel(logging.DEBUG)
+        self.root_logger.level = logging.DEBUG
         self.root_hdlr = logging.StreamHandler(self.stream)
         self.root_formatter = logging.SimpleFormatter(self.log_format)
         self.root_hdlr.formatter = self.root_formatter
@@ -75,7 +75,7 @@ class BaseTest(unittest.TestCase):
             h = self.root_logger.handlers[0]
             self.root_logger.removeHandler(h)
             h.close()
-        self.root_logger.setLevel(self.original_logging_level)
+        self.root_logger.level = self.original_logging_level
         logging._level_names.clear()
         logging._level_names.update(self.saved_level_names)
 
@@ -117,11 +117,11 @@ class BuiltinLevelsTest(BaseTest):
         m = self.next_message
 
         ERR = logging.getLogger("ERR")
-        ERR.setLevel(logging.ERROR)
+        ERR.level = logging.ERROR
         INF = logging.getLogger("INF")
-        INF.setLevel(logging.INFO)
+        INF.level = logging.INFO
         DEB = logging.getLogger("DEB")
-        DEB.setLevel(logging.DEBUG)
+        DEB.level = logging.DEBUG
 
         # These should log.
         ERR.log(logging.CRITICAL, m())
@@ -164,9 +164,9 @@ class BuiltinLevelsTest(BaseTest):
         m = self.next_message
 
         INF = logging.getLogger("INF")
-        INF.setLevel(logging.INFO)
+        INF.level = logging.INFO
         INF_ERR  = logging.getLogger("INF.ERR")
-        INF_ERR.setLevel(logging.ERROR)
+        INF_ERR.level = logging.ERROR
 
         # These should log.
         INF_ERR.log(logging.CRITICAL, m())
@@ -187,9 +187,9 @@ class BuiltinLevelsTest(BaseTest):
         m = self.next_message
 
         INF = logging.getLogger("INF")
-        INF.setLevel(logging.INFO)
+        INF.level = logging.INFO
         INF_ERR  = logging.getLogger("INF.ERR")
-        INF_ERR.setLevel(logging.ERROR)
+        INF_ERR.level = logging.ERROR
         INF_UNDEF = logging.getLogger("INF.UNDEF")
         INF_ERR_UNDEF = logging.getLogger("INF.ERR.UNDEF")
         UNDEF = logging.getLogger("UNDEF")
@@ -224,7 +224,7 @@ class BuiltinLevelsTest(BaseTest):
         INF = logging.getLogger("INF")
         GRANDCHILD = logging.getLogger("INF.BADPARENT.UNDEF")
         CHILD = logging.getLogger("INF.BADPARENT")
-        INF.setLevel(logging.INFO)
+        INF.level = logging.INFO
 
         # These should log.
         GRANDCHILD.log(logging.CRITICAL, m())
