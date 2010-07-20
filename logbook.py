@@ -186,7 +186,7 @@ class Formatter(object):
 class SimpleFormatter(Formatter):
 
     def __init__(self, format_string):
-        self.format_string
+        self.format_string = format_string
 
     def format(self, record):
         rv = self.format_string.format(record)

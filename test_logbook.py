@@ -47,7 +47,7 @@ class BaseTest(unittest.TestCase):
 
     """Base class for logging tests."""
 
-    log_format = "%(name)s -> %(levelname)s: %(message)s"
+    log_format = "{name} -> {level_name} {message}"
     expected_log_pat = r"^([\w.]+) -> ([\w]+): ([\d]+)$"
     message_num = 0
 
@@ -62,7 +62,7 @@ class BaseTest(unittest.TestCase):
         self.stream = cStringIO.StringIO()
         self.root_logger.setLevel(logging.DEBUG)
         self.root_hdlr = logging.StreamHandler(self.stream)
-        self.root_formatter = logging.Formatter(self.log_format)
+        self.root_formatter = logging.SimpleFormatter(self.log_format)
         self.root_hdlr.formatter = self.root_formatter
         self.root_logger.addHandler(self.root_hdlr)
 
