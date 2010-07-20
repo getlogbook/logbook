@@ -242,13 +242,6 @@ class Handler(object):
         the I/O thread lock.
         """
 
-    def flush(self):
-        """Ensure all logging output has been flushed.
-
-        This version does nothing and is intended to be implemented by
-        subclasses.
-        """
-
     def close(self):
         """Tidy up any resources used by the handler."""
 
@@ -274,6 +267,9 @@ class StreamHandler(Handler):
             stream = sys.stderr
         self.stream = stream
         self.lock = threading.RLock()
+
+    def close(self):
+        self.stream.close()
 
     def flush(self):
         """Flushes the stream."""
