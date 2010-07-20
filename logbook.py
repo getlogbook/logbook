@@ -171,203 +171,47 @@ class LogRecord(object):
             except Exception:
                 pass
 
+    def format_exception(self):
+        if self.exc_info is not None:
+            lines = traceback.format_exception(*self.exc_info)
+            rv = ''.join(lines).decode('utf-8', 'replace')
+            return rv.rstrip()
+
 
 #---------------------------------------------------------------------------
 #   Formatter classes and functions
 #---------------------------------------------------------------------------
 
 class Formatter(object):
-    """
-    Formatter instances are used to convert a LogRecord to text.
-
-    Formatters need to know how a LogRecord is constructed. They are
-    responsible for converting a LogRecord to (usually) a string which can
-    be interpreted by either a human or an external system. The base Formatter
-    allows a formatting string to be specified. If none is supplied, the
-    default value of "%s(message)\\n" is used.
-
-    The Formatter can be initialized with a format string which makes use of
-    knowledge of the LogRecord attributes - e.g. the default value mentioned
-    above makes use of the fact that the user's message and arguments are pre-
-    formatted into a LogRecord's message attribute. Currently, the useful
-    attributes in a LogRecord are described by:
-
-    %(name)s            Name of the logger (logging channel)
-    %(levelno)s         Numeric logging level for the message (DEBUG, INFO,
-                        WARNING, ERROR, CRITICAL)
-    %(levelname)s       Text logging level for the message ("DEBUG", "INFO",
-                        "WARNING", "ERROR", "CRITICAL")
-    %(pathname)s        Full pathname of the source file where the logging
-                        call was issued (if available)
-    %(filename)s        Filename portion of pathname
-    %(module)s          Module (name portion of filename)
-    %(lineno)d          Source line number where the logging call was issued
-                        (if available)
-    %(funcName)s        Function name
-    %(created)f         Time when the LogRecord was created (time.time()
-                        return value)
-    %(asctime)s         Textual time when the LogRecord was created
-    %(msecs)d           Millisecond portion of the creation time
-    %(thread)d          Thread ID (if available)
-    %(threadName)s      Thread name (if available)
-    %(process)d         Process ID (if available)
-    %(message)s         The result of record.getMessage(), computed just as
-                        the record is emitted
-    """
-
-    converter = time.localtime
-
-    def __init__(self, fmt=None, datefmt=None):
-        """
-        Initialize the formatter with specified format strings.
-
-        Initialize the formatter either with the specified format string, or a
-        default as described above. Allow for specialized date formatting with
-        the optional datefmt argument (if omitted, you get the ISO8601 format).
-        """
-        if fmt:
-            self._fmt = fmt
-        else:
-            self._fmt = "%(message)s"
-        self.datefmt = datefmt
-
-    def formatTime(self, record, datefmt=None):
-        """
-        Return the creation time of the specified LogRecord as formatted text.
-
-        This method should be called from format() by a formatter which
-        wants to make use of a formatted time. This method can be overridden
-        in formatters to provide for any specific requirement, but the
-        basic behaviour is as follows: if datefmt (a string) is specified,
-        it is used with time.strftime() to format the creation time of the
-        record. Otherwise, the ISO8601 format is used. The resulting
-        string is returned. This function uses a user-configurable function
-        to convert the creation time to a tuple. By default, time.localtime()
-        is used; to change this for a particular formatter instance, set the
-        'converter' attribute to a function with the same signature as
-        time.localtime() or time.gmtime(). To change it for all formatters,
-        for example if you want all logging times to be shown in GMT,
-        set the 'converter' attribute in the Formatter class.
-        """
-        ct = self.converter(record.created)
-        if datefmt:
-            s = time.strftime(datefmt, ct)
-        else:
-            t = time.strftime("%Y-%m-%d %H:%M:%S", ct)
-            s = "%s,%03d" % (t, record.msecs)
-        return s
-
-    def formatException(self, ei):
-        """
-        Format and return the specified exception information as a string.
-
-        This default implementation just uses
-        traceback.print_exception()
-        """
-        sio = cStringIO.StringIO()
-        traceback.print_exception(ei[0], ei[1], ei[2], None, sio)
-        s = sio.getvalue()
-        sio.close()
-        if s[-1:] == "\n":
-            s = s[:-1]
-        return s
-
-    def usesTime(self):
-        """
-        Check if the format uses the creation time of the record.
-        """
-        return self._fmt.find("%(asctime)") >= 0
 
     def format(self, record):
-        """
-        Format the specified record as text.
+        pass
 
-        The record's attribute dictionary is used as the operand to a
-        string formatting operation which yields the returned string.
-        Before formatting the dictionary, a couple of preparatory steps
-        are carried out. The message attribute of the record is computed
-        using LogRecord.getMessage(). If the formatting string uses the
-        time (as determined by a call to usesTime(), formatTime() is
-        called to format the event time. If there is exception information,
-        it is formatted using formatException() and appended to the message.
-        """
-        record.message = record.getMessage()
-        if self.usesTime():
-            record.asctime = self.formatTime(record, self.datefmt)
-        s = self._fmt % record.__dict__
-        if record.exc_info:
-            # Cache the traceback text to avoid converting it multiple times
-            # (it's constant anyway)
-            if not record.exc_text:
-                record.exc_text = self.formatException(record.exc_info)
-        if record.exc_text:
-            if s[-1:] != "\n":
-                s = s + "\n"
-            try:
-                s = s + record.exc_text
-            except UnicodeError:
-                # Sometimes filenames have non-ASCII chars, which can lead
-                # to errors when s is Unicode and record.exc_text is str
-                # See issue 8924
-                s = s + record.exc_text.decode(sys.getfilesystemencoding())
-        return s
 
-#
-#   The default formatter to use when no other is specified
-#
-_defaultFormatter = Formatter()
+class SimpleFormatter(Formatter):
 
-class BufferingFormatter(object):
-    """
-    A formatter suitable for formatting a number of records.
-    """
-    def __init__(self, linefmt=None):
-        """
-        Optionally specify a formatter which will be used to format each
-        individual record.
-        """
-        if linefmt:
-            self.linefmt = linefmt
-        else:
-            self.linefmt = _defaultFormatter
+    def __init__(self, format_string):
+        self.format_string
 
-    def formatHeader(self, records):
-        """
-        Return the header string for the specified records.
-        """
-        return ""
-
-    def formatFooter(self, records):
-        """
-        Return the footer string for the specified records.
-        """
-        return ""
-
-    def format(self, records):
-        """
-        Format the specified records and return the result as a string.
-        """
-        rv = ""
-        if len(records) > 0:
-            rv = rv + self.formatHeader(records)
-            for record in records:
-                rv = rv + self.linefmt.format(record)
-            rv = rv + self.formatFooter(records)
+    def format(self, record):
+        rv = [self.format_string.format(record)]
+        exc_info = record.format_exception()
+        if exc_info is not None:
+            rv.extend(exc_info.splitlines())
         return rv
 
 
 class Handler(object):
-    """
-    Handler instances dispatch logging events to specific destinations.
+    """Handler instances dispatch logging events to specific destinations.
 
     The base handler class. Acts as a placeholder which defines the Handler
     interface. Handlers can optionally use Formatter instances to format
     records as desired. By default, no formatter is specified; in this case,
     the 'raw' message as determined by record.message is logged.
     """
+
     def __init__(self, level=NOTSET):
-        """
-        Initializes the instance - basically setting the formatter to None
+        """Initializes the instance - basically setting the formatter to None
         and the filter list to empty.
         """
         self.name = None
@@ -375,25 +219,18 @@ class Handler(object):
         self.formatter = None
         self.lock = threading.RLock()
 
-    def setLevel(self, level):
-        """
-        Set the logging level of this handler.
-        """
+    def _get_levelname(self):
+        return _get_levelname(self.level)
+    def _set_levelname(self, value):
         self.level = _lookup_level(level)
+    levelname = property(_get_levelname, _set_levelname)
+    del _get_levelname, _set_levelname
 
     def format(self, record):
-        """
-        Format the specified record.
-
-        If a formatter is set, use it. Otherwise, use the default formatter
-        for the module.
-        """
-        if self.formatter:
-            fmt = self.formatter
-        else:
-            # XXX what is the default formatter?
-            fmt = _defaultFormatter
-        return fmt.format(record)
+        """Format the specified record with the formatter on the handler."""
+        fmt = self.formatter:
+        if fmt is not None:
+            return fmt.format(record)
 
     def handle(self, record):
         """
