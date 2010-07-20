@@ -34,6 +34,8 @@ _level_names = {
     NOTSET:     'NOTSET'
 }
 _reverse_level_names = dict((v, k) for k, v in _level_names.iteritems())
+_missing = object()
+_main_thread = thread.get_ident()
 
 
 class cached_property(object):
@@ -75,19 +77,30 @@ class LogRecord(object):
     contain all the information pertinent to the event being logged. The
     main information passed in is in msg and args
     """
+    _pullable_information = ('func_name', 'module', 'filename', 'lineno',
+                             'frame_name', 'process_name')
 
     def __init__(self, name, level, msg, args=None, kwargs=None,
                  exc_info=None, extra=None, frame=None):
-        self.timestamp = time()
+        self.timestamp = time.time()
         self.name = name
         self.msg = msg
         self.args = args or ()
         self.kwargs = kwargs or {}
         self.level = level
         self.exc_info = exc_info
+        self.extra = extra
         self.frame = frame
         self.thread = thread.get_ident()
         self.process = os.getpid()
+        self._information_pulled = False
+
+    def pull_information(self):
+        if self._information_pulled:
+            return
+        for key in self._pullable_information:
+            getattr(self, key)
+        self._information_pulled = True
 
     def close(self):
         self.frame = None
@@ -124,6 +137,39 @@ class LogRecord(object):
         cf = self.calling_frame
         if cf is not None:
             return cf.f_globals.get('__name__')
+
+    @cached_property
+    def filename(self):
+        cf = self.calling_frame
+        if cf is not None:
+            return os.path.abspath(cf.f_code.co_filename)
+
+    @cached_property
+    def lineno(self):
+        cf = self.calling_frame
+        if cf is not None:
+            return cf.f_lineno
+
+    @cached_property
+    def frame_name(self):
+        if self.thread == _main_thread:
+            return 'MainThread'
+        for thread in threading.enumerate():
+            if thread.ident == self.thread:
+                return thread.name
+
+    @cached_property
+    def process_name(self):
+        # Errors may occur if multiprocessing has not finished loading
+        # yet - e.g. if a custom import hook causes third-party code
+        # to run when multiprocessing calls import. See issue 8200
+        # for an example
+        mp = sys.modules.get('multiprocessing')
+        if mp is not None:
+            try:
+                return mp.current_process().name
+            except Exception:
+                pass
 
 
 #---------------------------------------------------------------------------
