@@ -12,8 +12,6 @@ import time
 import cStringIO
 import traceback
 import warnings
-import weakref
-import codecs
 import thread
 import threading
 
