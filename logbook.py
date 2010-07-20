@@ -1153,51 +1153,47 @@ def disable(level):
 
 class NullHandler(Handler):
     """
-    This handler does nothing. It's intended to be used to avoid the
-    "No handlers could be found for logger XXX" one-off warning. This is
-    important for library code, which may contain code to log events. If a user
-    of the library does not configure logging, the one-off warning might be
-    produced; to avoid this, the library developer simply needs to instantiate
-    a NullHandler and add it to the top-level logger of the library module or
-    package.
+    This handler does nothing.
     """
     def emit(self, record):
         pass
 
 # Warnings integration
 
-_warnings_showwarning = None
+class log_warnings_to(object):
+    """A context manager that copies and restores the warnings filter upon
+    exiting the context, and logs warnings using the logbook system.
 
-def _showwarning(message, category, filename, lineno, file=None, line=None):
+    The 'record' argument specifies whether warnings should be captured by a
+    custom implementation of warnings.showwarning() and be appended to a list
+    returned by the context manager. Otherwise None is returned by the context
+    manager. The objects appended to the list are arguments whose attributes
+    mirror the arguments to showwarning().
     """
-    Implementation of showwarnings which redirects to logging, which will first
-    check to see if the file parameter is None. If a file is specified, it will
-    delegate to the original warnings implementation of showwarning. Otherwise,
-    it will call warnings.formatwarning and will log the resulting string to a
-    warnings logger named "py.warnings" with level logging.WARNING.
-    """
-    if file is not None:
-        if _warnings_showwarning is not None:
-            _warnings_showwarning(message, category, filename, lineno, file, line)
-    else:
-        s = warnings.formatwarning(message, category, filename, lineno, line)
-        logger = getLogger("py.warnings")
-        if not logger.handlers:
-            logger.addHandler(NullHandler())
-        logger.warning("%s", s)
 
-def captureWarnings(capture):
-    """
-    If capture is true, redirect all warnings to the logging package.
-    If capture is False, ensure that warnings are not redirected to logging
-    but to their original destinations.
-    """
-    global _warnings_showwarning
-    if capture:
-        if _warnings_showwarning is None:
-            _warnings_showwarning = warnings.showwarning
-            warnings.showwarning = _showwarning
-    else:
-        if _warnings_showwarning is not None:
-            warnings.showwarning = _warnings_showwarning
-            _warnings_showwarning = None
+    def __init__(self, logger, save_filters=False):
+        self._logger = logger
+        self._entered = False
+        self._save_filters = save_filters
+
+    def __enter__(self):
+        if self._entered:
+            raise RuntimeError("Cannot enter %r twice" % self)
+        self._entered = True
+        if self._save_filters:
+            self._filters = warnings.filters
+            warnings.filters = self._filters[:]
+        self._showwarning = warnings.showwarning
+        def showwarning(message, category, filename, lineno,
+                        file=None, line=None):
+            formatted = warnings.formatwarning(message, category, filename,
+                                               lineno, line)
+            self._logger.warning("%s", formatted)
+        warnings.showwarning = showwarning
+
+    def __exit__(self, *exc_info):
+        if not self._entered:
+            raise RuntimeError("Cannot exit %r without entering first" % self)
+        if self._save_filters:
+            warnings.filters = self._filters
+        warnings.showwarning = self._showwarning
