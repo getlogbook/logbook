@@ -15,6 +15,8 @@ import warnings
 import thread
 import threading
 
+from datetime import datetime
+
 
 CRITICAL = 50
 ERROR = 40
@@ -23,7 +25,7 @@ INFO = 20
 DEBUG = 10
 NOTSET = 0
 
-_levelNames = {
+_level_names = {
     CRITICAL:   'CRITICAL',
     ERROR:      'ERROR',
     WARNING:    'WARNING',
@@ -31,129 +33,86 @@ _levelNames = {
     DEBUG:      'DEBUG',
     NOTSET:     'NOTSET'
 }
+_reverse_level_names = dict((v, k) for k,  in _level_names.iteritems())
 
 
-def getLevelName(level):
-    """
-    Return the textual representation of logging level 'level'.
+class cached_property(object):
 
-    If the level is one of the predefined levels (CRITICAL, ERROR, WARNING,
-    INFO, DEBUG) then you get the corresponding string.
+    def __init__(self, func, name=None, doc=None):
+        self.__name__ = name or func.__name__
+        self.__module__ = func.__module__
+        self.__doc__ = doc or func.__doc__
+        self.func = func
 
-    If a numeric value corresponding to one of the defined levels is passed
-    in, the corresponding string representation is returned.
-
-    Otherwise, the string "Level %s" % level is returned.
-    """
-    return _levelNames.get(level, ("Level %s" % level))
-
-
-def _checkLevel(level):
-    if isinstance(level, int):
-        rv = level
-    elif str(level) == level:
-        if level not in _levelNames:
-            raise ValueError("Unknown level: %r" % level)
-        rv = _levelNames[level]
-    else:
-        raise TypeError("Level not an integer or a valid string: %r" % level)
-    return rv
+    def __get__(self, obj, type=None):
+        if obj is None:
+            return self
+        value = obj.__dict__.get(self.__name__, _missing)
+        if value is _missing:
+            value = self.func(obj)
+            obj.__dict__[self.__name__] = value
+        return value
 
 
-#---------------------------------------------------------------------------
-#   The logging record
-#---------------------------------------------------------------------------
+def get_level_name(level):
+    """Return the textual representation of logging level 'level'."""
+    return _level_names.get(level, ('Level %s' % level))
+
+
+def _lookup_level(level):
+    if isinstance(level, (int, long)):
+        return level
+    try:
+        return _reverse_level_names[level]
+    except KeyError:
+        raise LookupError('unknown level name %s' % level)
+
 
 class LogRecord(object):
-    """
-    A LogRecord instance represents an event being logged.
+    """A LogRecord instance represents an event being logged.
 
     LogRecord instances are created every time something is logged. They
     contain all the information pertinent to the event being logged. The
-    main information passed in is in msg and args, which are combined
-    using str(msg) % args to create the message field of the record. The
-    record also includes information such as when the record was created,
-    the source line where the logging call was made, and any exception
-    information to be logged.
+    main information passed in is in msg and args
     """
-    def __init__(self, name, level, pathname, lineno,
-                 msg, args, exc_info, func=None):
-        """
-        Initialize a logging record with interesting information.
-        """
-        ct = time.time()
+
+    def __init__(self, name, level, msg, args=None, kwargs=None,
+                 exc_info=None, extra=None, frame=None):
+        self.timestamp = time()
         self.name = name
         self.msg = msg
-        #
-        # The following statement allows passing of a dictionary as a sole
-        # argument, so that you can do something like
-        #  logging.debug("a %(a)d b %(b)s", {'a':1, 'b':2})
-        # Suggested by Stefan Behnel.
-        # Note that without the test for args[0], we get a problem because
-        # during formatting, we test to see if the arg is present using
-        # 'if self.args:'. If the event being logged is e.g. 'Value is %d'
-        # and if the passed arg fails 'if self.args:' then no formatting
-        # is done. For example, logger.warn('Value is %d', 0) would log
-        # 'Value is %d' instead of 'Value is 0'.
-        # For the use case of passing a dictionary, this should not be a
-        # problem.
-        if args and len(args) == 1 and isinstance(args[0], dict) and args[0]:
-            args = args[0]
-        self.args = args
-        self.levelname = getLevelName(level)
-        self.levelno = level
-        self.pathname = pathname
-        try:
-            self.filename = os.path.basename(pathname)
-            self.module = os.path.splitext(self.filename)[0]
-        except (TypeError, ValueError, AttributeError):
-            self.filename = pathname
-            self.module = "Unknown module"
+        self.args = args or ()
+        self.kwargs = kwargs or {}
+        self.level = level
         self.exc_info = exc_info
-        self.exc_text = None      # used to cache the traceback text
-        self.lineno = lineno
-        self.funcName = func
-        self.created = ct
-        self.msecs = (ct - long(ct)) * 1000
+        self.frame = frame
         self.thread = thread.get_ident()
-        self.threadName = threading.current_thread().name
-        self.processName = 'MainProcess'
-        mp = sys.modules.get('multiprocessing')
-        if mp is not None:
-            # Errors may occur if multiprocessing has not finished loading
-            # yet - e.g. if a custom import hook causes third-party code
-            # to run when multiprocessing calls import. See issue 8200
-            # for an example
-            try:
-                self.processName = mp.current_process().name
-            except StandardError:
-                pass
         self.process = os.getpid()
 
-    def __str__(self):
-        return '<LogRecord: %s, %s, %s, %s, "%s">'%(self.name, self.levelno,
-            self.pathname, self.lineno, self.msg)
+    def close(self):
+        self.frame = None
+        self.calling_frame = None
 
-    def getMessage(self):
-        """
-        Return the message for this LogRecord.
+    @cached_property
+    def formatted_message(self):
+        return self.msg.format(*args, **kwargs)
 
-        Return the message for this LogRecord after merging any user-supplied
-        arguments with the message.
-        """
-        # TODO: introduce alternative means of string formatting
-        return self.msg % self.args
+    @cached_property
+    def time(self):
+        return datetime.utcfromtimestamp(self.timestamp)
 
-def makeLogRecord(dict):
-    """
-    Make a LogRecord whose attributes are defined by the specified dictionary,
-    This function is useful for converting a logging event received over
-    a socket connection (which is sent as a dictionary) into a LogRecord
-    instance.
-    """
-    rv = LogRecord(None, None, "", 0, "", (), None, None)
-    rv.__dict__.update(dict)
-    return rv
+    @cached_property
+    def levelname(self):
+        return get_level_name(self.level)
+
+    @cached_property
+    def calling_frame(self):
+        frm = self.frame:
+        globs = globals()
+        while frm is not None and frm.f_globals is globs:
+            frm = frm.f_back
+        return frm
+
 
 #---------------------------------------------------------------------------
 #   Formatter classes and functions
@@ -354,7 +313,7 @@ class Handler(object):
         and the filter list to empty.
         """
         self.name = None
-        self.level = _checkLevel(level)
+        self.level = _lookup_level(level)
         self.formatter = None
         self.lock = threading.RLock()
 
@@ -362,7 +321,7 @@ class Handler(object):
         """
         Set the logging level of this handler.
         """
-        self.level = _checkLevel(level)
+        self.level = _lookup_level(level)
 
     def format(self, record):
         """
@@ -501,7 +460,7 @@ class Logger(object):
         Initialize the logger with a name and an optional level.
         """
         self.name = name
-        self.level = _checkLevel(level)
+        self.level = _lookup_level(level)
         self.parent = None
         self.propagate = 1
         self.handlers = []
@@ -511,7 +470,7 @@ class Logger(object):
         """
         Set the logging level of this logger.
         """
-        self.level = _checkLevel(level)
+        self.level = _lookup_level(level)
 
     def debug(self, msg, *args, **kwargs):
         """
@@ -597,60 +556,17 @@ class Logger(object):
         if self.isEnabledFor(level):
             self._log(level, msg, args, **kwargs)
 
-    def findCaller(self):
-        """
-        Find the stack frame of the caller so that we can note the source
-        file name, line number and function name.
-        """
-        f = currentframe()
-        #On some versions of IronPython, currentframe() returns None if
-        #IronPython isn't run with -X:Frames.
-        if f is not None:
-            f = f.f_back
-        rv = "(unknown file)", 0, "(unknown function)"
-        while hasattr(f, "f_code"):
-            co = f.f_code
-            filename = os.path.normcase(co.co_filename)
-            if filename == _srcfile:
-                f = f.f_back
-                continue
-            rv = (filename, f.f_lineno, co.co_name)
-            break
-        return rv
-
-    def makeRecord(self, name, level, fn, lno, msg, args, exc_info, func=None, extra=None):
-        """
-        A factory method which can be overridden in subclasses to create
-        specialized LogRecords.
-        """
-        rv = LogRecord(name, level, fn, lno, msg, args, exc_info, func)
-        if extra is not None:
-            for key in extra:
-                if (key in ["message", "asctime"]) or (key in rv.__dict__):
-                    raise KeyError("Attempt to overwrite %r in LogRecord" % key)
-                rv.__dict__[key] = extra[key]
-        return rv
-
-    def _log(self, level, msg, args, exc_info=None, extra=None):
+    def _log(self, level, msg, args, kwargs=None, exc_info=None, extra=None):
         """
         Low-level logging routine which creates a LogRecord and then calls
         all the handlers of this logger to handle the record.
         """
-        if _srcfile:
-            #IronPython doesn't track Python frames, so findCaller throws an
-            #exception on some versions of IronPython. We trap it here so that
-            #IronPython can use logging.
-            try:
-                fn, lno, func = self.findCaller()
-            except ValueError:
-                fn, lno, func = "(unknown file)", 0, "(unknown function)"
-        else:
-            fn, lno, func = "(unknown file)", 0, "(unknown function)"
-        if exc_info:
-            if not isinstance(exc_info, tuple):
-                exc_info = sys.exc_info()
-        record = self.makeRecord(self.name, level, fn, lno, msg, args, exc_info, func, extra)
-        self.handle(record)
+        record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
+                           extra, sys._getframe(1))
+        try:
+            self.handle(record)
+        finally:
+            record.close()
 
     def handle(self, record):
         """
