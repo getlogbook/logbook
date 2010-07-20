@@ -185,7 +185,8 @@ class Formatter(object):
 
 class SimpleFormatter(Formatter):
 
-    def __init__(self, format_string):
+    def __init__(self, format_string=u'[{time:%Y-%m-%d %H:%M}] '
+                 u'{level_name}: {message}'):
         self.format_string = format_string
 
     def format(self, record):
