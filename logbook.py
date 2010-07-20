@@ -178,10 +178,6 @@ class LogRecord(object):
             return rv.rstrip()
 
 
-#---------------------------------------------------------------------------
-#   Formatter classes and functions
-#---------------------------------------------------------------------------
-
 class Formatter(object):
 
     def format(self, record):
@@ -330,10 +326,6 @@ class StreamHandler(Handler):
         except Exception:
             self.handleError(record)
 
-
-#---------------------------------------------------------------------------
-#   Logger classes and functions
-#---------------------------------------------------------------------------
 
 class Logger(object):
     """
@@ -633,10 +625,6 @@ class LoggerAdapter(object):
         """
         return self.logger.isEnabledFor(level)
 
-
-#---------------------------------------------------------------------------
-# Configuration classes and functions
-#---------------------------------------------------------------------------
 
 BASIC_FORMAT = "%(levelname)s:%(name)s:%(message)s"
 
