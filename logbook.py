@@ -115,7 +115,7 @@ class LogRecord(object):
         return datetime.utcfromtimestamp(self.timestamp)
 
     @cached_property
-    def levelname(self):
+    def level_name(self):
         return get_level_name(self.level)
 
     @cached_property
@@ -215,12 +215,12 @@ class Handler(object):
         self.formatter = None
         self.lock = threading.RLock()
 
-    def _get_levelname(self):
-        return _get_levelname(self.level)
-    def _set_levelname(self, value):
+    def _get_level_name(self):
+        return get_level_name(self.level)
+    def _set_level_name(self, value):
         self.level = _lookup_level(level)
-    levelname = property(_get_levelname, _set_levelname)
-    del _get_levelname, _set_levelname
+    level_name = property(_get_level_name, _set_level_name)
+    del _get_level_name, _set_level_name
 
     def format(self, record):
         """Format the specified record with the formatter on the handler."""
@@ -626,7 +626,7 @@ class LoggerAdapter(object):
         return self.logger.isEnabledFor(level)
 
 
-BASIC_FORMAT = "%(levelname)s:%(name)s:%(message)s"
+BASIC_FORMAT = "%(level_name)s:%(name)s:%(message)s"
 
 def basicConfig(**kwargs):
     """
