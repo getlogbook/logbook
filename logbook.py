@@ -9,7 +9,6 @@ from __future__ import with_statement
 import os
 import sys
 import time
-import cStringIO
 import traceback
 import warnings
 import thread
@@ -243,18 +242,14 @@ class Handler(object):
             self.emit(record)
 
     def emit(self, record):
-        """
-        Do whatever it takes to actually log the specified logging record.
+        """Do whatever it takes to actually log the specified logging record.
 
         This version is intended to be implemented by subclasses and so
         raises a NotImplementedError.
         """
-        raise NotImplementedError('emit must be implemented '
-                                  'by Handler subclasses')
 
     def flush(self):
-        """
-        Ensure all logging output has been flushed.
+        """Ensure all logging output has been flushed.
 
         This version does nothing and is intended to be implemented by
         subclasses.
@@ -262,9 +257,7 @@ class Handler(object):
         pass
 
     def close(self):
-        """
-        Tidy up any resources used by the handler.
-        """
+        """Tidy up any resources used by the handler."""
         pass
 
     def handleError(self, record):
@@ -676,16 +669,6 @@ def basicConfig(**kwargs):
         if level is not None:
             root.setLevel(level)
 
-# Null handler
-
-class NullHandler(Handler):
-    """
-    This handler does nothing.
-    """
-    def emit(self, record):
-        pass
-
-# Warnings integration
 
 class log_warnings_to(object):
     """A context manager that copies and restores the warnings filter upon
