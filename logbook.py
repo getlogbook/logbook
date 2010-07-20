@@ -194,10 +194,10 @@ class SimpleFormatter(Formatter):
         self.format_string
 
     def format(self, record):
-        rv = [self.format_string.format(record)]
+        rv = self.format_string.format(record)
         exc_info = record.format_exception()
         if exc_info is not None:
-            rv.extend(exc_info.splitlines())
+            rv += u'\n' + exc_info
         return rv
 
 
