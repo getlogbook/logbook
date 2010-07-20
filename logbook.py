@@ -200,7 +200,7 @@ class SimpleFormatter(Formatter):
 def _level_name_property():
     def _get_level_name(self):
         return get_level_name(self.level)
-    def _set_level_name(self, value):
+    def _set_level_name(self, level):
         self.level = _lookup_level(level)
     return property(_get_level_name, _set_level_name)
 
