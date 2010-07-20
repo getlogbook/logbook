@@ -63,20 +63,6 @@ def _checkLevel(level):
 
 
 #---------------------------------------------------------------------------
-#   Thread-related stuff
-#---------------------------------------------------------------------------
-
-#
-#_lock is used to serialize access to shared data structures in this module.
-#This needs to be an RLock because fileConfig() creates and configures
-#Handlers, and so might arbitrary user threads. Since Handler code updates the
-#shared dictionary _handlers, it needs to acquire the lock. But if configuring,
-#the lock would already have been acquired - so we need an RLock.
-#The same argument applies to Loggers and Manager.loggerDict.
-#
-_lock = threading.RLock()
-
-#---------------------------------------------------------------------------
 #   The logging record
 #---------------------------------------------------------------------------
 
@@ -354,110 +340,8 @@ class BufferingFormatter(object):
             rv = rv + self.formatFooter(records)
         return rv
 
-#---------------------------------------------------------------------------
-#   Filter classes and functions
-#---------------------------------------------------------------------------
 
-class Filter(object):
-    """
-    Filter instances are used to perform arbitrary filtering of LogRecords.
-
-    Loggers and Handlers can optionally use Filter instances to filter
-    records as desired. The base filter class only allows events which are
-    below a certain point in the logger hierarchy. For example, a filter
-    initialized with "A.B" will allow events logged by loggers "A.B",
-    "A.B.C", "A.B.C.D", "A.B.D" etc. but not "A.BB", "B.A.B" etc. If
-    initialized with the empty string, all events are passed.
-    """
-    def __init__(self, name=''):
-        """
-        Initialize a filter.
-
-        Initialize with the name of the logger which, together with its
-        children, will have its events allowed through the filter. If no
-        name is specified, allow every event.
-        """
-        self.name = name
-        self.nlen = len(name)
-
-    def filter(self, record):
-        """
-        Determine if the specified record is to be logged.
-
-        Is the specified record to be logged? Returns 0 for no, nonzero for
-        yes. If deemed appropriate, the record may be modified in-place.
-        """
-        if self.nlen == 0:
-            return 1
-        elif self.name == record.name:
-            return 1
-        elif record.name.find(self.name, 0, self.nlen) != 0:
-            return 0
-        return (record.name[self.nlen] == ".")
-
-class Filterer(object):
-    """
-    A base class for loggers and handlers which allows them to share
-    common code.
-    """
-    def __init__(self):
-        """
-        Initialize the list of filters to be an empty list.
-        """
-        self.filters = []
-
-    def addFilter(self, filter):
-        """
-        Add the specified filter to this handler.
-        """
-        if not (filter in self.filters):
-            self.filters.append(filter)
-
-    def removeFilter(self, filter):
-        """
-        Remove the specified filter from this handler.
-        """
-        if filter in self.filters:
-            self.filters.remove(filter)
-
-    def filter(self, record):
-        """
-        Determine if a record is loggable by consulting all the filters.
-
-        The default is to allow the record to be logged; any filter can veto
-        this and the record is then dropped. Returns a zero value if a record
-        is to be dropped, else non-zero.
-        """
-        rv = 1
-        for f in self.filters:
-            if not f.filter(record):
-                rv = 0
-                break
-        return rv
-
-#---------------------------------------------------------------------------
-#   Handler classes and functions
-#---------------------------------------------------------------------------
-
-_handlers = weakref.WeakValueDictionary()  #map of handler names to handlers
-_handlerList = [] # added to allow handlers to be removed in reverse of order initialized
-
-def _removeHandlerRef(wr):
-    """
-    Remove a handler reference from the internal cleanup list.
-    """
-    with _lock:
-        if wr in _handlerList:
-            _handlerList.remove(wr)
-
-def _addHandlerRef(handler):
-    """
-    Add a handler to the internal cleanup list using a weak reference.
-    """
-    with _lock:
-        _handlerList.append(weakref.ref(handler, _removeHandlerRef))
-
-class Handler(Filterer):
+class Handler(object):
     """
     Handler instances dispatch logging events to specific destinations.
 
@@ -471,52 +355,10 @@ class Handler(Filterer):
         Initializes the instance - basically setting the formatter to None
         and the filter list to empty.
         """
-        Filterer.__init__(self)
-        self._name = None
+        self.name = None
         self.level = _checkLevel(level)
         self.formatter = None
-        # Add the handler to the global _handlerList (for cleanup on shutdown)
-        _addHandlerRef(self)
-        self.createLock()
-
-    def get_name(self):
-        return self._name
-
-    def set_name(self, name):
-        _acquireLock()
-        try:
-            if self._name in _handlers:
-                del _handlers[self._name]
-            self._name = name
-            if name:
-                _handlers[name] = self
-        finally:
-            _releaseLock()
-
-    name = property(get_name, set_name)
-
-    def createLock(self):
-        """
-        Acquire a thread lock for serializing access to the underlying I/O.
-        """
-        if thread:
-            self.lock = threading.RLock()
-        else:
-            self.lock = None
-
-    def acquire(self):
-        """
-        Acquire the I/O thread lock.
-        """
-        if self.lock:
-            self.lock.acquire()
-
-    def release(self):
-        """
-        Release the I/O thread lock.
-        """
-        if self.lock:
-            self.lock.release()
+        self.lock = threading.RLock()
 
     def setLevel(self, level):
         """
@@ -534,18 +376,9 @@ class Handler(Filterer):
         if self.formatter:
             fmt = self.formatter
         else:
+            # XXX what is the default formatter?
             fmt = _defaultFormatter
         return fmt.format(record)
-
-    def emit(self, record):
-        """
-        Do whatever it takes to actually log the specified logging record.
-
-        This version is intended to be implemented by subclasses and so
-        raises a NotImplementedError.
-        """
-        raise NotImplementedError('emit must be implemented '
-                                  'by Handler subclasses')
 
     def handle(self, record):
         """
@@ -558,18 +391,19 @@ class Handler(Filterer):
         """
         rv = self.filter(record)
         if rv:
-            self.acquire()
-            try:
+            with self.lock:
                 self.emit(record)
-            finally:
-                self.release()
         return rv
 
-    def setFormatter(self, fmt):
+    def emit(self, record):
         """
-        Set the formatter for this handler.
+        Do whatever it takes to actually log the specified logging record.
+
+        This version is intended to be implemented by subclasses and so
+        raises a NotImplementedError.
         """
-        self.formatter = fmt
+        raise NotImplementedError('emit must be implemented '
+                                  'by Handler subclasses')
 
     def flush(self):
         """
@@ -583,19 +417,8 @@ class Handler(Filterer):
     def close(self):
         """
         Tidy up any resources used by the handler.
-
-        This version removes the handler from an internal map of handlers,
-        _handlers, which is used for handler lookup by name. Subclasses
-        should ensure that this gets called from overridden close()
-        methods.
         """
-        #get the module data lock, as we're updating a shared structure.
-        _acquireLock()
-        try:    #unlikely to raise an exception, but you never know...
-            if self._name and self._name in _handlers:
-                del _handlers[self._name]
-        finally:
-            _releaseLock()
+        pass
 
     def handleError(self, record):
         """Handle errors which occur during an emit() call."""
@@ -804,7 +627,7 @@ class Manager(object):
 #   Logger classes and functions
 #---------------------------------------------------------------------------
 
-class Logger(Filterer):
+class Logger(object):
     """
     Instances of the Logger class represent a single logging channel. A
     "logging channel" indicates an area of an application. Exactly how an
@@ -823,7 +646,6 @@ class Logger(Filterer):
         """
         Initialize the logger with a name and an optional level.
         """
-        Filterer.__init__(self)
         self.name = name
         self.level = _checkLevel(level)
         self.parent = None
@@ -1326,29 +1148,6 @@ def disable(level):
     Disable all logging calls of severity 'level' and below.
     """
     root.manager.disable = level
-
-def shutdown(handlerList=_handlerList):
-    """
-    Perform any cleanup actions in the logging system (e.g. flushing
-    buffers).
-
-    Should be called at application exit.
-    """
-    for wr in reversed(handlerList[:]):
-        #errors might occur, for example, if files are locked
-        #we just ignore them if raiseExceptions is not set
-        try:
-            h = wr()
-            h.flush()
-            h.close()
-        except:
-            if raiseExceptions:
-                raise
-            #else, swallow
-
-#Let's try and shutdown automatically on application exit...
-import atexit
-atexit.register(shutdown)
 
 # Null handler
 
