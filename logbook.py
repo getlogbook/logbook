@@ -13,6 +13,7 @@ import traceback
 import warnings
 import thread
 import threading
+from itertools import chain
 
 from datetime import datetime
 
@@ -35,6 +36,13 @@ _level_names = {
 _reverse_level_names = dict((v, k) for (k, v) in _level_names.iteritems())
 _missing = object()
 _main_thread = thread.get_ident()
+
+_context_handler_lock = threading.Lock()
+_context_handlers = threading.local()
+
+
+def iter_context_handlers():
+    return getattr(_context_handlers, 'stack', ())[:]
 
 
 class cached_property(object):
@@ -245,6 +253,28 @@ class Handler(object):
     def close(self):
         """Tidy up any resources used by the handler."""
 
+    def push(self):
+        """Push the handler for the current context."""
+        with _context_handler_lock:
+            stack = getattr(_context_handlers, 'stack', None)
+            if stack is None:
+                _context_handlers.stack = [self]
+            else:
+                stack.append(self)
+
+    def pop(self):
+        """Pop the handler from the current context."""
+        with _context_handler_lock:
+            stack = getattr(_context_handlers, 'stack', None)
+            assert stack, 'no handlers on stack'
+            assert stack.pop() is self, 'poped unexpected handler'
+
+    def __enter__(self):
+        self.push()
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.pop()
+
     def handle_error(self, record, exc_info):
         """Handle errors which occur during an emit() call."""
         try:
@@ -286,7 +316,8 @@ class StreamHandler(Handler):
 
 
 class Logger(object):
-    """Instances of the Logger class represent a single logging channel. A
+    """Instances of the Logger class reself.level
+    present a single logging channel. A
     "logging channel" indicates an area of an application. Exactly how an
     "area" is defined is up to the application developer. Since an
     application can have any number of areas, logging channels are identified
@@ -303,10 +334,8 @@ class Logger(object):
     def __init__(self, name, level=NOTSET):
         self.name = name
         self.level = _lookup_level(level)
-        self.parent = None
-        self.propagate = 1
+        self.disabled = False
         self.handlers = []
-        self.disabled = 0
 
     level_name = _level_name_property()
 
@@ -319,7 +348,7 @@ class Logger(object):
 
         logger.debug("Houston, we have a %s", "thorny problem", exc_info=1)
         """
-        if self.isEnabledFor(DEBUG):
+        if self.is_enabled_for(DEBUG):
             self._log(DEBUG, msg, args, **kwargs)
 
     def info(self, msg, *args, **kwargs):
@@ -331,7 +360,7 @@ class Logger(object):
 
         logger.info("Houston, we have a %s", "interesting problem", exc_info=1)
         """
-        if self.isEnabledFor(INFO):
+        if self.is_enabled_for(INFO):
             self._log(INFO, msg, args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
@@ -343,10 +372,8 @@ class Logger(object):
 
         logger.warning("Houston, we have a %s", "bit of a problem", exc_info=1)
         """
-        if self.isEnabledFor(WARNING):
+        if self.is_enabled_for(WARNING):
             self._log(WARNING, msg, args, **kwargs)
-
-    warn = warning
 
     def error(self, msg, *args, **kwargs):
         """
@@ -357,7 +384,7 @@ class Logger(object):
 
         logger.error("Houston, we have a %s", "major problem", exc_info=1)
         """
-        if self.isEnabledFor(ERROR):
+        if self.is_enabled_for(ERROR):
             self._log(ERROR, msg, args, **kwargs)
 
     def exception(self, msg, *args):
@@ -375,7 +402,7 @@ class Logger(object):
 
         logger.critical("Houston, we have a %s", "major disaster", exc_info=1)
         """
-        if self.isEnabledFor(CRITICAL):
+        if self.is_enabled_for(CRITICAL):
             self._log(CRITICAL, msg, args, **kwargs)
 
     def log(self, level, msg, *args, **kwargs):
@@ -389,7 +416,7 @@ class Logger(object):
         """
         if not isinstance(level, int):
             raise TypeError("level must be an integer")
-        if self.isEnabledFor(level):
+        if self.is_enabled_for(level):
             self._log(level, msg, args, **kwargs)
 
     def _log(self, level, msg, args, kwargs=None, exc_info=None, extra=None):
@@ -405,73 +432,25 @@ class Logger(object):
             record.close()
 
     def handle(self, record):
-        """
-        Call the handlers for the specified record.
+        """Call the handlers for the specified record.
 
         This method is used for unpickled records received from a socket, as
         well as those created locally.
         """
         if not self.disabled:
-            self.callHandlers(record)
+            self.call_handlers(record)
 
-    def addHandler(self, hdlr):
-        """
-        Add the specified handler to this logger.
-        """
-        if not (hdlr in self.handlers):
-            self.handlers.append(hdlr)
+    def call_handlers(self, record):
+        """Pass a record to all relevant handlers."""
+        for hdlr in chain(c.handlers, iter_context_handlers()):
+            if record.level >= hdlr.level:
+                hdlr.handle(record)
 
-    def removeHandler(self, hdlr):
-        """
-        Remove the specified handler from this logger.
-        """
-        if hdlr in self.handlers:
-            #hdlr.close()
-            self.handlers.remove(hdlr)
-
-    def callHandlers(self, record):
-        """
-        Pass a record to all relevant handlers.
-
-        Loop through all handlers for this logger and its parents in the
-        logger hierarchy. If no handler was found, output a one-off error
-        message to sys.stderr. Stop searching up the hierarchy whenever a
-        logger with the "propagate" attribute set to zero is found - that
-        will be the last logger whose handlers are called.
-        """
-        c = self
-        found = 0
-        while c:
-            for hdlr in c.handlers:
-                found = found + 1
-                if record.level >= hdlr.level:
-                    hdlr.handle(record)
-            if not c.propagate:
-                c = None    #break out
-            else:
-                c = c.parent
-
-    def getEffectiveLevel(self):
-        """
-        Get the effective level for this logger.
-
-        Loop through this logger and its parents in the logger hierarchy,
-        looking for a non-zero logging level. Return the first one found.
-        """
-        logger = self
-        while logger:
-            if logger.level:
-                return logger.level
-            logger = logger.parent
-        return NOTSET
-
-    def isEnabledFor(self, level):
+    def is_enabled_for(self, level):
         """
         Is this logger enabled for level 'level'?
         """
-        #if self.manager.disable >= level:
-        #    return 0
-        return level >= self.getEffectiveLevel()
+        return level >= self.level
 
 # b/w compat
 getLogger = Logger
@@ -567,11 +546,11 @@ class LoggerAdapter(object):
         msg, kwargs = self.process(msg, kwargs)
         self.logger.log(level, msg, *args, **kwargs)
 
-    def isEnabledFor(self, level):
+    def is_enabled_for(self, level):
         """
         See if the underlying logger is enabled for the specified level.
         """
-        return self.logger.isEnabledFor(level)
+        return self.logger.is_enabled_for(level)
 
 
 BASIC_FORMAT = "%(level_name)s:%(name)s:%(message)s"
@@ -664,3 +643,15 @@ class log_warnings_to(object):
         if self._save_filters:
             warnings.filters = self._filters
         warnings.showwarning = self._showwarning
+
+'''
+
+def handle_request(request):
+    handler = logbook.Handler()
+    handler.add_processor(AddRequestData(request))
+    handler.push()
+    try:
+        ...
+    finally:
+        handler.pop()
+'''
