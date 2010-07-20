@@ -33,7 +33,7 @@ _level_names = {
     DEBUG:      'DEBUG',
     NOTSET:     'NOTSET'
 }
-_reverse_level_names = dict((v, k) for k, v in _level_names.iteritems())
+_reverse_level_names = dict((v, k) for (k, v) in _level_names.iteritems())
 _missing = object()
 _main_thread = thread.get_ident()
 
@@ -367,8 +367,7 @@ class Handler(object):
     """
     def __init__(self, level=NOTSET):
         """
-        Initializes the instance - basically setting the formatter to None
-        and the filter list to empty.
+        Initializes the instance - basically setting the formatter to None.
         """
         self.name = None
         self.level = _lookup_level(level)
@@ -380,6 +379,10 @@ class Handler(object):
         Set the logging level of this handler.
         """
         self.level = _lookup_level(level)
+
+    def setFormatter(self, formatter):
+        # b/w comp
+        self.formatter = formatter
 
     def format(self, record):
         """
@@ -397,18 +400,13 @@ class Handler(object):
 
     def handle(self, record):
         """
-        Conditionally emit the specified logging record.
+        Emit the specified logging record.
 
-        Emission depends on filters which may have been added to the handler.
         Wrap the actual emission of the record with acquisition/release of
-        the I/O thread lock. Returns whether the filter passed the record for
-        emission.
+        the I/O thread lock.
         """
-        rv = self.filter(record)
-        if rv:
-            with self.lock:
-                self.emit(record)
-        return rv
+        with self.lock:
+            self.emit(record)
 
     def emit(self, record):
         """
@@ -631,9 +629,9 @@ class Logger(object):
         Call the handlers for the specified record.
 
         This method is used for unpickled records received from a socket, as
-        well as those created locally. Logger-level filtering is applied.
+        well as those created locally.
         """
-        if (not self.disabled) and self.filter(record):
+        if not self.disabled:
             self.callHandlers(record)
 
     def addHandler(self, hdlr):
@@ -649,11 +647,7 @@ class Logger(object):
         """
         if hdlr in self.handlers:
             #hdlr.close()
-            hdlr.acquire()
-            try:
-                self.handlers.remove(hdlr)
-            finally:
-                hdlr.release()
+            self.handlers.remove(hdlr)
 
     def callHandlers(self, record):
         """
@@ -695,9 +689,12 @@ class Logger(object):
         """
         Is this logger enabled for level 'level'?
         """
-        if self.manager.disable >= level:
-            return 0
+        #if self.manager.disable >= level:
+        #    return 0
         return level >= self.getEffectiveLevel()
+
+# b/w compat
+getLogger = Logger
 
 
 class LoggerAdapter(object):
