@@ -382,8 +382,6 @@ class Logger(object):
         if self.isEnabledFor(CRITICAL):
             self._log(CRITICAL, msg, args, **kwargs)
 
-    fatal = critical
-
     def log(self, level, msg, *args, **kwargs):
         """
         Log 'msg % args' with the integer severity 'level'.
