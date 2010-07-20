@@ -33,7 +33,7 @@ _level_names = {
     DEBUG:      'DEBUG',
     NOTSET:     'NOTSET'
 }
-_reverse_level_names = dict((v, k) for k,  in _level_names.iteritems())
+_reverse_level_names = dict((v, k) for k, v in _level_names.iteritems())
 
 
 class cached_property(object):
@@ -107,11 +107,23 @@ class LogRecord(object):
 
     @cached_property
     def calling_frame(self):
-        frm = self.frame:
+        frm = self.frame
         globs = globals()
         while frm is not None and frm.f_globals is globs:
             frm = frm.f_back
         return frm
+
+    @cached_property
+    def func_name(self):
+        cf = self.calling_frame
+        if cf is not None:
+            return cf.f_code.co_name
+
+    @cached_property
+    def module(self):
+        cf = self.calling_frame
+        if cf is not None:
+            return cf.f_globals.get('__name__')
 
 
 #---------------------------------------------------------------------------
