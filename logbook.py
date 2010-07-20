@@ -26,13 +26,14 @@ DEBUG = 10
 NOTSET = 0
 
 _levelNames = {
-    CRITICAL : 'CRITICAL',
-    ERROR : 'ERROR',
-    WARNING : 'WARNING',
-    INFO : 'INFO',
-    DEBUG : 'DEBUG',
-    NOTSET : 'NOTSET'
+    CRITICAL:   'CRITICAL',
+    ERROR:      'ERROR',
+    WARNING:    'WARNING',
+    INFO:       'INFO',
+    DEBUG:      'DEBUG',
+    NOTSET:     'NOTSET'
 }
+
 
 def getLevelName(level):
     """
@@ -156,18 +157,8 @@ class LogRecord(object):
         Return the message for this LogRecord after merging any user-supplied
         arguments with the message.
         """
-        if not _unicode: #if no unicode support...
-            msg = str(self.msg)
-        else:
-            msg = self.msg
-            if not isinstance(msg, basestring):
-                try:
-                    msg = str(self.msg)
-                except UnicodeError:
-                    msg = self.msg      #Defer encoding till later
-        if self.args:
-            msg = msg % self.args
-        return msg
+        # TODO: introduce alternative means of string formatting
+        return self.msg % self.args
 
 def makeLogRecord(dict):
     """
@@ -658,89 +649,12 @@ class StreamHandler(Handler):
         try:
             msg = self.format(record)
             stream = self.stream
-            fs = "%s\n"
-            if not _unicode: #if no unicode support...
-                stream.write(fs % msg)
-            else:
-                try:
-                    if (isinstance(msg, unicode) and
-                        getattr(stream, 'encoding', None)):
-                        ufs = fs.decode(stream.encoding)
-                        try:
-                            stream.write(ufs % msg)
-                        except UnicodeEncodeError:
-                            #Printing to terminals sometimes fails. For example,
-                            #with an encoding of 'cp1251', the above write will
-                            #work if written to a stream opened or wrapped by
-                            #the codecs module, but fail when writing to a
-                            #terminal even when the codepage is set to cp1251.
-                            #An extra encoding step seems to be needed.
-                            stream.write((ufs % msg).encode(stream.encoding))
-                    else:
-                        stream.write(fs % msg)
-                except UnicodeError:
-                    stream.write(fs % msg.encode("UTF-8"))
+            enc = getattr(stream, 'encoding', None) or 'utf-8'
+            stream.write(('%s\n' % msg).encode(enc, 'replace'))
             self.flush()
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
+        except Exception:
             self.handleError(record)
 
-class FileHandler(StreamHandler):
-    """
-    A handler class which writes formatted logging records to disk files.
-    """
-    def __init__(self, filename, mode='a', encoding=None, delay=0):
-        """
-        Open the specified file and use it as the stream for logging.
-        """
-        #keep the absolute path, otherwise derived classes which use this
-        #may come a cropper when the current directory changes
-        if codecs is None:
-            encoding = None
-        self.baseFilename = os.path.abspath(filename)
-        self.mode = mode
-        self.encoding = encoding
-        if delay:
-            #We don't open the stream, but we still need to call the
-            #Handler constructor to set level, formatter, lock etc.
-            Handler.__init__(self)
-            self.stream = None
-        else:
-            StreamHandler.__init__(self, self._open())
-
-    def close(self):
-        """
-        Closes the stream.
-        """
-        if self.stream:
-            self.flush()
-            if hasattr(self.stream, "close"):
-                self.stream.close()
-            StreamHandler.close(self)
-            self.stream = None
-
-    def _open(self):
-        """
-        Open the current base file with the (original) mode and encoding.
-        Return the resulting stream.
-        """
-        if self.encoding is None:
-            stream = open(self.baseFilename, self.mode)
-        else:
-            stream = codecs.open(self.baseFilename, self.mode, self.encoding)
-        return stream
-
-    def emit(self, record):
-        """
-        Emit a record.
-
-        If the stream was not opened because 'delay' was specified in the
-        constructor, open it before calling the superclass's emit.
-        """
-        if self.stream is None:
-            self.stream = self._open()
-        StreamHandler.emit(self, record)
 
 #---------------------------------------------------------------------------
 #   Manager classes and functions
