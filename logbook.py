@@ -224,7 +224,7 @@ class Handler(object):
 
     def format(self, record):
         """Format the specified record with the formatter on the handler."""
-        fmt = self.formatter:
+        fmt = self.formatter
         if fmt is not None:
             return fmt.format(record)
 
