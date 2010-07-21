@@ -31,8 +31,7 @@ class BasicAPITestCase(LogbookTestCase):
                 record.extra['ip'] = client_ip
 
         custom_log = CustomLogger('awesome logger')
-        handler = logbook.TestHandler()
-        handler.formatter = logbook.SimpleFormatter(
+        handler = logbook.TestHandler(format_string=
             '[{record.level_name}] {record.logger_name}: '
             '{record.message} [{record.extra[ip]}]')
 
@@ -58,10 +57,8 @@ class HandlerTestCase(LogbookTestCase):
         LogbookTestCase.tearDown(self)
 
     def test_file_handler(self):
-        formatter = logbook.SimpleFormatter(
+        handler = logbook.FileHandler(self.filename, format_string=
             '{record.level_name}:{record.logger_name}:{record.message}')
-        handler = logbook.FileHandler(self.filename)
-        handler.formatter = formatter
         with handler.contextbound():
             self.log.warn('warning message')
         handler.close()
@@ -70,10 +67,8 @@ class HandlerTestCase(LogbookTestCase):
                              'WARNING:testlogger:warning message\n')
 
     def test_lazy_file_handler(self):
-        formatter = logbook.SimpleFormatter(
+        handler = logbook.LazyFileHandler(self.filename, format_string=
             '{record.level_name}:{record.logger_name}:{record.message}')
-        handler = logbook.LazyFileHandler(self.filename)
-        handler.formatter = formatter
         self.assertFalse(os.path.isfile(self.filename))
         with handler.contextbound():
             self.log.warn('warning message')

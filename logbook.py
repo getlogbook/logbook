@@ -199,31 +199,6 @@ class LogRecord(object):
             return rv.rstrip()
 
 
-class Formatter(object):
-
-    def format(self, record):
-        pass
-
-
-class SimpleFormatter(Formatter):
-    """
-    The SimpleFormatter formats the record according to a single format string
-    in str.format() style.  You can access all record attributes using
-    ``{record.attribute}`` in the format string.
-    """
-
-    def __init__(self, format_string=u'[{record.time:%Y-%m-%d %H:%M}] '
-                 u'{record.level_name}: {record.name}: {record.message}'):
-        self.format_string = format_string
-
-    def format(self, record):
-        rv = self.format_string.format(record=record)
-        exc_info = record.format_exception()
-        if exc_info is not None:
-            rv += u'\n' + exc_info
-        return rv
-
-
 def _level_name_property():
     def _get_level_name(self):
         return get_level_name(self.level)
@@ -259,15 +234,8 @@ class Handler(object):
     def __init__(self, level=NOTSET):
         self.name = None
         self.level = lookup_level(level)
-        self.formatter = None
 
     level_name = _level_name_property()
-
-    def format(self, record):
-        """Format the specified record with the formatter on the handler."""
-        fmt = self.formatter
-        if fmt is not None:
-            return fmt.format(record)
 
     def handle(self, record):
         """Emits and falls back."""
@@ -334,14 +302,31 @@ class Handler(object):
             pass
 
 
-class StreamHandler(Handler):
+class StringFormatHandlerMixin(object):
+
+    default_format_string = (
+        u'[{record.time:%Y-%m-%d %H:%M}] '
+        u'{record.level_name}: {record.name}: {record.message}'
+    )
+
+    def __init__(self, format_string):
+        if format_string is None:
+            format_string = self.default_format_string
+        self.format_string = format_string
+
+    def format(self, record):
+        return self.format_string.format(record=record)
+
+
+class StreamHandler(Handler, StringFormatHandlerMixin):
     """a handler class which writes logging records, appropriately formatted,
     to a stream. note that this class does not close the stream, as sys.stdout
     or sys.stderr may be used.
     """
 
-    def __init__(self, stream=None, level=NOTSET):
+    def __init__(self, stream=None, level=NOTSET, format_string=None):
         Handler.__init__(self, level)
+        StringFormatHandlerMixin.__init__(self, format_string)
         if stream is None:
             stream = sys.stderr
         self.stream = stream
@@ -360,21 +345,21 @@ class StreamHandler(Handler):
     def emit(self, record):
         with self.lock:
             msg = self.format(record)
-            stream = self.stream
-            enc = getattr(stream, 'encoding', None) or 'utf-8'
-            stream.write(('%s\n' % msg).encode(enc, 'replace'))
+            enc = getattr(self.stream, 'encoding', None) or 'utf-8'
+            self.stream.write(('%s\n' % msg).encode(enc, 'replace'))
             self.flush()
 
 
 class FileHandler(StreamHandler):
     """A handler that does the task of opening and closing files for you."""
 
-    def __init__(self, filename, mode='a', encoding=None, level=NOTSET):
+    def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
+                 format_string=None):
         if encoding is not None:
             stream = open(filename, mode)
         else:
             stream = codecs.open(filename, mode, encoding)
-        StreamHandler.__init__(self, stream, level)
+        StreamHandler.__init__(self, stream, level, format_string)
 
     def close(self):
         self.flush()
@@ -385,8 +370,9 @@ class LazyFileHandler(StreamHandler):
     """A file handler that does not open the file until a record is actually
     written."""
 
-    def __init__(self, filename, mode='a', encoding=None, level=NOTSET):
-        StreamHandler.__init__(self, None, level)
+    def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
+                 format_string=None):
+        StreamHandler.__init__(self, None, level, format_string)
         self._filename = filename
         self._mode = mode
         self._encoding = encoding
@@ -409,14 +395,13 @@ class LazyFileHandler(StreamHandler):
         StreamHandler.emit(self, record)
 
 
-class TestHandler(Handler):
+class TestHandler(Handler, StringFormatHandlerMixin):
     """Like a stream handler but keeps the values in memory."""
+    default_format_string = u'[{record.level_name}] {record.logger_name}: {record.message}'
 
-    def __init__(self, level=NOTSET):
+    def __init__(self, level=NOTSET, format_string=None):
         Handler.__init__(self, level)
-        self.formatter = SimpleFormatter(
-            u'[{record.level_name}] {record.logger_name}: {record.message}'
-        )
+        StringFormatHandlerMixin.__init__(self, format_string)
         self.records = []
         self._formatted_records = []
         self._formatted_record_cache = []
@@ -435,23 +420,23 @@ class TestHandler(Handler):
 
     @property
     def has_criticals(self):
-        return any(r.level >= CRITICAL for r in self.records)
+        return any(r.level == CRITICAL for r in self.records)
 
     @property
     def has_errors(self):
-        return any(ERROR <= r.level < CRITICAL for r in self.records)
+        return any(r.level == ERRORS for r in self.records)
 
     @property
     def has_warnings(self):
-        return any(WARNING <= r.level < ERROR for r in self.records)
+        return any(r.level == WARNING for r in self.records)
 
     @property
     def has_infos(self):
-        return any(INFO <= r.level < WARNING for r in self.records)
+        return any(r.level == INFO for r in self.records)
 
     @property
     def has_debugs(self):
-        return any(DEBUG <= r.level < INFO for r in self.records)
+        return any(r.level == DEBUG for r in self.records)
 
     def has_critical(self, *args, **kwargs):
         kwargs['level'] = CRITICAL
