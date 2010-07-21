@@ -414,23 +414,19 @@ class TestHandler(Handler):
 
     @property
     def has_errors(self):
-        return any(r.level >= ERROR and r.level < CRITICAL
-                   for r in self.records)
+        return any(ERROR <= r.level < CRITICAL for r in self.records)
 
     @property
     def has_warnings(self):
-        return any(r.level >= WARNING and r.level < ERROR
-                   for r in self.records)
+        return any(WARNING <= r.level < ERROR for r in self.records)
 
     @property
     def has_infos(self):
-        return any(r.level >= INFO and r.level < WARNING
-                   for r in self.records)
+        return any(INFO <= r.level < WARNING for r in self.records)
 
     @property
     def has_debugs(self):
-        return any(r.level >= DEBUG and r.level < INFO
-                   for r in self.records)
+        return any(DEBUG <= r.level < INFO for r in self.records)
 
     def has_critical(self, *args, **kwargs):
         kwargs['min_level'] = CRITICAL
