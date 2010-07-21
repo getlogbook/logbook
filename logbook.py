@@ -540,7 +540,7 @@ class LoggerAdapter(object):
         msg, kwargs = self.process(msg, kwargs)
         self.logger.info(msg, *args, **kwargs)
 
-    def warning(self, msg, *args, **kwargs):
+    def warn(self, msg, *args, **kwargs):
         msg, kwargs = self.process(msg, kwargs)
         self.logger.warning(msg, *args, **kwargs)
 
