@@ -82,6 +82,12 @@ def _lookup_level(level):
         raise LookupError('unknown level name %s' % level)
 
 
+class ExtraDict(dict):
+
+    def __missing__(self, key):
+        return u''
+
+
 class LogRecord(object):
     """A LogRecord instance represents an event being logged.
 
@@ -101,7 +107,7 @@ class LogRecord(object):
         self.kwargs = kwargs or {}
         self.level = level
         self.exc_info = exc_info
-        self.extra = extra or {}
+        self.extra = ExtraDict(extra or ())
         self.frame = frame
         self.thread = thread.get_ident()
         self.process = os.getpid()

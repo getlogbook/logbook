@@ -30,17 +30,19 @@ class BasicAPITestCase(LogbookTestCase):
             def process_record(self, record):
                 record.extra['ip'] = client_ip
 
-        self.log = CustomLogger('awesome logger')
+        custom_log = CustomLogger('awesome logger')
         handler = logbook.TestHandler()
         handler.formatter = logbook.SimpleFormatter(
             '[{record.level_name}] {record.logger_name}: '
             '{record.message} [{record.extra[ip]}]')
 
         with handler.contextbound(bubble=False):
+            custom_log.warn('Too many sounds')
             self.log.warn('"Music" playing')
 
         self.assertEqual(handler.formatted_records, [
-            '[WARNING] awesome logger: "Music" playing [127.0.0.1]'
+            '[WARNING] awesome logger: Too many sounds [127.0.0.1]',
+            '[WARNING] testlogger: "Music" playing []'
         ])
 
 
