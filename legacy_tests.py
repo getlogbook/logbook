@@ -30,6 +30,7 @@ import cStringIO
 import gc
 import json
 import os
+import io
 import re
 import socket
 #from SocketServer import ThreadingTCPServer, StreamRequestHandler
@@ -55,27 +56,11 @@ class BaseTest(unittest.TestCase):
         """Setup the default logging stream to an internal StringIO instance,
         so that we can examine log output as we want."""
         self.saved_level_names = logging._level_names.copy()
-
-        self.root_logger = logging.getLogger("")
-        self.original_logging_level = self.root_logger.getEffectiveLevel()
-
-        self.stream = cStringIO.StringIO()
-        self.root_logger.level = logging.DEBUG
-        self.root_hdlr = logging.StreamHandler(self.stream)
-        self.root_formatter = logging.SimpleFormatter(self.log_format)
-        self.root_hdlr.formatter = self.root_formatter
-        self.root_logger.addHandler(self.root_hdlr)
+        self.stream = io.StringIO()
 
     def tearDown(self):
         """Remove our logging stream, and restore the original logging
         level."""
-        self.stream.close()
-        self.root_logger.removeHandler(self.root_hdlr)
-        while self.root_logger.handlers:
-            h = self.root_logger.handlers[0]
-            self.root_logger.removeHandler(h)
-            h.close()
-        self.root_logger.level = self.original_logging_level
         logging._level_names.clear()
         logging._level_names.update(self.saved_level_names)
 
@@ -116,11 +101,11 @@ class BuiltinLevelsTest(BaseTest):
         #Logging levels in a flat logger namespace.
         m = self.next_message
 
-        ERR = logging.getLogger("ERR")
+        ERR = logging.Logger("ERR")
         ERR.level = logging.ERROR
-        INF = logging.getLogger("INF")
+        INF = logging.Logger("INF")
         INF.level = logging.INFO
-        DEB = logging.getLogger("DEB")
+        DEB = logging.Logger("DEB")
         DEB.level = logging.DEBUG
 
         # These should log.
@@ -163,9 +148,9 @@ class BuiltinLevelsTest(BaseTest):
         # Logging levels in a nested namespace, all explicitly set.
         m = self.next_message
 
-        INF = logging.getLogger("INF")
+        INF = logging.Logger("INF")
         INF.level = logging.INFO
-        INF_ERR  = logging.getLogger("INF.ERR")
+        INF_ERR  = logging.Logger("INF.ERR")
         INF_ERR.level = logging.ERROR
 
         # These should log.
@@ -186,13 +171,13 @@ class BuiltinLevelsTest(BaseTest):
         #Logging levels in a nested namespace, inherited from parent loggers.
         m = self.next_message
 
-        INF = logging.getLogger("INF")
+        INF = logging.Logger("INF")
         INF.level = logging.INFO
-        INF_ERR  = logging.getLogger("INF.ERR")
+        INF_ERR  = logging.Logger("INF.ERR")
         INF_ERR.level = logging.ERROR
-        INF_UNDEF = logging.getLogger("INF.UNDEF")
-        INF_ERR_UNDEF = logging.getLogger("INF.ERR.UNDEF")
-        UNDEF = logging.getLogger("UNDEF")
+        INF_UNDEF = logging.Logger("INF.UNDEF")
+        INF_ERR_UNDEF = logging.Logger("INF.ERR.UNDEF")
+        UNDEF = logging.Logger("UNDEF")
 
         # These should log.
         INF_UNDEF.log(logging.CRITICAL, m())
@@ -221,9 +206,9 @@ class BuiltinLevelsTest(BaseTest):
         # Logging levels when some parent does not exist yet.
         m = self.next_message
 
-        INF = logging.getLogger("INF")
-        GRANDCHILD = logging.getLogger("INF.BADPARENT.UNDEF")
-        CHILD = logging.getLogger("INF.BADPARENT")
+        INF = logging.Logger("INF")
+        GRANDCHILD = logging.Logger("INF.BADPARENT.UNDEF")
+        CHILD = logging.Logger("INF.BADPARENT")
         INF.level = logging.INFO
 
         # These should log.
@@ -302,7 +287,7 @@ class CustomLevelsTest(BaseTest):
 
     def test_logger_filter(self):
         # Filter at logger level.
-        self.root_logger.setLevel(VERBOSE)
+        self.root_logger.set_level(VERBOSE)
         # Levels >= 'Verbose' are good.
         self.log_at_all_levels(self.root_logger)
         self.assert_log_lines([
@@ -316,7 +301,7 @@ class CustomLevelsTest(BaseTest):
 
     def test_handler_filter(self):
         # Filter at handler level.
-        self.root_logger.handlers[0].setLevel(SOCIABLE)
+        self.root_logger.handlers[0].set_level(SOCIABLE)
         try:
             # Levels >= 'Sociable' are good.
             self.log_at_all_levels(self.root_logger)
@@ -328,7 +313,7 @@ class CustomLevelsTest(BaseTest):
                 ('Silent', '10'),
             ])
         finally:
-            self.root_logger.handlers[0].setLevel(logging.NOTSET)
+            self.root_logger.handlers[0].set_level(logging.NOTSET)
 '''
 
 class MemoryHandlerTest(BaseTest):
@@ -342,7 +327,7 @@ class MemoryHandlerTest(BaseTest):
         BaseTest.setUp(self)
         self.mem_hdlr = logging.handlers.MemoryHandler(10, logging.WARNING,
                                                         self.root_hdlr)
-        self.mem_logger = logging.getLogger('mem')
+        self.mem_logger = logging.Logger('mem')
         self.mem_logger.propagate = 0
         self.mem_logger.addHandler(self.mem_hdlr)
 
@@ -535,7 +520,7 @@ class ConfigFileTest(BaseTest):
         # A simple config file which overrides the default settings.
         with captured_stdout() as output:
             self.apply_config(self.config0)
-            logger = logging.getLogger('')
+            logger = logging.Logger('')
             # Won't output anything
             logger.info(self.next_message())
             # Outputs a message
@@ -550,7 +535,7 @@ class ConfigFileTest(BaseTest):
         # A config file defining a sub-parser as well.
         with captured_stdout() as output:
             self.apply_config(config)
-            logger = logging.getLogger("compiler.parser")
+            logger = logging.Logger("compiler.parser")
             # Both will output a message
             logger.info(self.next_message())
             logger.error(self.next_message())
@@ -573,7 +558,7 @@ class ConfigFileTest(BaseTest):
         # A config file specifying a custom formatter class.
         with captured_stdout() as output:
             self.apply_config(self.config4)
-            logger = logging.getLogger('')
+            logger = logging.Logger('')
             try:
                 raise RuntimeError()
             except RuntimeError:
@@ -694,7 +679,7 @@ class SocketHandlerTest(BaseTest):
 
     def test_output(self):
         # The log message sent to the SocketHandler is properly received.
-        logger = logging.getLogger("tcp")
+        logger = logging.Logger("tcp")
         logger.error("spam")
         logger.debug("eggs")
         self.assertEquals(self.get_output(), "spam\neggs\n")
@@ -731,11 +716,9 @@ class MemoryTest(BaseTest):
     def test_persistent_loggers(self):
         # Logger objects are persistent and retain their configuration, even
         #  if visible references are destroyed.
-        self.root_logger.setLevel(logging.INFO)
-        foo = logging.getLogger("foo")
+        foo = logging.Logger("foo")
         self._watch_for_survival(foo)
-        foo.setLevel(logging.DEBUG)
-        self.root_logger.debug(self.next_message())
+        foo.level = logging.DEBUG
         foo.debug(self.next_message())
         self.assert_log_lines([
             ('foo', 'DEBUG', '2'),
@@ -744,7 +727,7 @@ class MemoryTest(BaseTest):
         # foo has survived.
         self._assertTruesurvival()
         # foo has retained its settings.
-        bar = logging.getLogger("foo")
+        bar = logging.Logger("foo")
         bar.debug(self.next_message())
         self.assert_log_lines([
             ('foo', 'DEBUG', '2'),
@@ -755,7 +738,7 @@ class MemoryTest(BaseTest):
 class EncodingTest(BaseTest):
     def test_encoding_plain_file(self):
         # In Python 2.x, a plain file object is treated as having no encoding.
-        log = logging.getLogger("test")
+        log = logging.Logger("test")
         fn = tempfile.mktemp(".log")
         # the non-ascii data we write to the log.
         data = "foo\x80"
@@ -779,7 +762,7 @@ class EncodingTest(BaseTest):
                 os.remove(fn)
 
     def test_encoding_cyrillic_unicode(self):
-        log = logging.getLogger("test")
+        log = logging.Logger("test")
         #Get a message in Unicode: Do svidanya in Cyrillic (meaning goodbye)
         message = u'\u0434\u043e \u0441\u0432\u0438\u0434\u0430\u043d\u0438\u044f'
         #Ensure it's written in a Cyrillic encoding
@@ -809,7 +792,7 @@ class WarningsTest(object):#BaseTest):
                 warnings.filterwarnings("always", category=UserWarning)
                 file = cStringIO.StringIO()
                 h = logging.StreamHandler(file)
-                logger = logging.getLogger("py.warnings")
+                logger = logging.Logger("py.warnings")
                 logger.addHandler(h)
                 warnings.warn("I'm warning you...")
                 logger.removeHandler(h)
@@ -1361,7 +1344,7 @@ class ConfigDictTest(BaseTest):
         # A simple config which overrides the default settings.
         with captured_stdout() as output:
             self.apply_config(self.config0)
-            logger = logging.getLogger('')
+            logger = logging.Logger('')
             # Won't output anything
             logger.info(self.next_message())
             # Outputs a message
@@ -1376,7 +1359,7 @@ class ConfigDictTest(BaseTest):
         # A config defining a sub-parser as well.
         with captured_stdout() as output:
             self.apply_config(config)
-            logger = logging.getLogger("compiler.parser")
+            logger = logging.Logger("compiler.parser")
             # Both will output a message
             logger.info(self.next_message())
             logger.error(self.next_message())
@@ -1407,7 +1390,7 @@ class ConfigDictTest(BaseTest):
         # A config specifying a custom formatter class.
         with captured_stdout() as output:
             self.apply_config(self.config4)
-            #logger = logging.getLogger(')
+            #logger = logging.Logger(')
             try:
                 raise RuntimeError()
             except RuntimeError:
@@ -1422,7 +1405,7 @@ class ConfigDictTest(BaseTest):
         # A config specifying a custom formatter class.
         with captured_stdout() as output:
             self.apply_config(self.config4a)
-            #logger = logging.getLogger()
+            #logger = logging.Logger()
             try:
                 raise RuntimeError()
             except RuntimeError:
@@ -1442,7 +1425,7 @@ class ConfigDictTest(BaseTest):
     def test_config7_ok(self):
         with captured_stdout() as output:
             self.apply_config(self.config1)
-            logger = logging.getLogger("compiler.parser")
+            logger = logging.Logger("compiler.parser")
             # Both will output a message
             logger.info(self.next_message())
             logger.error(self.next_message())
@@ -1454,9 +1437,9 @@ class ConfigDictTest(BaseTest):
             self.assert_log_lines([])
         with captured_stdout() as output:
             self.apply_config(self.config7)
-            logger = logging.getLogger("compiler.parser")
+            logger = logging.Logger("compiler.parser")
             self.assertTrue(logger.disabled)
-            logger = logging.getLogger("compiler.lexer")
+            logger = logging.Logger("compiler.lexer")
             # Both will output a message
             logger.info(self.next_message())
             logger.error(self.next_message())
@@ -1471,7 +1454,7 @@ class ConfigDictTest(BaseTest):
     def test_config_8_ok(self):
         with captured_stdout() as output:
             self.apply_config(self.config1)
-            logger = logging.getLogger("compiler.parser")
+            logger = logging.Logger("compiler.parser")
             # Both will output a message
             logger.info(self.next_message())
             logger.error(self.next_message())
@@ -1483,12 +1466,12 @@ class ConfigDictTest(BaseTest):
             self.assert_log_lines([])
         with captured_stdout() as output:
             self.apply_config(self.config8)
-            logger = logging.getLogger("compiler.parser")
+            logger = logging.Logger("compiler.parser")
             self.assertFalse(logger.disabled)
             # Both will output a message
             logger.info(self.next_message())
             logger.error(self.next_message())
-            logger = logging.getLogger("compiler.lexer")
+            logger = logging.Logger("compiler.lexer")
             # Both will output a message
             logger.info(self.next_message())
             logger.error(self.next_message())
@@ -1504,7 +1487,7 @@ class ConfigDictTest(BaseTest):
     def test_config_9_ok(self):
         with captured_stdout() as output:
             self.apply_config(self.config9)
-            logger = logging.getLogger("compiler.parser")
+            logger = logging.Logger("compiler.parser")
             #Nothing will be output since both handler and logger are set to WARNING
             logger.info(self.next_message())
             self.assert_log_lines([], stream=output)
@@ -1522,15 +1505,15 @@ class ConfigDictTest(BaseTest):
     def test_config_10_ok(self):
         with captured_stdout() as output:
             self.apply_config(self.config10)
-            logger = logging.getLogger("compiler.parser")
+            logger = logging.Logger("compiler.parser")
             logger.warning(self.next_message())
-            logger = logging.getLogger('compiler')
+            logger = logging.Logger('compiler')
             #Not output, because filtered
             logger.warning(self.next_message())
-            logger = logging.getLogger('compiler.lexer')
+            logger = logging.Logger('compiler.lexer')
             #Not output, because filtered
             logger.warning(self.next_message())
-            logger = logging.getLogger("compiler.parser.codegen")
+            logger = logging.Logger("compiler.parser.codegen")
             #Output, as not filtered
             logger.error(self.next_message())
             self.assert_log_lines([
@@ -1577,15 +1560,15 @@ class ConfigDictTest(BaseTest):
     def test_listen_config_10_ok(self):
         with captured_stdout() as output:
             self.setup_via_listener(json.dumps(self.config10))
-            logger = logging.getLogger("compiler.parser")
+            logger = logging.Logger("compiler.parser")
             logger.warning(self.next_message())
-            logger = logging.getLogger('compiler')
+            logger = logging.Logger('compiler')
             #Not output, because filtered
             logger.warning(self.next_message())
-            logger = logging.getLogger('compiler.lexer')
+            logger = logging.Logger('compiler.lexer')
             #Not output, because filtered
             logger.warning(self.next_message())
-            logger = logging.getLogger("compiler.parser.codegen")
+            logger = logging.Logger("compiler.parser.codegen")
             #Output, as not filtered
             logger.error(self.next_message())
             self.assert_log_lines([
@@ -1596,7 +1579,7 @@ class ConfigDictTest(BaseTest):
     def test_listen_config_1_ok(self):
         with captured_stdout() as output:
             self.setup_via_listener(textwrap.dedent(ConfigFileTest.config1))
-            logger = logging.getLogger("compiler.parser")
+            logger = logging.Logger("compiler.parser")
             # Both will output a message
             logger.info(self.next_message())
             logger.error(self.next_message())
@@ -1606,23 +1589,6 @@ class ConfigDictTest(BaseTest):
             ], stream=output)
             # Original logger output is empty.
             self.assert_log_lines([])
-
-
-class ChildLoggerTest(BaseTest):
-    def test_child_loggers(self):
-        r = logging.getLogger('')
-        l1 = logging.getLogger('abc')
-        l2 = logging.getLogger('def.ghi')
-        c1 = r.getChild('xyz')
-        c2 = r.getChild('uvw.xyz')
-        self.assertTrue(c1 is logging.getLogger('xyz'))
-        self.assertTrue(c2 is logging.getLogger('uvw.xyz'))
-        c1 = l1.getChild('def')
-        c2 = c1.getChild('ghi')
-        c3 = l1.getChild('def.ghi')
-        self.assertTrue(c1 is logging.getLogger('abc.def'))
-        self.assertTrue(c2 is logging.getLogger('abc.def.ghi'))
-        self.assertTrue(c2 is c3)
 
 
 if __name__ == "__main__":
