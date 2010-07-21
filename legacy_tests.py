@@ -48,7 +48,7 @@ class BaseTest(unittest.TestCase):
 
     """Base class for logging tests."""
 
-    log_format = "{name} -> {level_name} {message}"
+    log_format = "{logger_name} -> {level_name} {message}"
     expected_log_pat = r"^([\w.]+) -> ([\w]+): ([\d]+)$"
     message_num = 0
 

@@ -91,10 +91,10 @@ class LogRecord(object):
     _pullable_information = ('func_name', 'module', 'filename', 'lineno',
                              'frame_name', 'process_name')
 
-    def __init__(self, name, level, msg, args=None, kwargs=None,
+    def __init__(self, logger_name, level, msg, args=None, kwargs=None,
                  exc_info=None, extra=None, frame=None):
         self.timestamp = time.time()
-        self.name = name
+        self.logger_name = logger_name
         self.msg = msg
         self.args = args or ()
         self.kwargs = kwargs or {}
@@ -344,6 +344,7 @@ class TestHandler(Handler):
 
     def __init__(self, level=NOTSET):
         Handler.__init__(self, level)
+        self.formatter = SimpleFormatter('{record.logger_name}:{record.message}')
         self._records = []
 
     def emit(self, record):
