@@ -37,12 +37,15 @@ _reverse_level_names = dict((v, k) for (k, v) in _level_names.iteritems())
 _missing = object()
 _main_thread = thread.get_ident()
 
+_global_handlers = []
 _context_handler_lock = threading.Lock()
 _context_handlers = threading.local()
 
 
 def iter_context_handlers():
-    return getattr(_context_handlers, 'stack', ())[:]
+    handlers = list(_global_handlers)
+    handlers.extend(getattr(_context_handlers, 'stack', ()))
+    return reverse(handlers)
 
 
 class cached_property(object):
@@ -253,21 +256,31 @@ class Handler(object):
     def close(self):
         """Tidy up any resources used by the handler."""
 
-    def push(self):
+    def push_context(self, bubble=True):
         """Push the handler for the current context."""
         with _context_handler_lock:
+            item = self, bubble
             stack = getattr(_context_handlers, 'stack', None)
             if stack is None:
-                _context_handlers.stack = [self]
+                _context_handlers.stack = [item]
             else:
-                stack.append(self)
+                stack.append(item)
 
-    def pop(self):
+    def pop_context(self):
         """Pop the handler from the current context."""
         with _context_handler_lock:
             stack = getattr(_context_handlers, 'stack', None)
             assert stack, 'no handlers on stack'
-            assert stack.pop() is self, 'poped unexpected handler'
+            assert stack.pop()[0] is self, 'poped unexpected handler'
+
+    def push_global(self, bubble=True):
+        """Push the handler to the global stack."""
+        _global_handlers.append((self, bubble))
+
+    def pop_global(self):
+        """Pop the handler from the global stack."""
+        assert _global_handlers, 'no handlers on global stack'
+        assert _global_handlers.pop() is self, 'poped unexpected handler'
 
     def __enter__(self):
         self.push()
@@ -340,90 +353,34 @@ class Logger(object):
     level_name = _level_name_property()
 
     def debug(self, msg, *args, **kwargs):
-        """
-        Log 'msg % args' with severity 'DEBUG'.
-
-        To pass exception information, use the keyword argument exc_info with
-        a true value, e.g.
-
-        logger.debug("Houston, we have a %s", "thorny problem", exc_info=1)
-        """
         if self.is_enabled_for(DEBUG):
             self._log(DEBUG, msg, args, **kwargs)
 
     def info(self, msg, *args, **kwargs):
-        """
-        Log 'msg % args' with severity 'INFO'.
-
-        To pass exception information, use the keyword argument exc_info with
-        a true value, e.g.
-
-        logger.info("Houston, we have a %s", "interesting problem", exc_info=1)
-        """
         if self.is_enabled_for(INFO):
             self._log(INFO, msg, args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
-        """
-        Log 'msg % args' with severity 'WARNING'.
-
-        To pass exception information, use the keyword argument exc_info with
-        a true value, e.g.
-
-        logger.warning("Houston, we have a %s", "bit of a problem", exc_info=1)
-        """
         if self.is_enabled_for(WARNING):
             self._log(WARNING, msg, args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
-        """
-        Log 'msg % args' with severity 'ERROR'.
-
-        To pass exception information, use the keyword argument exc_info with
-        a true value, e.g.
-
-        logger.error("Houston, we have a %s", "major problem", exc_info=1)
-        """
         if self.is_enabled_for(ERROR):
             self._log(ERROR, msg, args, **kwargs)
 
-    def exception(self, msg, *args):
-        """
-        Convenience method for logging an ERROR with exception information.
-        """
-        self.error(msg, exc_info=1, *args)
+    def exception(self, msg, *args, **kwargs):
+        kwargs['exc_info'] = sys.exc_info()
+        self.error(msg, exc_info=exc_info, *args)
 
     def critical(self, msg, *args, **kwargs):
-        """
-        Log 'msg % args' with severity 'CRITICAL'.
-
-        To pass exception information, use the keyword argument exc_info with
-        a true value, e.g.
-
-        logger.critical("Houston, we have a %s", "major disaster", exc_info=1)
-        """
         if self.is_enabled_for(CRITICAL):
             self._log(CRITICAL, msg, args, **kwargs)
 
     def log(self, level, msg, *args, **kwargs):
-        """
-        Log 'msg % args' with the integer severity 'level'.
-
-        To pass exception information, use the keyword argument exc_info with
-        a true value, e.g.
-
-        logger.log(level, "We have a %s", "mysterious problem", exc_info=1)
-        """
-        if not isinstance(level, int):
-            raise TypeError("level must be an integer")
         if self.is_enabled_for(level):
             self._log(level, msg, args, **kwargs)
 
     def _log(self, level, msg, args, kwargs=None, exc_info=None, extra=None):
-        """
-        Low-level logging routine which creates a LogRecord and then calls
-        all the handlers of this logger to handle the record.
-        """
         record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
                            extra, sys._getframe(1))
         try:
@@ -432,178 +389,92 @@ class Logger(object):
             record.close()
 
     def handle(self, record):
-        """Call the handlers for the specified record.
-
-        This method is used for unpickled records received from a socket, as
-        well as those created locally.
-        """
+        """Call the handlers for the specified record."""
         if not self.disabled:
             self.call_handlers(record)
 
     def call_handlers(self, record):
         """Pass a record to all relevant handlers."""
-        for hdlr in chain(c.handlers, iter_context_handlers()):
-            if record.level >= hdlr.level:
-                hdlr.handle(record)
+        # logger attached handlers are always handled and before the
+        # context specific handlers are running.  There is no way to
+        # disable those unless by removing the handlers.
+        for handler in self.handlers:
+            if record.level >= handler.level:
+                handler.handle(record)
+
+        # after that, context specific handlers run (this includes the
+        # global handlers)
+        for handler, bubble in iter_context_handlers():
+            if record.level >= handler.level:
+                handler.handle(record)
+                if not bubble:
+                    break
 
     def is_enabled_for(self, level):
-        """
-        Is this logger enabled for level 'level'?
-        """
+        """Is this logger enabled for level 'level'?"""
+        assert isinstance(level, (int, long))
         return level >= self.level
-
-# b/w compat
-getLogger = Logger
 
 
 class LoggerAdapter(object):
-    """
-    An adapter for loggers which makes it easier to specify contextual
+    """An adapter for loggers which makes it easier to specify contextual
     information in logging output.
     """
 
-    def __init__(self, logger, extra):
-        """
-        Initialize the adapter with a logger and a dict-like object which
-        provides contextual information. This constructor signature allows
-        easy stacking of LoggerAdapters, if so desired.
-
-        You can effectively pass keyword arguments as shown in the
-        following example:
-
-        adapter = LoggerAdapter(someLogger, dict(p1=v1, p2="v2"))
-        """
+    def __init__(self, logger):
         self.logger = logger
-        self.extra = extra
 
     def process(self, msg, kwargs):
-        """
-        Process the logging message and keyword arguments passed in to
-        a logging call to insert contextual information. You can either
-        manipulate the message itself, the keyword args or both. Return
-        the message and kwargs modified (or not) to suit your needs.
-
-        Normally, you'll only need to override this one method in a
-        LoggerAdapter subclass for your specific needs.
-        """
-        kwargs["extra"] = self.extra
+        if kwargs['extra'] is None:
+            kwargs['extra'] = {}
+        self.inject_values(kwargs['extra'])
         return msg, kwargs
 
+    def inject_values(self, extra):
+        pass
+
     def debug(self, msg, *args, **kwargs):
-        """
-        Delegate a debug call to the underlying logger, after adding
-        contextual information from this adapter instance.
-        """
         msg, kwargs = self.process(msg, kwargs)
         self.logger.debug(msg, *args, **kwargs)
 
     def info(self, msg, *args, **kwargs):
-        """
-        Delegate an info call to the underlying logger, after adding
-        contextual information from this adapter instance.
-        """
         msg, kwargs = self.process(msg, kwargs)
         self.logger.info(msg, *args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
-        """
-        Delegate a warning call to the underlying logger, after adding
-        contextual information from this adapter instance.
-        """
         msg, kwargs = self.process(msg, kwargs)
         self.logger.warning(msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
-        """
-        Delegate an error call to the underlying logger, after adding
-        contextual information from this adapter instance.
-        """
         msg, kwargs = self.process(msg, kwargs)
         self.logger.error(msg, *args, **kwargs)
 
     def exception(self, msg, *args, **kwargs):
-        """
-        Delegate an exception call to the underlying logger, after adding
-        contextual information from this adapter instance.
-        """
         msg, kwargs = self.process(msg, kwargs)
-        kwargs["exc_info"] = 1
-        self.logger.error(msg, *args, **kwargs)
+        self.logger.exception(msg, *args, **kwargs)
 
     def critical(self, msg, *args, **kwargs):
-        """
-        Delegate a critical call to the underlying logger, after adding
-        contextual information from this adapter instance.
-        """
         msg, kwargs = self.process(msg, kwargs)
         self.logger.critical(msg, *args, **kwargs)
 
     def log(self, level, msg, *args, **kwargs):
-        """
-        Delegate a log call to the underlying logger, after adding
-        contextual information from this adapter instance.
-        """
         msg, kwargs = self.process(msg, kwargs)
         self.logger.log(level, msg, *args, **kwargs)
 
     def is_enabled_for(self, level):
-        """
-        See if the underlying logger is enabled for the specified level.
-        """
+        """See if the underlying logger is enabled for the specified level."""
         return self.logger.is_enabled_for(level)
 
 
-BASIC_FORMAT = "%(level_name)s:%(name)s:%(message)s"
+class SimpleLoggerAdapter(LoggerAdapter):
+    """Injects a dictionary into the log record's extra dict."""
 
-def basicConfig(**kwargs):
-    """
-    Do basic configuration for the logging system.
+    def __init__(self, logger, extra):
+        super(SimpleLoggerAdapter, self).__init__(logger)
+        self.extra = extra
 
-    This function does nothing if the root logger already has handlers
-    configured. It is a convenience method intended for use by simple scripts
-    to do one-shot configuration of the logging package.
-
-    The default behaviour is to create a StreamHandler which writes to
-    sys.stderr, set a formatter using the BASIC_FORMAT format string, and
-    add the handler to the root logger.
-
-    A number of optional keyword arguments may be specified, which can alter
-    the default behaviour.
-
-    filename  Specifies that a FileHandler be created, using the specified
-              filename, rather than a StreamHandler.
-    filemode  Specifies the mode to open the file, if filename is specified
-              (if filemode is unspecified, it defaults to 'a').
-    format    Use the specified format string for the handler.
-    datefmt   Use the specified date/time format.
-    level     Set the root logger level to the specified level.
-    stream    Use the specified stream to initialize the StreamHandler. Note
-              that this argument is incompatible with 'filename' - if both
-              are present, 'stream' is ignored.
-
-    Note that you could specify a stream created using open(filename, mode)
-    rather than passing the filename and mode in. However, it should be
-    remembered that StreamHandler does not close its stream (since it may be
-    using sys.stdout or sys.stderr), whereas FileHandler closes its stream
-    when the handler is closed.
-    """
-    # XXX needs to be completely rewritten
-    if len(root.handlers) == 0:
-        filename = kwargs.get("filename")
-        if filename:
-            mode = kwargs.get("filemode", 'a')
-            hdlr = FileHandler(filename, mode)
-        else:
-            stream = kwargs.get("stream")
-            hdlr = StreamHandler(stream)
-        fs = kwargs.get("format", BASIC_FORMAT)
-        dfs = kwargs.get("datefmt", None)
-        fmt = Formatter(fs, dfs)
-        hdlr.setFormatter(fmt)
-        root.addHandler(hdlr)
-        level = kwargs.get("level")
-        if level is not None:
-            root.setLevel(level)
+    def inject_values(self, extra):
+        extra.update(self.extra)
 
 
 class log_warnings_to(object):
@@ -644,14 +515,15 @@ class log_warnings_to(object):
             warnings.filters = self._filters
         warnings.showwarning = self._showwarning
 
-'''
 
-def handle_request(request):
-    handler = logbook.Handler()
-    handler.add_processor(AddRequestData(request))
-    handler.push()
-    try:
-        ...
-    finally:
-        handler.pop()
-'''
+if 0:
+
+
+    def handle_request(request):
+        handler = logbook.Handler()
+        handler.add_processor(AddRequestData(request))
+        handler.push()
+        try:
+            pass
+        finally:
+            handler.pop()
