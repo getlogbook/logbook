@@ -13,7 +13,9 @@ import traceback
 import warnings
 import thread
 import threading
+from cStringIO import StringIO
 from itertools import chain
+from contextlib import contextmanager
 
 from datetime import datetime
 
@@ -282,11 +284,21 @@ class Handler(object):
         assert _global_handlers, 'no handlers on global stack'
         assert _global_handlers.pop() is self, 'poped unexpected handler'
 
-    def __enter__(self):
-        self.push()
+    @contextmanager
+    def contextbound(self):
+        self.push_context()
+        try:
+            yield
+        finally:
+            self.pop_context()
 
-    def __exit__(self, exc_type, exc_value, tb):
-        self.pop()
+    @contextmanager
+    def applicationbound(self):
+        self.push_global()
+        try:
+            yield
+        finally:
+            self.pop_global()
 
     def handle_error(self, record, exc_info):
         """Handle errors which occur during an emit() call."""
@@ -326,6 +338,16 @@ class StreamHandler(Handler):
             enc = getattr(stream, 'encoding', None) or 'utf-8'
             stream.write(('%s\n' % msg).encode(enc, 'replace'))
             self.flush()
+
+
+class TestHandler(StreamHandler):
+    """Like a stream handler but keeps the values in memory."""
+
+    def __init__(self):
+        Handler.__init__(self, StringIO())
+
+    def get_contents(self):
+        return self.stream.getvalue()
 
 
 class Logger(object):
