@@ -223,6 +223,21 @@ def _level_name_property():
     return property(_get_level_name, _set_level_name)
 
 
+def _group_reflected_property(name, default):
+    def _get(self):
+        rv = getattr(self, '_' + name, _missing)
+        if rv is not _missing:
+            return rv
+        if self.group is None:
+            return default
+        return getattr(self.group, name)
+    def _set(self, value):
+        setattr(self, '_' + name, value)
+    def _del(self):
+        delattr(self, '_' + name)
+    return property(_get, _set, _del)
+
+
 class Handler(object):
     """Handler instances dispatch logging events to specific destinations.
 
@@ -472,7 +487,51 @@ class TestHandler(Handler):
         return False
 
 
-class Logger(object):
+class LoggerMixin(object):
+
+    level_name = _level_name_property()
+
+    def debug(self, *args, **kwargs):
+        if DEBUG >= self.level:
+            self._log(DEBUG, args, kwargs)
+
+    def info(self, *args, **kwargs):
+        if INFO >= self.level:
+            self._log(INFO, args, kwargs)
+
+    def warn(self, *args, **kwargs):
+        if WARNING >= self.level:
+            self._log(WARNING, args, kwargs)
+
+    def error(self, *args, **kwargs):
+        if ERROR >= self.level:
+            self._log(ERROR, args, kwargs)
+
+    def exception(self, *args, **kwargs):
+        kwargs['exc_info'] = sys.exc_info()
+        self.error(msg, args, kwargs)
+
+    def critical(self, *args, **kwargs):
+        if CRITICAL >= self.level:
+            self._log(CRITICAL, args, kwargs)
+
+    def log(self, level, *args, **kwargs):
+        if level >= self.level:
+            self._log(level, args, kwargs)
+
+    def _log(self, level, args, kwargs):
+        msg, args = args[0], args[1:]
+        exc_info = kwargs.pop('exc_info', None)
+        extra = kwargs.pop('extra', None)
+        record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
+                           extra, sys._getframe(1))
+        try:
+            self.handle(record)
+        finally:
+            record.close()
+
+
+class Logger(LoggerMixin):
     """Instances of the Logger class reself.level
     present a single logging channel. A
     "logging channel" indicates an area of an application. Exactly how an
@@ -488,50 +547,13 @@ class Logger(object):
     There is no arbitrary limit to the depth of nesting.
     """
 
-    def __init__(self, name, level=NOTSET):
+    def __init__(self, name, level=_missing):
         self.name = name
-        self.level = _lookup_level(level)
-        self.disabled = False
         self.handlers = []
+        self.group = None
 
-    level_name = _level_name_property()
-
-    def debug(self, msg, *args, **kwargs):
-        if self.is_enabled_for(DEBUG):
-            self._log(DEBUG, msg, args, **kwargs)
-
-    def info(self, msg, *args, **kwargs):
-        if self.is_enabled_for(INFO):
-            self._log(INFO, msg, args, **kwargs)
-
-    def warn(self, msg, *args, **kwargs):
-        if self.is_enabled_for(WARNING):
-            self._log(WARNING, msg, args, **kwargs)
-
-    def error(self, msg, *args, **kwargs):
-        if self.is_enabled_for(ERROR):
-            self._log(ERROR, msg, args, **kwargs)
-
-    def exception(self, msg, *args, **kwargs):
-        if self.is_enabled_for(ERROR):
-            kwargs['exc_info'] = sys.exc_info()
-            self.error(msg, *args, **kwargs)
-
-    def critical(self, msg, *args, **kwargs):
-        if self.is_enabled_for(CRITICAL):
-            self._log(CRITICAL, msg, args, **kwargs)
-
-    def log(self, level, msg, *args, **kwargs):
-        if self.is_enabled_for(level):
-            self._log(level, msg, args, **kwargs)
-
-    def _log(self, level, msg, args, kwargs=None, exc_info=None, extra=None):
-        record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
-                           extra, sys._getframe(1))
-        try:
-            self.handle(record)
-        finally:
-            record.close()
+    disabled = _group_reflected_property('disabled', False)
+    level = _group_reflected_property('level', NOTSET)
 
     def handle(self, record):
         """Call the handlers for the specified record."""
@@ -555,10 +577,23 @@ class Logger(object):
                 if not bubble:
                     break
 
-    def is_enabled_for(self, level):
-        """Is this logger enabled for level 'level'?"""
-        assert isinstance(level, (int, long))
-        return level >= self.level
+
+class LoggerGroup(LoggerMixin):
+
+    def __init__(self, loggers=None, level=NOTSET):
+        if loggers is None:
+            loggers = []
+        self.loggers = loggers
+        self.level = _lookup_level(level)
+        self.disabled = False
+
+    def add_logger(self, logger):
+        logger.group = self
+        self.loggers.append(logger)
+
+    def handle(self, record):
+        for logger in self.loggers:
+            logger.handle(record)
 
 
 class LoggerAdapter(object):
@@ -605,10 +640,6 @@ class LoggerAdapter(object):
     def log(self, level, msg, *args, **kwargs):
         msg, kwargs = self.process(msg, kwargs)
         self.logger.log(level, msg, *args, **kwargs)
-
-    def is_enabled_for(self, level):
-        """See if the underlying logger is enabled for the specified level."""
-        return self.logger.is_enabled_for(level)
 
 
 class SimpleLoggerAdapter(LoggerAdapter):
