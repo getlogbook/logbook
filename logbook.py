@@ -386,7 +386,7 @@ class Logger(object):
         if self.is_enabled_for(INFO):
             self._log(INFO, msg, args, **kwargs)
 
-    def warning(self, msg, *args, **kwargs):
+    def warn(self, msg, *args, **kwargs):
         if self.is_enabled_for(WARNING):
             self._log(WARNING, msg, args, **kwargs)
 
