@@ -335,15 +335,43 @@ class StringFormatHandlerMixin(object):
         return self.format_string.format(record=record)
 
 
-class StreamHandler(Handler, StringFormatHandlerMixin):
+class StreamBasedHandler(Handler, StringFormatHandlerMixin):
+    """a handler class which writes logging records, appropriately formatted,
+    to a stream. note that this class does not close the stream, as sys.stdout
+    or sys.stderr may be used.
+    """
+
+    def __init__(self, level=NOTSET, format_string=None):
+        Handler.__init__(self, level)
+        StringFormatHandlerMixin.__init__(self, format_string)
+        self.lock = threading.RLock()
+
+    def close(self):
+        # do not close the stream as we didn't open it ourselves, but at least
+        # flush
+        self.flush()
+
+    def flush(self):
+        """Flushes the stream."""
+        if self.stream and hasattr(self.stream, 'flush'):
+            self.stream.flush()
+
+    def emit(self, record):
+        with self.lock:
+            msg = self.format(record)
+            enc = getattr(self.stream, 'encoding', None) or 'utf-8'
+            self.stream.write(('%s\n' % msg).encode(enc, 'replace'))
+            self.flush()
+
+
+class StreamHandler(StreamBasedHandler):
     """a handler class which writes logging records, appropriately formatted,
     to a stream. note that this class does not close the stream, as sys.stdout
     or sys.stderr may be used.
     """
 
     def __init__(self, stream=None, level=NOTSET, format_string=None):
-        Handler.__init__(self, level)
-        StringFormatHandlerMixin.__init__(self, format_string)
+        StreamBasedHandler.__init__(self, level, format_string)
         if stream is None:
             stream = sys.stderr
         self.stream = stream
@@ -402,7 +430,7 @@ class LazyFileHandler(StreamHandler):
             self.stream = codecs.open(self._filename, self._mode, self._encoding)
 
     def close(self):
-        if self.stream:
+        if self.stream is not None:
             self.flush()
             self.stream.close()
 
@@ -410,6 +438,14 @@ class LazyFileHandler(StreamHandler):
         if self.stream is None:
             self._open()
         StreamHandler.emit(self, record)
+
+
+class StderrHandler(StreamBasedHandler):
+    """A handler that writes to what is currently at stderr."""
+
+    @property
+    def stream(self):
+        return sys.stderr
 
 
 class TestHandler(Handler, StringFormatHandlerMixin):
@@ -644,4 +680,4 @@ class log_warnings_to(object):
 
 
 # install a default global handler
-StreamHandler().push_global()
+StderrHandler().push_global()

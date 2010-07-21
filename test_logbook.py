@@ -1,9 +1,22 @@
 import logbook
 
 import os
+import sys
 import shutil
 import unittest
 import tempfile
+from contextlib import contextmanager
+from cStringIO import StringIO
+
+
+@contextmanager
+def capture_stderr():
+    old = sys.stderr
+    sys.stderr = StringIO()
+    try:
+        yield sys.stderr
+    finally:
+        sys.stderr = old
 
 
 class LogbookTestCase(unittest.TestCase):
@@ -101,6 +114,15 @@ class AttributeTestCase(LogbookTestCase):
         group.level = logbook.DEBUG
         self.assertEqual(self.log.level, logbook.CRITICAL)
         self.assertEqual(self.log.level_name, 'CRITICAL')
+
+
+class DefaultConfigurationTestCase(LogbookTestCase):
+
+    def test_default_handlers(self):
+        with capture_stderr() as stream:
+            self.log.warn('Aha!')
+            captured = stream.getvalue()
+        assert 'WARNING: testlogger: Aha!' in captured
 
 
 if __name__ == '__main__':
