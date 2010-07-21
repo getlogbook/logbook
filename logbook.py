@@ -335,47 +335,18 @@ class StringFormatHandlerMixin(object):
         return self.format_string.format(record=record)
 
 
-class StreamBasedHandler(Handler, StringFormatHandlerMixin):
+class StreamHandler(Handler, StringFormatHandlerMixin):
     """a handler class which writes logging records, appropriately formatted,
     to a stream. note that this class does not close the stream, as sys.stdout
     or sys.stderr may be used.
     """
 
-    def __init__(self, level=NOTSET, format_string=None):
+    def __init__(self, stream, level=NOTSET, format_string=None):
         Handler.__init__(self, level)
         StringFormatHandlerMixin.__init__(self, format_string)
         self.lock = threading.RLock()
-
-    def close(self):
-        # do not close the stream as we didn't open it ourselves, but at least
-        # flush
-        self.flush()
-
-    def flush(self):
-        """Flushes the stream."""
-        if self.stream and hasattr(self.stream, 'flush'):
-            self.stream.flush()
-
-    def emit(self, record):
-        with self.lock:
-            msg = self.format(record)
-            enc = getattr(self.stream, 'encoding', None) or 'utf-8'
-            self.stream.write(('%s\n' % msg).encode(enc, 'replace'))
-            self.flush()
-
-
-class StreamHandler(StreamBasedHandler):
-    """a handler class which writes logging records, appropriately formatted,
-    to a stream. note that this class does not close the stream, as sys.stdout
-    or sys.stderr may be used.
-    """
-
-    def __init__(self, stream=None, level=NOTSET, format_string=None):
-        StreamBasedHandler.__init__(self, level, format_string)
-        if stream is None:
-            stream = sys.stderr
-        self.stream = stream
-        self.lock = threading.RLock()
+        if stream is not _missing:
+            self.stream = stream
 
     def close(self):
         # do not close the stream as we didn't open it ourselves, but at least
@@ -440,8 +411,11 @@ class LazyFileHandler(StreamHandler):
         StreamHandler.emit(self, record)
 
 
-class StderrHandler(StreamBasedHandler):
+class StderrHandler(StreamHandler):
     """A handler that writes to what is currently at stderr."""
+
+    def __init__(self, level=NOTSET, format_string=None):
+        StreamHandler.__init__(self, _missing, level, format_string)
 
     @property
     def stream(self):
