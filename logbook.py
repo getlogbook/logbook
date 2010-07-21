@@ -235,7 +235,6 @@ class Handler(object):
         self.name = None
         self.level = _lookup_level(level)
         self.formatter = None
-        self.lock = threading.RLock()
 
     level_name = _level_name_property()
 
@@ -253,11 +252,7 @@ class Handler(object):
             self.handle_error(record, sys.exc_info())
 
     def emit(self, record):
-        """Emit the specified logging record.
-
-        Wrap the actual emission of the record with acquisition/release of
-        the I/O thread lock.
-        """
+        """Emit the specified logging record."""
 
     def close(self):
         """Tidy up any resources used by the handler."""
@@ -320,8 +315,8 @@ class StreamHandler(Handler):
     or sys.stderr may be used.
     """
 
-    def __init__(self, stream=None):
-        Handler.__init__(self)
+    def __init__(self, stream=None, level=NOTSET):
+        Handler.__init__(self, level)
         if stream is None:
             stream = sys.stderr
         self.stream = stream
@@ -344,14 +339,19 @@ class StreamHandler(Handler):
             self.flush()
 
 
-class TestHandler(StreamHandler):
+class TestHandler(Handler):
     """Like a stream handler but keeps the values in memory."""
 
-    def __init__(self):
-        StreamHandler.__init__(self, StringIO())
+    def __init__(self, level=NOTSET):
+        Handler.__init__(self, level)
+        self._records = []
 
-    def get_contents(self):
-        return self.stream.getvalue()
+    def emit(self, record):
+        self._records.append(self.format(record))
+
+    @property
+    def records(self):
+        return self._records
 
 
 class Logger(object):

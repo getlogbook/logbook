@@ -7,12 +7,11 @@ class BasicAPITestCase(unittest.TestCase):
     def test_basic_logging(self):
         logger = logbook.Logger('Test Logger')
         handler = logbook.TestHandler()
-        handler.formatter = logbook.SimpleFormatter()
+        handler.formatter = logbook.SimpleFormatter('{record.message}')
         with handler.contextbound(bubble=False):
-            logger.warning('This is a warning.  Nice hah?')
+            logger.warn('This is a warning.  Nice hah?')
 
-        logged = handler.get_contents()
-        assert 'This is a warning' in logged
+        assert 'This is a warning.  Nice hah?' in handler.records
 
 
 if __name__ == '__main__':
