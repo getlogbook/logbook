@@ -20,11 +20,11 @@ from contextlib import contextmanager
 from itertools import izip
 
 
-CRITICAL = 50
-ERROR = 40
-WARNING = 30
-INFO = 20
-DEBUG = 10
+CRITICAL = 5
+ERROR = 4
+WARNING = 3
+INFO = 2
+DEBUG = 1
 NOTSET = 0
 
 _level_names = {
@@ -451,35 +451,28 @@ class TestHandler(Handler):
         return any(DEBUG <= r.level < INFO for r in self.records)
 
     def has_critical(self, *args, **kwargs):
-        kwargs['min_level'] = CRITICAL
+        kwargs['level'] = CRITICAL
         return self._test_for(*args, **kwargs)
 
     def has_error(self, *args, **kwargs):
-        kwargs['min_level'] = ERROR
-        kwargs['max_level'] = CRITICAL - 1
+        kwargs['level'] = ERROR
         return self._test_for(*args, **kwargs)
 
     def has_warning(self, *args, **kwargs):
-        kwargs['min_level'] = WARNING
-        kwargs['max_level'] = ERROR - 1
+        kwargs['level'] = WARNING
         return self._test_for(*args, **kwargs)
 
     def has_info(self, *args, **kwargs):
-        kwargs['min_level'] = INFO
-        kwargs['max_level'] = WARNING - 1
+        kwargs['level'] = INFO
         return self._test_for(*args, **kwargs)
 
     def has_debug(self, *args, **kwargs):
-        kwargs['min_level'] = DEBUG
-        kwargs['max_level'] = INFO - 1
+        kwargs['level'] = DEBUG
         return self._test_for(*args, **kwargs)
 
-    def _test_for(self, message=None, logger_name=None, min_level=None,
-                  max_level=None):
+    def _test_for(self, message=None, logger_name=None, level=None):
         for record in self.records:
-            if min_level is not None and record.level < min_level:
-                continue
-            if max_level is not None and record.level > max_level:
+            if level is not None and record.level != level:
                 continue
             if logger_name is not None and record.logger_name != logger_name:
                 continue
