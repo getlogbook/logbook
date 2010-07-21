@@ -655,16 +655,3 @@ class log_warnings_to(object):
         if self._save_filters:
             warnings.filters = self._filters
         warnings.showwarning = self._showwarning
-
-
-if 0:
-
-
-    def handle_request(request):
-        handler = logbook.Handler()
-        handler.add_processor(AddRequestData(request))
-        handler.push()
-        try:
-            pass
-        finally:
-            handler.pop()
