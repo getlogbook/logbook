@@ -395,6 +395,7 @@ class TestHandler(Handler):
         )
         self.records = []
         self._formatted_records = []
+        self._formatted_record_cache = []
 
     def emit(self, record):
         self.records.append(record)
@@ -404,9 +405,9 @@ class TestHandler(Handler):
         if len(self._formatted_records) != self.records or \
            any(r1 != r2 for r1, (r2, f) in
                izip(self.records, self._formatted_records)):
-            self._formatted_records = [(r, self.format(r))
-                                       for r in self.records]
-        return [f for r, f in self._formatted_records]
+            self._formatted_records = map(self.format, self.records)
+            self._formatted_record_cache = list(self.records)
+        return self._formatted_records
 
     @property
     def has_criticals(self):
