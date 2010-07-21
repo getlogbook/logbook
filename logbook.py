@@ -6,18 +6,18 @@ Logbook Fork of Logging
 # Copyright 2010 by Armin Ronacher, Georg Brandl.
 
 from __future__ import with_statement
+
 import os
 import sys
 import time
-import traceback
-import warnings
+import codecs
 import thread
+import warnings
 import threading
-from cStringIO import StringIO
+import traceback
+from datetime import datetime
 from contextlib import contextmanager
 from itertools import izip
-
-from datetime import datetime
 
 
 CRITICAL = 50
@@ -324,7 +324,9 @@ class StreamHandler(Handler):
         self.lock = threading.RLock()
 
     def close(self):
-        self.stream.close()
+        # do not close the stream as we didn't open it ourselves, but at least
+        # flush
+        self.flush()
 
     def flush(self):
         """Flushes the stream."""
@@ -338,6 +340,49 @@ class StreamHandler(Handler):
             enc = getattr(stream, 'encoding', None) or 'utf-8'
             stream.write(('%s\n' % msg).encode(enc, 'replace'))
             self.flush()
+
+
+class FileHandler(StreamHandler):
+    """A handler that does the task of opening and closing files for you."""
+
+    def __init__(self, filename, mode='a', encoding=None, level=NOTSET):
+        if encoding is not None:
+            stream = open(filename, mode)
+        else:
+            stream = codecs.open(filename, mode, encoding)
+        StreamHandler.__init__(self, stream, level)
+
+    def close(self):
+        self.flush()
+        self.stream.close()
+
+
+class LazyFileHandler(StreamHandler):
+    """A file handler that does not open the file until a record is actually
+    written."""
+
+    def __init__(self, filename, mode='a', encoding=None, level=NOTSET):
+        StreamHandler.__init__(self, None, level)
+        self._filename = filename
+        self._mode = mode
+        self._encoding = encoding
+        self.stream = None
+
+    def _open(self):
+        if self._encoding is not None:
+            self.stream = open(self._filename, self._mode)
+        else:
+            self.stream = codecs.open(self._filename, self._mode, self._encoding)
+
+    def close(self):
+        if self.stream:
+            self.flush()
+            self.stream.close()
+
+    def emit(self, record):
+        if self.stream is None:
+            self._open()
+        StreamHandler.emit(self, record)
 
 
 class TestHandler(Handler):
