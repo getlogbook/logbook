@@ -118,7 +118,7 @@ class LogRecord(object):
         self.calling_frame = None
 
     @cached_property
-    def formatted_message(self):
+    def message(self):
         return self.msg.format(*self.args, **self.kwargs)
 
     @cached_property
@@ -289,16 +289,16 @@ class Handler(object):
         assert _global_handlers.pop() is self, 'poped unexpected handler'
 
     @contextmanager
-    def contextbound(self):
-        self.push_context()
+    def contextbound(self, bubble=False):
+        self.push_context(bubble)
         try:
             yield
         finally:
             self.pop_context()
 
     @contextmanager
-    def applicationbound(self):
-        self.push_global()
+    def applicationbound(self, bubble=False):
+        self.push_global(bubble)
         try:
             yield
         finally:
@@ -348,7 +348,7 @@ class TestHandler(StreamHandler):
     """Like a stream handler but keeps the values in memory."""
 
     def __init__(self):
-        Handler.__init__(self, StringIO())
+        StreamHandler.__init__(self, StringIO())
 
     def get_contents(self):
         return self.stream.getvalue()
