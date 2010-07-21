@@ -7,6 +7,7 @@ import tempfile
 
 
 class LogbookTestCase(unittest.TestCase):
+
     def setUp(self):
         self.log = logbook.Logger('testlogger')
 
@@ -18,10 +19,10 @@ class BasicAPITestCase(LogbookTestCase):
         with handler.contextbound(bubble=False):
             self.log.warn('This is a warning.  Nice hah?')
 
-        assert handler.has_warning('This is a warning.  Nice hah?')
-        assert handler.formatted_records == [
+        self.assert_(handler.has_warning('This is a warning.  Nice hah?'))
+        self.assertEqual(handler.formatted_records, [
             '[WARNING] testlogger: This is a warning.  Nice hah?'
-        ]
+        ])
 
 
 class HandlerTestCase(LogbookTestCase):
