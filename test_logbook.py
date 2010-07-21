@@ -78,5 +78,30 @@ class HandlerTestCase(LogbookTestCase):
                              'WARNING:testlogger:warning message\n')
 
 
+class AttributeTestCase(LogbookTestCase):
+
+    def test_level_properties(self):
+        assert self.log.level == logbook.NOTSET
+        assert self.log.level_name == 'NOTSET'
+        self.log.level_name = 'WARNING'
+        assert self.log.level == logbook.WARNING
+        self.log.level = logbook.ERROR
+        assert self.log.level_name == 'ERROR'
+
+    def test_reflected_properties(self):
+        group = logbook.LoggerGroup()
+        group.add_logger(self.log)
+        group.level = logbook.ERROR
+        assert self.log.level == logbook.ERROR
+        assert self.log.level_name == 'ERROR'
+        group.level = logbook.WARNING
+        assert self.log.level == logbook.WARNING
+        assert self.log.level_name == 'WARNING'
+        self.log.level = logbook.CRITICAL
+        group.level = logbook.DEBUG
+        assert self.log.level == logbook.CRITICAL
+        assert self.log.level_name == 'CRITICAL'
+
+
 if __name__ == '__main__':
     unittest.main()

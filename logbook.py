@@ -44,13 +44,8 @@ _context_handler_lock = threading.Lock()
 _context_handlers = threading.local()
 
 
-def iter_context_handlers():
-    handlers = list(_global_handlers)
-    handlers.extend(getattr(_context_handlers, 'stack', ()))
-    return reversed(handlers)
-
-
 class cached_property(object):
+    """A property that is lazily calculated and then cached."""
 
     def __init__(self, func, name=None, doc=None):
         self.__name__ = name or func.__name__
@@ -66,6 +61,43 @@ class cached_property(object):
             value = self.func(obj)
             obj.__dict__[self.__name__] = value
         return value
+
+
+def _level_name_property():
+    """Returns a property that reflects the level as name from
+    the internal level attribute.
+    """
+    def _get_level_name(self):
+        return get_level_name(self.level)
+    def _set_level_name(self, level):
+        self.level = lookup_level(level)
+    return property(_get_level_name, _set_level_name)
+
+
+def _group_reflected_property(name, default, fallback=_missing):
+    """Returns a property for a given name that falls back to the
+    value of the group if set.  If there is no such group, the
+    provided default is used.
+    """
+    def _get(self):
+        rv = getattr(self, '_' + name, _missing)
+        if rv is not _missing and rv != fallback:
+            return rv
+        if self.group is None:
+            return default
+        return getattr(self.group, name)
+    def _set(self, value):
+        setattr(self, '_' + name, value)
+    def _del(self):
+        delattr(self, '_' + name)
+    return property(_get, _set, _del)
+
+
+def iter_context_handlers():
+    """Returns an iterator for all active context and global handlers."""
+    handlers = list(_global_handlers)
+    handlers.extend(getattr(_context_handlers, 'stack', ()))
+    return reversed(handlers)
 
 
 def get_level_name(level):
@@ -129,6 +161,8 @@ class LogRecord(object):
 
     @cached_property
     def message(self):
+        if not (self.args or self.kwargs):
+            return self.msg
         return self.msg.format(*self.args, **self.kwargs)
 
     @cached_property
@@ -197,29 +231,6 @@ class LogRecord(object):
             lines = traceback.format_exception(*self.exc_info)
             rv = ''.join(lines).decode('utf-8', 'replace')
             return rv.rstrip()
-
-
-def _level_name_property():
-    def _get_level_name(self):
-        return get_level_name(self.level)
-    def _set_level_name(self, level):
-        self.level = lookup_level(level)
-    return property(_get_level_name, _set_level_name)
-
-
-def _group_reflected_property(name, default):
-    def _get(self):
-        rv = getattr(self, '_' + name, _missing)
-        if rv is not _missing:
-            return rv
-        if self.group is None:
-            return default
-        return getattr(self.group, name)
-    def _set(self, value):
-        setattr(self, '_' + name, value)
-    def _del(self):
-        delattr(self, '_' + name)
-    return property(_get, _set, _del)
 
 
 class Handler(object):
@@ -534,13 +545,14 @@ class Logger(LoggerMixin):
     There is no arbitrary limit to the depth of nesting.
     """
 
-    def __init__(self, name, level=_missing):
+    def __init__(self, name=None, level=NOTSET):
         self.name = name
         self.handlers = []
         self.group = None
+        self.level = level
 
     disabled = _group_reflected_property('disabled', False)
-    level = _group_reflected_property('level', NOTSET)
+    level = _group_reflected_property('level', NOTSET, fallback=NOTSET)
 
     def handle(self, record):
         """Call the handlers for the specified record."""
@@ -598,10 +610,9 @@ class log_warnings_to(object):
     mirror the arguments to showwarning().
     """
 
-    def __init__(self, logger, save_filters=False):
+    def __init__(self, logger):
         self._logger = logger
         self._entered = False
-        self._save_filters = save_filters
 
     def __enter__(self):
         if self._entered:
@@ -615,7 +626,7 @@ class log_warnings_to(object):
                         file=None, line=None):
             formatted = warnings.formatwarning(message, category, filename,
                                                lineno, line)
-            self._logger.warning("%s", formatted)
+            self._logger.warning(formatted)
         warnings.showwarning = showwarning
 
     def __exit__(self, *exc_info):
