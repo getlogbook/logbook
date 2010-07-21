@@ -13,7 +13,6 @@ import traceback
 import warnings
 import thread
 import threading
-from itertools import chain
 
 from datetime import datetime
 
@@ -45,7 +44,7 @@ _context_handlers = threading.local()
 def iter_context_handlers():
     handlers = list(_global_handlers)
     handlers.extend(getattr(_context_handlers, 'stack', ()))
-    return reverse(handlers)
+    return reversed(handlers)
 
 
 class cached_property(object):
@@ -118,7 +117,7 @@ class LogRecord(object):
 
     @cached_property
     def formatted_message(self):
-        return self.msg.format(*args, **kwargs)
+        return self.msg.format(*self.args, **self.kwargs)
 
     @cached_property
     def time(self):
@@ -369,8 +368,9 @@ class Logger(object):
             self._log(ERROR, msg, args, **kwargs)
 
     def exception(self, msg, *args, **kwargs):
-        kwargs['exc_info'] = sys.exc_info()
-        self.error(msg, exc_info=exc_info, *args)
+        if self.is_enabled_for(ERROR):
+            kwargs['exc_info'] = sys.exc_info()
+            self.error(msg, *args, **kwargs)
 
     def critical(self, msg, *args, **kwargs):
         if self.is_enabled_for(CRITICAL):
