@@ -10,7 +10,10 @@ class BasicAPITestCase(unittest.TestCase):
         with handler.contextbound(bubble=False):
             logger.warn('This is a warning.  Nice hah?')
 
-        assert 'Test Logger:This is a warning.  Nice hah?' in handler.records
+        assert handler.has_warning('This is a warning.  Nice hah?')
+        assert handler.formatted_records == [
+            '[WARNING] Test Logger: This is a warning.  Nice hah?'
+        ]
 
 
 if __name__ == '__main__':

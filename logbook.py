@@ -15,6 +15,7 @@ import thread
 import threading
 from cStringIO import StringIO
 from contextlib import contextmanager
+from itertools import izip
 
 from datetime import datetime
 
@@ -344,15 +345,85 @@ class TestHandler(Handler):
 
     def __init__(self, level=NOTSET):
         Handler.__init__(self, level)
-        self.formatter = SimpleFormatter('{record.logger_name}:{record.message}')
-        self._records = []
+        self.formatter = SimpleFormatter(
+            u'[{record.level_name}] {record.logger_name}: {record.message}'
+        )
+        self.records = []
+        self._formatted_records = []
 
     def emit(self, record):
-        self._records.append(self.format(record))
+        self.records.append(record)
 
     @property
-    def records(self):
-        return self._records
+    def formatted_records(self):
+        if len(self._formatted_records) != self.records or \
+           any(r1 != r2 for r1, (r2, f) in
+               izip(self.records, self._formatted_records)):
+            self._formatted_records = [(r, self.format(r))
+                                       for r in self.records]
+        return [f for r, f in self._formatted_records]
+
+    @property
+    def has_criticals(self):
+        return any(r.level >= CRITICAL for r in self.records)
+
+    @property
+    def has_errors(self):
+        return any(r.level >= ERROR and r.level < CRITICAL
+                   for r in self.records)
+
+    @property
+    def has_warnings(self):
+        return any(r.level >= WARNING and r.level < ERROR
+                   for r in self.records)
+
+    @property
+    def has_infos(self):
+        return any(r.level >= INFO and r.level < WARNING
+                   for r in self.records)
+
+    @property
+    def has_debugs(self):
+        return any(r.level >= DEBUG and r.level < INFO
+                   for r in self.records)
+
+    def has_critical(self, *args, **kwargs):
+        kwargs['min_level'] = CRITICAL
+        return self._test_for(*args, **kwargs)
+
+    def has_error(self, *args, **kwargs):
+        kwargs['min_level'] = ERROR
+        kwargs['max_level'] = CRITICAL - 1
+        return self._test_for(*args, **kwargs)
+
+    def has_warning(self, *args, **kwargs):
+        kwargs['min_level'] = WARNING
+        kwargs['max_level'] = ERROR - 1
+        return self._test_for(*args, **kwargs)
+
+    def has_info(self, *args, **kwargs):
+        kwargs['min_level'] = INFO
+        kwargs['max_level'] = WARNING - 1
+        return self._test_for(*args, **kwargs)
+
+    def has_debug(self, *args, **kwargs):
+        kwargs['min_level'] = DEBUG
+        kwargs['max_level'] = INFO - 1
+        return self._test_for(*args, **kwargs)
+
+    def _test_for(self, message=None, logger_name=None, min_level=None,
+                  max_level=None):
+        for record in self.records:
+            if min_level is not None and record.level < min_level:
+                continue
+            if max_level is not None and record.level > max_level:
+                continue
+            if logger_name is not None and record.logger_name != logger_name:
+                continue
+            if message is not None and record.message != message:
+                continue
+            return True
+        return False
 
 
 class Logger(object):
