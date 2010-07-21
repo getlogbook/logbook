@@ -122,6 +122,12 @@ class ExtraDict(dict):
     def __missing__(self, key):
         return u''
 
+    def __repr__(self):
+        return '%s(%s)' % (
+            self.__class__.__name__,
+            dict.__repr__(self)
+        )
+
 
 class LogRecord(object):
     """A LogRecord instance represents an event being logged.
@@ -317,7 +323,7 @@ class StringFormatHandlerMixin(object):
 
     default_format_string = (
         u'[{record.time:%Y-%m-%d %H:%M}] '
-        u'{record.level_name}: {record.name}: {record.message}'
+        u'{record.level_name}: {record.logger_name}: {record.message}'
     )
 
     def __init__(self, format_string):
@@ -555,14 +561,15 @@ class Logger(LoggerMixin):
 
     def handle(self, record):
         """Call the handlers for the specified record."""
-        if not self.disabled:
+        if not self.disabled and record.level >= self.level:
             self.call_handlers(record)
 
     def call_handlers(self, record):
         """Pass a record to all relevant handlers."""
         # logger attached handlers are always handled and before the
         # context specific handlers are running.  There is no way to
-        # disable those unless by removing the handlers.
+        # disable those unless by removing the handlers.  They will
+        # always bubble
         for handler in self.handlers:
             if record.level >= handler.level:
                 handler.handle(record)
@@ -634,3 +641,7 @@ class log_warnings_to(object):
         if self._save_filters:
             warnings.filters = self._filters
         warnings.showwarning = self._showwarning
+
+
+# install a default global handler
+StreamHandler().push_global()
