@@ -194,13 +194,18 @@ class Formatter(object):
 
 
 class SimpleFormatter(Formatter):
+    """
+    The SimpleFormatter formats the record according to a single format string
+    in str.format() style.  You can access all record attributes using
+    ``{record.attribute}`` in the format string.
+    """
 
-    def __init__(self, format_string=u'[{time:%Y-%m-%d %H:%M}] '
-                 u'{level_name}: {message}'):
+    def __init__(self, format_string=u'[{record.time:%Y-%m-%d %H:%M}] '
+                 u'{record.level_name}: {record.name}: {record.message}'):
         self.format_string = format_string
 
     def format(self, record):
-        rv = self.format_string.format(record)
+        rv = self.format_string.format(record=record)
         exc_info = record.format_exception()
         if exc_info is not None:
             rv += u'\n' + exc_info
