@@ -24,6 +24,25 @@ class BasicAPITestCase(LogbookTestCase):
             '[WARNING] testlogger: This is a warning.  Nice hah?'
         ])
 
+    def test_custom_logger(self):
+        client_ip = '127.0.0.1'
+        class CustomLogger(logbook.Logger):
+            def process_record(self, record):
+                record.extra['ip'] = client_ip
+
+        self.log = CustomLogger('awesome logger')
+        handler = logbook.TestHandler()
+        handler.formatter = logbook.SimpleFormatter(
+            '[{record.level_name}] {record.logger_name}: '
+            '{record.message} [{record.extra[ip]}]')
+
+        with handler.contextbound(bubble=False):
+            self.log.warn('"Music" playing')
+
+        self.assertEqual(handler.formatted_records, [
+            '[WARNING] awesome logger: "Music" playing [127.0.0.1]'
+        ])
+
 
 class HandlerTestCase(LogbookTestCase):
 

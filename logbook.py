@@ -101,7 +101,7 @@ class LogRecord(object):
         self.kwargs = kwargs or {}
         self.level = level
         self.exc_info = exc_info
-        self.extra = extra
+        self.extra = extra or {}
         self.frame = frame
         self.thread = thread.get_ident()
         self.process = os.getpid()
@@ -515,12 +515,16 @@ class LoggerMixin(object):
         if level >= self.level:
             self._log(level, args, kwargs)
 
+    def process_record(self, record):
+        pass
+
     def _log(self, level, args, kwargs):
         msg, args = args[0], args[1:]
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', None)
         record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
                            extra, sys._getframe(1))
+        self.process_record(record)
         try:
             self.handle(record)
         finally:
@@ -573,6 +577,10 @@ class Logger(LoggerMixin):
                 if not bubble:
                     break
 
+    def process_record(self, record):
+        if self.group is not None:
+            self.group.process_record(record)
+
 
 class LoggerGroup(LoggerMixin):
 
@@ -590,63 +598,6 @@ class LoggerGroup(LoggerMixin):
     def handle(self, record):
         for logger in self.loggers:
             logger.handle(record)
-
-
-class LoggerAdapter(object):
-    """An adapter for loggers which makes it easier to specify contextual
-    information in logging output.
-    """
-
-    def __init__(self, logger):
-        self.logger = logger
-
-    def process(self, msg, kwargs):
-        if kwargs['extra'] is None:
-            kwargs['extra'] = {}
-        self.inject_values(kwargs['extra'])
-        return msg, kwargs
-
-    def inject_values(self, extra):
-        pass
-
-    def debug(self, msg, *args, **kwargs):
-        msg, kwargs = self.process(msg, kwargs)
-        self.logger.debug(msg, *args, **kwargs)
-
-    def info(self, msg, *args, **kwargs):
-        msg, kwargs = self.process(msg, kwargs)
-        self.logger.info(msg, *args, **kwargs)
-
-    def warn(self, msg, *args, **kwargs):
-        msg, kwargs = self.process(msg, kwargs)
-        self.logger.warning(msg, *args, **kwargs)
-
-    def error(self, msg, *args, **kwargs):
-        msg, kwargs = self.process(msg, kwargs)
-        self.logger.error(msg, *args, **kwargs)
-
-    def exception(self, msg, *args, **kwargs):
-        msg, kwargs = self.process(msg, kwargs)
-        self.logger.exception(msg, *args, **kwargs)
-
-    def critical(self, msg, *args, **kwargs):
-        msg, kwargs = self.process(msg, kwargs)
-        self.logger.critical(msg, *args, **kwargs)
-
-    def log(self, level, msg, *args, **kwargs):
-        msg, kwargs = self.process(msg, kwargs)
-        self.logger.log(level, msg, *args, **kwargs)
-
-
-class SimpleLoggerAdapter(LoggerAdapter):
-    """Injects a dictionary into the log record's extra dict."""
-
-    def __init__(self, logger, extra):
-        super(SimpleLoggerAdapter, self).__init__(logger)
-        self.extra = extra
-
-    def inject_values(self, extra):
-        extra.update(self.extra)
 
 
 class log_warnings_to(object):
