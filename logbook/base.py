@@ -157,7 +157,21 @@ class LogRecord(object):
     def message(self):
         if not (self.args or self.kwargs):
             return self.msg
-        return self.msg.format(*self.args, **self.kwargs)
+        try:
+            return self.msg.format(*self.args, **self.kwargs)
+        except Exception, e:
+            # this obviously will not give a proper error message if the
+            # information was not pulled and the log record no longer has
+            # access to the frame.  But there is not much we can do about
+            # that.
+            raise TypeError('Could not format message with provided '
+                            'arguments: {err}\n  msg=\'{msg}\'\n  args={args} '
+                            '\n  kwargs={kwargs}.\n'
+                            'Happened in file {file}, line {lineno}'.format(
+                err=e, msg=self.msg.encode('utf-8'), args=self.args,
+                kwargs=self.kwargs, file=self.filename.encode('utf-8'),
+                lineno=self.lineno
+            ))
 
     @cached_property
     def time(self):
@@ -191,7 +205,8 @@ class LogRecord(object):
     def filename(self):
         cf = self.calling_frame
         if cf is not None:
-            return os.path.abspath(cf.f_code.co_filename)
+            return os.path.abspath(cf.f_code.co_filename) \
+                .decode(sys.getfilesystemencoding() or 'utf-8', 'replace')
 
     @cached_property
     def lineno(self):

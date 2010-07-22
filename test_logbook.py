@@ -1,6 +1,7 @@
 import logbook
 
 import os
+import re
 import sys
 import shutil
 import unittest
@@ -56,6 +57,28 @@ class BasicAPITestCase(LogbookTestCase):
             '[WARNING] awesome logger: Too many sounds [127.0.0.1]',
             '[WARNING] testlogger: "Music" playing []'
         ])
+
+    def test_formatting_exception(self):
+        def make_record():
+            return logbook.LogRecord('Test Logger', logbook.WARNING,
+                                     'Hello {foo:invalid}',
+                                     kwargs={'foo': 42},
+                                     frame=sys._getframe())
+        record = make_record()
+        try:
+            record.message
+        except TypeError, e:
+            errormsg = str(e)
+        else:
+            self.assertFalse('Expected exception')
+
+        self.assert_('Could not format message with provided arguments: '
+                     'Invalid conversion specification' in errormsg)
+        self.assert_("msg='Hello {foo:invalid}'" in errormsg)
+        self.assert_('args=()' in errormsg)
+        self.assert_("kwargs={'foo': 42}" in errormsg)
+        self.assert_(re.search('Happened in file .*test_logbook.py, '
+                               'line \d+', errormsg))
 
 
 class HandlerTestCase(LogbookTestCase):
