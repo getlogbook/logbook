@@ -270,7 +270,7 @@ class LoggerMixin(object):
 
     def exception(self, *args, **kwargs):
         kwargs['exc_info'] = sys.exc_info()
-        self.error(msg, args, kwargs)
+        self.error(*args, **kwargs)
 
     def critical(self, *args, **kwargs):
         if CRITICAL >= self.level:

@@ -15,7 +15,7 @@ from logbook.base import LogRecord, Logger, LoggerGroup, \
      NOTSET
 from logbook.handlers import Handler, StreamHandler, FileHandler, \
      StderrHandler, RotatingFileHandler, TimedRotatingFileHandler, \
-     TestHandler, iter_context_handlers
+     TestHandler, MailHandler, iter_context_handlers
 
 
 # install a default global handler

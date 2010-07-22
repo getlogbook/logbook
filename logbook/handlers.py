@@ -30,18 +30,32 @@ _context_handler_lock = threading.Lock()
 _context_handlers = threading.local()
 
 
+DEFAULT_FORMAT_STRING = (
+    u'[{record.time:%Y-%m-%d %H:%M}] '
+    u'{record.level_name}: {record.logger_name}: {record.message}'
+)
+TEST_FORMAT_STRING = \
+u'[{record.level_name}] {record.logger_name}: {record.message}'
+MAIL_FORMAT_STRING = u'''\
+Subject: {handler.subject}
+
+Message type:       {record.level_name}
+Location:           {record.filename}:{record.lineno}
+Module:             {record.module}
+Function:           {record.func_name}
+Time:               {record.time:%Y-%m-%d %H:%M:%S}
+
+Message:
+
+{record.message}
+'''
+
+
 def iter_context_handlers():
     """Returns an iterator for all active context and global handlers."""
     handlers = list(_global_handlers)
     handlers.extend(getattr(_context_handlers, 'stack', ()))
     return reversed(handlers)
-
-
-def _basic_formatter(record):
-    """Internal default formatter if a handler did not provide a better
-    default.  This just returns the record's message.
-    """
-    return record.message
 
 
 class Handler(object):
@@ -56,9 +70,15 @@ class Handler(object):
     def __init__(self, level=NOTSET):
         self.name = None
         self.level = lookup_level(level)
-        self.formatter = _basic_formatter
+        self.formatter = None
 
     level_name = _level_name_property()
+
+    def format(self, record):
+        """Formats a record with the given formatter."""
+        if self.formatter is None:
+            return record.message
+        return self.formatter(record, self)
 
     def handle(self, record):
         """Emits and falls back."""
@@ -100,7 +120,7 @@ class Handler(object):
         assert _global_handlers.pop() is self, 'poped unexpected handler'
 
     @contextmanager
-    def contextbound(self, bubble=False):
+    def contextbound(self, bubble=True):
         self.push_context(bubble)
         try:
             yield
@@ -108,7 +128,7 @@ class Handler(object):
             self.pop_context()
 
     @contextmanager
-    def applicationbound(self, bubble=False):
+    def applicationbound(self, bubble=True):
         self.push_global(bubble)
         try:
             yield
@@ -136,14 +156,14 @@ class StringFormatter(object):
     def __init__(self, format_string):
         self.format_string = format_string
 
-    def format_record(self, record):
-        return self.format_string.format(record=record)
+    def format_record(self, record, handler):
+        return self.format_string.format(record=record, handler=handler)
 
     def format_exception(self, record):
         return record.format_exception()
 
-    def __call__(self, record):
-        line = self.format_record(record)
+    def __call__(self, record, handler):
+        line = self.format_record(record, handler)
         exc = self.format_exception(record)
         if exc:
             line += u'\n' + exc
@@ -156,10 +176,7 @@ class StringFormatterHandlerMixin(object):
     log text to a destination.
     """
 
-    default_format_string = (
-        u'[{record.time:%Y-%m-%d %H:%M}] '
-        u'{record.level_name}: {record.logger_name}: {record.message}'
-    )
+    default_format_string = DEFAULT_FORMAT_STRING
 
     def __init__(self, format_string):
         if format_string is None:
@@ -206,7 +223,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
             self.stream.flush()
 
     def format_and_encode(self, record):
-        msg = self.formatter(record)
+        msg = self.format(record)
         enc = getattr(self.stream, 'encoding', None) or 'utf-8'
         return ('%s\n' % msg).encode(enc, 'replace')
 
@@ -281,6 +298,7 @@ class RotatingFileHandlerBase(FileHandler):
 
 
 class RotatingFileHandler(RotatingFileHandlerBase):
+    """This handler rotates based on file size."""
 
     def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
                  format_string=None, delay=False, max_size=1024 * 1024,
@@ -310,6 +328,7 @@ class RotatingFileHandler(RotatingFileHandlerBase):
 
 
 class TimedRotatingFileHandler(RotatingFileHandlerBase):
+    """This handler rotates based on dates."""
 
     def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
                  format_string=None, date_format='%Y-%m-%d',
@@ -333,25 +352,28 @@ class TimedRotatingFileHandler(RotatingFileHandlerBase):
         self._filename = fn
         return rv
 
+    def files_to_delete(self):
+        directory = os.path.dirname(self._filename)
+        files = []
+        for filename in os.listdir(directory):
+            filename = os.path.join(directory, filename)
+            if filename.startswith(self._fn_parts[0] + '-') and \
+               filename.endswith(self._fn_parts[1]):
+                files.append((os.path.getmtime(filename), filename))
+        files.sort()
+        return files[:-self.backup_count + 1]
+
     def perform_rollover(self):
         self.stream.close()
         if self.backup_count > 0:
-            directory = os.path.dirname(self._filename)
-            files = []
-            for filename in os.listdir(directory):
-                filename = os.path.join(directory, filename)
-                if filename.startswith(self._fn_parts[0]) and \
-                   filename.endswith(self._fn_parts[1]):
-                    files.append((os.path.getmtime(filename), filename))
-            files.sort()
-            for time, filename in files[:-self.backup_count + 1]:
+            for time, filename in self.files_to_delete():
                 os.remove(filename)
         self._open('w')
 
 
 class TestHandler(Handler, StringFormatterHandlerMixin):
     """Like a stream handler but keeps the values in memory."""
-    default_format_string = u'[{record.level_name}] {record.logger_name}: {record.message}'
+    default_format_string = TEST_FORMAT_STRING
 
     def __init__(self, level=NOTSET, format_string=None):
         Handler.__init__(self, level)
@@ -368,7 +390,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         if len(self._formatted_records) != self.records or \
            any(r1 != r2 for r1, (r2, f) in
                izip(self.records, self._formatted_records)):
-            self._formatted_records = map(self.formatter, self.records)
+            self._formatted_records = map(self.format, self.records)
             self._formatted_record_cache = list(self.records)
         return self._formatted_records
 
@@ -430,3 +452,73 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
                 continue
             return True
         return False
+
+
+class MailHandler(Handler, StringFormatterHandlerMixin):
+    default_format_string = MAIL_FORMAT_STRING
+    default_subject = u'Server Error in Application'
+
+    def __init__(self, from_addr, recipients, subject=None,
+                 server_addr=None, credentials=None, secure=None,
+                 level=NOTSET, format_string=None):
+        Handler.__init__(self, level)
+        StringFormatterHandlerMixin.__init__(self, format_string)
+        self.from_addr = from_addr
+        self.recipients = recipients
+        if subject is None:
+            subject = self.default_subject
+        self.subject = subject
+        self.server_addr = server_addr
+        self.credentials = credentials
+        self.secure = secure
+
+    def get_recipients(self, record):
+        return self.recipients
+
+    def message_from_record(self, record):
+        from email.message import Message
+        msg = Message()
+        lineiter = iter(self.format(record).splitlines())
+        for line in lineiter:
+            if not line:
+                break
+            pieces = line.split(':', 1)
+            msg.add_header(*[x.strip() for x in pieces])
+        msg.set_payload('\r\n'.join(lineiter))
+        return msg
+
+    def generate_mail(self, record):
+        from email.utils import formatdate
+        msg = self.message_from_record(record)
+        msg['From'] = self.from_addr
+        msg['Date'] = formatdate()
+        return msg
+
+    def get_connection(self):
+        from smtplib import SMTP, SMTP_PORT, SMTP_SSL_PORT
+        if self.server_addr is None:
+            host = ''
+            port = SMTP_SSL_PORT if self.secure else SMTP_PORT
+        else:
+            host, port = self.server_addr
+        con = SMTP(host, port)
+        if self.credentials is not None:
+            if self.secure is not None:
+                con.ehlo()
+                con.starttls(*self.secure)
+                con.ehlo()
+            con.login(*self.credentials)
+        return con
+
+    def close_connection(self, con):
+        con.quit()
+
+    def deliver(self, msg, recipients):
+        con = self.get_connection()
+        try:
+            con.sendmail(self.from_addr, recipients, msg.as_string())
+        finally:
+            self.close_connection(con)
+
+    def emit(self, record):
+        self.deliver(self.generate_mail(record), self.get_recipients(record))

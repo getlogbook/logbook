@@ -52,7 +52,7 @@ class BasicAPITestCase(LogbookTestCase):
         handler = logbook.TestHandler(format_string=
             '[{record.level_name}] {record.logger_name}: '
             '{record.message} [{record.extra[ip]}]')
-    
+
         with handler.contextbound(bubble=False):
             custom_log.warn('Too many sounds')
             self.log.warn('"Music" playing')
@@ -99,7 +99,7 @@ class HandlerTestCase(LogbookTestCase):
     def test_file_handler(self):
         handler = logbook.FileHandler(self.filename, format_string=
             '{record.level_name}:{record.logger_name}:{record.message}')
-        with handler.contextbound():
+        with handler.contextbound(bubble=False):
             self.log.warn('warning message')
         handler.close()
         with open(self.filename) as f:
@@ -111,7 +111,7 @@ class HandlerTestCase(LogbookTestCase):
             '{record.level_name}:{record.logger_name}:{record.message}',
             delay=True)
         self.assertFalse(os.path.isfile(self.filename))
-        with handler.contextbound():
+        with handler.contextbound(bubble=False):
             self.log.warn('warning message')
         handler.close()
         with open(self.filename) as f:
@@ -119,11 +119,11 @@ class HandlerTestCase(LogbookTestCase):
                              'WARNING:testlogger:warning message\n')
 
     def test_custom_formatter(self):
-        def custom_format(record):
+        def custom_format(record, handler=None):
             return record.level_name + ':' + record.message
         with logbook.FileHandler(self.filename) as handler:
             handler.formatter = custom_format
-            with handler.contextbound():
+            with handler.contextbound(bubble=False):
                 self.log.warn('Custom formatters are awesome')
         with open(self.filename) as f:
             self.assertEqual(f.readline(),
@@ -135,7 +135,7 @@ class HandlerTestCase(LogbookTestCase):
                                               backup_count=3)
         handler.format_string = '{record.message}'
         with handler:
-            with handler.contextbound():
+            with handler.contextbound(bubble=False):
                 for c, x in izip(string.letters, xrange(32)):
                     self.log.warn(c * 256)
         files = [x for x in os.listdir(self.dirname)
@@ -182,6 +182,33 @@ class HandlerTestCase(LogbookTestCase):
         with open(os.path.join(self.dirname, 'trot-2010-01-07.log')) as f:
             self.assertEqual(f.readline().rstrip(), '[01:00] Third One')
             self.assertEqual(f.readline().rstrip(), '[02:00] Third One')
+
+    def test_mail_handler(self):
+        mails = []
+        class FakeMailHandler(logbook.MailHandler):
+            def get_connection(self):
+                return self
+            def close_connection(self, con):
+                pass
+            def sendmail(self, fromaddr, recipients, mail):
+                mails.append((fromaddr, recipients, mail))
+
+        handler = FakeMailHandler('foo@example.com', ['bar@example.com'],
+                                  level=logbook.ERROR,
+                                  subject=u'\xf8nicode')
+        with capture_stderr() as fallback:
+            with handler.contextbound(bubble=False):
+                self.log.warn('This is not mailed')
+                try:
+                    1/0
+                except Exception:
+                    self.log.exception('This is unfortunate')
+
+            self.assertEqual(len(mails), 1)
+            sender, recievers, mail = mails[0]
+            self.assertEqual(sender, handler.from_addr)
+            self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
+            self.assert_('This is not mailed' in fallback.getvalue())
 
 
 class AttributeTestCase(LogbookTestCase):
