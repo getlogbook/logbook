@@ -15,11 +15,13 @@ import sys
 import threading
 import traceback
 import codecs
+import errno
 from contextlib import contextmanager
 from itertools import izip
 
 from logbook.base import CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET, \
      _level_name_property, _missing, lookup_level
+from logbook.helpers import rename
 
 
 _global_handlers = []
@@ -198,14 +200,18 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
 
     def flush(self):
         """Flushes the stream."""
-        if self.stream and hasattr(self.stream, 'flush'):
+        if self.stream is not None and hasattr(self.stream, 'flush') \
+           and not self.stream.closed:
             self.stream.flush()
+
+    def format_and_encode(self, record):
+        msg = self.formatter(record)
+        enc = getattr(self.stream, 'encoding', None) or 'utf-8'
+        return ('%s\n' % msg).encode(enc, 'replace')
 
     def emit(self, record):
         with self.lock:
-            msg = self.formatter(record)
-            enc = getattr(self.stream, 'encoding', None) or 'utf-8'
-            self.stream.write(('%s\n' % msg).encode(enc, 'replace'))
+            self.stream.write(self.format_and_encode(record))
             self.flush()
 
 
@@ -213,35 +219,23 @@ class FileHandler(StreamHandler):
     """A handler that does the task of opening and closing files for you."""
 
     def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
-                 format_string=None):
-        if encoding is not None:
-            stream = open(filename, mode)
-        else:
-            stream = codecs.open(filename, mode, encoding)
-        StreamHandler.__init__(self, stream, level, format_string)
-
-    def close(self):
-        self.flush()
-        self.stream.close()
-
-
-class LazyFileHandler(StreamHandler):
-    """A file handler that does not open the file until a record is actually
-    written."""
-
-    def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
-                 format_string=None):
+                 format_string=None, delay=False):
         StreamHandler.__init__(self, None, level, format_string)
         self._filename = filename
         self._mode = mode
         self._encoding = encoding
-        self.stream = None
-
-    def _open(self):
-        if self._encoding is not None:
-            self.stream = open(self._filename, self._mode)
+        if delay:
+            self.stream = None
         else:
-            self.stream = codecs.open(self._filename, self._mode, self._encoding)
+            self._open()
+
+    def _open(self, mode=None):
+        if mode is None:
+            mode = self._mode
+        if self._encoding is not None:
+            self.stream = open(self._filename, mode)
+        else:
+            self.stream = codecs.open(self._filename, mode, self._encoding)
 
     def close(self):
         if self.stream is not None:
@@ -263,6 +257,46 @@ class StderrHandler(StreamHandler):
     @property
     def stream(self):
         return sys.stderr
+
+
+class RotatingFileHandlerBase(FileHandler):
+    """Baseclass for rotating file handlers."""
+
+    def emit(self, record):
+        with self.lock:
+            msg = self.format_and_encode(record)
+            if self.should_rollover(record, len(msg)):
+                self.perform_rollover()
+            self.stream.write(msg)
+            self.flush()
+
+
+class RotatingFileHandler(RotatingFileHandlerBase):
+
+    def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
+                 format_string=None, max_size=1024 * 1024, backup_count=0):
+        RotatingFileHandlerBase.__init__(self, filename, mode, encoding, level,
+                                         format_string)
+        self.max_size = max_size
+        self.backup_count = backup_count
+
+    def should_rollover(self, record, bytes):
+        self.stream.seek(0, 2)
+        return self.stream.tell() + bytes >= self.max_size
+
+    def perform_rollover(self):
+        self.stream.close()
+        if self.backup_count:
+            for x in xrange(self.backup_count - 1, 0, -1):
+                src = '%s.%d' % (self._filename, x)
+                dst = '%s.%d' % (self._filename, x + 1)
+                try:
+                    rename(src, dst)
+                except OSError, e:
+                    if e.errno != errno.ENOENT:
+                        raise
+            rename(self._filename, self._filename + '.1')
+        self._open('w')
 
 
 class TestHandler(Handler, StringFormatterHandlerMixin):

@@ -6,6 +6,8 @@ import sys
 import shutil
 import unittest
 import tempfile
+import string
+from itertools import izip
 from contextlib import contextmanager
 from cStringIO import StringIO
 
@@ -102,9 +104,10 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline(),
                              'WARNING:testlogger:warning message\n')
 
-    def test_lazy_file_handler(self):
-        handler = logbook.LazyFileHandler(self.filename, format_string=
-            '{record.level_name}:{record.logger_name}:{record.message}')
+    def test_file_handler_delay(self):
+        handler = logbook.FileHandler(self.filename, format_string=
+            '{record.level_name}:{record.logger_name}:{record.message}',
+            delay=True)
         self.assertFalse(os.path.isfile(self.filename))
         with handler.contextbound():
             self.log.warn('warning message')
@@ -123,6 +126,27 @@ class HandlerTestCase(LogbookTestCase):
         with open(self.filename) as f:
             self.assertEqual(f.readline(),
                              'WARNING:Custom formatters are awesome\n')
+
+    def test_rotating_file_handler(self):
+        basename = os.path.join(self.dirname, 'rot.log')
+        handler = logbook.RotatingFileHandler(basename, max_size=2048,
+                                              backup_count=3)
+        handler.format_string = '{record.message}'
+        with handler:
+            with handler.contextbound():
+                for c, x in izip(string.letters, xrange(32)):
+                    self.log.warn(c * 256)
+        files = [x for x in os.listdir(self.dirname)
+                 if x.startswith('rot.log')]
+        files.sort()
+
+        self.assertEqual(files, ['rot.log', 'rot.log.1', 'rot.log.2',
+                                 'rot.log.3'])
+        with open(basename) as f:
+            assert f.readline().rstrip() == 'C' * 256
+            assert f.readline().rstrip() == 'D' * 256
+            assert f.readline().rstrip() == 'E' * 256
+            assert f.readline().rstrip() == 'F' * 256
 
 
 class AttributeTestCase(LogbookTestCase):
