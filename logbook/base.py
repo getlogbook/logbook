@@ -19,9 +19,10 @@ import traceback
 from datetime import datetime
 
 
-CRITICAL = 5
-ERROR = 4
-WARNING = 3
+CRITICAL = 6
+ERROR = 5
+WARNING = 4
+NOTICE = 3
 INFO = 2
 DEBUG = 1
 NOTSET = 0
@@ -30,6 +31,7 @@ _level_names = {
     CRITICAL:   'CRITICAL',
     ERROR:      'ERROR',
     WARNING:    'WARNING',
+    NOTICE:     'NOTICE',
     INFO:       'INFO',
     DEBUG:      'DEBUG',
     NOTSET:     'NOTSET'
@@ -257,6 +259,10 @@ class LoggerMixin(object):
     def warn(self, *args, **kwargs):
         if WARNING >= self.level:
             self._log(WARNING, args, kwargs)
+
+    def notice(self, *args, **kwargs):
+        if NOTICE >= self.level:
+            self._log(NOTICE, args, kwargs)
 
     def error(self, *args, **kwargs):
         if ERROR >= self.level:

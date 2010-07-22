@@ -335,6 +335,10 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         return any(r.level == WARNING for r in self.records)
 
     @property
+    def has_notices(self):
+        return any(r.level == NOTICE for r in self.records)
+
+    @property
     def has_infos(self):
         return any(r.level == INFO for r in self.records)
 
@@ -352,6 +356,10 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
     def has_warning(self, *args, **kwargs):
         kwargs['level'] = WARNING
+        return self._test_for(*args, **kwargs)
+
+    def has_notice(elf, *args, **kwargs):
+        kwargs['level'] = NOTICE
         return self._test_for(*args, **kwargs)
 
     def has_info(self, *args, **kwargs):
