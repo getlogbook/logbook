@@ -11,6 +11,7 @@
 
 from __future__ import with_statement
 
+import os
 import sys
 import threading
 import traceback
@@ -209,9 +210,12 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         enc = getattr(self.stream, 'encoding', None) or 'utf-8'
         return ('%s\n' % msg).encode(enc, 'replace')
 
+    def write(self, item):
+        self.stream.write(item)
+
     def emit(self, record):
         with self.lock:
-            self.stream.write(self.format_and_encode(record))
+            self.write(self.format_and_encode(record))
             self.flush()
 
 
@@ -236,6 +240,11 @@ class FileHandler(StreamHandler):
             self.stream = open(self._filename, mode)
         else:
             self.stream = codecs.open(self._filename, mode, self._encoding)
+
+    def write(self, item):
+        if self.stream is None:
+            self._open()
+        StreamHandler.write(self, item)
 
     def close(self):
         if self.stream is not None:
@@ -267,16 +276,17 @@ class RotatingFileHandlerBase(FileHandler):
             msg = self.format_and_encode(record)
             if self.should_rollover(record, len(msg)):
                 self.perform_rollover()
-            self.stream.write(msg)
+            self.write(msg)
             self.flush()
 
 
 class RotatingFileHandler(RotatingFileHandlerBase):
 
     def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
-                 format_string=None, max_size=1024 * 1024, backup_count=0):
+                 format_string=None, delay=False, max_size=1024 * 1024,
+                 backup_count=0):
         RotatingFileHandlerBase.__init__(self, filename, mode, encoding, level,
-                                         format_string)
+                                         format_string, delay)
         self.max_size = max_size
         self.backup_count = backup_count
 
@@ -286,7 +296,7 @@ class RotatingFileHandler(RotatingFileHandlerBase):
 
     def perform_rollover(self):
         self.stream.close()
-        if self.backup_count:
+        if self.backup_count > 0:
             for x in xrange(self.backup_count - 1, 0, -1):
                 src = '%s.%d' % (self._filename, x)
                 dst = '%s.%d' % (self._filename, x + 1)
@@ -296,6 +306,46 @@ class RotatingFileHandler(RotatingFileHandlerBase):
                     if e.errno != errno.ENOENT:
                         raise
             rename(self._filename, self._filename + '.1')
+        self._open('w')
+
+
+class TimedRotatingFileHandler(RotatingFileHandlerBase):
+
+    def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
+                 format_string=None, date_format='%Y-%m-%d',
+                 backup_count=0):
+        RotatingFileHandlerBase.__init__(self, filename, mode, encoding, level,
+                                         format_string, True)
+        self.date_format = date_format
+        self.backup_count = backup_count
+        self._fn_parts = os.path.splitext(os.path.abspath(filename))
+        self._filename = None
+
+    def _get_timed_filename(self, datetime):
+        return datetime.strftime('-' + self.date_format) \
+                       .join(self._fn_parts)
+
+    def should_rollover(self, record, bytes):
+        fn = self._get_timed_filename(record.time)
+        rv = self._filename is not None and self._filename != fn
+        # remember the current filename.  In case rv is True, the rollover
+        # performing function will already have the new filename
+        self._filename = fn
+        return rv
+
+    def perform_rollover(self):
+        self.stream.close()
+        if self.backup_count > 0:
+            directory = os.path.dirname(self._filename)
+            files = []
+            for filename in os.listdir(directory):
+                filename = os.path.join(directory, filename)
+                if filename.startswith(self._fn_parts[0]) and \
+                   filename.endswith(self._fn_parts[1]):
+                    files.append((os.path.getmtime(filename), filename))
+            files.sort()
+            for time, filename in files[:-self.backup_count + 1]:
+                os.remove(filename)
         self._open('w')
 
 

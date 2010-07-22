@@ -7,6 +7,8 @@ import shutil
 import unittest
 import tempfile
 import string
+from calendar import timegm
+from time import mktime
 from itertools import izip
 from contextlib import contextmanager
 from cStringIO import StringIO
@@ -50,7 +52,7 @@ class BasicAPITestCase(LogbookTestCase):
         handler = logbook.TestHandler(format_string=
             '[{record.level_name}] {record.logger_name}: '
             '{record.message} [{record.extra[ip]}]')
-
+    
         with handler.contextbound(bubble=False):
             custom_log.warn('Too many sounds')
             self.log.warn('"Music" playing')
@@ -143,10 +145,43 @@ class HandlerTestCase(LogbookTestCase):
         self.assertEqual(files, ['rot.log', 'rot.log.1', 'rot.log.2',
                                  'rot.log.3'])
         with open(basename) as f:
-            assert f.readline().rstrip() == 'C' * 256
-            assert f.readline().rstrip() == 'D' * 256
-            assert f.readline().rstrip() == 'E' * 256
-            assert f.readline().rstrip() == 'F' * 256
+            self.assertEqual(f.readline().rstrip(), 'C' * 256)
+            self.assertEqual(f.readline().rstrip(), 'D' * 256)
+            self.assertEqual(f.readline().rstrip(), 'E' * 256)
+            self.assertEqual(f.readline().rstrip(), 'F' * 256)
+
+    def test_timed_rotating_file_handler(self):
+        basename = os.path.join(self.dirname, 'trot.log')
+        handler = logbook.TimedRotatingFileHandler(basename, backup_count=3)
+        handler.format_string = '[{record.time:%H:%M}] {record.message}'
+
+        def fake_record(message, year, month, day, hour=0,
+                        minute=0, second=0):
+            lr = logbook.LogRecord('Test Logger', logbook.WARNING,
+                                   message)
+            lr.timestamp = timegm((year, month, day, hour, minute, second))
+            return lr
+
+        with handler:
+            for x in xrange(10):
+                handler.handle(fake_record('First One', 2010, 1, 5, x + 1))
+            for x in xrange(20):
+                handler.handle(fake_record('Second One', 2010, 1, 6, x + 1))
+            for x in xrange(10):
+                handler.handle(fake_record('Third One', 2010, 1, 7, x + 1))
+            for x in xrange(20):
+                handler.handle(fake_record('Last One', 2010, 1, 8, x + 1))
+
+        files = [x for x in os.listdir(self.dirname) if x.startswith('trot')]
+        files.sort()
+        self.assertEqual(files, ['trot-2010-01-06.log', 'trot-2010-01-07.log',
+                                 'trot-2010-01-08.log'])
+        with open(os.path.join(self.dirname, 'trot-2010-01-08.log')) as f:
+            self.assertEqual(f.readline().rstrip(), '[01:00] Last One')
+            self.assertEqual(f.readline().rstrip(), '[02:00] Last One')
+        with open(os.path.join(self.dirname, 'trot-2010-01-07.log')) as f:
+            self.assertEqual(f.readline().rstrip(), '[01:00] Third One')
+            self.assertEqual(f.readline().rstrip(), '[02:00] Third One')
 
 
 class AttributeTestCase(LogbookTestCase):

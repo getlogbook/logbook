@@ -14,8 +14,8 @@ from logbook.base import LogRecord, Logger, LoggerGroup, \
      get_level_name, lookup_level, CRITICAL, ERROR, WARNING, INFO, DEBUG, \
      NOTSET
 from logbook.handlers import Handler, StreamHandler, FileHandler, \
-     StderrHandler, RotatingFileHandler, TestHandler, \
-     iter_context_handlers
+     StderrHandler, RotatingFileHandler, TimedRotatingFileHandler, \
+     TestHandler, iter_context_handlers
 
 
 # install a default global handler
