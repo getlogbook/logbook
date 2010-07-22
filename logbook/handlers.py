@@ -34,6 +34,13 @@ def iter_context_handlers():
     return reversed(handlers)
 
 
+def _basic_formatter(record):
+    """Internal default formatter if a handler did not provide a better
+    default.  This just returns the record's message.
+    """
+    return record.message
+
+
 class Handler(object):
     """Handler instances dispatch logging events to specific destinations.
 
@@ -46,6 +53,7 @@ class Handler(object):
     def __init__(self, level=NOTSET):
         self.name = None
         self.level = lookup_level(level)
+        self.formatter = _basic_formatter
 
     level_name = _level_name_property()
 
@@ -114,7 +122,36 @@ class Handler(object):
             pass
 
 
-class StringFormatHandlerMixin(object):
+class StringFormatter(object):
+    """Many handlers format the log entries to text format.  This is done
+    by a callable that is passed a log record and returns an unicode
+    string.  The default formatter for this is implemented as a class so
+    that it becomes possible to hook into every aspect of the formatting
+    process.
+    """
+
+    def __init__(self, format_string):
+        self.format_string = format_string
+
+    def format_record(self, record):
+        return self.format_string.format(record=record)
+
+    def format_exception(self, record):
+        return record.format_exception()
+
+    def __call__(self, record):
+        line = self.format_record(record)
+        exc = self.format_exception(record)
+        if exc:
+            line += u'\n' + exc
+        return line
+
+
+class StringFormatterHandlerMixin(object):
+    """A mixin for handlers that provides a default integration for the
+    StringFormatter class.  This is used for all handlers by default that
+    log text to a destination.
+    """
 
     default_format_string = (
         u'[{record.time:%Y-%m-%d %H:%M}] '
@@ -126,11 +163,16 @@ class StringFormatHandlerMixin(object):
             format_string = self.default_format_string
         self.format_string = format_string
 
-    def format(self, record):
-        return self.format_string.format(record=record)
+    def _get_format_string(self):
+        if isinstance(self.formatter, StringFormatter):
+            return self.formatter.format_string
+    def _set_format_string(self, value):
+        self.formatter = StringFormatter(value)
+    format_string = property(_get_format_string, _set_format_string)
+    del _get_format_string, _set_format_string
 
 
-class StreamHandler(Handler, StringFormatHandlerMixin):
+class StreamHandler(Handler, StringFormatterHandlerMixin):
     """a handler class which writes logging records, appropriately formatted,
     to a stream. note that this class does not close the stream, as sys.stdout
     or sys.stderr may be used.
@@ -138,10 +180,16 @@ class StreamHandler(Handler, StringFormatHandlerMixin):
 
     def __init__(self, stream, level=NOTSET, format_string=None):
         Handler.__init__(self, level)
-        StringFormatHandlerMixin.__init__(self, format_string)
+        StringFormatterHandlerMixin.__init__(self, format_string)
         self.lock = threading.RLock()
         if stream is not _missing:
             self.stream = stream
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.close()
 
     def close(self):
         # do not close the stream as we didn't open it ourselves, but at least
@@ -155,7 +203,7 @@ class StreamHandler(Handler, StringFormatHandlerMixin):
 
     def emit(self, record):
         with self.lock:
-            msg = self.format(record)
+            msg = self.formatter(record)
             enc = getattr(self.stream, 'encoding', None) or 'utf-8'
             self.stream.write(('%s\n' % msg).encode(enc, 'replace'))
             self.flush()
@@ -217,13 +265,13 @@ class StderrHandler(StreamHandler):
         return sys.stderr
 
 
-class TestHandler(Handler, StringFormatHandlerMixin):
+class TestHandler(Handler, StringFormatterHandlerMixin):
     """Like a stream handler but keeps the values in memory."""
     default_format_string = u'[{record.level_name}] {record.logger_name}: {record.message}'
 
     def __init__(self, level=NOTSET, format_string=None):
         Handler.__init__(self, level)
-        StringFormatHandlerMixin.__init__(self, format_string)
+        StringFormatterHandlerMixin.__init__(self, format_string)
         self.records = []
         self._formatted_records = []
         self._formatted_record_cache = []
@@ -236,7 +284,7 @@ class TestHandler(Handler, StringFormatHandlerMixin):
         if len(self._formatted_records) != self.records or \
            any(r1 != r2 for r1, (r2, f) in
                izip(self.records, self._formatted_records)):
-            self._formatted_records = map(self.format, self.records)
+            self._formatted_records = map(self.formatter, self.records)
             self._formatted_record_cache = list(self.records)
         return self._formatted_records
 

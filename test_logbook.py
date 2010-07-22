@@ -113,6 +113,17 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline(),
                              'WARNING:testlogger:warning message\n')
 
+    def test_custom_formatter(self):
+        def custom_format(record):
+            return record.level_name + ':' + record.message
+        with logbook.FileHandler(self.filename) as handler:
+            handler.formatter = custom_format
+            with handler.contextbound():
+                self.log.warn('Custom formatters are awesome')
+        with open(self.filename) as f:
+            self.assertEqual(f.readline(),
+                             'WARNING:Custom formatters are awesome\n')
+
 
 class AttributeTestCase(LogbookTestCase):
 
