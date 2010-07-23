@@ -1,3 +1,4 @@
 \.pyc$
 \.egg-info$
 docs/_build
+\.ropeproject
