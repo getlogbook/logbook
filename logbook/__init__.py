@@ -19,4 +19,5 @@ from logbook.handlers import Handler, StreamHandler, FileHandler, \
 
 
 # install a default global handler
-StderrHandler().push_global()
+default_handler = StderrHandler()
+default_handler.push_global()
