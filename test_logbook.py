@@ -205,9 +205,16 @@ class HandlerTestCase(LogbookTestCase):
                     self.log.exception('This is unfortunate')
 
             self.assertEqual(len(mails), 1)
-            sender, recievers, mail = mails[0]
+            sender, receivers, mail = mails[0]
             self.assertEqual(sender, handler.from_addr)
             self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
+            self.assert_(re.search('Message type:\s+ERROR', mail))
+            self.assert_(re.search('Location:.*test_logbook.py', mail))
+            self.assert_(re.search('Module:\s+%s' % __name__, mail))
+            self.assert_(re.search('Function:\s+test_mail_handler', mail))
+            self.assert_('Message:\r\n\r\nThis is unfortunate' in mail)
+            self.assert_('\r\n\r\nTraceback' in mail)
+            self.assert_('1/0' in mail)
             self.assert_('This is not mailed' in fallback.getvalue())
 
 

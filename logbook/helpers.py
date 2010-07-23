@@ -52,7 +52,7 @@ if os.name == 'nt': # pragma: no cover
         can_rename_open_file = True
 
         def _rename_atomic(src, dst):
-            ta = _CreateTransaction(None, 0, 0, 0, 0, 1000, 'Werkzeug rename')
+            ta = _CreateTransaction(None, 0, 0, 0, 0, 1000, 'Logbook rename')
             if ta == -1:
                 return False
             try:
