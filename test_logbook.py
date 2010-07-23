@@ -7,6 +7,7 @@ import shutil
 import unittest
 import tempfile
 import string
+from random import randrange
 from calendar import timegm
 from time import mktime
 from itertools import izip
@@ -309,6 +310,21 @@ class DefaultConfigurationTestCase(LogbookTestCase):
             self.log.warn('Aha!')
             captured = stream.getvalue()
         assert 'WARNING: testlogger: Aha!' in captured
+
+
+class LoggingCompatTestCase(LogbookTestCase):
+
+    def test_basic_compat(self):
+        from logging import getLogger
+        from logbook.compat import temporarily_redirected_logging
+
+        name = 'test_logbook-%d' % randrange(1 << 32)
+        logger = getLogger(name)
+        with capture_stderr() as captured:
+            with temporarily_redirected_logging():
+                logger.warn('This is from the old system')
+            self.assert_(('WARNING: %s: This is from the old system' % name)
+                         in captured.getvalue())
 
 
 if __name__ == '__main__':
