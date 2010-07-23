@@ -258,6 +258,23 @@ Message:
         self.assertEqual(len(handler.mails), 1)
         mail = handler.mails[0][2]
         self.assert_('Subject: Application Error for /index.html [GET]' in mail)
+        self.assert_('1/0' in mail)
+
+    def test_custom_handling_test(self):
+        class MyTestHandler(logbook.TestHandler):
+            def should_handle(self, record):
+                return record.extra.get('flag') == 'testing'
+        class MyLogger(logbook.Logger):
+            def process_record(self, record):
+                record.extra['flag'] = 'testing'
+        log = MyLogger()
+        handler = MyTestHandler()
+        with capture_stderr() as captured:
+            with handler.contextbound(bubble=False):
+                log.warn('From my logger')
+                self.log.warn('From another logger')
+            self.assert_(handler.has_warning('From my logger'))
+            self.assert_('From another logger' in captured.getvalue())
 
 
 class AttributeTestCase(LogbookTestCase):
