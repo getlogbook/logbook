@@ -330,9 +330,8 @@ class MoreTestCase(LogbookTestCase):
 
     def test_fingerscrossed(self):
         from logbook.more import FingersCrossedHandler
-
-        orig_handler = logbook.handlers.StderrHandler()
-        handler = FingersCrossedHandler(orig_handler, logbook.WARNING)
+        handler = FingersCrossedHandler(logbook.default_handler,
+                                        logbook.WARNING)
 
         # if no warning occurs, the infos are not logged
         with handler.contextbound(bubble=False):
@@ -349,6 +348,35 @@ class MoreTestCase(LogbookTestCase):
             self.assert_('some info' in logs)
             self.assert_('something happened' in logs)
 
+    def test_tagged(self):
+        from logbook.more import TaggingLogger, TaggingHandler
+        stream = StringIO()
+        second_handler = logbook.StreamHandler(stream)
+
+        logger = TaggingLogger('name', 'cmd')
+        handler = TaggingHandler(
+            info = logbook.default_handler,
+            cmd = second_handler,
+            all = [logbook.default_handler, second_handler],
+        )
+
+        with handler.contextbound(bubble=False):
+            with capture_stderr() as captured:
+                logger.log('info', 'info message')
+                logger.log('all', 'all message')
+                logger.cmd('cmd message')
+
+        stderr = captured.getvalue()
+
+        self.assert_('info message' in stderr)
+        self.assert_('all message' in stderr)
+        self.assert_('cmd message' not in stderr)
+
+        stringio = stream.getvalue()
+
+        self.assert_('info message' not in stringio)
+        self.assert_('all message' in stringio)
+        self.assert_('cmd message' in stringio)
 
 
 if __name__ == '__main__':
