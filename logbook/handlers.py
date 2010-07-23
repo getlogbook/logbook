@@ -20,8 +20,8 @@ import errno
 from contextlib import contextmanager
 from itertools import izip
 
-from logbook.base import CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET, \
-     _level_name_property, _missing, lookup_level
+from logbook.base import (CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET,
+                          _level_name_property, _missing, lookup_level)
 from logbook.helpers import rename
 
 
@@ -407,7 +407,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
     @property
     def has_errors(self):
-        return any(r.level == ERRORS for r in self.records)
+        return any(r.level == ERROR for r in self.records)
 
     @property
     def has_warnings(self):
@@ -437,7 +437,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         kwargs['level'] = WARNING
         return self._test_for(*args, **kwargs)
 
-    def has_notice(elf, *args, **kwargs):
+    def has_notice(self, *args, **kwargs):
         kwargs['level'] = NOTICE
         return self._test_for(*args, **kwargs)
 
