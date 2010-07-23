@@ -260,6 +260,8 @@ class LoggerMixin(object):
         if WARNING >= self.level:
             self._log(WARNING, args, kwargs)
 
+    warning = warn
+
     def notice(self, *args, **kwargs):
         if NOTICE >= self.level:
             self._log(NOTICE, args, kwargs)
