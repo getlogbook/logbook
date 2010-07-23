@@ -276,9 +276,9 @@ class LoggerMixin(object):
         if CRITICAL >= self.level:
             self._log(CRITICAL, args, kwargs)
 
-    def log(self, level, *args, **kwargs):
-        if level >= self.level:
-            self._log(level, args, kwargs)
+    def log(self, *args, **kwargs):
+        if NOTSET >= self.level:
+            self._log(NOTSET, args, kwargs)
 
     def process_record(self, record):
         pass
@@ -337,8 +337,12 @@ class Logger(LoggerMixin):
 
         # after that, context specific handlers run (this includes the
         # global handlers)
-        for handler, bubble in iter_context_handlers():
-            if record.level >= handler.level:
+        for handler, processor, bubble in iter_context_handlers():
+            if handler.should_handle(record):
+                # TODO: cloning?  expensive?  document that on bubbling
+                # the record is modified for outer processors too?
+                if processor is not None:
+                    processor(record, handler)
                 handler.handle(record)
                 if not bubble:
                     break

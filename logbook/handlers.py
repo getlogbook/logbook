@@ -80,6 +80,13 @@ class Handler(object):
             return record.message
         return self.formatter(record, self)
 
+    def should_handle(self, record):
+        """Called before handling to check if the handler is interested
+        in the record.  This information is used to do preprocessing and
+        bubbling.
+        """
+        return record.level >= self.level
+
     def handle(self, record):
         """Emits and falls back."""
         try:
@@ -93,10 +100,10 @@ class Handler(object):
     def close(self):
         """Tidy up any resources used by the handler."""
 
-    def push_context(self, bubble=True):
+    def push_context(self, processor=None, bubble=True):
         """Push the handler for the current context."""
         with _context_handler_lock:
-            item = self, bubble
+            item = self, processor, bubble
             stack = getattr(_context_handlers, 'stack', None)
             if stack is None:
                 _context_handlers.stack = [item]
@@ -110,26 +117,26 @@ class Handler(object):
             assert stack, 'no handlers on stack'
             assert stack.pop()[0] is self, 'poped unexpected handler'
 
-    def push_global(self, bubble=True):
+    def push_global(self, processor=None, bubble=True):
         """Push the handler to the global stack."""
-        _global_handlers.append((self, bubble))
+        _global_handlers.append((self, processor, bubble))
 
     def pop_global(self):
         """Pop the handler from the global stack."""
         assert _global_handlers, 'no handlers on global stack'
-        assert _global_handlers.pop() is self, 'poped unexpected handler'
+        assert _global_handlers.pop()[0] is self, 'poped unexpected handler'
 
     @contextmanager
-    def contextbound(self, bubble=True):
-        self.push_context(bubble)
+    def contextbound(self, processor=None, bubble=True):
+        self.push_context(processor, bubble)
         try:
             yield
         finally:
             self.pop_context()
 
     @contextmanager
-    def applicationbound(self, bubble=True):
-        self.push_global(bubble)
+    def applicationbound(self, processor=None, bubble=True):
+        self.push_global(processor, bubble)
         try:
             yield
         finally:

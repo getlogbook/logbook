@@ -24,6 +24,20 @@ def capture_stderr():
         sys.stderr = old
 
 
+def make_fake_mail_handler(**kwargs):
+    class FakeMailHandler(logbook.MailHandler):
+        mails = []
+        def get_connection(self):
+            return self
+        def close_connection(self, con):
+            pass
+        def sendmail(self, fromaddr, recipients, mail):
+            self.mails.append((fromaddr, recipients, mail))
+
+    return FakeMailHandler('foo@example.com', ['bar@example.com'],
+                           level=logbook.ERROR, **kwargs)
+
+
 class LogbookTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -119,7 +133,7 @@ class HandlerTestCase(LogbookTestCase):
                              'WARNING:testlogger:warning message\n')
 
     def test_custom_formatter(self):
-        def custom_format(record, handler=None):
+        def custom_format(record, handler):
             return record.level_name + ':' + record.message
         with logbook.FileHandler(self.filename) as handler:
             handler.formatter = custom_format
@@ -184,18 +198,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline().rstrip(), '[02:00] Third One')
 
     def test_mail_handler(self):
-        mails = []
-        class FakeMailHandler(logbook.MailHandler):
-            def get_connection(self):
-                return self
-            def close_connection(self, con):
-                pass
-            def sendmail(self, fromaddr, recipients, mail):
-                mails.append((fromaddr, recipients, mail))
-
-        handler = FakeMailHandler('foo@example.com', ['bar@example.com'],
-                                  level=logbook.ERROR,
-                                  subject=u'\xf8nicode')
+        handler = make_fake_mail_handler(subject=u'\xf8nicode')
         with capture_stderr() as fallback:
             with handler.contextbound(bubble=False):
                 self.log.warn('This is not mailed')
@@ -204,8 +207,8 @@ class HandlerTestCase(LogbookTestCase):
                 except Exception:
                     self.log.exception('This is unfortunate')
 
-            self.assertEqual(len(mails), 1)
-            sender, receivers, mail = mails[0]
+            self.assertEqual(len(handler.mails), 1)
+            sender, receivers, mail = handler.mails[0]
             self.assertEqual(sender, handler.from_addr)
             self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
             self.assert_(re.search('Message type:\s+ERROR', mail))
@@ -216,6 +219,45 @@ class HandlerTestCase(LogbookTestCase):
             self.assert_('\r\n\r\nTraceback' in mail)
             self.assert_('1/0' in mail)
             self.assert_('This is not mailed' in fallback.getvalue())
+
+    def test_handler_processors(self):
+        handler = make_fake_mail_handler(format_string='''\
+Subject: Application Error for {record.extra[path]} [{record.extra[method]}]
+
+Message type:       {record.level_name}
+Location:           {record.filename}:{record.lineno}
+Module:             {record.module}
+Function:           {record.func_name}
+Time:               {record.time:%Y-%m-%d %H:%M:%S}
+Remote IP:          {record.extra[ip]}
+Request:            {record.extra[path]} [{record.extra[method]}]
+
+Message:
+
+{record.message}
+''')
+
+        class Request(object):
+            remote_addr = '127.0.0.1'
+            method = 'GET'
+            path = '/index.html'
+
+        def handle_request(request):
+            def inject_extra(record, handler):
+                record.extra['ip'] = request.remote_addr
+                record.extra['method'] = request.method
+                record.extra['path'] = request.path
+
+            with handler.contextbound(processor=inject_extra, bubble=False):
+                try:
+                    1/0
+                except Exception:
+                    self.log.exception('Exception happened during request')
+
+        handle_request(Request())
+        self.assertEqual(len(handler.mails), 1)
+        mail = handler.mails[0][2]
+        self.assert_('Subject: Application Error for /index.html [GET]' in mail)
 
 
 class AttributeTestCase(LogbookTestCase):
