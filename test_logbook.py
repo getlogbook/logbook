@@ -9,7 +9,6 @@ import tempfile
 import string
 from random import randrange
 from calendar import timegm
-from time import mktime
 from itertools import izip
 from contextlib import contextmanager
 from cStringIO import StringIO
@@ -325,6 +324,31 @@ class LoggingCompatTestCase(LogbookTestCase):
                 logger.warn('This is from the old system')
             self.assert_(('WARNING: %s: This is from the old system' % name)
                          in captured.getvalue())
+
+
+class MoreTestCase(LogbookTestCase):
+
+    def test_fingerscrossed(self):
+        from logbook.more import FingersCrossedHandler
+
+        orig_handler = logbook.handlers.StderrHandler()
+        handler = FingersCrossedHandler(orig_handler, logbook.WARNING)
+
+        # if no warning occurs, the infos are not logged
+        with handler.contextbound(bubble=False):
+            with capture_stderr() as captured:
+                self.log.info('some info')
+            self.assertEquals(captured.getvalue(), '')
+
+        # but if it does, all log messages are output
+        with handler.contextbound(bubble=False):
+            with capture_stderr() as captured:
+                self.log.info('some info')
+                self.log.warning('something happened')
+            logs = captured.getvalue()
+            self.assert_('some info' in logs)
+            self.assert_('something happened' in logs)
+
 
 
 if __name__ == '__main__':
