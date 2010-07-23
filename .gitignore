@@ -1,0 +1,4 @@
+.ropeproject
+docs/_build
+Logbook.egg-info
+*.pyc
