@@ -115,7 +115,8 @@ class Handler(object):
         with _context_handler_lock:
             stack = getattr(_context_handlers, 'stack', None)
             assert stack, 'no handlers on stack'
-            assert stack.pop()[0] is self, 'poped unexpected handler'
+            popped = stack.pop()[0]
+            assert popped is self, 'popped unexpected handler'
 
     def push_global(self, processor=None, bubble=True):
         """Push the handler to the global stack."""
@@ -124,7 +125,8 @@ class Handler(object):
     def pop_global(self):
         """Pop the handler from the global stack."""
         assert _global_handlers, 'no handlers on global stack'
-        assert _global_handlers.pop()[0] is self, 'poped unexpected handler'
+        popped = _global_handlers.pop()[0]
+        assert popped is self, 'popped unexpected handler'
 
     @contextmanager
     def contextbound(self, processor=None, bubble=True):
