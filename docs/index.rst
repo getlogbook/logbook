@@ -1,5 +1,5 @@
-Welcome to Logbook's documentation!
-===================================
+Documentation for Logbook
+=========================
 
 Contents:
 
@@ -7,11 +7,3 @@ Contents:
    :maxdepth: 2
 
    quickstart
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
