@@ -27,4 +27,11 @@ Alternately, there is the :meth:`~Logger.log` method that takes the logging
 level (string or integer) as an argument.
 
 Each call to a logging method creates a log *record* which is then passed to
-*handlers*, which decide how to store or present the logging info.
+*handlers*, which decide how to store or present the logging info.  There is a
+multitude of available handlers, and of course you can also create your own:
+
+* :class:`StreamHandler` for logging to arbitrary streams
+* :class:`FileHandler`, :class:`RotatingFileHandler` and
+  :class:`TimedRotatingFileHandler` for logging to files
+* :class:`MailHandler` for logging via e-mail
+* :class:`SyslogHandler` for logging to the syslog daemon
