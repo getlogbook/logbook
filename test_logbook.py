@@ -344,9 +344,11 @@ class MoreTestCase(LogbookTestCase):
             with capture_stderr() as captured:
                 self.log.info('some info')
                 self.log.warning('something happened')
+                self.log.info('something else happened')
             logs = captured.getvalue()
             self.assert_('some info' in logs)
             self.assert_('something happened' in logs)
+            self.assert_('something else happened' in logs)
 
     def test_tagged(self):
         from logbook.more import TaggingLogger, TaggingHandler
