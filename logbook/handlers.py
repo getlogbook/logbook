@@ -161,6 +161,7 @@ class Handler(object):
 
     @contextmanager
     def threadbound(self, processor=None, bubble=True):
+        """Binds the handler temporarily to a thread."""
         self.push_thread(processor, bubble)
         try:
             yield
@@ -169,6 +170,7 @@ class Handler(object):
 
     @contextmanager
     def applicationbound(self, processor=None, bubble=True):
+        """Binds the handler temporarily to the whole process."""
         self.push_global(processor, bubble)
         try:
             yield
