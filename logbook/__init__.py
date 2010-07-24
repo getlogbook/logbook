@@ -16,7 +16,7 @@ from logbook.base import LogRecord, Logger, LoggerGroup, \
 from logbook.handlers import Handler, StreamHandler, FileHandler, \
      StderrHandler, RotatingFileHandler, TimedRotatingFileHandler, \
      TestHandler, MailHandler, SyslogHandler, iter_context_handlers
-from logbook.more import TaggedLogger, TaggedHandler, FingersCrossedHandler
+from logbook.more import TaggingLogger, TaggingHandler, FingersCrossedHandler
 
 
 # install a default global handler
