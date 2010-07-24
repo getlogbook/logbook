@@ -26,12 +26,49 @@ There are several logging levels, available as methods on the logger:
 Alternately, there is the :meth:`~Logger.log` method that takes the logging
 level (string or integer) as an argument.
 
+Handlers
+--------
+
 Each call to a logging method creates a log *record* which is then passed to
 *handlers*, which decide how to store or present the logging info.  There is a
 multitude of available handlers, and of course you can also create your own:
 
 * :class:`StreamHandler` for logging to arbitrary streams
+* :class:`StderrHandler` for logging to stderr
 * :class:`FileHandler`, :class:`RotatingFileHandler` and
   :class:`TimedRotatingFileHandler` for logging to files
 * :class:`MailHandler` for logging via e-mail
 * :class:`SyslogHandler` for logging to the syslog daemon
+* :class:`NTEventLogHandler` for logging to the Windows NT event log
+
+Registering Handlers
+--------------------
+
+So how are handlers registered?  If you are used to the standard Python
+logging system it works a little bit different here.  Handlers can be
+registered for a thread or for a whole process or individually for a
+logger.  However it is strongly recommended not to add handlers to loggers
+unless there is a very good use case for that.
+
+If you want errors to go to syslog, you can set up logging like this::
+
+    from logbook import FileHandler
+
+    error_handler = FileHandler('errors.log', level='ERROR')
+    with error_handler.applicationbound():
+        # whatever is executed here and an error is logged to the
+        # error handler
+        ...
+
+Additionally it is still logged to stderr.  If you don't want handled
+log records to go to the next handler (and in this case the global
+handler) you can disable this by setting bubble to False::
+
+    from logbook import FileHandler
+
+    error_handler = FileHandler('errors.log', level='ERROR')
+    with error_handler.applicationbound(bubble=False):
+        # whatever is executed here and an error is logged to the
+        # error handler but it will not bubble up to the default
+        # stderr handler.
+        ...
