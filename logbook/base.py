@@ -119,6 +119,25 @@ class ExtraDict(dict):
         )
 
 
+class _ExceptionCatcher(object):
+    """Helper for exception catched blocks."""
+
+    def __init__(self, logger, args, kwargs):
+        self.logger = logger
+        self.args = args
+        self.kwargs = kwargs
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        if exc_type is not None:
+            kwargs = self.kwargs.copy()
+            kwargs['exc_info'] = (exc_type, exc_value, tb)
+            self.logger.exception(*self.args, **kwargs)
+        return True
+
+
 class LogRecord(object):
     """A LogRecord instance represents an event being logged.
 
@@ -271,8 +290,16 @@ class LoggerMixin(object):
             self._log(ERROR, args, kwargs)
 
     def exception(self, *args, **kwargs):
-        kwargs['exc_info'] = sys.exc_info()
+        if 'exc_info' not in kwargs:
+            exc_info = sys.exc_info()
+            assert exc_info[0] is not None, 'no exception ocurred'
+            kwargs.setdefault('exc_info', sys.exc_info())
         return self.error(*args, **kwargs)
+
+    def catch_exceptions(self, *args, **kwargs):
+        if not args:
+            args = ('Uncatched Exception Ocurred',)
+        return _ExceptionCatcher(self, args, kwargs)
 
     def critical(self, *args, **kwargs):
         if CRITICAL >= self.level:

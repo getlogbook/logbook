@@ -64,6 +64,48 @@ Message:
 SYSLOG_PORT = 514
 
 
+class NestedHandlerSetup(object):
+    """Helps to setup nested handlers."""
+
+    def __init__(self):
+        self.handlers = []
+
+    def add(self, handler, processor=None, bubble=True):
+        self.handlers.append((handler, processor, bubble))
+
+    def push_application(self):
+        for handler, processor, bubble in self.handlers:
+            handler.push_application(processor, bubble)
+
+    def pop_application(self):
+        for handler, _, _ in reversed(self.handlers):
+            handler.pop_application()
+
+    def push_thread(self):
+        for handler, processor, bubble in self.handlers:
+            handler.push_thread(processor, bubble)
+
+    def pop_thread(self):
+        for handler, _, _ in reversed(self.handlers):
+            handler.pop_thread()
+
+    @contextmanager
+    def threadbound(self):
+        self.push_thread()
+        try:
+            yield
+        finally:
+            self.pop_thread()
+
+    @contextmanager
+    def applicationbound(self):
+        self.push_application()
+        try:
+            yield
+        finally:
+            self.pop_application()
+
+
 def iter_context_handlers():
     """Returns an iterator for all active context and global handlers."""
     handlers = list(_global_handlers)
@@ -149,11 +191,11 @@ class Handler(object):
             popped = stack.pop()[0]
             assert popped is self, 'popped unexpected handler'
 
-    def push_global(self, processor=None, bubble=True):
+    def push_application(self, processor=None, bubble=True):
         """Push the handler to the global stack."""
         _global_handlers.append((self, processor, bubble))
 
-    def pop_global(self):
+    def pop_application(self):
         """Pop the handler from the global stack."""
         assert _global_handlers, 'no handlers on global stack'
         popped = _global_handlers.pop()[0]
@@ -171,11 +213,11 @@ class Handler(object):
     @contextmanager
     def applicationbound(self, processor=None, bubble=True):
         """Binds the handler temporarily to the whole process."""
-        self.push_global(processor, bubble)
+        self.push_application(processor, bubble)
         try:
             yield
         finally:
-            self.pop_global()
+            self.pop_application()
 
     def handle_error(self, record, exc_info):
         """Handle errors which occur during an emit() call."""
@@ -550,7 +592,8 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
             port = SMTP_SSL_PORT if self.secure else SMTP_PORT
         else:
             host, port = self.server_addr
-        con = SMTP(host, port)
+        con = SMTP()
+        con.connect(host, port)
         if self.credentials is not None:
             if self.secure is not None:
                 con.ehlo()
@@ -560,7 +603,11 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
         return con
 
     def close_connection(self, con):
-        con.quit()
+        try:
+            if con is not None:
+                con.quit()
+        except Exception:
+            pass
 
     def deliver(self, msg, recipients):
         con = self.get_connection()

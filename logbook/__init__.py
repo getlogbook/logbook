@@ -16,9 +16,10 @@ from logbook.base import LogRecord, Logger, LoggerGroup, \
 from logbook.handlers import Handler, StreamHandler, FileHandler, \
      StderrHandler, RotatingFileHandler, TimedRotatingFileHandler, \
      TestHandler, MailHandler, SyslogHandler, NullHandler, \
-     NTEventLogHandler, iter_context_handlers, create_syshandler
+     NTEventLogHandler, iter_context_handlers, create_syshandler, \
+     NestedHandlerSetup
 
 
 # install a default global handler
 default_handler = StderrHandler()
-default_handler.push_global()
+default_handler.push_application()

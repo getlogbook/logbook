@@ -99,6 +99,19 @@ class BasicAPITestCase(LogbookTestCase):
         self.assert_(re.search('Happened in file .*test_logbook.py, '
                                'line \d+', errormsg))
 
+    def test_exception_catching(self):
+        logger = logbook.Logger('Test')
+        handler = logbook.TestHandler()
+        with handler.threadbound(bubble=False):
+            with logger.catch_exceptions():
+                pass
+            self.assertFalse(handler.has_error())
+            with logger.catch_exceptions():
+                1/0
+            self.assert_(handler.has_error('Uncatched Exception Ocurred'))
+        self.assert_(handler.records[0].exc_info is not None)
+        self.assert_('1/0' in handler.records[0].format_exception())
+
 
 class HandlerTestCase(LogbookTestCase):
 
