@@ -72,6 +72,9 @@ class FingersCrossedHandler(Handler):
         self._pull_information = pull_information
         self._action_triggered = False
 
+    def close(self):
+        self._handler.close()
+
     def enqueue(self, record):
         if self._pull_information:
             record.pull_information()

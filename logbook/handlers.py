@@ -34,6 +34,17 @@ DEFAULT_FORMAT_STRING = (
     u'{record.level_name}: {record.logger_name}: {record.message}'
 )
 SYSLOG_FORMAT_STRING = u'{record.logger_name}: {record.message}'
+NTLOG_FORMAT_STRING = u'''\
+Message Level: {record.level_name}
+Location: {record.filename}:{record.lineno}
+Module: {record.module}
+Function: {record.func_name}
+Exact Time: {record.time:%Y-%m-%d %H:%M:%S}
+
+Event provided Message:
+
+{record.message}
+'''
 TEST_FORMAT_STRING = \
 u'[{record.level_name}] {record.logger_name}: {record.message}'
 MAIL_FORMAT_STRING = u'''\
@@ -60,6 +71,16 @@ def iter_context_handlers():
     return reversed(handlers)
 
 
+def create_syshandler(application_name, level=NOTSET):
+    """Creates the handler the operating system provides.  On Unix systems
+    this creates a :class:`SyslogHandler`, on Windows sytems it will
+    create a :class:`NTEventLogHandler`.
+    """
+    if os.name == 'nt':
+        return NTEventLogHandler(application_name, level=level)
+    return SyslogHandler(application_name, level=level)
+
+
 class Handler(object):
     """Handler instances dispatch logging events to specific destinations.
 
@@ -73,6 +94,14 @@ class Handler(object):
         self.name = None
         self.level = lookup_level(level)
         self.formatter = None
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            # del is also invoked when init fails, so we better just
+            # ignore any exception that might be raised here
+            pass
 
     level_name = _level_name_property()
 
@@ -613,11 +642,12 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         CRITICAL:   LOG_CRIT
     }
 
-    def __init__(self, address=None, facility='user',
-                 socktype=socket.SOCK_DGRAM, level=NOTSET,
-                 format_string=None):
+    def __init__(self, application_name=None, address=None,
+                 facility='user', socktype=socket.SOCK_DGRAM,
+                 level=NOTSET, format_string=None):
         Handler.__init__(self, level)
         StringFormatterHandlerMixin.__init__(self, format_string)
+        self.application_name = application_name
 
         if address is None:
             if sys.platform == 'darwin':
@@ -658,18 +688,88 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         return (facility << 3) | priority
 
     def emit(self, record):
-        message = '<%d>%s\x00' % (self.encode_priority(record),
-                                  self.format(record).encode('utf-8'))
+        prefix = ''
+        if self.application_name is not None:
+            prefix = self.application_name.encode('utf-8') + ':'
+        message = self.format(record).encode('utf-8')
+        self.send_to_socket('<%d>%s%s\x00' % (self.encode_priority(record),
+                                              prefix, message))
+
+    def send_to_socket(self, data):
         if self.unixsocket:
             try:
-                self.socket.send(message)
+                self.socket.send(data)
             except socket.error:
                 self._connect_unixsocket()
-                self.socket.send(message)
+                self.socket.send(data)
         elif self.socktype == socket.SOCK_DGRAM:
-            self.socket.sendto(message, self.address)
+            self.socket.sendto(data, self.address)
         else:
-            self.socket.sendall(message)
+            self.socket.sendall(data)
 
     def close(self):
         self.socket.close()
+
+
+class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
+    dllname = None
+    default_format_string = NTLOG_FORMAT_STRING
+
+    def __init__(self, application_name, log_type='Application',
+                 level=NOTSET, format_string=None):
+        Handler.__init__(self, level)
+        StringFormatterHandlerMixin.__init__(self, format_string)
+
+        if os.name != 'nt':
+            raise RuntimeError('NTLog handler requires a windows '
+                               'operating system.')
+
+        try:
+            import win32evtlogutil, win32evtlog
+        except ImportError:
+            raise RuntimeError('pywin32 library is required '
+                               'for NTLog handling')
+
+        self.application_name = application_name
+        self._welu = win32evtlogutil
+        dllname = self.dllname
+        if not dllname:
+            dllname = os.path.join(os.path.dirname(self._welu.__file__),
+                                   '../win32service.pyd')
+        self.log_type = log_type
+        self._welu.AddSourceToRegistry(self.application_name, dllname,
+                                       log_type)
+
+        self._default_type = win32evtlog.EVENTLOG_INFORMATION_TYPE
+        self._type_map = {
+            DEBUG:      win32evtlog.EVENTLOG_INFORMATION_TYPE,
+            INFO:       win32evtlog.EVENTLOG_INFORMATION_TYPE,
+            NOTICE:     win32evtlog.EVENTLOG_INFORMATION_TYPE,
+            WARNING:    win32evtlog.EVENTLOG_WARNING_TYPE,
+            ERROR:      win32evtlog.EVENTLOG_ERROR_TYPE,
+            CRITICAL:   win32evtlog.EVENTLOG_ERROR_TYPE
+        }
+
+    def unregister_logger(self):
+        """Removes the application binding from the registry.  If you call
+        this, the log viewer will no longer be able to provide any
+        information about the message.
+        """
+        self._welu.RemoveSourceFromRegistry(self.application_name,
+                                            self.log_type)
+
+    def get_event_type(self, record):
+        return self._type_map.get(record.level, self._default_type)
+
+    def get_event_category(self, record):
+        return 0
+
+    def get_message_id(self, record):
+        return 1
+
+    def emit(self, record):
+        id = self.get_message_id(record)
+        cat = self.get_event_category(record)
+        type = self.get_event_type(record)
+        self._welu.ReportEvent(self.application_name, id, cat, type,
+                               [self.format(record)])

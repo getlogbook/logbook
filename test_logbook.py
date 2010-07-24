@@ -225,7 +225,7 @@ class HandlerTestCase(LogbookTestCase):
         inc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         inc.bind(('127.0.0.1', 0))
         inc.settimeout(1)
-        handler = logbook.SyslogHandler(inc.getsockname())
+        handler = logbook.SyslogHandler(address=inc.getsockname())
         with handler.contextbound(bubble=False):
             self.log.warn('Syslog is weird')
         try:
@@ -233,6 +233,15 @@ class HandlerTestCase(LogbookTestCase):
         except socket.error:
             self.fail('got timeout on socket')
         self.assertEqual(rv, '<12>testlogger: Syslog is weird\x00')
+
+        handler = logbook.SyslogHandler('Testing', inc.getsockname())
+        with handler.contextbound(bubble=False):
+            self.log.warn('Syslog is weird')
+        try:
+            rv = inc.recvfrom(1024)[0]
+        except socket.error:
+            self.fail('got timeout on socket')
+        self.assertEqual(rv, '<12>Testing:testlogger: Syslog is weird\x00')
 
     def test_handler_processors(self):
         handler = make_fake_mail_handler(format_string='''\
