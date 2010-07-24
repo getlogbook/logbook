@@ -13,12 +13,13 @@ from __future__ import with_statement
 
 import os
 import sys
+import errno
+import codecs
+import socket
 import threading
 import traceback
-import codecs
-import errno
-from contextlib import contextmanager
 from itertools import izip
+from contextlib import contextmanager
 
 from logbook.base import (CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET,
                           _level_name_property, _missing, lookup_level)
@@ -34,6 +35,7 @@ DEFAULT_FORMAT_STRING = (
     u'[{record.time:%Y-%m-%d %H:%M}] '
     u'{record.level_name}: {record.logger_name}: {record.message}'
 )
+SYSLOG_FORMAT_STRING = u'{record.logger_name}: {record.message}'
 TEST_FORMAT_STRING = \
 u'[{record.level_name}] {record.logger_name}: {record.message}'
 MAIL_FORMAT_STRING = u'''\
@@ -50,6 +52,7 @@ Message:
 {record.message}
 '''
 
+SYSLOG_PORT = 514
 
 def iter_context_handlers():
     """Returns an iterator for all active context and global handlers."""
@@ -531,3 +534,155 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
 
     def emit(self, record):
         self.deliver(self.generate_mail(record), self.get_recipients(record))
+
+
+class SyslogHandler(Handler, StringFormatterHandlerMixin):
+    """
+    A handler class which sends formatted logging records to a syslog server.
+    """
+    default_format_string = SYSLOG_FORMAT_STRING
+
+    # priorities (these are ordered)
+    LOG_EMERG     = 0       #  system is unusable
+    LOG_ALERT     = 1       #  action must be taken immediately
+    LOG_CRIT      = 2       #  critical conditions
+    LOG_ERR       = 3       #  error conditions
+    LOG_WARNING   = 4       #  warning conditions
+    LOG_NOTICE    = 5       #  normal but significant condition
+    LOG_INFO      = 6       #  informational
+    LOG_DEBUG     = 7       #  debug-level messages
+
+    # facility codes
+    LOG_KERN      = 0       #  kernel messages
+    LOG_USER      = 1       #  random user-level messages
+    LOG_MAIL      = 2       #  mail system
+    LOG_DAEMON    = 3       #  system daemons
+    LOG_AUTH      = 4       #  security/authorization messages
+    LOG_SYSLOG    = 5       #  messages generated internally by syslogd
+    LOG_LPR       = 6       #  line printer subsystem
+    LOG_NEWS      = 7       #  network news subsystem
+    LOG_UUCP      = 8       #  UUCP subsystem
+    LOG_CRON      = 9       #  clock daemon
+    LOG_AUTHPRIV  = 10      #  security/authorization messages (private)
+    LOG_FTP       = 11      #  FTP daemon
+
+    # other codes through 15 reserved for system use
+    LOG_LOCAL0    = 16      #  reserved for local use
+    LOG_LOCAL1    = 17      #  reserved for local use
+    LOG_LOCAL2    = 18      #  reserved for local use
+    LOG_LOCAL3    = 19      #  reserved for local use
+    LOG_LOCAL4    = 20      #  reserved for local use
+    LOG_LOCAL5    = 21      #  reserved for local use
+    LOG_LOCAL6    = 22      #  reserved for local use
+    LOG_LOCAL7    = 23      #  reserved for local use
+
+    priority_names = {
+        'alert':    LOG_ALERT,
+        'crit':     LOG_CRIT,
+        'critical': LOG_CRIT,
+        'debug':    LOG_DEBUG,
+        'emerg':    LOG_EMERG,
+        'err':      LOG_ERR,
+        'info':     LOG_INFO,
+        'notice':   LOG_NOTICE,
+        'warning':  LOG_WARNING,
+        }
+
+    facility_names = {
+        'auth':     LOG_AUTH,
+        'authpriv': LOG_AUTHPRIV,
+        'cron':     LOG_CRON,
+        'daemon':   LOG_DAEMON,
+        'ftp':      LOG_FTP,
+        'kern':     LOG_KERN,
+        'lpr':      LOG_LPR,
+        'mail':     LOG_MAIL,
+        'news':     LOG_NEWS,
+        'syslog':   LOG_SYSLOG,
+        'user':     LOG_USER,
+        'uucp':     LOG_UUCP,
+        'local0':   LOG_LOCAL0,
+        'local1':   LOG_LOCAL1,
+        'local2':   LOG_LOCAL2,
+        'local3':   LOG_LOCAL3,
+        'local4':   LOG_LOCAL4,
+        'local5':   LOG_LOCAL5,
+        'local6':   LOG_LOCAL6,
+        'local7':   LOG_LOCAL7,
+        }
+
+    priority_map = {
+        'DEBUG':    'debug',
+        'INFO':     'info',
+        'NOTICE':   'notice',
+        'WARNING':  'warning',
+        'ERROR':    'error',
+        'CRITICAL': 'critical',
+    }
+
+    def __init__(self, address=('localhost', SYSLOG_PORT),
+                 facility=LOG_USER, socktype=socket.SOCK_DGRAM,
+                 level=NOTSET, format_string=None):
+        """
+        If address is specified as a string, a UNIX socket is used. To log to a
+        local syslogd, "SysLogHandler(address="/dev/log")" can be used.
+        If facility is not specified, LOG_USER is used.
+        """
+        Handler.__init__(self, level)
+        StringFormatterHandlerMixin.__init__(self, format_string)
+
+        self.address = address
+        self.facility = facility
+        self.socktype = socktype
+
+        if isinstance(address, basestring):
+            self.unixsocket = True
+            self._connect_unixsocket(address)
+        else:
+            self.unixsocket = False
+            self.socket = socket.socket(socket.AF_INET, socktype)
+            if socktype == socket.SOCK_STREAM:
+                self.socket.connect(address)
+
+    def _connect_unixsocket(self, address):
+        self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        # syslog may require either DGRAM or STREAM sockets
+        try:
+            self.socket.connect(address)
+        except socket.error:
+            self.socket.close()
+            self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.socket.connect(address)
+
+    def encode_priority(self, facility, priority):
+        if isinstance(facility, str):
+            facility = self.facility_names[facility]
+        if isinstance(priority, str):
+            priority = self.priority_names[priority]
+        return (facility << 3) | priority
+
+    def map_priority(self, level_name):
+        return self.priority_map.get(level_name, "warning")
+
+    def emit(self, record):
+        message = self.format(record)
+        priority = self.priority_map.get(record.level_name, 'warning')
+        message = '<%d>%s\000' % (self.encode_priority(self.facility, priority),
+                                  message)
+        # Message is a string. Convert to bytes as required by RFC 5424
+        #message = codecs.BOM_UTF8 + message.encode('utf-8')
+        if self.unixsocket:
+            try:
+                self.socket.send(message)
+            except socket.error:
+                self._connect_unixsocket(self.address)
+                self.socket.send(message)
+        elif self.socktype == socket.SOCK_DGRAM:
+            self.socket.sendto(message, self.address)
+        else:
+            self.socket.sendall(message)
+
+    def close(self):
+        if self.unixsocket:
+            self.socket.close()
+        Handler.close(self)
