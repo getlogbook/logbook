@@ -501,6 +501,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
 
 class MailHandler(Handler, StringFormatterHandlerMixin):
+    """A handler that sends error mails."""
     default_format_string = MAIL_FORMAT_STRING
     default_subject = u'Server Error in Application'
 
@@ -571,8 +572,8 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
 
 
 class SyslogHandler(Handler, StringFormatterHandlerMixin):
-    """
-    A handler class which sends formatted logging records to a syslog server.
+    """A handler class which sends formatted logging records to a
+    syslog server.  By default it will send to it via unix socket.
     """
     default_format_string = SYSLOG_FORMAT_STRING
 
@@ -712,6 +713,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
 
 class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
+    """A handler that sends to the NT event log system."""
     dllname = None
     default_format_string = NTLOG_FORMAT_STRING
 

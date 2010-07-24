@@ -16,7 +16,7 @@ from logbook.base import LogRecord, Logger, LoggerGroup, \
 from logbook.handlers import Handler, StreamHandler, FileHandler, \
      StderrHandler, RotatingFileHandler, TimedRotatingFileHandler, \
      TestHandler, MailHandler, SyslogHandler, NullHandler, \
-     NTEventLogHandler, iter_context_handlers
+     NTEventLogHandler, iter_context_handlers, create_syshandler
 from logbook.more import TaggingLogger, TaggingHandler, FingersCrossedHandler
 
 
