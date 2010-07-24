@@ -299,20 +299,7 @@ class LoggerMixin(object):
             record.close()
 
 
-class Logger(LoggerMixin):
-    """Instances of the Logger class reself.level present a single logging
-    channel. A "logging channel" indicates an area of an application. Exactly
-    how an "area" is defined is up to the application developer. Since an
-    application can have any number of areas, logging channels are identified
-    by a unique string. Application areas can be nested (e.g. an area of "input
-    processing" might include sub-areas "read CSV files", "read XLS files" and
-    "read Gnumeric files"). To cater for this natural nesting, channel names
-    are organized into a namespace hierarchy where levels are separated by
-    periods, much like the Java or Python package namespace. So in the instance
-    given above, channel names might be "input" for the upper level, and
-    "input.csv", "input.xls" and "input.gnu" for the sub-levels.  There is no
-    arbitrary limit to the depth of nesting.
-    """
+class RecordDispatcher(object):
 
     def __init__(self, name=None, level=NOTSET):
         self.name = name
@@ -353,6 +340,13 @@ class Logger(LoggerMixin):
     def process_record(self, record):
         if self.group is not None:
             self.group.process_record(record)
+
+
+class Logger(RecordDispatcher, LoggerMixin):
+    """Instances of the Logger class reself.level present a single logging
+    channel. A "logging channel" indicates an area of an application. Exactly
+    how an "area" is defined is up to the application developer.
+    """
 
 
 class LoggerGroup(LoggerMixin):

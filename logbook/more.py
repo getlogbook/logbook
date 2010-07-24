@@ -11,25 +11,35 @@
 
 import sys
 
-from logbook.base import LogRecord, Logger, NOTSET, WARNING
+from logbook.base import LogRecord, RecordDispatcher, NOTSET, WARNING
 from logbook.handlers import Handler
 
 
-class TaggingLogger(Logger):
+class TaggingLogger(RecordDispatcher):
     """A logger that attaches a tag to each record."""
 
     def __init__(self, name=None, *tags):
-        Logger.__init__(self, name)
+        RecordDispatcher.__init__(self, name)
         # create a method for each tag named
         list(setattr(self, tag, lambda msg, *args, **kwargs:
                      self.log(tag, msg, *args, **kwargs)) for tag in tags)
 
-    def log(self, tags, *args, **kwargs):
+    def process_record(self, record):
+        pass
+
+    def log(self, tags, msg, *args, **kwargs):
         if isinstance(tags, basestring):
             tags = [tags]
-        kwargs['extra'] = kwargs.get('extra', {})
-        kwargs['extra']['tags'] = list(tags)
-        Logger._log(self, NOTSET, args, kwargs)
+        exc_info = kwargs.pop('exc_info', None)
+        extra = kwargs.pop('extra', {})
+        extra['tags'] = list(tags)
+        record = LogRecord(self.name, NOTSET, msg, args, kwargs, exc_info,
+                           extra, sys._getframe(1))
+        self.process_record(record)
+        try:
+            self.handle(record)
+        finally:
+            record.close()
 
 
 class TaggingHandler(Handler):
