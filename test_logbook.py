@@ -7,6 +7,7 @@ import shutil
 import unittest
 import tempfile
 import string
+import socket
 from random import randrange
 from calendar import timegm
 from itertools import izip
@@ -219,6 +220,19 @@ class HandlerTestCase(LogbookTestCase):
             self.assert_('\r\n\r\nTraceback' in mail)
             self.assert_('1/0' in mail)
             self.assert_('This is not mailed' in fallback.getvalue())
+
+    def test_syslog_handler(self):
+        inc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        inc.bind(('127.0.0.1', 0))
+        inc.settimeout(1)
+        handler = logbook.SyslogHandler(inc.getsockname())
+        with handler.contextbound(bubble=False):
+            self.log.warn('Syslog is weird')
+        try:
+            rv = inc.recvfrom(1024)[0]
+        except socket.error:
+            self.fail('got timeout on socket')
+        self.assertEqual(rv, '<12>testlogger: Syslog is weird\x00')
 
     def test_handler_processors(self):
         handler = make_fake_mail_handler(format_string='''\

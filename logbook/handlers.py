@@ -645,15 +645,13 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         self.socket = socket.socket(socket.AF_INET, self.socktype)
         if self.socktype == socket.SOCK_STREAM:
             self.socket.connect(self.address)
+            self.address = self.socket.getsockname()
 
     def encode_priority(self, record):
         facility = self.facility_names[self.facility]
         priority = self.level_priority_map.get(record.level,
                                                self.LOG_WARNING)
         return (facility << 3) | priority
-
-    def map_priority(self, level_name):
-        return self.priority_map.get(level_name, "warning")
 
     def emit(self, record):
         message = '<%d>%s\x00' % (self.encode_priority(record),
