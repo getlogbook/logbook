@@ -158,6 +158,12 @@ class Handler(object):
             pass
 
 
+class NullHandler(Handler):
+    """A handler that does nothing, meant to be inserted in a handler chain
+    with ``bubble=False`` to stop further processing.
+    """
+
+
 class StringFormatter(object):
     """Many handlers format the log entries to text format.  This is done
     by a callable that is passed a log record and returns an unicode
