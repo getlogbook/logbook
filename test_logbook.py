@@ -327,6 +327,32 @@ Message:
             self.assertFalse(handler.has_warning('A warning'))
             self.assert_(handler.has_error('An error'))
 
+    def test_nested_setups(self):
+        with capture_stderr() as captured:
+            logger = logbook.Logger('App')
+            test_handler = logbook.TestHandler(level='WARNING')
+            mail_handler = make_fake_mail_handler()
+
+            handlers = logbook.NestedHandlerSetup()
+            handlers.add(logbook.NullHandler(), bubble=False)
+            handlers.add(test_handler)
+            handlers.add(mail_handler)
+
+            with handlers.threadbound():
+                logger.warn('This is a warning')
+                logger.error('This is also a mail')
+                with logger.catch_exceptions():
+                    1/0
+            logger.warn('And here we go straight back to stderr')
+
+            self.assert_(test_handler.has_warning('This is a warning'))
+            self.assert_(test_handler.has_error('This is also a mail'))
+            self.assertEqual(len(mail_handler.mails), 2)
+            self.assert_('This is also a mail' in mail_handler.mails[0][2])
+            self.assert_('1/0' in mail_handler.mails[1][2])
+            self.assert_('And here we go straight back to stderr'
+                         in captured.getvalue())
+
 
 class AttributeTestCase(LogbookTestCase):
 
