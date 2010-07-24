@@ -108,7 +108,10 @@ class BasicAPITestCase(LogbookTestCase):
             self.assertFalse(handler.has_error())
             with logger.catch_exceptions():
                 1/0
+            with logger.catch_exceptions('Awesome'):
+                1/0
             self.assert_(handler.has_error('Uncatched Exception Ocurred'))
+            self.assert_(handler.has_error('Awesome'))
         self.assert_(handler.records[0].exc_info is not None)
         self.assert_('1/0' in handler.records[0].format_exception())
 
