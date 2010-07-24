@@ -290,6 +290,18 @@ Message:
             self.assert_(handler.has_warning('From my logger'))
             self.assert_('From another logger' in captured.getvalue())
 
+    def test_null_handler(self):
+        handler = logbook.TestHandler(level='ERROR')
+        null_handler = logbook.NullHandler()
+        with capture_stderr() as captured:
+            with null_handler.contextbound(bubble=False):
+                with handler.contextbound():
+                    self.log.error('An error')
+                    self.log.warn('A warning')
+            self.assertEqual(captured.getvalue(), '')
+            self.assertFalse(handler.has_warning('A warning'))
+            self.assert_(handler.has_error('An error'))
+
 
 class AttributeTestCase(LogbookTestCase):
 
@@ -351,7 +363,7 @@ class MoreTestCase(LogbookTestCase):
         with handler.contextbound(bubble=False):
             with capture_stderr() as captured:
                 self.log.info('some info')
-            self.assertEquals(captured.getvalue(), '')
+            self.assertEqual(captured.getvalue(), '')
 
         # but if it does, all log messages are output
         with handler.contextbound(bubble=False):
@@ -395,8 +407,10 @@ class MoreTestCase(LogbookTestCase):
         self.assert_('cmd message' in stringio)
 
     def test_jinja_formatter(self):
-        from logbook.more import jinja2, JinjaFormatter
-        if jinja2 is None:
+        from logbook.more import JinjaFormatter
+        try:
+            import jinja2
+        except ImportError:
             # at least check the RuntimeError is raised
             self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
         else:

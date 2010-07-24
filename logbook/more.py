@@ -90,20 +90,17 @@ class FingersCrossedHandler(Handler):
             self.enqueue(record)
 
 
-try:
-    import jinja2
-except ImportError:
-    jinja2 = None
-
 class JinjaFormatter(object):
     """A formatter object that makes it easy to format using a Jinja 2
     template instead of a format string.
     """
 
     def __init__(self, template):
-        if jinja2 is None:
+        try:
+            from jinja2 import Environment
+        except ImportError:
             raise RuntimeError('The jinja2 module could not be imported')
-        self.environment = jinja2.Environment()
+        self.environment = Environment()
         self.template = self.environment.from_string(template)
 
     def __call__(self, record, handler):
