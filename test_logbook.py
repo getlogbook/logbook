@@ -394,6 +394,20 @@ class MoreTestCase(LogbookTestCase):
         self.assert_('all message' in stringio)
         self.assert_('cmd message' in stringio)
 
+    def test_jinja_formatter(self):
+        from logbook.more import jinja2, JinjaFormatter
+        if jinja2 is None:
+            # at least check the RuntimeError is raised
+            self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
+        else:
+            fmter = JinjaFormatter('{{ record.logger_name }}/'
+                                   '{{ record.level_name }}')
+            handler = logbook.TestHandler()
+            handler.formatter = fmter
+            with handler.contextbound(bubble=False):
+                self.log.info('info')
+            self.assert_('testlogger/INFO' in handler.formatted_records)
+
 
 if __name__ == '__main__':
     unittest.main()
