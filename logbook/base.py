@@ -279,6 +279,7 @@ class LoggerMixin(object):
             self._log(CRITICAL, args, kwargs)
 
     def log(self, level, *args, **kwargs):
+        level = lookup_level(level)
         if level >= self.level:
             self._log(level, args, kwargs)
 

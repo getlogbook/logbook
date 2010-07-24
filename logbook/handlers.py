@@ -21,8 +21,8 @@ import traceback
 from itertools import izip
 from contextlib import contextmanager
 
-from logbook.base import (CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET,
-                          _level_name_property, _missing, lookup_level)
+from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
+     NOTSET, _level_name_property, _missing, lookup_level
 from logbook.helpers import rename
 
 
@@ -53,6 +53,7 @@ Message:
 '''
 
 SYSLOG_PORT = 514
+
 
 def iter_context_handlers():
     """Returns an iterator for all active context and global handlers."""
@@ -542,7 +543,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
     """
     default_format_string = SYSLOG_FORMAT_STRING
 
-    # priorities (these are ordered)
+    # priorities
     LOG_EMERG     = 0       #  system is unusable
     LOG_ALERT     = 1       #  action must be taken immediately
     LOG_CRIT      = 2       #  critical conditions
@@ -576,18 +577,6 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
     LOG_LOCAL6    = 22      #  reserved for local use
     LOG_LOCAL7    = 23      #  reserved for local use
 
-    priority_names = {
-        'alert':    LOG_ALERT,
-        'crit':     LOG_CRIT,
-        'critical': LOG_CRIT,
-        'debug':    LOG_DEBUG,
-        'emerg':    LOG_EMERG,
-        'err':      LOG_ERR,
-        'info':     LOG_INFO,
-        'notice':   LOG_NOTICE,
-        'warning':  LOG_WARNING,
-        }
-
     facility_names = {
         'auth':     LOG_AUTH,
         'authpriv': LOG_AUTHPRIV,
@@ -609,73 +598,71 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         'local5':   LOG_LOCAL5,
         'local6':   LOG_LOCAL6,
         'local7':   LOG_LOCAL7,
-        }
-
-    priority_map = {
-        'DEBUG':    'debug',
-        'INFO':     'info',
-        'NOTICE':   'notice',
-        'WARNING':  'warning',
-        'ERROR':    'error',
-        'CRITICAL': 'critical',
     }
 
-    def __init__(self, address=('localhost', SYSLOG_PORT),
-                 facility=LOG_USER, socktype=socket.SOCK_DGRAM,
-                 level=NOTSET, format_string=None):
-        """
-        If address is specified as a string, a UNIX socket is used. To log to a
-        local syslogd, "SysLogHandler(address="/dev/log")" can be used.
-        If facility is not specified, LOG_USER is used.
-        """
+    level_priority_map = {
+        DEBUG:      LOG_DEBUG,
+        INFO:       LOG_INFO,
+        NOTICE:     LOG_NOTICE,
+        WARNING:    LOG_WARNING,
+        ERROR:      LOG_ERR,
+        CRITICAL:   LOG_CRIT
+    }
+
+    def __init__(self, address=None, facility='user',
+                 socktype=socket.SOCK_DGRAM, level=NOTSET,
+                 format_string=None):
         Handler.__init__(self, level)
         StringFormatterHandlerMixin.__init__(self, format_string)
+
+        if address is None:
+            if sys.platform == 'darwin':
+                address = '/var/run/syslog'
+            else:
+                address = '/dev/log'
 
         self.address = address
         self.facility = facility
         self.socktype = socktype
 
         if isinstance(address, basestring):
-            self.unixsocket = True
-            self._connect_unixsocket(address)
+            self._connect_unixsocket()
         else:
-            self.unixsocket = False
-            self.socket = socket.socket(socket.AF_INET, socktype)
-            if socktype == socket.SOCK_STREAM:
-                self.socket.connect(address)
+            self._connect_netsocket()
 
-    def _connect_unixsocket(self, address):
+    def _connect_unixsocket(self):
+        self.unixsocket = True
         self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-        # syslog may require either DGRAM or STREAM sockets
         try:
-            self.socket.connect(address)
+            self.socket.connect(self.address)
         except socket.error:
             self.socket.close()
             self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.socket.connect(address)
+            self.socket.connect(self.address)
 
-    def encode_priority(self, facility, priority):
-        if isinstance(facility, str):
-            facility = self.facility_names[facility]
-        if isinstance(priority, str):
-            priority = self.priority_names[priority]
+    def _connect_netsocket(self):
+        self.unixsocket = False
+        self.socket = socket.socket(socket.AF_INET, self.socktype)
+        if self.socktype == socket.SOCK_STREAM:
+            self.socket.connect(self.address)
+
+    def encode_priority(self, record):
+        facility = self.facility_names[self.facility]
+        priority = self.level_priority_map.get(record.level,
+                                               self.LOG_WARNING)
         return (facility << 3) | priority
 
     def map_priority(self, level_name):
         return self.priority_map.get(level_name, "warning")
 
     def emit(self, record):
-        message = self.format(record)
-        priority = self.priority_map.get(record.level_name, 'warning')
-        message = '<%d>%s\000' % (self.encode_priority(self.facility, priority),
-                                  message)
-        # Message is a string. Convert to bytes as required by RFC 5424
-        #message = codecs.BOM_UTF8 + message.encode('utf-8')
+        message = '<%d>%s\x00' % (self.encode_priority(record),
+                                  self.format(record).encode('utf-8'))
         if self.unixsocket:
             try:
                 self.socket.send(message)
             except socket.error:
-                self._connect_unixsocket(self.address)
+                self._connect_unixsocket()
                 self.socket.send(message)
         elif self.socktype == socket.SOCK_DGRAM:
             self.socket.sendto(message, self.address)
@@ -683,6 +670,4 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
             self.socket.sendall(message)
 
     def close(self):
-        if self.unixsocket:
-            self.socket.close()
-        Handler.close(self)
+        self.socket.close()

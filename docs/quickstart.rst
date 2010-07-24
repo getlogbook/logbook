@@ -24,7 +24,7 @@ There are several logging levels, available as methods on the logger:
 * ``debug`` -- for debug messages
 
 Alternately, there is the :meth:`~Logger.log` method that takes the logging
-level as an argument.
+level (string or integer) as an argument.
 
 Each call to a logging method creates a log *record* which is then passed to
 *handlers*, which decide how to store or present the logging info.
