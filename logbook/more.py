@@ -16,6 +16,7 @@ from logbook.handlers import Handler
 
 
 class TaggingLogger(Logger):
+    """A logger that attaches a tag to each record."""
 
     def __init__(self, name=None, *tags):
         Logger.__init__(self, name)
@@ -23,22 +24,16 @@ class TaggingLogger(Logger):
         list(setattr(self, tag, lambda msg, *args, **kwargs:
                      self.log(tag, msg, *args, **kwargs)) for tag in tags)
 
-    def log(self, tags, msg, *args, **kwargs):
+    def log(self, tags, *args, **kwargs):
         if isinstance(tags, basestring):
             tags = [tags]
-        exc_info = kwargs.pop('exc_info', None)
-        extra = kwargs.pop('extra', {})
-        extra['tags'] = list(tags)
-        record = LogRecord(self.name, NOTSET, msg, args, kwargs, exc_info,
-                           extra, sys._getframe(1))
-        self.process_record(record)
-        try:
-            self.handle(record)
-        finally:
-            record.close()
+        kwargs['extra'] = kwargs.get('extra', {})
+        kwargs['extra']['tags'] = list(tags)
+        Logger._log(self, NOTSET, args, kwargs)
 
 
 class TaggingHandler(Handler):
+    """A handler that logs for tags and dispatches based on those"""
 
     def __init__(self, **handlers):
         Handler.__init__(self)
