@@ -54,8 +54,8 @@ class TaggingHandler(Handler):
 
     def emit(self, record):
         for tag in record.extra['tags']:
-            for handler in self._handlers.get(tag, []):
-                handler.emit(record)
+            for handler in self._handlers.get(tag, ()):
+                handler.handle(record)
 
 
 class FingersCrossedHandler(Handler):

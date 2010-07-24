@@ -385,13 +385,13 @@ class MoreTestCase(LogbookTestCase):
         handler = TaggingHandler(
             info = logbook.default_handler,
             cmd = second_handler,
-            all = [logbook.default_handler, second_handler],
+            both = [logbook.default_handler, second_handler],
         )
 
         with handler.contextbound(bubble=False):
             with capture_stderr() as captured:
                 logger.log('info', 'info message')
-                logger.log('all', 'all message')
+                logger.log('both', 'all message')
                 logger.cmd('cmd message')
 
         stderr = captured.getvalue()
