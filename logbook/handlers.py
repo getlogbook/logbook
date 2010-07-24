@@ -131,7 +131,7 @@ class Handler(object):
     def close(self):
         """Tidy up any resources used by the handler."""
 
-    def push_context(self, processor=None, bubble=True):
+    def push_thread(self, processor=None, bubble=True):
         """Push the handler for the current context."""
         with _context_handler_lock:
             item = self, processor, bubble
@@ -141,7 +141,7 @@ class Handler(object):
             else:
                 stack.append(item)
 
-    def pop_context(self):
+    def pop_thread(self):
         """Pop the handler from the current context."""
         with _context_handler_lock:
             stack = getattr(_context_handlers, 'stack', None)
@@ -160,12 +160,12 @@ class Handler(object):
         assert popped is self, 'popped unexpected handler'
 
     @contextmanager
-    def contextbound(self, processor=None, bubble=True):
-        self.push_context(processor, bubble)
+    def threadbound(self, processor=None, bubble=True):
+        self.push_thread(processor, bubble)
         try:
             yield
         finally:
-            self.pop_context()
+            self.pop_thread()
 
     @contextmanager
     def applicationbound(self, processor=None, bubble=True):
