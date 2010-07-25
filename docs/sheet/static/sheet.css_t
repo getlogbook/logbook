@@ -15,6 +15,7 @@ body {
     width: 800px;
     margin: auto;
     font-family: {{ theme_bodyfont }};
+    background: url("background.png") repeat-y;
 }
 
 a {
