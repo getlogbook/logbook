@@ -319,9 +319,8 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
             self.stream.flush()
 
     def format_and_encode(self, record):
-        msg = self.format(record)
         enc = getattr(self.stream, 'encoding', None) or 'utf-8'
-        return (msg + u'\n').encode(enc, 'replace')
+        return (self.format(record) + u'\n').encode(enc, 'replace')
 
     def write(self, item):
         self.stream.write(item)

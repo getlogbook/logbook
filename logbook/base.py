@@ -11,7 +11,6 @@
 
 import os
 import sys
-import time
 import thread
 import warnings
 import threading
@@ -148,11 +147,11 @@ class LogRecord(object):
     main information passed in is in msg and args
     """
     _pullable_information = ('func_name', 'module', 'filename', 'lineno',
-                             'frame_name', 'process_name')
+                             'process_name', 'thread', 'thread_name')
 
     def __init__(self, logger_name, level, msg, args=None, kwargs=None,
                  exc_info=None, extra=None, frame=None):
-        self.timestamp = time.time()
+        self.time = datetime.utcnow()
         self.logger_name = logger_name
         self.msg = msg
         self.args = args or ()
@@ -161,7 +160,6 @@ class LogRecord(object):
         self.exc_info = exc_info
         self.extra = ExtraDict(extra or ())
         self.frame = frame
-        self.thread = thread.get_ident()
         self.process = os.getpid()
         self._information_pulled = False
 
@@ -196,11 +194,6 @@ class LogRecord(object):
                 kwargs=self.kwargs, file=self.filename.encode('utf-8'),
                 lineno=self.lineno
             ))
-
-    @cached_property
-    def time(self):
-        """The time at which the record was logged."""
-        return datetime.utcfromtimestamp(self.timestamp)
 
     @cached_property
     def level_name(self):
@@ -245,13 +238,13 @@ class LogRecord(object):
             return cf.f_lineno
 
     @cached_property
-    def frame_name(self):
+    def thread(self):
+        return thread.get_ident()
+
+    @cached_property
+    def thread_name(self):
         """The name of the frame in which the record has been created."""
-        if self.thread == _main_thread:
-            return 'MainThread'
-        for thread in threading.enumerate():
-            if thread.ident == self.thread:
-                return thread.name
+        return threading.currentThread().name
 
     @cached_property
     def process_name(self):
@@ -333,16 +326,12 @@ class LoggerMixin(object):
         if level >= self.level:
             self._log(level, args, kwargs)
 
-    def process_record(self, record):
-        pass
-
     def _log(self, level, args, kwargs):
         msg, args = args[0], args[1:]
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', None)
         record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
-                           extra, sys._getframe(1))
-        self.process_record(record)
+                           extra, sys._getframe())
         try:
             self.handle(record)
         finally:
@@ -360,9 +349,15 @@ class RecordDispatcher(object):
     disabled = _group_reflected_property('disabled', False)
     level = _group_reflected_property('level', NOTSET, fallback=NOTSET)
 
+    def process_record(self, record):
+        """Called before dispatching to the handlers to inject
+        additional information.
+        """
+
     def handle(self, record):
         """Call the handlers for the specified record."""
         if not self.disabled and record.level >= self.level:
+            self.process_record(record)
             self.call_handlers(record)
 
     def call_handlers(self, record):

@@ -24,9 +24,6 @@ class TaggingLogger(RecordDispatcher):
         list(setattr(self, tag, lambda msg, *args, **kwargs:
                      self.log(tag, msg, *args, **kwargs)) for tag in tags)
 
-    def process_record(self, record):
-        pass
-
     def log(self, tags, msg, *args, **kwargs):
         if isinstance(tags, basestring):
             tags = [tags]
@@ -34,8 +31,7 @@ class TaggingLogger(RecordDispatcher):
         extra = kwargs.pop('extra', {})
         extra['tags'] = list(tags)
         record = LogRecord(self.name, NOTSET, msg, args, kwargs, exc_info,
-                           extra, sys._getframe(1))
-        self.process_record(record)
+                           extra, sys._getframe())
         try:
             self.handle(record)
         finally:
