@@ -13,10 +13,10 @@ Quickstart
     log = Logger('A Fancy Name')
 
     log.warn('Logbook is too awesome for most applications')
-    log.error("Can't touch this')
+    log.error("Can't touch this")
 
-Works for Webapps too
-`````````````````````
+Works for web apps too
+``````````````````````
 
 ::
 
@@ -49,24 +49,20 @@ Works for Webapps too
         with mailhandler.threadbound(processor=inject_extra):
             # execute code that might fail in the context of the
             # request.
-
-    $ easy_install Flask
-    $ python hello.py
-     * Running on http://localhost:5000/
 """
-from setuptools import setup
 
+from setuptools import setup
 
 setup(
     name='Logbook',
     version='0.2',
     license='BSD',
-    author='Armin Ronacher',
+    author='Armin Ronacher, Georg Brandl',
     author_email='armin.ronacher@active-4.com',
     description='A logging replacement for Python',
     long_description=__doc__,
     packages=['logbook'],
     zip_safe=False,
     platforms='any',
-    test_suite='test_logbook'
+    test_suite='test_logbook',
 )
