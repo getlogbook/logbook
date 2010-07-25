@@ -349,11 +349,6 @@ class RecordDispatcher(object):
     disabled = _group_reflected_property('disabled', False)
     level = _group_reflected_property('level', NOTSET, fallback=NOTSET)
 
-    def process_record(self, record):
-        """Called before dispatching to the handlers to inject
-        additional information.
-        """
-
     def handle(self, record):
         """Call the handlers for the specified record."""
         if not self.disabled and record.level >= self.level:
