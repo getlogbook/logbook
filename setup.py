@@ -59,7 +59,7 @@ from setuptools import setup
 
 setup(
     name='Logbook',
-    version='0.1',
+    version='0.2',
     license='BSD',
     long_description=__doc__,
     packages=['logbook'],
