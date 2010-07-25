@@ -301,8 +301,10 @@ Message:
 
     def test_custom_handling_test(self):
         class MyTestHandler(logbook.TestHandler):
-            def should_handle(self, record):
-                return record.extra.get('flag') == 'testing'
+            def handle(self, record):
+                if record.extra.get('flag') != 'testing':
+                    return False
+                return logbook.TestHandler.handle(self, record)
         class MyLogger(logbook.Logger):
             def process_record(self, record):
                 record.extra['flag'] = 'testing'

@@ -16,6 +16,7 @@ import codecs
 import socket
 import threading
 import traceback
+from thread import get_ident as current_thread
 from itertools import izip
 from contextlib import contextmanager
 
@@ -27,6 +28,8 @@ from logbook.helpers import rename
 _global_handlers = []
 _context_handler_lock = threading.Lock()
 _context_handlers = threading.local()
+_handler_cache = {}
+_MAX_HANDLER_CACHE = 256
 
 
 DEFAULT_FORMAT_STRING = (
@@ -108,9 +111,15 @@ class NestedHandlerSetup(object):
 
 def iter_context_handlers():
     """Returns an iterator for all active context and global handlers."""
-    handlers = list(_global_handlers)
-    handlers.extend(getattr(_context_handlers, 'stack', ()))
-    return reversed(handlers)
+    handlers = _handler_cache.get(current_thread())
+    if handlers is None:
+        if len(_handler_cache) > _MAX_HANDLER_CACHE:
+            _handler_cache.clear()
+        handlers = _global_handlers[:]
+        handlers.extend(getattr(_context_handlers, 'stack', ()))
+        handlers.reverse()
+        _handler_cache[current_thread()] = handlers
+    return iter(handlers)
 
 
 def create_syshandler(application_name, level=NOTSET):
@@ -153,19 +162,13 @@ class Handler(object):
             return record.message
         return self.formatter(record, self)
 
-    def should_handle(self, record):
-        """Called before handling to check if the handler is interested
-        in the record.  This information is used to do preprocessing and
-        bubbling.
-        """
-        return record.level >= self.level
-
     def handle(self, record):
         """Emits and falls back."""
         try:
             self.emit(record)
         except Exception:
             self.handle_error(record, sys.exc_info())
+        return True
 
     def emit(self, record):
         """Emit the specified logging record."""
@@ -176,6 +179,7 @@ class Handler(object):
     def push_thread(self, processor=None, bubble=True):
         """Push the handler for the current context."""
         with _context_handler_lock:
+            _handler_cache.pop(current_thread(), None)
             item = self, processor, bubble
             stack = getattr(_context_handlers, 'stack', None)
             if stack is None:
@@ -186,6 +190,7 @@ class Handler(object):
     def pop_thread(self):
         """Pop the handler from the current context."""
         with _context_handler_lock:
+            _handler_cache.pop(current_thread(), None)
             stack = getattr(_context_handlers, 'stack', None)
             assert stack, 'no handlers on stack'
             popped = stack.pop()[0]
@@ -194,11 +199,13 @@ class Handler(object):
     def push_application(self, processor=None, bubble=True):
         """Push the handler to the global stack."""
         _global_handlers.append((self, processor, bubble))
+        _handler_cache.clear()
 
     def pop_application(self):
         """Pop the handler from the global stack."""
         assert _global_handlers, 'no handlers on global stack'
         popped = _global_handlers.pop()[0]
+        _handler_cache.clear()
         assert popped is self, 'popped unexpected handler'
 
     @contextmanager
@@ -291,7 +298,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
     def __init__(self, stream, level=NOTSET, format_string=None):
         Handler.__init__(self, level)
         StringFormatterHandlerMixin.__init__(self, format_string)
-        self.lock = threading.RLock()
+        self.lock = threading.Lock()
         if stream is not _missing:
             self.stream = stream
 
@@ -302,20 +309,19 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         self.close()
 
     def close(self):
-        # do not close the stream as we didn't open it ourselves, but at least
-        # flush
+        # do not close the stream as we didn't open it ourselves
+        # but at least do a flush
         self.flush()
 
     def flush(self):
         """Flushes the stream."""
-        if self.stream is not None and hasattr(self.stream, 'flush') \
-           and not self.stream.closed:
+        if self.stream is not None and hasattr(self.stream, 'flush'):
             self.stream.flush()
 
     def format_and_encode(self, record):
         msg = self.format(record)
         enc = getattr(self.stream, 'encoding', None) or 'utf-8'
-        return ('%s\n' % msg).encode(enc, 'replace')
+        return (msg + u'\n').encode(enc, 'replace')
 
     def write(self, item):
         self.stream.write(item)
