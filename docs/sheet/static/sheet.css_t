@@ -1,0 +1,127 @@
+/*
+ * sheet.css
+ * ~~~~~~~~~
+ *
+ * Sphinx stylesheet for the sheet theme.
+ *
+ * :copyright: Copyright 2010 by Armin Ronacher, Georg Brandl.
+ * :license: BSD, see LICENSE for details.
+ *
+ */
+
+@import url("basic.css");
+
+body {
+    width: 800px;
+    margin: auto;
+    font-family: {{ theme_bodyfont }};
+}
+
+a {
+    font-weight: bold;
+    color: #003366;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: {{ theme_seriffont }};
+    font-weight: normal;
+}
+
+.document {
+    border-bottom: 1px solid #837D7C;
+    border-top: 1px solid #837D7C;
+    margin: 12px 0px;
+    line-height: 1.3em;
+}
+
+.related a {
+    margin: 0;
+    font-size: 1.1em;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: #837D7C;
+}
+
+div.related ul {
+    padding: 0px;
+}
+
+.banner h1 {
+    font-size: 4.5em;
+    font-weight: normal;
+    line-height: 1;
+    letter-spacing: -3px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+
+.banner {
+    color: #000000;
+    letter-spacing: -1px;
+    font-family: {{ theme_seriffont }};
+    height: 100px;
+    margin-bottom: 24px;
+}
+
+.banner a {
+    color: #000000;
+    text-decoration: none;
+}
+
+
+.banner img {
+    float: left;
+    margin-right: 24px;
+}
+
+.footer {
+    color: #000000;
+    font-size: 0.7em;
+    text-align: center;
+    line-height: 1;
+    margin-top: 12px;
+    font-family: {{ theme_monofont }};
+    font-weight: normal;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: #837D7C;
+}
+
+.highlight pre {
+    background-color: #f8f8f8;
+    border-top: 1px solid #c8c8c8;
+    border-bottom: 1px solid #c8c8c8;
+    line-height: 120%;
+    padding: 10px 6px;
+}
+
+.highlighttable .highlight pre {
+    margin: 0px;
+}
+
+div.sphinxsidebar {
+    margin-left: 0px;
+    float: none;
+    width: 100%;
+    font-size: 0.8em;
+}
+
+.toctree-l1 a {
+    text-decoration: none;
+}
+
+img.align-right {
+    margin-left: 24px;
+}
+
+pre, tt {
+    font-family: {{ theme_monofont }};
+}
+
+p.output-caption {
+    font-size: small;
+    margin: 0px;
+}

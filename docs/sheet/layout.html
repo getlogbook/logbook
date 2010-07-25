@@ -1,0 +1,29 @@
+{% extends "basic/layout.html" %}
+
+{% block extrahead %}
+{% if online %}
+    <link href='http://fonts.googleapis.com/css?family=OFL+Sorts+Mill+Goudy+TT|Inconsolata'
+          rel='stylesheet' type='text/css'>
+{% endif %}
+{% endblock %}
+
+{% block header %}
+    <div class="banner">
+        <a href="{{ pathto(master_doc) }}">
+        <img src="{{ pathto('_static/' + logo, 1) }}" alt="{{ project }} logo"></img>
+        <h1>{{ project }} </h1>
+        </a>
+        <!-- <div>{{ theme_tagline }}</div> -->
+    </div>
+{% endblock %}
+
+{% block footer %}
+{% if online %}
+  <a href="http://github.com/mitsuhiko/logbook">
+    <img style="position: fixed; top: 0; right: 0; border: 0;"
+         src="http://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"
+         alt="Fork me on GitHub">
+  </a>
+{% endif %}
+  {{ super() }}
+{% endblock %}
