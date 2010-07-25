@@ -52,9 +52,9 @@ unless there is a very good use case for that.
 
 If you want errors to go to syslog, you can set up logging like this::
 
-    from logbook import FileHandler
+    from logbook import SyslogHandler
 
-    error_handler = FileHandler('errors.log', level='ERROR')
+    error_handler = SyslogHandler('logbook example', level='ERROR')
     with error_handler.applicationbound():
         # whatever is executed here and an error is logged to the
         # error handler
@@ -193,6 +193,5 @@ such a complex setup is defined, the nested handler setup can be used as
 if it was a single handler::
 
     with handlers.threadbound():
-        # everything here is not handled as specified by the rules
-        # above.
+        # everything here is handled as specified by the rules above.
         ...
