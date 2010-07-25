@@ -99,6 +99,7 @@ def get_level_name(level):
 
 
 def lookup_level(level):
+    """Return the integer representation of a logging level."""
     if isinstance(level, (int, long)):
         return level
     try:
@@ -108,6 +109,7 @@ def lookup_level(level):
 
 
 class ExtraDict(dict):
+    """A dictionary which returns ``u''`` on missing keys."""
 
     def __missing__(self, key):
         return u''
@@ -120,7 +122,7 @@ class ExtraDict(dict):
 
 
 class _ExceptionCatcher(object):
-    """Helper for exception catched blocks."""
+    """Helper for exception caught blocks."""
 
     def __init__(self, logger, args, kwargs):
         self.logger = logger
@@ -176,6 +178,7 @@ class LogRecord(object):
 
     @cached_property
     def message(self):
+        """The formatted message."""
         if not (self.args or self.kwargs):
             return self.msg
         try:
@@ -196,14 +199,17 @@ class LogRecord(object):
 
     @cached_property
     def time(self):
+        """The time at which the record was logged."""
         return datetime.utcfromtimestamp(self.timestamp)
 
     @cached_property
     def level_name(self):
+        """The name of the record's level."""
         return get_level_name(self.level)
 
     @cached_property
     def calling_frame(self):
+        """The frame in which the record has been created."""
         frm = self.frame
         globs = globals()
         while frm is not None and frm.f_globals is globs:
@@ -218,12 +224,14 @@ class LogRecord(object):
 
     @cached_property
     def module(self):
+        """The name of the module in which the record has been created."""
         cf = self.calling_frame
         if cf is not None:
             return cf.f_globals.get('__name__')
 
     @cached_property
     def filename(self):
+        """The filename of the module in which the record has been created."""
         cf = self.calling_frame
         if cf is not None:
             return os.path.abspath(cf.f_code.co_filename) \
@@ -231,12 +239,14 @@ class LogRecord(object):
 
     @cached_property
     def lineno(self):
+        """The line number of the file in which the record has been created."""
         cf = self.calling_frame
         if cf is not None:
             return cf.f_lineno
 
     @cached_property
     def frame_name(self):
+        """The name of the frame in which the record has been created."""
         if self.thread == _main_thread:
             return 'MainThread'
         for thread in threading.enumerate():
@@ -245,6 +255,7 @@ class LogRecord(object):
 
     @cached_property
     def process_name(self):
+        """The name of the process in which the record has been created."""
         # Errors may occur if multiprocessing has not finished loading
         # yet - e.g. if a custom import hook causes third-party code
         # to run when multiprocessing calls import. See issue 8200
@@ -257,6 +268,9 @@ class LogRecord(object):
                 pass
 
     def format_exception(self):
+        """Returns the formatted exception which caused this record to be
+        created.
+        """
         if self.exc_info is not None:
             lines = traceback.format_exception(*self.exc_info)
             rv = ''.join(lines).decode('utf-8', 'replace')
@@ -264,7 +278,16 @@ class LogRecord(object):
 
 
 class LoggerMixin(object):
+    """
+    This mixin defines and implements the "usual" logger interface, i.e.
+    a logger that uses the builtin logging levels.
 
+    Classes using this mixin have to implement a :meth:`handle` method which
+    takes a :class:`LogRecord` and passes it along.
+    """
+
+    #: The name of the minimium logging level required for records to be
+    #: created.
     level_name = _level_name_property()
 
     def debug(self, *args, **kwargs):
@@ -292,13 +315,13 @@ class LoggerMixin(object):
     def exception(self, *args, **kwargs):
         if 'exc_info' not in kwargs:
             exc_info = sys.exc_info()
-            assert exc_info[0] is not None, 'no exception ocurred'
+            assert exc_info[0] is not None, 'no exception occurred'
             kwargs.setdefault('exc_info', sys.exc_info())
         return self.error(*args, **kwargs)
 
     def catch_exceptions(self, *args, **kwargs):
         if not args:
-            args = ('Uncatched Exception Ocurred',)
+            args = ('Uncaught exception occurred',)
         return _ExceptionCatcher(self, args, kwargs)
 
     def critical(self, *args, **kwargs):
@@ -370,13 +393,14 @@ class RecordDispatcher(object):
 
 
 class Logger(RecordDispatcher, LoggerMixin):
-    """Instances of the Logger class reself.level present a single logging
-    channel. A "logging channel" indicates an area of an application. Exactly
+    """Instances of the Logger class represent a single logging channel.
+    A "logging channel" indicates an area of an application. Exactly
     how an "area" is defined is up to the application developer.
     """
 
 
 class LoggerGroup(LoggerMixin):
+    """A LoggerGroup represents a group of loggers while behaving like one."""
 
     def __init__(self, loggers=None, level=NOTSET):
         if loggers is None:
@@ -386,6 +410,7 @@ class LoggerGroup(LoggerMixin):
         self.disabled = False
 
     def add_logger(self, logger):
+        """Adds a logger to this group."""
         logger.group = self
         self.loggers.append(logger)
 

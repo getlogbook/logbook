@@ -2,20 +2,20 @@ Logging Compatibility
 =====================
 
 Logbook provides backwards compatibility with the logging library.  When
-activated, the logging library will transparently redirect all the logging
-calls to your Logbook logging setup.
+activated, the logging library will transparently redirect all the logging calls
+to your Logbook logging setup.
 
 Basic Setup
 -----------
 
 If you import the compat system and call the
-:func:`~logbook.compat.redirect_logging` function, all logging calls that
-happen after this call will transparently be redirected to Logbook::
+:func:`~logbook.compat.redirect_logging` function, all logging calls that happen
+after this call will transparently be redirected to Logbook::
 
     from logbook.compat import redirect_logging
     redirect_logging()
 
-This also means you don't have to call :meth:`logging.basicConfig`:
+This also means you don't have to call :func:`logging.basicConfig`:
 
 >>> from logbook.compat import redirect_logging
 >>> redirect_logging()
@@ -28,10 +28,10 @@ Advanced Setup
 --------------
 
 The way this is implemented is with a
-:class:`~logbook.compat.RedirectLoggingHandler`.  This class is a handler
-for the old logging system that sends records via an internal logbook
-logger to the active logbook handlers.  This handler can then be added to
-specific logging loggers if you want:
+:class:`~logbook.compat.RedirectLoggingHandler`.  This class is a handler for
+the old logging system that sends records via an internal logbook logger to the
+active logbook handlers.  This handler can then be added to specific logging
+loggers if you want:
 
 >>> from logging import getLogger
 >>> mylog = getLogger('My Log')

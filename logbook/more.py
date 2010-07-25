@@ -102,7 +102,8 @@ class JinjaFormatter(object):
         try:
             from jinja2 import Environment
         except ImportError:
-            raise RuntimeError('The jinja2 module could not be imported')
+            raise RuntimeError('JinjaFormatter requires the "jinja2" module '
+                               'which could not be imported.')
         self.environment = Environment()
         self.template = self.environment.from_string(template)
 
