@@ -193,6 +193,6 @@ such a complex setup is defined, the nested handler setup can be used as
 if it was a single handler::
 
     with handlers.contextbound():
-        # everything here is not handled as specified by the rules
+        # everything here is handled as specified by the rules
         # above.
         ...
