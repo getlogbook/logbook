@@ -72,3 +72,127 @@ handler) you can disable this by setting bubble to False::
         # error handler but it will not bubble up to the default
         # stderr handler.
         ...
+
+Desktop Application Setup
+-------------------------
+
+If you are a desktop application (command line or GUI) you probably have a
+line like this in your code::
+
+    if __name__ == '__main__':
+        main()
+
+This is what you should wrap with a `with`-statement that sets up your log
+handler::
+
+    from logbook import FileHandler
+    log_handler = FileHandler('application.log')
+
+    if __name__ == '__main__':
+        with log_handler.applicationbound():
+            main()
+
+Alternatively you can also just push a handler in there::
+
+    from logbook import FileHandler
+    log_handler = FileHandler('application.log')
+    log_handler.push_application()
+
+    if __name__ == '__main__':
+        main()
+
+Please keep in mind that you will have to pop the handlers in order if you
+want to remove them from the stack, so it is recommended to use the with
+statement there if you plan on reverting the handlers.
+
+Web Application Setup
+---------------------
+
+Typical modern web applications written in Python have two separate
+contexts where code might be executed: when the code is imported, as well
+as when a request is handled.  The first case is easy to handle, just push
+a global file handler that writes everything into a file.
+
+But Logbook gives you also the ability to improve upon the logging.  For
+example you can easily create yourself a log handler that is used for
+request-bound logging that also injects additional information.
+
+For this you can either subclass the logger or you can bind to the handler
+with a function that is invoked before logging.  The latter has the
+advantage that it will also be triggered for other logger instances which
+might be used by a different library.
+
+Here a simple WSGI example application that showcases sending error mails
+for errors happened during a WSGI application::
+
+    from logbook import MailHandler
+
+    mail_handler = MailHandler('errors@example.com',
+                               ['admin@example.com'],
+                               format_string=u'''\
+    Subject: Application Error at {request.extra[url]}
+
+    Message type:       {record.level_name}
+    Location:           {record.filename}:{record.lineno}
+    Module:             {record.module}
+    Function:           {record.func_name}
+    Time:               {record.time:%Y-%m-%d %H:%M:%S}
+    Remote IP:          {record.extra[ip]}
+    Request:            {record.extra[url]} [{request.extra[method]}]
+
+    Message:
+
+    {record.message}
+    ''')
+
+    def application(environ, start_response):
+        req = Request(environ)
+
+        def inject_info(record, handler):
+            record.extra.update(
+                ip=request.remote_addr,
+                method=request.method,
+                url=request.url
+            )
+
+        with mail_handler.threadbound(processor=inject_info):
+            # standard WSGI processing happens here.  If an error
+            # is logged, a mail will be sent to the admin on
+            # example.com
+            ...
+
+Deeply Nested Setups
+--------------------
+
+If you want deeply nested logger setups, you can use the
+:class:`NestedHandlerSetup` class which simplifies that.  This is best
+explained with an example::
+
+    from logbook import NestedHandlerSetup, NullHandler, FileHandler, \
+         MailHandler
+
+    # a nested handler setup can be used to configure more complex setups
+    handlers = logbook.NestedHandlerSetup()
+
+    # make sure we never bubble up to the stderr handler
+    # if we run out of handlers handling
+    handlers.add(NullHandler(), bubble=False)
+
+    # then let messages that are at least warnings to to a logfile
+    handlers.add(FileHandler('application.log', level='WARNING'))
+
+    # errors should then be delivered by mail and also be kept
+    # in the application log, so we let them bubble up.
+    handlers.add(MailHandler('servererrors@example.com',
+                             ['admin@example.com'],
+                             level='ERROR'))
+
+The :meth:`~logbook.NestedHandlerSetup.add` method accepts the same
+arguments as :meth:`~logbook.Handler.applicationbound` and others.  Once
+such a complex setup is defined, the nested handler setup can be used as
+if it was a single handler::
+
+    with handlers.contextbound():
+        # everything here is not handled as specified by the rules
+        # above.
+        ...
