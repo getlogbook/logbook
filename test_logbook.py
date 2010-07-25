@@ -8,8 +8,8 @@ import unittest
 import tempfile
 import string
 import socket
+from datetime import datetime
 from random import randrange
-from calendar import timegm
 from itertools import izip
 from contextlib import contextmanager
 from cStringIO import StringIO
@@ -190,7 +190,7 @@ class HandlerTestCase(LogbookTestCase):
                         minute=0, second=0):
             lr = logbook.LogRecord('Test Logger', logbook.WARNING,
                                    message)
-            lr.timestamp = timegm((year, month, day, hour, minute, second))
+            lr.time = datetime(year, month, day, hour, minute, second)
             return lr
 
         with handler:
