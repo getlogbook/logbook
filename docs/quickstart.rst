@@ -3,8 +3,8 @@ Quickstart
 
 .. currentmodule:: logbook
 
-Logbook makes it very easy to get started with logging.  Just import the
-logger class, create yourself a logger and you are set:
+Logbook makes it very easy to get started with logging.  Just import the logger
+class, create yourself a logger and you are set:
 
 >>> from logbook import Logger
 >>> log = Logger('My Awesome Logger')
@@ -44,11 +44,11 @@ multitude of available handlers, and of course you can also create your own:
 Registering Handlers
 --------------------
 
-So how are handlers registered?  If you are used to the standard Python
-logging system it works a little bit different here.  Handlers can be
-registered for a thread or for a whole process or individually for a
-logger.  However it is strongly recommended not to add handlers to loggers
-unless there is a very good use case for that.
+So how are handlers registered?  If you are used to the standard Python logging
+system, it works a little bit differently here.  Handlers can be registered for
+a thread or for a whole process or individually for a logger.  However, it is
+strongly recommended not to add handlers to loggers unless there is a very good
+use case for that.
 
 If you want errors to go to syslog, you can set up logging like this::
 
@@ -60,9 +60,9 @@ If you want errors to go to syslog, you can set up logging like this::
         # error handler
         ...
 
-Additionally it is still logged to stderr.  If you don't want handled
-log records to go to the next handler (and in this case the global
-handler) you can disable this by setting bubble to False::
+Additionally it is still logged to stderr.  If you don't want handled log
+records to go to the next handler (and in this case the global handler) you can
+disable this by setting *bubble* to False::
 
     from logbook import FileHandler
 
@@ -76,13 +76,13 @@ handler) you can disable this by setting bubble to False::
 Desktop Application Setup
 -------------------------
 
-If you are a desktop application (command line or GUI) you probably have a
-line like this in your code::
+If you are a desktop application (command line or GUI), you probably have a line
+like this in your code::
 
     if __name__ == '__main__':
         main()
 
-This is what you should wrap with a `with`-statement that sets up your log
+This is what you should wrap with a ``with`` statement that sets up your log
 handler::
 
     from logbook import FileHandler
@@ -101,29 +101,29 @@ Alternatively you can also just push a handler in there::
     if __name__ == '__main__':
         main()
 
-Please keep in mind that you will have to pop the handlers in order if you
-want to remove them from the stack, so it is recommended to use the with
-statement there if you plan on reverting the handlers.
+Please keep in mind that you will have to pop the handlers in reverse order if
+you want to remove them from the stack, so it is recommended to use the context
+manager API if you plan on reverting the handlers.
 
 Web Application Setup
 ---------------------
 
-Typical modern web applications written in Python have two separate
-contexts where code might be executed: when the code is imported, as well
-as when a request is handled.  The first case is easy to handle, just push
-a global file handler that writes everything into a file.
+Typical modern web applications written in Python have two separate contexts
+where code might be executed: when the code is imported, as well as when a
+request is handled.  The first case is easy to handle, just push a global file
+handler that writes everything into a file.
 
-But Logbook gives you also the ability to improve upon the logging.  For
-example you can easily create yourself a log handler that is used for
+But Logbook also gives you the ability to improve upon the logging.  For
+example, you can easily create yourself a log handler that is used for
 request-bound logging that also injects additional information.
 
-For this you can either subclass the logger or you can bind to the handler
-with a function that is invoked before logging.  The latter has the
-advantage that it will also be triggered for other logger instances which
-might be used by a different library.
+For this you can either subclass the logger or you can bind to the handler with
+a function that is invoked before logging.  The latter has the advantage that it
+will also be triggered for other logger instances which might be used by a
+different library.
 
-Here a simple WSGI example application that showcases sending error mails
-for errors happened during a WSGI application::
+Here is a simple WSGI example application that showcases sending error mails for
+errors happened during a WSGI application::
 
     from logbook import MailHandler
 
@@ -165,8 +165,8 @@ Deeply Nested Setups
 --------------------
 
 If you want deeply nested logger setups, you can use the
-:class:`NestedHandlerSetup` class which simplifies that.  This is best
-explained with an example::
+:class:`NestedHandlerSetup` class which simplifies that.  This is best explained
+using an example::
 
     from logbook import NestedHandlerSetup, NullHandler, FileHandler, \
          MailHandler
@@ -187,10 +187,9 @@ explained with an example::
                              ['admin@example.com'],
                              level='ERROR'))
 
-The :meth:`~logbook.NestedHandlerSetup.add` method accepts the same
-arguments as :meth:`~logbook.Handler.applicationbound` and others.  Once
-such a complex setup is defined, the nested handler setup can be used as
-if it was a single handler::
+The :meth:`.NestedHandlerSetup.add` method accepts the same arguments as
+:meth:`.Handler.applicationbound` and others.  Once such a complex setup is
+defined, the nested handler setup can be used as if it was a single handler::
 
     with handlers.threadbound():
         # everything here is handled as specified by the rules above.
