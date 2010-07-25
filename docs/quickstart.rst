@@ -192,7 +192,7 @@ arguments as :meth:`~logbook.Handler.applicationbound` and others.  Once
 such a complex setup is defined, the nested handler setup can be used as
 if it was a single handler::
 
-    with handlers.contextbound():
+    with handlers.threadbound():
         # everything here is not handled as specified by the rules
         # above.
         ...

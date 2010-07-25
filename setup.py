@@ -46,7 +46,7 @@ Works for Webapps too
             record.extra['method'] = request.method
             record.extra['path'] = request.path
 
-        with mailhandler.contextbound(processor=inject_extra):
+        with mailhandler.threadbound(processor=inject_extra):
             # execute code that might fail in the context of the
             # request.
 
