@@ -1,4 +1,4 @@
-"""
+r"""
 Logbook
 -------
 
@@ -25,19 +25,19 @@ Works for Webapps too
     mailhandler = MailHandler(from_addr='servererror@example.com',
                               recipients=['admin@example.com'],
                               level='ERROR', format_string=u'''\
-Subject: Application Error for {record.extra[path]} [{record.extra[method]}]
+    Subject: Application Error for {record.extra[path]} [{record.extra[method]}]
 
-Message type:       {record.level_name}
-Location:           {record.filename}:{record.lineno}
-Module:             {record.module}
-Function:           {record.func_name}
-Time:               {record.time:%Y-%m-%d %H:%M:%S}
-Remote IP:          {record.extra[ip]}
-Request:            {record.extra[path]} [{record.extra[method]}]
+    Message type:       {record.level_name}
+    Location:           {record.filename}:{record.lineno}
+    Module:             {record.module}
+    Function:           {record.func_name}
+    Time:               {record.time:%Y-%m-%d %H:%M:%S}
+    Remote IP:          {record.extra[ip]}
+    Request:            {record.extra[path]} [{record.extra[method]}]
 
-Message:
+    Message:
 
-{record.message}
+    {record.message}
     ''')
 
     def handle_request(request):
@@ -61,6 +61,9 @@ setup(
     name='Logbook',
     version='0.2',
     license='BSD',
+    author='Armin Ronacher',
+    author_email='armin.ronacher@active-4.com',
+    description='A logging replacement for Python',
     long_description=__doc__,
     packages=['logbook'],
     zip_safe=False,
