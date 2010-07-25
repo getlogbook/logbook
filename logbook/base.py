@@ -120,7 +120,7 @@ class ExtraDict(dict):
 
 
 class _ExceptionCatcher(object):
-    """Helper for exception catched blocks."""
+    """Helper for exception caught blocks."""
 
     def __init__(self, logger, args, kwargs):
         self.logger = logger
@@ -292,13 +292,13 @@ class LoggerMixin(object):
     def exception(self, *args, **kwargs):
         if 'exc_info' not in kwargs:
             exc_info = sys.exc_info()
-            assert exc_info[0] is not None, 'no exception ocurred'
+            assert exc_info[0] is not None, 'no exception occurred'
             kwargs.setdefault('exc_info', sys.exc_info())
         return self.error(*args, **kwargs)
 
     def catch_exceptions(self, *args, **kwargs):
         if not args:
-            args = ('Uncatched Exception Ocurred',)
+            args = ('Uncaught exception occurred',)
         return _ExceptionCatcher(self, args, kwargs)
 
     def critical(self, *args, **kwargs):
