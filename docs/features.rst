@@ -30,13 +30,17 @@ Core Features
     multiple lines.
 -   Logbook has built-in handlers for streams, arbitrary files, files with time
     and size based rotation, a handler that delivers mails, a handler for the
-    syslog daemon as well as the NT log file as well as a special "fingers
-    crossed" handler that in combination with the handler stack has the ability
-    to accumulate all logging messages and will deliver those in case a severity
-    level was exceeded.  For example, it can withhold all logging messages until
-    the first error record appears, in which case it will also send all withheld
-    records to handler it wraps.  Last but not least, it is possible to inject a
-    handler for testing that records messages for assertions.
+    syslog daemon as well as the NT log file.
+-   There is also a special "fingers crossed" handler that in combination with
+    the handler stack has the ability to accumulate all logging messages and
+    will deliver those in case a severity level was exceeded.  For example, it
+    can withhold all logging messages for a specific request to a web
+    application until an error record appears, in which case it will also send
+    all withheld records to handler it wraps.  This way, you can always log lots
+    of debug information, but only get to see them when they can actually tell
+    you something of interest.
+-   It is possible to inject a handler for testing that records messages for
+    assertions.
 -   Logbook was designed to be fast and with modern Python features in mind.
     For example, it uses context managers to handle the stack of handlers as
     well as new-style string formatting for all of the core log calls.
