@@ -13,7 +13,7 @@
 
 body {
     width: 800px;
-    margin: auto;
+    margin: 20px auto 30px auto;
     font-family: {{ theme_bodyfont }};
     background: url("background.png") repeat-y;
 }
@@ -46,6 +46,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 div.related ul {
+    margin-right: -10px;
     padding: 0px;
 }
 
@@ -70,7 +71,6 @@ div.related ul {
     color: #000000;
     text-decoration: none;
 }
-
 
 .banner img {
     float: left;
