@@ -179,7 +179,7 @@ using an example::
     # if we run out of handlers handling
     handlers.add(NullHandler(), bubble=False)
 
-    # then let messages that are at least warnings to to a logfile
+    # then write messages that are at least warnings to to a logfile
     handlers.add(FileHandler('application.log', level='WARNING'))
 
     # errors should then be delivered by mail and also be kept
