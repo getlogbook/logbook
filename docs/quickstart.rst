@@ -77,7 +77,7 @@ disable this by setting *bubble* to False::
 Desktop Application Setup
 -------------------------
 
-If you are a desktop application (command line or GUI), you probably have a line
+If you develop a desktop application (command line or GUI), you probably have a line
 like this in your code::
 
     if __name__ == '__main__':
