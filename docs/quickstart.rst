@@ -24,7 +24,7 @@ levels -- and their suggested meaning -- are:
 * ``info`` -- for messages you usually don't want to see
 * ``debug`` -- for debug messages
 
-Alternately, there is the :meth:`~Logger.log` method that takes the logging
+Alternatively, there is the :meth:`~Logger.log` method that takes the logging
 level (string or integer) as an argument.
 
 Handlers
