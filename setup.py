@@ -57,6 +57,7 @@ setup(
     name='Logbook',
     version='0.2',
     license='BSD',
+    url='http://logbook.pocoo.org/',
     author='Armin Ronacher, Georg Brandl',
     author_email='armin.ronacher@active-4.com',
     description='A logging replacement for Python',
