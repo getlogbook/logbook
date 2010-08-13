@@ -166,6 +166,9 @@ class LogRecord(object):
     def pull_information(self):
         if self._information_pulled:
             return
+        # due to how cached_property is implemented, the attribute access
+        # has the side effect of caching the attribute on the instance of
+        # the class.
         for key in self._pullable_information:
             getattr(self, key)
         self._information_pulled = True
