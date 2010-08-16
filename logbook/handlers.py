@@ -284,7 +284,7 @@ class Handler(object):
         """Tidy up any resources used by the handler."""
 
     def push_thread(self, processor=None, filter=None, bubble=True):
-        """Push the handler for the current context."""
+        """Push the handler for the current thread."""
         with _context_handler_lock:
             _handler_cache.pop(current_thread(), None)
             item = _stackop(), self, processor, filter, bubble
@@ -295,7 +295,7 @@ class Handler(object):
                 stack.append(item)
 
     def pop_thread(self):
-        """Pop the handler from the current context."""
+        """Pop the handler from the current thread."""
         with _context_handler_lock:
             _handler_cache.pop(current_thread(), None)
             stack = getattr(_context_handlers, 'stack', None)
