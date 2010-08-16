@@ -88,10 +88,10 @@ class FingersCrossedHandler(Handler):
     with all the logging calls that lead up to the error up to the point
     where the `with` block is exited.
 
-    Please keep in mind that the :class:`FingersCrossedHandler` handler is
-    a one-time handler.  Once triggered, it will not reset.  Because of that
-    you will have to re-create it whenever you bind it.  In this case the
-    handler is created when it's bound to the thread.
+    Please keep in mind that the :class:`~logbook.more.FingersCrossedHandler`
+    handler is a one-time handler.  Once triggered, it will not reset.  Because
+    of that you will have to re-create it whenever you bind it.  In this case
+    the handler is created when it's bound to the thread.
     """
 
     def __init__(self, handler, action_level=ERROR,

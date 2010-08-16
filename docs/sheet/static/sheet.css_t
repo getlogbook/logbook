@@ -129,7 +129,7 @@ img.align-right {
 
 pre, tt {
     font-family: {{ theme_monofont }};
-    font-size: 14px;
+    font-size: 15px!important;
 }
 
 dl.class dt {
