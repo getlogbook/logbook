@@ -459,9 +459,15 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
 
 
 class FileHandler(StreamHandler):
-    """A handler that does the task of opening and closing files for you."""
+    """A handler that does the task of opening and closing files for you.
+    By default the file is opened right away, but you can also `delay`
+    the open to the point where the first message is written.
 
-    def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
+    This is useful when the handler is used with a
+    :class:`~logbook.more.FingersCrossedHandler` or something similar.
+    """
+
+    def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
                  format_string=None, delay=False):
         StreamHandler.__init__(self, None, level, format_string)
         self._filename = filename
@@ -475,10 +481,7 @@ class FileHandler(StreamHandler):
     def _open(self, mode=None):
         if mode is None:
             mode = self._mode
-        if self._encoding is not None:
-            self.stream = open(self._filename, mode)
-        else:
-            self.stream = codecs.open(self._filename, mode, self._encoding)
+        self.stream = codecs.open(self._filename, mode, self._encoding)
 
     def write(self, item):
         if self.stream is None:
@@ -552,7 +555,7 @@ class RotatingFileHandler(RotatingFileHandlerBase):
     asking on rollover.
     """
 
-    def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
+    def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
                  format_string=None, delay=False, max_size=1024 * 1024,
                  backup_count=5):
         RotatingFileHandlerBase.__init__(self, filename, mode, encoding, level,
@@ -599,7 +602,7 @@ class TimedRotatingFileHandler(RotatingFileHandlerBase):
     them, you can specify a `backup_count`.
     """
 
-    def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
+    def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
                  format_string=None, date_format='%Y-%m-%d',
                  backup_count=0):
         RotatingFileHandlerBase.__init__(self, filename, mode, encoding, level,
