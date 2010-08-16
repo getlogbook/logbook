@@ -14,3 +14,6 @@ Release date to be announced.
 - the :class:`logbook.more.FingersCrossedHandler` now is set to
   `ERROR` by default and has the ability to create new loggers
   from a factory function.
+- implemented maximum buffer size for the
+  :class:`logbook.more.FingersCrossedHandler` as well as a lock
+  for thread safety
