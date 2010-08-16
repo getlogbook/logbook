@@ -472,6 +472,24 @@ class MoreTestCase(LogbookTestCase):
             self.log.warning('a warning')
             self.assertEqual(len(handlers), 2)
 
+    def test_fingerscrossed_buffer_size(self):
+        from logbook.more import FingersCrossedHandler
+        logger = logbook.Logger('Test')
+        test_handler = logbook.TestHandler()
+        handler = FingersCrossedHandler(test_handler, buffer_size=3)
+
+        with handler.applicationbound(bubble=False):
+            logger.info('Never gonna give you up')
+            logger.warn('Aha!')
+            logger.warn('Moar!')
+            logger.error('Pure hate!')
+
+        self.assertEqual(test_handler.formatted_records, [
+            '[WARNING] Test: Aha!',
+            '[WARNING] Test: Moar!',
+            '[ERROR] Test: Pure hate!'
+        ])
+
     def test_tagged(self):
         from logbook.more import TaggingLogger, TaggingHandler
         stream = StringIO()

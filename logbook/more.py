@@ -10,6 +10,8 @@
 """
 
 import sys
+from collections import deque
+from threading import Lock
 
 from logbook.base import LogRecord, RecordDispatcher, NOTSET, ERROR
 from logbook.handlers import Handler
@@ -124,9 +126,10 @@ class FingersCrossedHandler(Handler):
     the handler is created when it's bound to the thread.
     """
 
-    def __init__(self, handler, action_level=ERROR,
+    def __init__(self, handler, action_level=ERROR, buffer_size=0,
                  pull_information=True):
         Handler.__init__(self)
+        self.lock = Lock()
         self._level = action_level
         if isinstance(handler, Handler):
             self._handler = handler
@@ -135,10 +138,14 @@ class FingersCrossedHandler(Handler):
             self._handler = None
             self._handler_factory = handler
         #: the buffered records of the handler.  Once the action is triggered
-        #: (:attr:`triggered`) this list will be empty.  This attribute can
+        #: (:attr:`triggered`) this list will be None.  This attribute can
         #: be helpful for the handler factory function to select a proper
         #: filename (for example time of first log record)
-        self.buffered_records = []
+        self.buffered_records = deque()
+        #: the maximum number of entries in the buffer.  If this is exhausted
+        #: the oldest entries will be discarded to make place for new ones
+        self.buffer_size = buffer_size
+        self._buffer_full = False
         self._pull_information = pull_information
         self._action_triggered = False
 
@@ -147,9 +154,24 @@ class FingersCrossedHandler(Handler):
             self._handler.close()
 
     def enqueue(self, record):
+        assert self.buffered_records is not None, 'rollover occurred'
         if self._pull_information:
             record.pull_information()
         self.buffered_records.append(record)
+        if self._buffer_full:
+            self.buffered_records.popleft()
+        elif self.buffer_size and \
+             len(self.buffered_records) >= self.buffer_size - 1:
+            self._buffer_full = True
+
+    def rollover(self, record):
+        assert self.buffered_records is not None, 'rollover occurred'
+        if self._handler is None:
+            self._handler = self._handler_factory(record, self)
+        for old_record in self.buffered_records:
+            self._handler.emit(old_record)
+        self.buffered_records = None
+        self._action_triggered = True
 
     @property
     def triggered(self):
@@ -160,18 +182,14 @@ class FingersCrossedHandler(Handler):
         return self._action_triggered
 
     def emit(self, record):
-        if self._action_triggered:
-            return self._handler.emit(record)
-        elif record.level >= self._level:
-            if self._handler is None:
-                self._handler = self._handler_factory(record, self)
-            for old_record in self.buffered_records:
-                self._handler.emit(old_record)
-            del self.buffered_records[:]
-            self._handler.emit(record)
-            self._action_triggered = True
-        else:
-            self.enqueue(record)
+        with self.lock:
+            if self._action_triggered:
+                self._handler.emit(record)
+            elif record.level >= self._level:
+                self.rollover(record)
+                self._handler.emit(record)
+            else:
+                self.enqueue(record)
 
 
 class JinjaFormatter(object):
