@@ -1,0 +1,13 @@
+Logbook Changelog
+=================
+
+Here you can see the full list of changes between each Logboo release.
+
+Version 0.3
+-----------
+
+Release date to be announced.
+
+- Implemented default with statement for handlers.
+- `applicationbound` and `threadbound` return the handler now.
+- Implemented channel recording on the log records.

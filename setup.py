@@ -55,7 +55,7 @@ from setuptools import setup
 
 setup(
     name='Logbook',
-    version='0.2',
+    version='0.3',
     license='BSD',
     url='http://logbook.pocoo.org/',
     author='Armin Ronacher, Georg Brandl',
