@@ -27,6 +27,7 @@ Documentation
    unittesting
    compat
    api
+   designdefense
 
 Project Information
 -------------------

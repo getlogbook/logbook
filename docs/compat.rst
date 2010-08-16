@@ -1,3 +1,5 @@
+.. _logging-compat:
+
 Logging Compatibility
 =====================
 
