@@ -188,7 +188,13 @@ can override the :meth:`Logger.process_record` method::
         def process_record(self, record):
             record.extra['kind'] = 'input'
 
-A handler can then use this information to filter out input.
+A handler can then use this information to filter out input::
+
+    def no_input(record, handler):
+        return record.extra.get('kind') != 'input'
+
+    with MyHandler().threadbound(filter=no_input):
+        ...
 
 Injecting Context-Sensitive Information
 ---------------------------------------

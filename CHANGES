@@ -17,3 +17,4 @@ Release date to be announced.
 - implemented maximum buffer size for the
   :class:`logbook.more.FingersCrossedHandler` as well as a lock
   for thread safety
+- added ability to filter for context.

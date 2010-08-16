@@ -108,28 +108,28 @@ class NestedHandlerSetup(object):
     def __init__(self):
         self.handlers = []
 
-    def add(self, handler, processor=None, bubble=True):
+    def add(self, handler, processor=None, filter=None, bubble=True):
         """Registers a new handler on the :class:`NestedHandlerSetup`"""
-        self.handlers.append((handler, processor, bubble))
+        self.handlers.append((handler, processor, filter, bubble))
 
     def push_application(self):
         """Pushes all handlers to the global stack."""
-        for handler, processor, bubble in self.handlers:
-            handler.push_application(processor, bubble)
+        for handler, processor, filter, bubble in self.handlers:
+            handler.push_application(processor, filter, bubble)
 
     def pop_application(self):
         """Pops all handlers from the global stack."""
-        for handler, _, _ in reversed(self.handlers):
+        for handler, _, _, _ in reversed(self.handlers):
             handler.pop_application()
 
     def push_thread(self):
         """Pushes all handlers to the thread stack."""
-        for handler, processor, bubble in self.handlers:
-            handler.push_thread(processor, bubble)
+        for handler, processor, filter, bubble in self.handlers:
+            handler.push_thread(processor, filter, bubble)
 
     def pop_thread(self):
         """Pops all handlers from the thread stack."""
-        for handler, _, _ in reversed(self.handlers):
+        for handler, _, _, _ in reversed(self.handlers):
             handler.pop_thread()
 
     @contextmanager
@@ -281,11 +281,11 @@ class Handler(object):
     def close(self):
         """Tidy up any resources used by the handler."""
 
-    def push_thread(self, processor=None, bubble=True):
+    def push_thread(self, processor=None, filter=None, bubble=True):
         """Push the handler for the current context."""
         with _context_handler_lock:
             _handler_cache.pop(current_thread(), None)
-            item = self, processor, bubble
+            item = self, processor, filter, bubble
             stack = getattr(_context_handlers, 'stack', None)
             if stack is None:
                 _context_handlers.stack = [item]
@@ -301,9 +301,9 @@ class Handler(object):
             popped = stack.pop()[0]
             assert popped is self, 'popped unexpected handler'
 
-    def push_application(self, processor=None, bubble=True):
+    def push_application(self, processor=None, filter=None, bubble=True):
         """Push the handler to the global stack."""
-        _global_handlers.append((self, processor, bubble))
+        _global_handlers.append((self, processor, filter, bubble))
         _handler_cache.clear()
 
     def pop_application(self):
@@ -314,25 +314,25 @@ class Handler(object):
         assert popped is self, 'popped unexpected handler'
 
     @contextmanager
-    def threadbound(self, processor=None, bubble=True):
+    def threadbound(self, processor=None, filter=None, bubble=True):
         """Binds the handler temporarily to a thread."""
-        self.push_thread(processor, bubble)
+        self.push_thread(processor, filter, bubble)
         try:
             yield self
         finally:
             self.pop_thread()
 
     @contextmanager
-    def applicationbound(self, processor=None, bubble=True):
+    def applicationbound(self, processor=None, filter=None, bubble=True):
         """Binds the handler temporarily to the whole process."""
-        self.push_application(processor, bubble)
+        self.push_application(processor, filter, bubble)
         try:
             yield self
         finally:
             self.pop_application()
 
     def __enter__(self):
-        self.push_thread(None, False)
+        self.push_thread(None, None, False)
         return self
 
     def __exit__(self, exc_type, exc_value, tb):

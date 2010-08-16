@@ -370,6 +370,25 @@ Message:
             logger.warn('Logbook is too awesome for stdlib')
             self.assertEqual(test_handler.records[0].channel, logger)
 
+    def test_filtering(self):
+        logger1 = logbook.Logger('Logger1')
+        logger2 = logbook.Logger('Logger2')
+        handler = logbook.TestHandler()
+        outer_handler = logbook.TestHandler()
+
+        def only_1(record, handler):
+            return record.channel is logger1
+
+        with outer_handler:
+            with handler.threadbound(filter=only_1, bubble=False):
+                logger1.warn('foo')
+                logger2.warn('bar')
+
+        self.assert_(handler.has_warning('foo', logger_name='Logger1'))
+        self.assert_(not handler.has_warning('bar', logger_name='Logger2'))
+        self.assert_(not outer_handler.has_warning('foo', logger_name='Logger1'))
+        self.assert_(outer_handler.has_warning('bar', logger_name='Logger2'))
+
 
 class AttributeTestCase(LogbookTestCase):
 

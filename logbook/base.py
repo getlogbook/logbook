@@ -490,12 +490,14 @@ class RecordDispatcher(object):
 
         # after that, context specific handlers run (this includes the
         # global handlers)
-        for handler, processor, bubble in iter_context_handlers():
+        for handler, processor, filter, bubble in iter_context_handlers():
             if record.level >= handler.level:
                 # TODO: cloning?  expensive?  document that on bubbling
                 # the record is modified for outer processors too?
                 if processor is not None:
                     processor(record, handler)
+                if filter is not None and not filter(record, handler):
+                    continue
                 if handler.handle(record) and not bubble:
                     break
 
