@@ -125,6 +125,10 @@ class FingersCrossedHandler(Handler):
 
     @property
     def triggered(self):
+        """This attribute is `True` when the action was triggered.  From
+        this point onwards the finger crossed handler transparently
+        forwards all log records to the inner handler.
+        """
         return self._action_triggered
 
     def emit(self, record):
