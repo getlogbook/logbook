@@ -16,7 +16,24 @@ from logbook.handlers import Handler
 
 
 class TaggingLogger(RecordDispatcher):
-    """A logger that attaches a tag to each record."""
+    """A logger that attaches a tag to each record.  This is an alternative
+    record dispatcher that does not use levels but tags to keep log
+    records apart.  It is constructed with a descriptive name and at least
+    one tag.  The tags are up for you to define::
+
+        logger = TaggingLogger('My Logger', 'info', 'warning')
+
+    For each tag defined that way, a method appears on the logger with
+    that name::
+
+        logger.info('This is a info message')
+
+    To dispatch to different handlers based on tags you can use the
+    :class:`TaggingHandler`.
+
+    The tags themselves are stored as list named ``'tags'`` in the
+    :attr:`~logbook.LogRecord.extra` dictionary.
+    """
 
     def __init__(self, name=None, *tags):
         RecordDispatcher.__init__(self, name)
@@ -39,7 +56,16 @@ class TaggingLogger(RecordDispatcher):
 
 
 class TaggingHandler(Handler):
-    """A handler that logs for tags and dispatches based on those"""
+    """A handler that logs for tags and dispatches based on those::
+
+        import logbook
+        from logbook.more import TaggingHandler
+
+        handler = TaggingHandler(
+            info=OneHandler(),
+            warning=AnotherHandler()
+        )
+    """
 
     def __init__(self, **handlers):
         Handler.__init__(self)
@@ -49,7 +75,7 @@ class TaggingHandler(Handler):
             for (tag, handler) in handlers.iteritems())
 
     def emit(self, record):
-        for tag in record.extra['tags']:
+        for tag in record.extra.get('tags', ()):
             for handler in self._handlers.get(tag, ()):
                 handler.handle(record)
 
@@ -153,12 +179,11 @@ class JinjaFormatter(object):
 
     def __init__(self, template):
         try:
-            from jinja2 import Environment
+            from jinja2 import Template
         except ImportError:
             raise RuntimeError('JinjaFormatter requires the "jinja2" module '
                                'which could not be imported.')
-        self.environment = Environment()
-        self.template = self.environment.from_string(template)
+        self.template = Template(template)
 
     def __call__(self, record, handler):
         return self.template.render(record=record, handler=handler)

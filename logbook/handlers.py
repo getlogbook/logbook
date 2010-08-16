@@ -68,32 +68,73 @@ SYSLOG_PORT = 514
 
 
 class NestedHandlerSetup(object):
-    """Helps to setup nested handlers."""
+    r"""Helps to setup nested handlers.  This is a good alternative
+    to deeply nested with statements in the same function.  Basically
+    the concept is to use the :meth:`add` function to add a handler
+    to the :class:`NestedHandlerSetup`.  It accepts the same arguments
+    as the :meth:`~logbook.Handler.push_application` function.
+
+    Example::
+
+        from logbook import NestedHandlerSetup, NullHandler, FileHandler, \
+             MailHandler
+
+        # a nested handler setup can be used to configure more complex setups
+        nhs = logbook.NestedHandlerSetup()
+
+        # make sure we never bubble up to the stderr handler
+        # if we run out of nhs handling
+        nhs.add(NullHandler(), bubble=False)
+
+        # then write messages that are at least warnings to to a logfile
+        nhs.add(FileHandler('application.log', level='WARNING'))
+
+        # errors should then be delivered by mail and also be kept
+        # in the application log, so we let them bubble up.
+        nhs.add(MailHandler('servererrors@example.com',
+                            ['admin@example.com'],
+                            level='ERROR'))
+
+    You can then use the :class:`NestedHandlerSetup` as if it was a
+    log handler::
+
+        with nhs.threadbound():
+            ...
+
+    The difference to a regular handler is that the context managers do not
+    return anything and will not accept any arguments.
+    """
 
     def __init__(self):
         self.handlers = []
 
     def add(self, handler, processor=None, bubble=True):
+        """Registers a new handler on the :class:`NestedHandlerSetup`"""
         self.handlers.append((handler, processor, bubble))
 
     def push_application(self):
+        """Pushes all handlers to the global stack."""
         for handler, processor, bubble in self.handlers:
             handler.push_application(processor, bubble)
 
     def pop_application(self):
+        """Pops all handlers from the global stack."""
         for handler, _, _ in reversed(self.handlers):
             handler.pop_application()
 
     def push_thread(self):
+        """Pushes all handlers to the thread stack."""
         for handler, processor, bubble in self.handlers:
             handler.push_thread(processor, bubble)
 
     def pop_thread(self):
+        """Pops all handlers from the thread stack."""
         for handler, _, _ in reversed(self.handlers):
             handler.pop_thread()
 
     @contextmanager
     def threadbound(self):
+        """Binds all handlers temporarily to a thread."""
         self.push_thread()
         try:
             yield
@@ -102,6 +143,7 @@ class NestedHandlerSetup(object):
 
     @contextmanager
     def applicationbound(self):
+        """Binds all handlers temporarily to the whole process."""
         self.push_application()
         try:
             yield
@@ -110,7 +152,9 @@ class NestedHandlerSetup(object):
 
 
 def iter_context_handlers():
-    """Returns an iterator for all active context and global handlers."""
+    """Returns an iterator for all active context and global handlers.
+    This function returns an iterator and is thread safe.
+    """
     handlers = _handler_cache.get(current_thread())
     if handlers is None:
         if len(_handler_cache) > _MAX_HANDLER_CACHE:
@@ -177,8 +221,13 @@ class Handler(object):
     """
 
     def __init__(self, level=NOTSET):
-        self.name = None
+        #: the level for the handler.  Defaults to `NOTSET` which
+        #: consumes all entries.
         self.level = lookup_level(level)
+        #: the formatter to be used on records.  This is a function
+        #: that is passed a log record as first argument and the
+        #: handler as second and returns something formatted
+        #: (usually a unicode string)
         self.formatter = None
 
     def __del__(self):
@@ -192,13 +241,31 @@ class Handler(object):
     level_name = _level_name_property()
 
     def format(self, record):
-        """Formats a record with the given formatter."""
+        """Formats a record with the given formatter.  If no formatter
+        is set, the record message is returned.  Generally speaking the
+        return value is most likely a unicode string, but nothing in
+        the handler interface requires a formatter to return a unicode
+        string.
+
+        The combination of a handler and formatter might have the
+        formatter return an XML element tree for example.
+        """
         if self.formatter is None:
             return record.message
         return self.formatter(record, self)
 
     def handle(self, record):
-        """Emits and falls back."""
+        """Emits the record and falls back.  It tries to :meth:`emit` the
+        record and if that fails, it will call into :meth:`handle_error` with
+        the record and traceback.  This function itself will always emit
+        when called, even if the logger level is higher than the record's
+        level.
+
+        If this method returns `False` it signals to the calling function that
+        no recording took place in which case it will automatically bubble.
+        This should not be used to signal error situations.  The default
+        implementation always returns `True`.
+        """
         try:
             self.emit(record)
         except Exception:
@@ -206,7 +273,10 @@ class Handler(object):
         return True
 
     def emit(self, record):
-        """Emit the specified logging record."""
+        """Emit the specified logging record.  This should take the
+        record and deliver it to whereever the handler sends formatted
+        log records.
+        """
 
     def close(self):
         """Tidy up any resources used by the handler."""
@@ -311,15 +381,20 @@ class StringFormatter(object):
 
 class StringFormatterHandlerMixin(object):
     """A mixin for handlers that provides a default integration for the
-    StringFormatter class.  This is used for all handlers by default that
-    log text to a destination.
+    :class:`~logbook.StringFormatter` class.  This is used for all handlers
+    by default that log text to a destination.
     """
 
+    #: a class attribute for the default format string to use if the
+    #: constructor was invoked with `None`.
     default_format_string = DEFAULT_FORMAT_STRING
 
     def __init__(self, format_string):
         if format_string is None:
             format_string = self.default_format_string
+
+        #: the currently attached format string as new-style format
+        #: string.
         self.format_string = format_string
 
     def _get_format_string(self):
@@ -335,6 +410,12 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
     """a handler class which writes logging records, appropriately formatted,
     to a stream. note that this class does not close the stream, as sys.stdout
     or sys.stderr may be used.
+
+    If a stream handler is used in a `with` statement directly it will
+    :meth:`close` on exit to support this pattern::
+
+        with StreamHandler(my_stream):
+            pass
     """
 
     def __init__(self, stream, level=NOTSET, format_string=None):
@@ -345,26 +426,30 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
             self.stream = stream
 
     def __enter__(self):
-        return self
+        return Handler.__enter__(self)
 
     def __exit__(self, exc_type, exc_value, tb):
         self.close()
+        return Handler.__exit__(self, exc_type, exc_value, tb)
 
     def close(self):
-        # do not close the stream as we didn't open it ourselves
-        # but at least do a flush
+        """The default stream handler implementation is not to close
+        the wrapped stream but to flush it.
+        """
         self.flush()
 
     def flush(self):
-        """Flushes the stream."""
+        """Flushes the inner stream."""
         if self.stream is not None and hasattr(self.stream, 'flush'):
             self.stream.flush()
 
     def format_and_encode(self, record):
+        """Formats the record and encodes it to the stream encoding."""
         enc = getattr(self.stream, 'encoding', None) or 'utf-8'
         return (self.format(record) + u'\n').encode(enc, 'replace')
 
     def write(self, item):
+        """Writes a bytestring to the stream."""
         self.stream.write(item)
 
     def emit(self, record):
@@ -412,7 +497,13 @@ class FileHandler(StreamHandler):
 
 
 class StderrHandler(StreamHandler):
-    """A handler that writes to what is currently at stderr."""
+    """A handler that writes to what is currently at stderr.  At the first
+    glace this appears to just be a :class:`StreamHandler` with the stream
+    set to :data:`sys.stderr` but there is a difference: if the handler is
+    created globally and :data:`sys.stderr` changes later, this handler will
+    point to the current `stderr`, whereas a stream handler would still
+    point to the old one.
+    """
 
     def __init__(self, level=NOTSET, format_string=None):
         StreamHandler.__init__(self, _missing, level, format_string)
@@ -448,15 +539,28 @@ class RotatingFileHandlerBase(FileHandler):
 
 
 class RotatingFileHandler(RotatingFileHandlerBase):
-    """This handler rotates based on file size."""
+    """This handler rotates based on file size.  Once the maximum size
+    is reached it will reopen the file and start with an empty file
+    again.  The old file is moved into a backup copy (named like the
+    file, but with a ``.backupnumber`` appended to the file.  So if
+    you are logging to ``mail`` the first backup copy is called
+    ``mail.1``.)
+
+    The default number of backups is 5.  Unlike a similar logger from
+    the logging package, the backup count is mandatory because just
+    reopening the file is dangerous as it deletes the log without
+    asking on rollover.
+    """
 
     def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
                  format_string=None, delay=False, max_size=1024 * 1024,
-                 backup_count=0):
+                 backup_count=5):
         RotatingFileHandlerBase.__init__(self, filename, mode, encoding, level,
                                          format_string, delay)
         self.max_size = max_size
         self.backup_count = backup_count
+        assert backup_count > 0, 'at least one backup file has to be ' \
+                                 'specified'
 
     def should_rollover(self, record, bytes):
         self.stream.seek(0, 2)
@@ -464,21 +568,36 @@ class RotatingFileHandler(RotatingFileHandlerBase):
 
     def perform_rollover(self):
         self.stream.close()
-        if self.backup_count > 0:
-            for x in xrange(self.backup_count - 1, 0, -1):
-                src = '%s.%d' % (self._filename, x)
-                dst = '%s.%d' % (self._filename, x + 1)
-                try:
-                    rename(src, dst)
-                except OSError, e:
-                    if e.errno != errno.ENOENT:
-                        raise
-            rename(self._filename, self._filename + '.1')
+        for x in xrange(self.backup_count - 1, 0, -1):
+            src = '%s.%d' % (self._filename, x)
+            dst = '%s.%d' % (self._filename, x + 1)
+            try:
+                rename(src, dst)
+            except OSError, e:
+                if e.errno != errno.ENOENT:
+                    raise
+        rename(self._filename, self._filename + '.1')
         self._open('w')
 
 
 class TimedRotatingFileHandler(RotatingFileHandlerBase):
-    """This handler rotates based on dates."""
+    """This handler rotates based on dates.  It will name the file
+    after the filename you specify and the `date_format` pattern.
+
+    So for example if you configure your handler like this::
+
+        handler = TimedRotatingFileHandler('/var/log/foo.log',
+                                           date_formnat='%Y-%m-%d')
+
+    The filenames for the logfiles will look like this::
+
+        /var/log/foo-2010-01-10.log
+        /var/log/foo-2010-01-11.log
+        ...
+
+    By default it will keep all these files around, if you want to limit
+    them, you can specify a `backup_count`.
+    """
 
     def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
                  format_string=None, date_format='%Y-%m-%d',
@@ -525,7 +644,17 @@ class TimedRotatingFileHandler(RotatingFileHandlerBase):
 
 
 class TestHandler(Handler, StringFormatterHandlerMixin):
-    """Like a stream handler but keeps the values in memory."""
+    """Like a stream handler but keeps the values in memory.  This
+    logger provides some ways to test for the records in memory.
+
+    Example usage::
+
+        def my_test():
+            with logbook.TestHandler() as handler:
+                logger.warn('A warning')
+                assert logger.has_warning('A warning')
+                ...
+    """
     default_format_string = TEST_FORMAT_STRING
 
     def __init__(self, level=NOTSET, format_string=None):

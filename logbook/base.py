@@ -68,7 +68,8 @@ def _level_name_property():
         return get_level_name(self.level)
     def _set_level_name(self, level):
         self.level = lookup_level(level)
-    return property(_get_level_name, _set_level_name)
+    return property(_get_level_name, _set_level_name, doc=
+        'The level as unicode string')
 
 
 def _group_reflected_property(name, default, fallback=_missing):

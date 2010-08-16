@@ -54,6 +54,12 @@ as unicode strings:
 >>> handler.formatted_records
 [u'[WARNING] Testing: Hello World']
 
+
+.. _probe-log-records:
+
+Probe Log Records
+-----------------
+
 The handler also provide some convenience methods to do assertions:
 
 >>> handler.has_warnings
@@ -62,5 +68,23 @@ True
 False
 >>> handler.has_warning('Hello World')
 True
+
+Methods like :meth:`~logbook.TestHandler.has_warning` accept two
+arguments:
+
+`message`
+    If provided and not `None` it will check if there is at least one log
+    record where the message matches.
+
+`logger_name`
+    If provided and not `None` it will check if there is at least one log
+    record where the logger name of the record matches.
+
+Example usage:
+
 >>> handler.has_warning('A different message')
 False
+>>> handler.has_warning('Hello World', logger_name='Testing')
+True
+>>> handler.has_warning(logger_name='Testing')
+True

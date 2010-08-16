@@ -108,3 +108,6 @@ Internal API
 
 .. autoclass:: logbook.handlers.RotatingFileHandlerBase
    :members:
+
+.. autoclass:: logbook.handlers.StringFormatterHandlerMixin
+   :members:
