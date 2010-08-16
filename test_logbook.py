@@ -448,7 +448,7 @@ class MoreTestCase(LogbookTestCase):
         from logbook.more import FingersCrossedHandler
 
         handlers = []
-        def handler_factory(record):
+        def handler_factory(record, fch):
             handler = logbook.TestHandler()
             handlers.append(handler)
             return handler

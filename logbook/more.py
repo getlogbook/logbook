@@ -63,7 +63,8 @@ class FingersCrossedHandler(Handler):
 
     Alternatively it's also possible to pass a factory function to the
     constructor instead of a handler.  That factory is then called with
-    the triggering log entry to create a handler which is then cached.
+    the triggering log entry and the finger crossed handler to create
+    a handler which is then cached.
 
     The idea of this handler is to enable debugging of live systems.  For
     example it might happen that code works perfectly fine 99% of the time,
@@ -77,7 +78,7 @@ class FingersCrossedHandler(Handler):
         from logbook.more import FingersCrossedHandler
 
         def issue_logging():
-            def factory(record):
+            def factory(record, handler):
                 return FileHandler('/var/log/app/issue-%s.log' % record.time)
             return FingersCrossedHandler(factory).threadbound(bubble=False)
 
@@ -105,7 +106,11 @@ class FingersCrossedHandler(Handler):
         else:
             self._handler = None
             self._handler_factory = handler
-        self._records = []
+        #: the buffered records of the handler.  Once the action is triggered
+        #: (:attr:`triggered`) this list will be empty.  This attribute can
+        #: be helpful for the handler factory function to select a proper
+        #: filename (for example time of first log record)
+        self.buffered_records = []
         self._pull_information = pull_information
         self._action_triggered = False
 
@@ -116,7 +121,7 @@ class FingersCrossedHandler(Handler):
     def enqueue(self, record):
         if self._pull_information:
             record.pull_information()
-        self._records.append(record)
+        self.buffered_records.append(record)
 
     @property
     def triggered(self):
@@ -127,10 +132,10 @@ class FingersCrossedHandler(Handler):
             return self._handler.emit(record)
         elif record.level >= self._level:
             if self._handler is None:
-                self._handler = self._handler_factory(record)
-            for old_record in self._records:
+                self._handler = self._handler_factory(record, self)
+            for old_record in self.buffered_records:
                 self._handler.emit(old_record)
-            del self._records[:]
+            del self.buffered_records[:]
             self._handler.emit(record)
             self._action_triggered = True
         else:
