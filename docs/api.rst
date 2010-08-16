@@ -84,30 +84,50 @@ Core Handlers
 The More Module
 ---------------
 
-.. autoclass:: logbook.more.TaggingLogger
+.. currentmodule:: logbook.more
+
+.. autoclass:: TaggingLogger
    :members:
    :inherited-members:
 
-.. autoclass:: logbook.more.TaggingHandler
+.. autoclass:: TaggingHandler
    :members:
 
-.. autoclass:: logbook.more.FingersCrossedHandler
+.. autoclass:: FingersCrossedHandler
    :members:
 
-.. autoclass:: logbook.more.JinjaFormatter
+.. autoclass:: JinjaFormatter
    :members:
+
+
+Logging Compatibility
+---------------------
+
+.. currentmodule:: logbook.compat
+
+.. autofunction:: redirect_logging
+
+.. autofunction:: temporarily_redirected_logging
+
+.. autoclass:: RedirectLoggingHandler
+   :members:
+
 
 Internal API
 ------------
 
-.. autoclass:: logbook.base.RecordDispatcher
+.. currentmodule:: logbook.base
+
+.. autoclass:: RecordDispatcher
    :members:
 
-.. autoclass:: logbook.base.LoggerMixin
+.. autoclass:: LoggerMixin
    :members:
 
-.. autoclass:: logbook.handlers.RotatingFileHandlerBase
+.. currentmodule:: logbook.handlers
+
+.. autoclass:: RotatingFileHandlerBase
    :members:
 
-.. autoclass:: logbook.handlers.StringFormatterHandlerMixin
+.. autoclass:: StringFormatterHandlerMixin
    :members:
