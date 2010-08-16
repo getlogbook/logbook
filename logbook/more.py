@@ -76,13 +76,13 @@ class FingersCrossedHandler(Handler):
         from logbook import FileHandler
         from logbook.more import FingersCrossedHandler
 
-        def make_debug_handler():
+        def issue_logging():
             def factory(record):
                 return FileHandler('/var/log/app/issue-%s.log' % record.time)
-            return FingersCrossedHandler(factory)
+            return FingersCrossedHandler(factory).threadbound(bubble=False)
 
         def application(environ, start_response):
-            with make_debug_handler().threadbound(bubble=False):
+            with issue_logging():
                 return the_actual_wsgi_application(environ, start_response)
 
     Whenever an error occours, a new file in ``/var/log/app`` is created
