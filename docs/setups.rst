@@ -21,14 +21,14 @@ handler::
     log_handler = FileHandler('application.log')
 
     if __name__ == '__main__':
-        with log_handler.applicationbound():
+        with log_handler.applicationbound(bubble=False):
             main()
 
 Alternatively you can also just push a handler in there::
 
     from logbook import FileHandler
     log_handler = FileHandler('application.log')
-    log_handler.push_application()
+    log_handler.push_application(bubble=False)
 
     if __name__ == '__main__':
         main()

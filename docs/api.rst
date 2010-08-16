@@ -81,6 +81,22 @@ Core Handlers
 .. autofunction:: create_syshandler
 
 
+The More Module
+---------------
+
+.. autoclass:: logbook.more.TaggingLogger
+   :members:
+   :inherited-members:
+
+.. autoclass:: logbook.more.TaggingHandler
+   :members:
+
+.. autoclass:: logbook.more.FingersCrossedHandler
+   :members:
+
+.. autoclass:: logbook.more.JinjaFormatter
+   :members:
+
 Internal API
 ------------
 
