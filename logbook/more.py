@@ -57,12 +57,13 @@ class TaggingHandler(Handler):
 class FingersCrossedHandler(Handler):
     """This handler wraps another handler and will log everything in
     memory until a certain level (`action_level`, defaults to `ERROR`)
-    is exceeded.  When that happens the handler activates forever and
-    will log to the handler that was passed to the constructor.
+    is exceeded.  When that happens the fingers crossed handler will
+    activate forever and log all buffered records as well as records
+    yet to come into another handled which was passed to the constructor.
 
     Alternatively it's also possible to pass a factory function to the
-    constructor instead of a handler that is called with the triggering
-    log entry to create a handler which is then cached.
+    constructor instead of a handler.  That factory is then called with
+    the triggering log entry to create a handler which is then cached.
 
     The idea of this handler is to enable debugging of live systems.  For
     example it might happen that code works perfectly fine 99% of the time,
