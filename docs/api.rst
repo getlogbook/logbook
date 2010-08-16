@@ -84,7 +84,7 @@ Core Handlers
 The More Module
 ---------------
 
-.. currentmodule:: logbook.more
+.. module:: logbook.more
 
 .. autoclass:: TaggingLogger
    :members:
@@ -103,7 +103,7 @@ The More Module
 Logging Compatibility
 ---------------------
 
-.. currentmodule:: logbook.compat
+.. module:: logbook.compat
 
 .. autofunction:: redirect_logging
 
@@ -116,7 +116,7 @@ Logging Compatibility
 Internal API
 ------------
 
-.. currentmodule:: logbook.base
+.. module:: logbook.base
 
 .. autoclass:: RecordDispatcher
    :members:
@@ -124,7 +124,7 @@ Internal API
 .. autoclass:: LoggerMixin
    :members:
 
-.. currentmodule:: logbook.handlers
+.. module:: logbook.handlers
 
 .. autoclass:: RotatingFileHandlerBase
    :members:
