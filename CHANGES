@@ -11,3 +11,6 @@ Release date to be announced.
 - Implemented default with statement for handlers.
 - `applicationbound` and `threadbound` return the handler now.
 - Implemented channel recording on the log records.
+- the :class:`logbook.more.FingersCrossedHandler` now is set to
+  `ERROR` by default and has the ability to create new loggers
+  from a factory function.

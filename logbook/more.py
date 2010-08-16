@@ -11,7 +11,7 @@
 
 import sys
 
-from logbook.base import LogRecord, RecordDispatcher, NOTSET, WARNING
+from logbook.base import LogRecord, RecordDispatcher, NOTSET, ERROR
 from logbook.handlers import Handler
 
 
@@ -56,30 +56,77 @@ class TaggingHandler(Handler):
 
 class FingersCrossedHandler(Handler):
     """This handler wraps another handler and will log everything in
-    memory until a certain level is exceeded.
+    memory until a certain level (`action_level`, defaults to `ERROR`)
+    is exceeded.  When that happens the handler activates forever and
+    will log to the handler that was passed to the constructor.
+
+    Alternatively it's also possible to pass a factory function to the
+    constructor instead of a handler that is called with the triggering
+    log entry to create a handler which is then cached.
+
+    The idea of this handler is to enable debugging of live systems.  For
+    example it might happen that code works perfectly fine 99% of the time,
+    but then some exception happens.  But the error that caused the
+    exception alone might not be the interesting bit, the interesting
+    information were the warnings that lead to the error.
+
+    Here a setup that enables this for a web application::
+
+        from logbook import FileHandler
+        from logbook.more import FingersCrossedHandler
+
+        def make_debug_handler():
+            def factory(record):
+                return FileHandler('/var/log/app/issue-%s.log' % record.time)
+            return FingersCrossedHandler(factory)
+
+        def application(environ, start_response):
+            with make_debug_handler().threadbound(bubble=False):
+                return the_actual_wsgi_application(environ, start_response)
+
+    Whenever an error occours, a new file in ``/var/log/app`` is created
+    with all the logging calls that lead up to the error up to the point
+    where the `with` block is exited.
+
+    Please keep in mind that the :class:`FingersCrossedHandler` handler is
+    a one-time handler.  Once triggered, it will not reset.  Because of that
+    you will have to re-create it whenever you bind it.  In this case the
+    handler is created when it's bound to the thread.
     """
 
-    def __init__(self, handler, action_level=WARNING,
+    def __init__(self, handler, action_level=ERROR,
                  pull_information=True):
         Handler.__init__(self)
         self._level = action_level
-        self._handler = handler
+        if isinstance(handler, Handler):
+            self._handler = handler
+            self._handler_factory = None
+        else:
+            self._handler = None
+            self._handler_factory = handler
         self._records = []
         self._pull_information = pull_information
         self._action_triggered = False
 
     def close(self):
-        self._handler.close()
+        if self._handler is not None:
+            self._handler.close()
 
     def enqueue(self, record):
         if self._pull_information:
             record.pull_information()
         self._records.append(record)
 
+    @property
+    def triggered(self):
+        return self._action_triggered
+
     def emit(self, record):
         if self._action_triggered:
             return self._handler.emit(record)
         elif record.level >= self._level:
+            if self._handler is None:
+                self._handler = self._handler_factory(record)
             for old_record in self._records:
                 self._handler.emit(old_record)
             del self._records[:]

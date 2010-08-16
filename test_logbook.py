@@ -444,6 +444,34 @@ class MoreTestCase(LogbookTestCase):
             self.assert_('something happened' in logs)
             self.assert_('something else happened' in logs)
 
+    def test_fingerscrossed_factory(self):
+        from logbook.more import FingersCrossedHandler
+
+        handlers = []
+        def handler_factory(record):
+            handler = logbook.TestHandler()
+            handlers.append(handler)
+            return handler
+
+        def make_fch():
+            return FingersCrossedHandler(handler_factory, logbook.WARNING)
+
+        with make_fch():
+            self.log.info('some info')
+            self.assertEqual(len(handlers), 0)
+            self.log.warning('a warning')
+            self.assertEqual(len(handlers), 1)
+            self.log.error('an error')
+            self.assertEqual(len(handlers), 1)
+            self.assert_(handlers[0].has_infos)
+            self.assert_(handlers[0].has_warnings)
+            self.assert_(handlers[0].has_errors)
+
+        with make_fch():
+            self.log.info('some info')
+            self.log.warning('a warning')
+            self.assertEqual(len(handlers), 2)
+
     def test_tagged(self):
         from logbook.more import TaggingLogger, TaggingHandler
         stream = StringIO()
