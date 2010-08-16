@@ -139,6 +139,41 @@ class Handler(object):
     interface. Handlers can optionally use Formatter instances to format
     records as desired. By default, no formatter is specified; in this case,
     the 'raw' message as determined by record.message is logged.
+
+    To bind a handler you can use the :meth:`push_application` and
+    :meth:`push_thread` methods.  This will push the handler on a stack of
+    handlers.  To undo this, use the :meth:`pop_application` and
+    :meth:`pop_thread` methods::
+
+        handler = MyHandler()
+        handler.push_application()
+        # all here goes to that handler
+        handler.pop_application()
+
+    By default messages send to that handler will still go to a handler on
+    an outer level on the stack, even if handled.  This can be prevented
+    by setting bubbling to `False`.  This setup for example would swallow
+    all log records::
+
+        handler = NullHandler()
+        handler.push_application(bubble=False)
+
+    There are also context managers to setup the handler for the duration
+    of a `with`-block::
+
+        with handler.applicationbound():
+            ...
+
+        with handler.threadbound():
+            ...
+
+    These methods are bubbling by default.  Because it is common to set up
+    a handler thread-local and non-bubbling, you can use the `with`
+    statement directly with the handler as well in which case it is bound
+    to the current thread and non-bubbling::
+
+        with handler:
+            ...
     """
 
     def __init__(self, level=NOTSET):
@@ -213,7 +248,7 @@ class Handler(object):
         """Binds the handler temporarily to a thread."""
         self.push_thread(processor, bubble)
         try:
-            yield
+            yield self
         finally:
             self.pop_thread()
 
@@ -222,9 +257,16 @@ class Handler(object):
         """Binds the handler temporarily to the whole process."""
         self.push_application(processor, bubble)
         try:
-            yield
+            yield self
         finally:
             self.pop_application()
+
+    def __enter__(self):
+        self.push_thread(None, False)
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.pop_thread()
 
     def handle_error(self, record, exc_info):
         """Handle errors which occur during an emit() call."""
@@ -489,6 +531,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
     def __init__(self, level=NOTSET, format_string=None):
         Handler.__init__(self, level)
         StringFormatterHandlerMixin.__init__(self, format_string)
+        #: captures the :class:`LogRecord`\s as instances
         self.records = []
         self._formatted_records = []
         self._formatted_record_cache = []
@@ -498,6 +541,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
     @property
     def formatted_records(self):
+        """Captures the formatted log records as unicode strings."""
         if len(self._formatted_records) != self.records or \
            any(r1 != r2 for r1, (r2, f) in
                izip(self.records, self._formatted_records)):
@@ -507,49 +551,79 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
     @property
     def has_criticals(self):
+        """`True` if any :data:`CRITICAL` records were found."""
         return any(r.level == CRITICAL for r in self.records)
 
     @property
     def has_errors(self):
+        """`True` if any :data:`ERROR` records were found."""
         return any(r.level == ERROR for r in self.records)
 
     @property
     def has_warnings(self):
+        """`True` if any :data:`WARNING` records were found."""
         return any(r.level == WARNING for r in self.records)
 
     @property
     def has_notices(self):
+        """`True` if any :data:`NOTICE` records were found."""
         return any(r.level == NOTICE for r in self.records)
 
     @property
     def has_infos(self):
+        """`True` if any :data:`INFO` records were found."""
         return any(r.level == INFO for r in self.records)
 
     @property
     def has_debugs(self):
+        """`True` if any :data:`DEBUG` records were found."""
         return any(r.level == DEBUG for r in self.records)
 
     def has_critical(self, *args, **kwargs):
+        """`True` if a specific :data:`CRITICAL` log record exists.
+
+        See :ref:`probe-log-records` for more information.
+        """
         kwargs['level'] = CRITICAL
         return self._test_for(*args, **kwargs)
 
     def has_error(self, *args, **kwargs):
+        """`True` if a specific :data:`ERROR` log record exists.
+
+        See :ref:`probe-log-records` for more information.
+        """
         kwargs['level'] = ERROR
         return self._test_for(*args, **kwargs)
 
     def has_warning(self, *args, **kwargs):
+        """`True` if a specific :data:`WARNING` log record exists.
+
+        See :ref:`probe-log-records` for more information.
+        """
         kwargs['level'] = WARNING
         return self._test_for(*args, **kwargs)
 
     def has_notice(self, *args, **kwargs):
+        """`True` if a specific :data:`NOTICE` log record exists.
+
+        See :ref:`probe-log-records` for more information.
+        """
         kwargs['level'] = NOTICE
         return self._test_for(*args, **kwargs)
 
     def has_info(self, *args, **kwargs):
+        """`True` if a specific :data:`INFO` log record exists.
+
+        See :ref:`probe-log-records` for more information.
+        """
         kwargs['level'] = INFO
         return self._test_for(*args, **kwargs)
 
     def has_debug(self, *args, **kwargs):
+        """`True` if a specific :data:`DEBUG` log record exists.
+
+        See :ref:`probe-log-records` for more information.
+        """
         kwargs['level'] = DEBUG
         return self._test_for(*args, **kwargs)
 

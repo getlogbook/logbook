@@ -355,6 +355,21 @@ Message:
             self.assert_('And here we go straight back to stderr'
                          in captured.getvalue())
 
+    def test_default_with(self):
+        with capture_stderr() as captured:
+            logger = logbook.Logger('App')
+            with logbook.TestHandler() as test_handler:
+                logger.warn('Aha!')
+            self.assertEqual(captured.getvalue(), '')
+            self.assert_(test_handler.has_warnings)
+
+
+    def test_channel(self):
+        logger = logbook.Logger('App')
+        with logbook.TestHandler() as test_handler:
+            logger.warn('Logbook is too awesome for stdlib')
+            self.assertEqual(test_handler.records[0].channel, logger)
+
 
 class AttributeTestCase(LogbookTestCase):
 

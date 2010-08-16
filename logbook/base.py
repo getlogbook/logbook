@@ -184,12 +184,7 @@ class LogRecord(object):
         self.process = os.getpid()
         if channel is not None:
             channel = weakref(channel)
-        #: the channel that created the log record.  Might not exist because
-        #: a log record does not have to be created from a logger to be
-        #: handled by logbook.  If this is set, it will point to an object
-        #: that implements the :class:`~logbook.base.RecordDispatcher`
-        #: interface.
-        self.channel = channel
+        self._channel = channel
         self._information_pulled = False
 
     def pull_information(self):
@@ -330,6 +325,17 @@ class LogRecord(object):
             lines = traceback.format_exception(*self.exc_info)
             rv = ''.join(lines).decode('utf-8', 'replace')
             return rv.rstrip()
+
+    @property
+    def channel(self):
+        """The channel that created the log record.  Might not exist because
+        a log record does not have to be created from a logger to be
+        handled by logbook.  If this is set, it will point to an object
+        that implements the :class:`~logbook.base.RecordDispatcher`
+        interface.
+        """
+        if self._channel is not None:
+            return self._channel()
 
 
 class LoggerMixin(object):
