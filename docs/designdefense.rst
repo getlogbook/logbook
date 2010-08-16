@@ -85,17 +85,7 @@ the very same::
             ...
 
 Additionally there is another place where you can put handlers: directly
-onto a logging channel (for example on a :class:`Logger`).  Generally
-handlers are executed in the following order:
-
-1.  all handlers on a logging channel (:class:`Logger`) are evaluated for
-    the record.
-2.  then the stack is processed.  Here the rule is that if a handler
-    handled a log record and the bubble flag is set to False, the
-    processing will stop at that level.  If bubbling is enabled (which
-    is the default) the log record will still be handled by a lower
-    handler on the stack.  The order of stack processing is thread-local
-    first, then the handlers from the process wide stack.
+onto a logging channel (for example on a :class:`Logger`).
 
 This stack system might seem like overkill for a traditional system, but
 it allows complete decoupling from the log handling system and other

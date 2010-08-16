@@ -17,7 +17,7 @@ import socket
 import threading
 import traceback
 from thread import get_ident as current_thread
-from itertools import izip
+from itertools import izip, count
 from contextlib import contextmanager
 
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
@@ -30,6 +30,7 @@ _context_handler_lock = threading.Lock()
 _context_handlers = threading.local()
 _handler_cache = {}
 _MAX_HANDLER_CACHE = 256
+_stackop = count().next
 
 
 DEFAULT_FORMAT_STRING = (
@@ -161,7 +162,8 @@ def iter_context_handlers():
             _handler_cache.clear()
         handlers = _global_handlers[:]
         handlers.extend(getattr(_context_handlers, 'stack', ()))
-        handlers.reverse()
+        handlers.sort(reverse=True)
+        handlers = [x[1:] for x in handlers]
         _handler_cache[current_thread()] = handlers
     return iter(handlers)
 
@@ -285,7 +287,7 @@ class Handler(object):
         """Push the handler for the current context."""
         with _context_handler_lock:
             _handler_cache.pop(current_thread(), None)
-            item = self, processor, filter, bubble
+            item = _stackop(), self, processor, filter, bubble
             stack = getattr(_context_handlers, 'stack', None)
             if stack is None:
                 _context_handlers.stack = [item]
@@ -298,18 +300,18 @@ class Handler(object):
             _handler_cache.pop(current_thread(), None)
             stack = getattr(_context_handlers, 'stack', None)
             assert stack, 'no handlers on stack'
-            popped = stack.pop()[0]
+            popped = stack.pop()[1]
             assert popped is self, 'popped unexpected handler'
 
     def push_application(self, processor=None, filter=None, bubble=True):
         """Push the handler to the global stack."""
-        _global_handlers.append((self, processor, filter, bubble))
+        _global_handlers.append((_stackop(), self, processor, filter, bubble))
         _handler_cache.clear()
 
     def pop_application(self):
         """Pop the handler from the global stack."""
         assert _global_handlers, 'no handlers on global stack'
-        popped = _global_handlers.pop()[0]
+        popped = _global_handlers.pop()[1]
         _handler_cache.clear()
         assert popped is self, 'popped unexpected handler'
 

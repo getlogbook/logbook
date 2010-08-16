@@ -389,6 +389,25 @@ Message:
         self.assert_(not outer_handler.has_warning('foo', logger_name='Logger1'))
         self.assert_(outer_handler.has_warning('bar', logger_name='Logger2'))
 
+    def test_different_context_pushing(self):
+        h1 = logbook.TestHandler(level=logbook.DEBUG)
+        h2 = logbook.TestHandler(level=logbook.INFO)
+        h3 = logbook.TestHandler(level=logbook.WARNING)
+        logger = logbook.Logger('Testing')
+
+        with h1.threadbound(bubble=False):
+            with h2.applicationbound(bubble=False):
+                with h3.threadbound(bubble=False):
+                    logger.warn('Wuuu')
+                    logger.info('still awesome')
+                    logger.debug('puzzled')
+
+        self.assert_(h1.has_debug('puzzled'))
+        self.assert_(h2.has_info('still awesome'))
+        self.assert_(h3.has_warning('Wuuu'))
+        for handler in h1, h2, h3:
+            self.assert_(len(handler.records), 1)
+
 
 class AttributeTestCase(LogbookTestCase):
 
