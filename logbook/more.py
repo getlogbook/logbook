@@ -31,7 +31,7 @@ class TaggingLogger(RecordDispatcher):
         extra = kwargs.pop('extra', {})
         extra['tags'] = list(tags)
         record = LogRecord(self.name, NOTSET, msg, args, kwargs, exc_info,
-                           extra, sys._getframe())
+                           extra, sys._getframe(), self)
         try:
             self.handle(record)
         finally:
