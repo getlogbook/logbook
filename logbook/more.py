@@ -56,7 +56,9 @@ class TaggingLogger(RecordDispatcher):
 
 
 class TaggingHandler(Handler):
-    """A handler that logs for tags and dispatches based on those::
+    """A handler that logs for tags and dispatches based on those.
+
+    Example::
 
         import logbook
         from logbook.more import TaggingHandler
