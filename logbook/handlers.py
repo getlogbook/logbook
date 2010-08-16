@@ -391,6 +391,19 @@ class RotatingFileHandlerBase(FileHandler):
             self.write(msg)
             self.flush()
 
+    def should_rollover(self, record, bytes):
+        """Called with the log record and the number of bytes that
+        would be written into the file.  The method has then to
+        return `True` if a rollover should happen or `False`
+        otherwise.
+        """
+        return False
+
+    def perform_rollover(self):
+        """Called if :meth:`should_rollover` returns `True` and has
+        to perform the actual rollover.
+        """
+
 
 class RotatingFileHandler(RotatingFileHandlerBase):
     """This handler rotates based on file size."""
@@ -448,6 +461,9 @@ class TimedRotatingFileHandler(RotatingFileHandlerBase):
         return rv
 
     def files_to_delete(self):
+        """Returns a list with the files that have to be deleted when
+        a rollover occours.
+        """
         directory = os.path.dirname(self._filename)
         files = []
         for filename in os.listdir(directory):

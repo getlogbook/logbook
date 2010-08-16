@@ -91,3 +91,4 @@ Internal API
    :members:
 
 .. autoclass:: logbook.handlers.RotatingFileHandlerBase
+   :members:
