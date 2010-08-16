@@ -8,12 +8,12 @@
 {% endblock %}
 
 {% block header %}
+  <div class="book">
     <div class="banner">
-        <a href="{{ pathto(master_doc) }}">
-        <img src="{{ pathto('_static/' + logo, 1) }}" alt="{{ project }} logo"></img>
+      <a href="{{ pathto(master_doc) }}">
+        <!-- <img src="{{ pathto('_static/' + logo, 1) }}" alt="{{ project }} logo"></img> -->
         <h1>{{ project }} </h1>
-        </a>
-        <!-- <div>{{ theme_tagline }}</div> -->
+      </a>
     </div>
 {% endblock %}
 
@@ -26,4 +26,5 @@
   </a>
 {% endif %}
   {{ super() }}
+  </div>
 {% endblock %}

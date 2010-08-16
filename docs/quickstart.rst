@@ -17,12 +17,12 @@ library's :mod:`logging` module.
 There are several logging levels, available as methods on the logger.  The
 levels -- and their suggested meaning -- are:
 
-* ``critical`` -- for errors that lead to termination
-* ``error`` -- for errors that occur, but are handled
-* ``warning`` -- for exceptional circumstances that might not be errors
-* ``notice`` -- for non-error messages you usually want to see
-* ``info`` -- for messages you usually don't want to see
-* ``debug`` -- for debug messages
+* :meth:`~Logger.critical` -- for errors that lead to termination
+* :meth:`~Logger.error` -- for errors that occur, but are handled
+* :meth:`~Logger.warning` -- for exceptional circumstances that might not be errors
+* :meth:`~Logger.notice` -- for non-error messages you usually want to see
+* :meth:`~Logger.info` -- for messages you usually don't want to see
+* :meth:`~Logger.debug` -- for debug messages
 
 Alternatively, there is the :meth:`~Logger.log` method that takes the logging
 level (string or integer) as an argument.

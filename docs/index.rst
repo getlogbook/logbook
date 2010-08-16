@@ -24,6 +24,7 @@ Documentation
    features
    quickstart
    compat
+   api
 
 Project Information
 -------------------

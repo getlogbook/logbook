@@ -12,9 +12,20 @@
 @import url("basic.css");
 
 body {
-    width: 800px;
-    margin: 20px auto 30px auto;
+    text-align: center;
     font-family: {{ theme_bodyfont }};
+    margin: 0;
+    padding: 0;
+    background: white;
+}
+
+.book {
+    padding: 15px 10px 25px 80px;
+    border-right: 1px solid #ccc;
+    outline-right: 1px solid #aaa;
+    margin: 0 auto;
+    width: 700px;
+    text-align: left;
     background: url("background.png") repeat-y;
 }
 
@@ -28,20 +39,24 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: normal;
 }
 
+h1 { font-size: 2.8em; }
+h2 { font-size: 2.2em; }
+
 .document {
     border-bottom: 1px solid #837D7C;
     border-top: 1px solid #837D7C;
     margin: 12px 0px;
-    line-height: 1.3em;
+    line-height: 1.5em;
 }
 
 .related a {
     margin: 0;
     font-size: 1.1em;
-    font-weight: bold;
-    letter-spacing: 2px;
+    font-weight: normal;
+    letter-spacing: 3px;
     text-transform: uppercase;
     text-decoration: none;
+    border-bottom: 1px dashed #ddd;
     color: #837D7C;
 }
 
@@ -63,7 +78,6 @@ div.related ul {
     color: #000000;
     letter-spacing: -1px;
     font-family: {{ theme_seriffont }};
-    height: 100px;
     margin-bottom: 24px;
 }
 
@@ -72,17 +86,12 @@ div.related ul {
     text-decoration: none;
 }
 
-.banner img {
-    float: left;
-    margin-right: 24px;
-}
-
 .footer {
     color: #000000;
     font-size: 0.7em;
     text-align: center;
     line-height: 1;
-    margin-top: 12px;
+    margin-top: 20px;
     font-family: {{ theme_monofont }};
     font-weight: normal;
     letter-spacing: 2px;
@@ -120,6 +129,16 @@ img.align-right {
 
 pre, tt {
     font-family: {{ theme_monofont }};
+    font-size: 14px;
+}
+
+dl.class dt {
+    margin-left: 60px;
+    text-indent: -60px;
+}
+
+tt.descname {
+    font-size: 1em;
 }
 
 p.output-caption {
