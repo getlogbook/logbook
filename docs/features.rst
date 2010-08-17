@@ -2,11 +2,11 @@ Why you should use Logbook
 ==========================
 
 Although the Python standard library provides a logging system, you should use
-Logbook if this is possible for you.  Currently logbook is an alpha version and
-should be considered as a developer preview.  Because it was prototyped in a
-couple of days, it leverages some features of Python that are not available in
-older Python releases.  Currently Logbook only supports Python 2.6 and 2.7, with
-upcoming support for Python 3.
+Logbook.  Currently logbook is an alpha version and should be considered a
+developer preview.  Because it was prototyped in a couple of days, it leverages
+some features of Python that are not available in older Python releases.
+Currently Logbook only supports Python 2.6 and 2.7, with upcoming support for
+Python 3.
 
 Core Features
 -------------
@@ -18,27 +18,27 @@ Core Features
     of log entries.
 -   Handlers can be set on an application-wide stack as well as a thread-wide
     stack.  Setting a handler does not replace existing handlers, but gives it
-    higher priority.  Each handler has the ability to prevent propagating
-    records to lower-priority handlers.
+    higher priority.  Each handler has the ability to prevent records from
+    propagating to lower-priority handlers.
 -   Logbook comes with a useful default configuration that spits all the
     information to stderr in a useful manner.
--   All the built-in handlers have a useful default configuration applied with
-    formatters that provide all the available information in a format that makes
-    most sense for the given handler.  For example, a default stream handler
-    will try to put all the required information into one line, whereas an email
-    handler will split it up into properly formatted ASCII tables that span
-    multiple lines.
+-   All of the built-in handlers have a useful default configuration applied with
+    formatters that provide all the available information in a format that
+    makes the most sense for the given handler.  For example, a default stream
+    handler will try to put all the required information into one line, whereas
+    an email handler will split it up into nicely formatted ASCII tables that
+    span multiple lines.
 -   Logbook has built-in handlers for streams, arbitrary files, files with time
     and size based rotation, a handler that delivers mails, a handler for the
     syslog daemon as well as the NT log file.
--   There is also a special "fingers crossed" handler that in combination with
-    the handler stack has the ability to accumulate all logging messages and
+-   There is also a special "fingers crossed" handler that, in combination with
+    the handler stack, has the ability to accumulate all logging messages and
     will deliver those in case a severity level was exceeded.  For example, it
     can withhold all logging messages for a specific request to a web
     application until an error record appears, in which case it will also send
-    all withheld records to handler it wraps.  This way, you can always log lots
-    of debug information, but only get to see them when they can actually tell
-    you something of interest.
+    all withheld records to the handler it wraps.  This way, you can always log
+    lots of debugging records, but only get see them when they can actually
+    tell you something of interest.
 -   It is possible to inject a handler for testing that records messages for
     assertions.
 -   Logbook was designed to be fast and with modern Python features in mind.
@@ -52,8 +52,8 @@ Core Features
 Advantages over Logging
 -----------------------
 
-If properly configured, Logbook's logging calls will be very cheap and give a
-great performance improvement over the standard library's logging module.
+If properly configured, Logbook's logging calls will be very cheap and provide
+a great performance improvement over the standard library's logging module.
 
 .. XXX time the performance
 
@@ -62,9 +62,9 @@ calls happening in a specific thread.  For example, this makes it possible for a
 web application to add request-specific information to each log record such as
 remote address, request URL, HTTP method and more.
 
-The logging system is (besides the stack) stateless and makes unittesting it
-very simple.  If context managers are used, it is impossible to corrupt the
-stack so each test can easily hook in custom log handlers.
+The logging system is (besides the stack) stateless and unit testing it is very
+simple.  If context managers are used, it is impossible to corrupt the stack,
+so each test can easily hook in custom log handlers.
 
 Logbook in a Nutshell
 ---------------------
