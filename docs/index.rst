@@ -2,7 +2,7 @@ Welcome to Logbook
 ==================
 
 Logbook is a logging sytem for Python that replaces the standard library's
-logging module.  It was designed for complex and simple applications in mind.
+logging module.  It was designed with complex and simple applications in mind.
 
 >>> from logbook import Logger
 >>> log = Logger('Logbook')
