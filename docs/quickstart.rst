@@ -11,9 +11,9 @@ class, create yourself a logger and you are set:
 >>> log.warn('This is too cool for stdlib')
 [2010-07-23 16:34] WARNING: My Awesome Logger: This is too cool for stdlib
 
-A logger is a so called :class:`~logbook.base.RecordDispatcher` which
-of commonly referred to as a "logging channel".  The name you give such a
-channel is up to you and must not be unique.
+A logger is a so-called :class:`~logbook.base.RecordDispatcher`, which is
+commonly referred to as a "logging channel".  The name you give such a channel
+is up to you and need not be unique.
 
 The basic interface is similar to what you may already know from the standard
 library's :mod:`logging` module.
@@ -29,7 +29,7 @@ levels -- and their suggested meaning -- are:
 * ``debug`` -- for debug messages
 
 Each of these levels is available as method on the :class:`Logger`.
-Additionally the ``warning`` level is aliases :meth:`~Logger.warn`.
+Additionally the ``warning`` level is aliased as :meth:`~Logger.warn`.
 
 Alternatively, there is the :meth:`~Logger.log` method that takes the logging
 level (string or integer) as an argument.
@@ -38,7 +38,7 @@ Handlers
 --------
 
 Each call to a logging method creates a log *record* which is then passed to
-*handlers*, which decide how to store or present the logging info.  There is a
+*handlers*, which decide how to store or present the logging info.  There are a
 multitude of available handlers, and of course you can also create your own:
 
 * :class:`StreamHandler` for logging to arbitrary streams
@@ -85,14 +85,14 @@ Record Processors
 -----------------
 
 What makes logbook interesting is the ability to automatically process log
-records.  This is handy if for everything you do, you want additional
-information to be logged.  A good use case for example is recording the IP
-of the current request in a web application.  Or in a daemon process you
-might want to log the user and working directory of the process.
+records.  This is handy if you want additional information to be logged for
+everything you do.  A good example use case is recording the IP of the current
+request in a web application.  Or, in a daemon process you might want to log
+the user and working directory of the process.
 
 A context processor can be injected at two places: you can either bind a
-processor when you push a handler to the stack, or you can subclass a
-logger and override the :meth:`~logbook.Handler.process_record` method.
+processor when you push a handler to the stack or you can subclass a logger and
+override the :meth:`~logbook.Handler.process_record` method.
 
 Here an example that injects the current working directory into the
 `extra` dictionary of a log record::
@@ -121,19 +121,18 @@ you might want to subclass it::
 Configuring the Logging Format
 ------------------------------
 
-All handlers have a useful default log format you don't have to change to
-use logbook.  However if you start injecting custom information into log
-records it makes sense to configure the log formatting so that you can see
-that information.
+All handlers have a useful default log format you don't have to change to use
+logbook.  However if you start injecting custom information into log records,
+it makes sense to configure the log formatting so that you can see that
+information.
 
-There are two ways to configure that: you can either just change the
+There are two ways to configure formatting: you can either just change the
 format string or hook in a custom format function.
 
-All the handlers that come with logbook and that log into a string are
-using the :class:`~logbook.StringFormatter` by default.  Their
-constructors accept a format string which sets the
-:attr:`logbook.Handler.format_string` attribute.  You can override
-this attribute in which case a new string formatter is set:
+All the handlers that come with logbook and that log into a string use the
+:class:`~logbook.StringFormatter` by default.  Their constructors accept a
+format string which sets the :attr:`logbook.Handler.format_string` attribute.
+You can override this attribute in which case a new string formatter is set:
 
 >>> from logbook import StderrHandler
 >>> handler = StderrHandler()
@@ -149,19 +148,18 @@ with the record and handler as arguments:
 ... 
 >>> handler.formatter = my_formatter
 
-The format string used for the default string formatter has one variable
-called `record` available which is the log record itself.  All attributes
-can be looked out using the dotted syntax, items in the `extra` dict using
-brackets.  Note that if you are accessing an item in the extra dict that
+The format string used for the default string formatter has one variable called
+`record` available which is the log record itself.  All attributes can be
+looked up using the dotted syntax, and items in the `extra` dict looked up
+using brackets.  Note that if you are accessing an item in the extra dict that
 does not exist, an empty string is returned.
 
-Here an example configuration that shows the current working directory
-from the example in the previous section::
+Here is an example configuration that shows the current working directory from
+the example in the previous section::
 
     handler = StderrHandler(format_string=
         '{record.logger_name}: {record.message) [{record.extra[cwd]}]')
 
-In the :mod:`~logbook.more` module there is a formatter that uses the
-Jinja2 template engine to format log records which is especially useful
-for multi-line log formatting such as mails
-(:class:`~logbook.more.JinjaFormatter`)
+In the :mod:`~logbook.more` module there is a formatter that uses the Jinja2
+template engine to format log records, especially useful for multi-line log
+formatting such as mails (:class:`~logbook.more.JinjaFormatter`).
