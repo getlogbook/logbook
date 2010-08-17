@@ -401,7 +401,7 @@ class LoggerMixin(object):
 
     def catch_exceptions(self, *args, **kwargs):
         """A context manager that catches exceptions and calls
-        :meth:`exception` for exceptions cought that way.  Example::
+        :meth:`exception` for exceptions caught that way.  Example::
 
             with logger.catch_exceptions():
                 execute_code_that_might_fail()
@@ -421,7 +421,7 @@ class LoggerMixin(object):
         """Logs a :class:`~logbook.LogRecord` with the level set
         to the `level` parameter.  Because custom levels are not
         supported by logbook, this method is mainly used to avoid
-        the use of reflection (eg: :func:`getattr`) for programatic
+        the use of reflection (e.g.: :func:`getattr`) for programmatic
         logging.
         """
         level = lookup_level(level)
