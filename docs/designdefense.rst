@@ -102,7 +102,7 @@ the level high (like `ERROR` or `WARNING`) and log into a file.  When
 things break, you have a look at the file and hope it contains enough
 information.
 
-When you are in full control of the context of excution with a stack based
+When you are in full control of the context of execution with a stack based
 system like Logbook has, there is a lot more you can do.
 
 For example you could immediately after your application boots up
