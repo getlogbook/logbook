@@ -31,7 +31,7 @@ ability to configure these loggers.
 Logbook has a completely different concept of dispatching from loggers to
 the actual handlers which removes the requirement and usefulness of such a
 registry.  The advantage of the logbook system is that it's a cheap
-operating to create a logger and that a logger can easily be garbage
+operation to create a logger and that a logger can easily be garbage
 collected to remove all traces of it.
 
 Instead Logbook moves the burden of delivering a log record from the log
