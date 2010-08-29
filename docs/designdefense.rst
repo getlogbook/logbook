@@ -109,7 +109,7 @@ For example you could immediately after your application boots up
 instanciate a :class:`~logbook.more.FingersCrossedHandler`.  This handler
 buffers *all* log records in memory and does not emit them at all.  What's
 the point?  That handler activates when a certain threshold is reached.
-For example when the first warning occours you can write the buffered
+For example, when the first warning occurs you can write the buffered
 messages as well as the warning that just happened into a logfile and
 continue logging from that point.  Because there is no point in logging
 when you will never look at that file anyways.
