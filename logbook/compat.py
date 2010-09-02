@@ -56,6 +56,9 @@ class RedirectLoggingHandler(logging.Handler):
     def __init__(self):
         logging.Handler.__init__(self)
         self._logbook_logger = logbook.Logger()
+        # just in case someone sends a log record from one of the
+        # standard logging functions on this object
+        self._logbook_logger.suppress_channel = True
 
     def convert_level(self, level):
         """Converts a logging level into a logbook level."""

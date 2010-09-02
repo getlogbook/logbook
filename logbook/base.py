@@ -523,6 +523,10 @@ class LoggerMixin(object):
     #: created.
     level_name = _level_name_property()
 
+    #: If this is set to `True` the channel will be suppressed for log
+    #: records emitted from this logger.
+    suppress_channel = False
+
     def debug(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
         to :data:`~logbook.DEBUG`
@@ -606,8 +610,11 @@ class LoggerMixin(object):
         msg, args = args[0], args[1:]
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', None)
+        channel = None
+        if not self.suppress_channel:
+            channel = self
         record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
-                           extra, sys._getframe(), self)
+                           extra, sys._getframe(), channel)
         try:
             self.handle(record)
         finally:

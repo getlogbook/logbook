@@ -405,6 +405,28 @@ Message:
         for handler in h1, h2, h3:
             self.assert_(len(handler.records), 1)
 
+    def test_global_functions(self):
+        handler = logbook.TestHandler()
+        with handler:
+            logbook.debug('a debug message')
+            logbook.info('an info message')
+            logbook.warn('warning part 1')
+            logbook.warning('warning part 2')
+            logbook.notice('notice')
+            logbook.error('an error')
+            logbook.critical('pretty critical')
+            logbook.log(logbook.CRITICAL, 'critical too')
+        self.assert_(handler.has_debug('a debug message'))
+        self.assert_(handler.has_info('an info message'))
+        self.assert_(handler.has_warning('warning part 1'))
+        self.assert_(handler.has_warning('warning part 2'))
+        self.assert_(handler.has_notice('notice'))
+        self.assert_(handler.has_error('an error'))
+        self.assert_(handler.has_critical('pretty critical'))
+        self.assert_(handler.has_critical('critical too'))
+        self.assertEqual(handler.records[0].logger_name, 'generic')
+        self.assertEqual(handler.records[0].channel, None)
+
 
 class AttributeTestCase(LogbookTestCase):
 
