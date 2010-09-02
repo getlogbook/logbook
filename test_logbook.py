@@ -431,6 +431,23 @@ class AttributeTestCase(LogbookTestCase):
         self.assertEqual(self.log.level_name, 'CRITICAL')
 
 
+class LoggerGroupTestCase(LogbookTestCase):
+
+    def test_groups(self):
+        def inject_extra(record):
+            record.extra['foo'] = 'bar'
+        group = logbook.LoggerGroup(processor=inject_extra)
+        group.level = logbook.ERROR
+        group.add_logger(self.log)
+        handler = logbook.TestHandler()
+        with handler:
+            self.log.warn('A warning')
+            self.log.error('An error')
+        self.assert_(not handler.has_warning('A warning'))
+        self.assert_(handler.has_error('An error'))
+        self.assertEqual(handler.records[0].extra['foo'], 'bar')
+
+
 class DefaultConfigurationTestCase(LogbookTestCase):
 
     def test_default_handlers(self):

@@ -709,24 +709,52 @@ class Logger(RecordDispatcher, LoggerMixin):
     """
 
 
-class LoggerGroup(LoggerMixin):
-    """A LoggerGroup represents a group of loggers while behaving like one."""
+class LoggerGroup(object):
+    """A LoggerGroup represents a group of loggers.  It cannot emit log
+    messages on it's own but it can be used to set the disabled flag and
+    log level of all loggers in the group.
 
-    def __init__(self, loggers=None, level=NOTSET):
+    Furthermore the :meth:`process_record` method of the group is called
+    by any logger in the group which by default calls into the
+    :attr:`processor` callback function.
+    """
+
+    def __init__(self, loggers=None, level=NOTSET, processor=None):
         if loggers is None:
             loggers = []
+        #: a list of all loggers on the logger group.  Use the
+        #: :meth:`add_logger` and :meth:`remove_logger` methods to
+        #: add or remove loggers from this list, or make sure to
+        #: set the :attr:`Logger.group` attribute appropriately.
         self.loggers = loggers
+        #: the level of the group.  This is reflected to the loggers
+        #: in the group unless they overrode the setting.
         self.level = lookup_level(level)
+        #: the disabled flag for all loggers in the group, unless
+        #: the loggers overrode the setting.
         self.disabled = False
+        #: an optional callback function that is executed to process
+        #: the log records of all loggers in the group.
+        self.processor = processor
 
     def add_logger(self, logger):
         """Adds a logger to this group."""
+        assert logger.group is None, 'Logger already belongs to a group'
         logger.group = self
         self.loggers.append(logger)
 
-    def handle(self, record):
-        for logger in self.loggers:
-            logger.handle(record)
+    def remove_logger(self, logger):
+        """Removes a logger from the group."""
+        self.loggers.remove(logger)
+        logger.group = None
+
+    def process_record(self, record):
+        """Like :meth:`Logger.process_record` but for all loggers in
+        the group.  By default this calls into the :attr:`processor`
+        function is it's not `None`.
+        """
+        if self.processor is not None:
+            self.processor(record)
 
 
 from logbook.handlers import Handler

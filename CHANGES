@@ -29,3 +29,4 @@ Release date to be announced.
   context specific handlers any more.
 - added a function to redirect warnings to logbook
   (:func:`logbook.compat.log_warnings_to`)
+- Fixed and improved :class:`logbook.LoggerGroup`
