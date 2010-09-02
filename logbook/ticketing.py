@@ -89,14 +89,16 @@ class TicketingDatabase(object):
             db.Column('location', db.String(512)),
             db.Column('module', db.String(256)),
             db.Column('last_occurrence', db.DateTime),
-            db.Column('occurrence_count', db.Integer)
+            db.Column('occurrence_count', db.Integer),
+            db.Column('app_id', db.String(80))
         )
         self.occurrences = table('occurrences',
             db.Column('occurrence_id', db.Integer, primary_key=True),
             db.Column('ticket_id', db.Integer,
                       db.ForeignKey(self.table_prefix + 'tickets.ticket_id')),
             db.Column('time', db.DateTime),
-            db.Column('data', db.Text)
+            db.Column('data', db.Text),
+            db.Column('app_id', db.String(80))
         )
 
     def _order(self, q, table, order_by):
@@ -104,7 +106,7 @@ class TicketingDatabase(object):
             return q.order_by(table.c[order_by[1:]].desc())
         return q.order_by(table.c[order_by])
 
-    def record_ticket(self, record, data, hash):
+    def record_ticket(self, record, data, hash, app_id):
         """Records a log record as ticket."""
         cnx = self.engine.connect()
         trans = cnx.begin()
@@ -118,7 +120,8 @@ class TicketingDatabase(object):
                     logger_name=record.logger_name or u'',
                     location=u'%s:%d' % (record.filename, record.lineno),
                     module=record.module or u'<unknown>',
-                    occurrence_count=0
+                    occurrence_count=0,
+                    app_id=app_id
                 ))
                 ticket_id = row.inserted_primary_key[0]
             else:
@@ -126,6 +129,7 @@ class TicketingDatabase(object):
             cnx.execute(self.occurrences.insert()
                 .values(ticket_id=ticket_id,
                         time=record.time,
+                        app_id=app_id,
                         data=json.dumps(data)))
             cnx.execute(self.tickets.update()
                 .where(self.tickets.c.ticket_id == ticket_id)
@@ -176,12 +180,13 @@ class TicketingDatabaseHandler(Handler):
         handler = TicketingDatabaseHandler('sqlite:////tmp/myapp-logs.db')
     """
 
-    def __init__(self, engine_or_uri, table_prefix='logbook_', metadata=None,
-                 autocreate_tables=True, hash_salt=None, level=NOTSET,
-                 filter=None, bubble=False):
+    def __init__(self, engine_or_uri, app_id='generic', table_prefix='logbook_',
+                 metadata=None, autocreate_tables=True, hash_salt=None,
+                 level=NOTSET, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
         self.db = TicketingDatabase(engine_or_uri, table_prefix, metadata)
-        self.hash_salt = hash_salt
+        self.app_id = app_id
+        self.hash_salt = hash_salt or app_id.encode('utf-8')
         if autocreate_tables:
             self.db.metadata.create_all(bind=self.db.engine)
 
@@ -207,4 +212,4 @@ class TicketingDatabaseHandler(Handler):
         """Emits a single record and writes it to the database."""
         hash = self.hash_record(record)
         data = self.process_record(record, hash)
-        self.db.record_ticket(record, data, hash)
+        self.db.record_ticket(record, data, hash, self.app_id)
