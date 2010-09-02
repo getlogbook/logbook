@@ -392,9 +392,9 @@ Message:
         h3 = logbook.TestHandler(level=logbook.WARNING)
         logger = logbook.Logger('Testing')
 
-        with h1:
-            with h2:
-                with h3:
+        with h1.threadbound():
+            with h2.applicationbound():
+                with h3.threadbound():
                     logger.warn('Wuuu')
                     logger.info('still awesome')
                     logger.debug('puzzled')
