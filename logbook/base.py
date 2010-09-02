@@ -152,7 +152,7 @@ class _ContextObjectType(type):
 
     def __new__(cls, name, bases, d):
         rv = type.__new__(cls, name, bases, d)
-        if rv._co_abstract or hasattr(rv, '_co_stackop'):
+        if bases == (object,) or hasattr(rv, '_co_stackop'):
             return rv
         rv._co_global = []
         rv._co_context_lock = threading.Lock()
@@ -178,9 +178,10 @@ class _ContextObjectType(type):
 
 
 class _ContextObject(object):
-    """An object that can be bound to a context."""
+    """An object that can be bound to a context.  The actual context
+    object registry is initialized from the first subclass of this class.
+    """
     __metaclass__ = _ContextObjectType
-    _co_abstract = True
 
     def push_thread(self):
         """Pushes the context object to the thread stack."""

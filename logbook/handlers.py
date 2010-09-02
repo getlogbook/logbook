@@ -116,8 +116,6 @@ class Handler(_ContextObject):
             ...
     """
 
-    _co_abstract = False
-
     def __init__(self, level=NOTSET, filter=None, bubble=False):
         #: the level for the handler.  Defaults to `NOTSET` which
         #: consumes all entries.
