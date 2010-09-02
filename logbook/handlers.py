@@ -87,12 +87,17 @@ class Handler(ContextObject):
         # all here goes to that handler
         handler.pop_application()
 
-    By default messages send to that handler will still go to a handler on
-    an outer level on the stack, even if handled.  This can be prevented
-    by setting bubbling to `False`.  This setup for example would swallow
-    all log records::
+    By default messages send to that handler will not go to a handler on
+    an outer level on the stack, if handled.  This can be changed by
+    setting bubbling to `True`.  This setup for example would not have
+    any effect::
 
         handler = NullHandler(bubble=False)
+        handler.push_application()
+
+    Whereas this setup disables all logging for the application::
+
+        handler = NullHandler()
         handler.push_application()
 
     There are also context managers to setup the handler for the duration
@@ -113,7 +118,7 @@ class Handler(ContextObject):
 
     _co_abstract = False
 
-    def __init__(self, level=NOTSET, filter=None, bubble=True):
+    def __init__(self, level=NOTSET, filter=None, bubble=False):
         #: the level for the handler.  Defaults to `NOTSET` which
         #: consumes all entries.
         self.level = lookup_level(level)
@@ -259,7 +264,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
     """
 
     def __init__(self, stream, level=NOTSET, format_string=None, filter=None,
-                 bubble=True):
+                 bubble=False):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.lock = threading.Lock()
@@ -309,7 +314,7 @@ class FileHandler(StreamHandler):
     """
 
     def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
-                 format_string=None, delay=False, filter=None, bubble=True):
+                 format_string=None, delay=False, filter=None, bubble=False):
         StreamHandler.__init__(self, None, level, format_string, filter, bubble)
         self._filename = filename
         self._mode = mode
@@ -350,7 +355,7 @@ class StderrHandler(StreamHandler):
     """
 
     def __init__(self, level=NOTSET, format_string=None, filter=None,
-                 bubble=True):
+                 bubble=False):
         StreamHandler.__init__(self, _missing, level, format_string,
                                filter, bubble)
 
@@ -400,7 +405,7 @@ class RotatingFileHandler(RotatingFileHandlerBase):
 
     def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
                  format_string=None, delay=False, max_size=1024 * 1024,
-                 backup_count=5, filter=None, bubble=True):
+                 backup_count=5, filter=None, bubble=False):
         RotatingFileHandlerBase.__init__(self, filename, mode, encoding, level,
                                          format_string, delay, filter, bubble)
         self.max_size = max_size
@@ -447,7 +452,7 @@ class TimedRotatingFileHandler(RotatingFileHandlerBase):
 
     def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
                  format_string=None, date_format='%Y-%m-%d',
-                 backup_count=0, filter=None, bubble=True):
+                 backup_count=0, filter=None, bubble=False):
         RotatingFileHandlerBase.__init__(self, filename, mode, encoding, level,
                                          format_string, True, filter, bubble)
         self.date_format = date_format
@@ -503,7 +508,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
     """
     default_format_string = TEST_FORMAT_STRING
 
-    def __init__(self, level=NOTSET, format_string=None, filter=None, bubble=True):
+    def __init__(self, level=NOTSET, format_string=None, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         #: captures the :class:`LogRecord`\s as instances
@@ -622,7 +627,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
     def __init__(self, from_addr, recipients, subject=None,
                  server_addr=None, credentials=None, secure=None,
                  level=NOTSET, format_string=None, filter=None,
-                 bubble=True):
+                 bubble=False):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.from_addr = from_addr
@@ -766,7 +771,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
     def __init__(self, application_name=None, address=None,
                  facility='user', socktype=socket.SOCK_DGRAM,
                  level=NOTSET, format_string=None, filter=None,
-                 bubble=True):
+                 bubble=False):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.application_name = application_name
@@ -840,7 +845,7 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
 
     def __init__(self, application_name, log_type='Application',
                  level=NOTSET, format_string=None, filter=None,
-                 bubble=True):
+                 bubble=False):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
 

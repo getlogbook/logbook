@@ -48,7 +48,7 @@ class LogbookTestCase(unittest.TestCase):
 class BasicAPITestCase(LogbookTestCase):
 
     def test_basic_logging(self):
-        handler = logbook.TestHandler(bubble=False)
+        handler = logbook.TestHandler()
         with handler:
             self.log.warn('This is a warning.  Nice hah?')
 
@@ -66,7 +66,7 @@ class BasicAPITestCase(LogbookTestCase):
         custom_log = CustomLogger('awesome logger')
         handler = logbook.TestHandler(format_string=
             '[{record.level_name}] {record.logger_name}: '
-            '{record.message} [{record.extra[ip]}]', bubble=False)
+            '{record.message} [{record.extra[ip]}]')
 
         with handler.threadbound():
             custom_log.warn('Too many sounds')
@@ -101,7 +101,7 @@ class BasicAPITestCase(LogbookTestCase):
 
     def test_exception_catching(self):
         logger = logbook.Logger('Test')
-        handler = logbook.TestHandler(bubble=False)
+        handler = logbook.TestHandler()
         with handler.threadbound():
             with logger.catch_exceptions():
                 pass
@@ -130,7 +130,7 @@ class HandlerTestCase(LogbookTestCase):
     def test_file_handler(self):
         handler = logbook.FileHandler(self.filename, format_string=
             '{record.level_name}:{record.logger_name}:{record.message}',
-            bubble=False)
+            )
         with handler.threadbound():
             self.log.warn('warning message')
         handler.close()
@@ -141,7 +141,7 @@ class HandlerTestCase(LogbookTestCase):
     def test_file_handler_delay(self):
         handler = logbook.FileHandler(self.filename, format_string=
             '{record.level_name}:{record.logger_name}:{record.message}',
-            delay=True, bubble=False)
+            delay=True)
         self.assertFalse(os.path.isfile(self.filename))
         with handler.threadbound():
             self.log.warn('warning message')
@@ -153,7 +153,7 @@ class HandlerTestCase(LogbookTestCase):
     def test_custom_formatter(self):
         def custom_format(record, handler):
             return record.level_name + ':' + record.message
-        with logbook.FileHandler(self.filename, bubble=False) as handler:
+        with logbook.FileHandler(self.filename) as handler:
             handler.formatter = custom_format
             self.log.warn('Custom formatters are awesome')
         with open(self.filename) as f:
@@ -164,7 +164,7 @@ class HandlerTestCase(LogbookTestCase):
         basename = os.path.join(self.dirname, 'rot.log')
         handler = logbook.RotatingFileHandler(basename, max_size=2048,
                                               backup_count=3,
-                                              bubble=False)
+                                              )
         handler.format_string = '{record.message}'
         with handler:
             for c, x in izip(string.letters, xrange(32)):
@@ -215,7 +215,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline().rstrip(), '[02:00] Third One')
 
     def test_mail_handler(self):
-        handler = make_fake_mail_handler(subject=u'\xf8nicode', bubble=False)
+        handler = make_fake_mail_handler(subject=u'\xf8nicode')
         with capture_stderr() as fallback:
             with handler:
                 self.log.warn('This is not mailed')
@@ -242,7 +242,7 @@ class HandlerTestCase(LogbookTestCase):
         inc.bind(('127.0.0.1', 0))
         inc.settimeout(1)
         handler = logbook.SyslogHandler(address=inc.getsockname(),
-                                        bubble=False)
+                                        )
         with handler:
             self.log.warn('Syslog is weird')
         try:
@@ -252,7 +252,7 @@ class HandlerTestCase(LogbookTestCase):
         self.assertEqual(rv, '<12>testlogger: Syslog is weird\x00')
 
         handler = logbook.SyslogHandler('Testing', inc.getsockname(),
-                                        bubble=False)
+                                        )
         with handler:
             self.log.warn('Syslog is weird')
         try:
@@ -276,7 +276,7 @@ Request:            {record.extra[path]} [{record.extra[method]}]
 Message:
 
 {record.message}
-''', bubble=False)
+''')
 
         class Request(object):
             remote_addr = '127.0.0.1'
@@ -313,7 +313,7 @@ Message:
                 logbook.Logger.process_record(self, record)
                 record.extra['flag'] = 'testing'
         log = MyLogger()
-        handler = MyTestHandler(bubble=False)
+        handler = MyTestHandler()
         with capture_stderr() as captured:
             with handler:
                 log.warn('From my logger')
@@ -322,7 +322,7 @@ Message:
             self.assert_('From another logger' in captured.getvalue())
 
     def test_null_handler(self):
-        null_handler = logbook.NullHandler(bubble=False)
+        null_handler = logbook.NullHandler()
         handler = logbook.TestHandler(level='ERROR')
         with capture_stderr() as captured:
             with null_handler:
@@ -337,10 +337,10 @@ Message:
         with capture_stderr() as captured:
             logger = logbook.Logger('App')
             test_handler = logbook.TestHandler(level='WARNING')
-            mail_handler = make_fake_mail_handler()
+            mail_handler = make_fake_mail_handler(bubble=True)
 
             handlers = logbook.NestedSetup([
-                logbook.NullHandler(bubble=False),
+                logbook.NullHandler(),
                 test_handler,
                 mail_handler
             ])
@@ -362,15 +362,15 @@ Message:
 
     def test_channel(self):
         logger = logbook.Logger('App')
-        with logbook.TestHandler(bubble=False) as test_handler:
+        with logbook.TestHandler() as test_handler:
             logger.warn('Logbook is too awesome for stdlib')
             self.assertEqual(test_handler.records[0].channel, logger)
 
     def test_filtering(self):
         logger1 = logbook.Logger('Logger1')
         logger2 = logbook.Logger('Logger2')
-        handler = logbook.TestHandler(bubble=False)
-        outer_handler = logbook.TestHandler(bubble=False)
+        handler = logbook.TestHandler()
+        outer_handler = logbook.TestHandler()
 
         def only_1(record, handler):
             return record.channel is logger1
@@ -387,9 +387,9 @@ Message:
         self.assert_(outer_handler.has_warning('bar', logger_name='Logger2'))
 
     def test_different_context_pushing(self):
-        h1 = logbook.TestHandler(level=logbook.DEBUG, bubble=False)
-        h2 = logbook.TestHandler(level=logbook.INFO, bubble=False)
-        h3 = logbook.TestHandler(level=logbook.WARNING, bubble=False)
+        h1 = logbook.TestHandler(level=logbook.DEBUG)
+        h2 = logbook.TestHandler(level=logbook.INFO)
+        h3 = logbook.TestHandler(level=logbook.WARNING)
         logger = logbook.Logger('Testing')
 
         with h1:
@@ -461,7 +461,7 @@ class MoreTestCase(LogbookTestCase):
         from logbook.more import FingersCrossedHandler
         handler = FingersCrossedHandler(logbook.default_handler,
                                         logbook.WARNING,
-                                        bubble=False)
+                                        )
 
         # if no warning occurs, the infos are not logged
         with handler:
@@ -491,7 +491,7 @@ class MoreTestCase(LogbookTestCase):
 
         def make_fch():
             return FingersCrossedHandler(handler_factory, logbook.WARNING,
-                                         bubble=False)
+                                         )
 
         with make_fch():
             self.log.info('some info')
@@ -514,7 +514,7 @@ class MoreTestCase(LogbookTestCase):
         logger = logbook.Logger('Test')
         test_handler = logbook.TestHandler()
         handler = FingersCrossedHandler(test_handler, buffer_size=3,
-                                        bubble=False)
+                                        )
 
         with handler:
             logger.info('Never gonna give you up')
@@ -569,7 +569,7 @@ class MoreTestCase(LogbookTestCase):
         else:
             fmter = JinjaFormatter('{{ record.logger_name }}/'
                                    '{{ record.level_name }}')
-            handler = logbook.TestHandler(bubble=False)
+            handler = logbook.TestHandler()
             handler.formatter = fmter
             with handler:
                 self.log.info('info')
