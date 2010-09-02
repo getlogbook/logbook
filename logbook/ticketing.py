@@ -104,6 +104,39 @@ class TicketingDatabase(object):
             return q.order_by(table.c[order_by[1:]].desc())
         return q.order_by(table.c[order_by])
 
+    def record_ticket(self, record, data, hash):
+        """Records a log record as ticket."""
+        cnx = self.engine.connect()
+        trans = cnx.begin()
+        try:
+            q = self.tickets.select(self.tickets.c.record_hash == hash)
+            row = cnx.execute(q).fetchone()
+            if row is None:
+                row = cnx.execute(self.tickets.insert().values(
+                    record_hash=hash,
+                    level=record.level,
+                    logger_name=record.logger_name or u'',
+                    location=u'%s:%d' % (record.filename, record.lineno),
+                    module=record.module or u'<unknown>',
+                    occurrence_count=0
+                ))
+                ticket_id = row.inserted_primary_key[0]
+            else:
+                ticket_id = row['ticket_id']
+            cnx.execute(self.occurrences.insert()
+                .values(ticket_id=ticket_id,
+                        time=record.time,
+                        data=json.dumps(data)))
+            cnx.execute(self.tickets.update()
+                .where(self.tickets.c.ticket_id == ticket_id)
+                .values(occurrence_count=self.tickets.c.occurrence_count + 1,
+                        last_occurrence=record.time))
+            trans.commit()
+        except Exception:
+            trans.rollback()
+            raise
+        cnx.close()
+
     def count_tickets(self):
         """Returns the number of tickets."""
         return self.engine.execute(self.tickets.count()).fetchone()[0]
@@ -172,33 +205,4 @@ class TicketingDatabaseHandler(Handler):
         """Emits a single record and writes it to the database."""
         hash = self.hash_record(record)
         data = self.process_record(record, hash)
-        cnx = self.db.engine.connect()
-        trans = cnx.begin()
-        try:
-            q = self.db.tickets.select(self.db.tickets.c.record_hash == hash)
-            row = cnx.execute(q).fetchone()
-            if row is None:
-                row = cnx.execute(self.db.tickets.insert().values(
-                    record_hash=hash,
-                    level=record.level,
-                    logger_name=record.logger_name or u'',
-                    location=u'%s:%d' % (record.filename, record.lineno),
-                    module=record.module or u'<unknown>',
-                    occurrence_count=0
-                ))
-                ticket_id = row.inserted_primary_key[0]
-            else:
-                ticket_id = row['ticket_id']
-            cnx.execute(self.db.occurrences.insert()
-                .values(ticket_id=ticket_id,
-                        time=record.time,
-                        data=json.dumps(data)))
-            cnx.execute(self.db.tickets.update()
-                .where(self.db.tickets.c.ticket_id == ticket_id)
-                .values(occurrence_count=self.db.tickets.c.occurrence_count + 1,
-                        last_occurrence=record.time))
-            trans.commit()
-        except Exception:
-            trans.rollback()
-            raise
-        cnx.close()
+        self.db.record_ticket(record, data, hash)
