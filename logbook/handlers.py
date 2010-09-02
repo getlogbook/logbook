@@ -16,21 +16,12 @@ import codecs
 import socket
 import threading
 import traceback
-from thread import get_ident as current_thread
-from itertools import izip, count
-from contextlib import contextmanager
+from itertools import izip
 
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
-     NOTSET, _level_name_property, _missing, lookup_level
+     NOTSET, _level_name_property, _missing, lookup_level, \
+     ContextObject
 from logbook.helpers import rename
-
-
-_global_handlers = []
-_context_handler_lock = threading.Lock()
-_context_handlers = threading.local()
-_handler_cache = {}
-_MAX_HANDLER_CACHE = 256
-_stackop = count().next
 
 
 DEFAULT_FORMAT_STRING = (
@@ -68,106 +59,6 @@ Message:
 SYSLOG_PORT = 514
 
 
-class NestedHandlerSetup(object):
-    r"""Helps to setup nested handlers.  This is a good alternative
-    to deeply nested with statements in the same function.  Basically
-    the concept is to use the :meth:`add` function to add a handler
-    to the :class:`NestedHandlerSetup`.  It accepts the same arguments
-    as the :meth:`~logbook.Handler.push_application` function.
-
-    Example::
-
-        from logbook import NestedHandlerSetup, NullHandler, FileHandler, \
-             MailHandler
-
-        # a nested handler setup can be used to configure more complex setups
-        nhs = logbook.NestedHandlerSetup()
-
-        # make sure we never bubble up to the stderr handler
-        # if we run out of nhs handling
-        nhs.add(NullHandler(), bubble=False)
-
-        # then write messages that are at least warnings to to a logfile
-        nhs.add(FileHandler('application.log', level='WARNING'))
-
-        # errors should then be delivered by mail and also be kept
-        # in the application log, so we let them bubble up.
-        nhs.add(MailHandler('servererrors@example.com',
-                            ['admin@example.com'],
-                            level='ERROR'))
-
-    You can then use the :class:`NestedHandlerSetup` as if it was a
-    log handler::
-
-        with nhs.threadbound():
-            ...
-
-    The difference to a regular handler is that the context managers do not
-    return anything and will not accept any arguments.
-    """
-
-    def __init__(self):
-        self.handlers = []
-
-    def add(self, handler, processor=None, filter=None, bubble=True):
-        """Registers a new handler on the :class:`NestedHandlerSetup`"""
-        self.handlers.append((handler, processor, filter, bubble))
-
-    def push_application(self):
-        """Pushes all handlers to the global stack."""
-        for handler, processor, filter, bubble in self.handlers:
-            handler.push_application(processor, filter, bubble)
-
-    def pop_application(self):
-        """Pops all handlers from the global stack."""
-        for handler, _, _, _ in reversed(self.handlers):
-            handler.pop_application()
-
-    def push_thread(self):
-        """Pushes all handlers to the thread stack."""
-        for handler, processor, filter, bubble in self.handlers:
-            handler.push_thread(processor, filter, bubble)
-
-    def pop_thread(self):
-        """Pops all handlers from the thread stack."""
-        for handler, _, _, _ in reversed(self.handlers):
-            handler.pop_thread()
-
-    @contextmanager
-    def threadbound(self):
-        """Binds all handlers temporarily to a thread."""
-        self.push_thread()
-        try:
-            yield
-        finally:
-            self.pop_thread()
-
-    @contextmanager
-    def applicationbound(self):
-        """Binds all handlers temporarily to the whole process."""
-        self.push_application()
-        try:
-            yield
-        finally:
-            self.pop_application()
-
-
-def iter_context_handlers():
-    """Returns an iterator for all active context and global handlers.
-    This function returns an iterator and is thread safe.
-    """
-    handlers = _handler_cache.get(current_thread())
-    if handlers is None:
-        if len(_handler_cache) > _MAX_HANDLER_CACHE:
-            _handler_cache.clear()
-        handlers = _global_handlers[:]
-        handlers.extend(getattr(_context_handlers, 'stack', ()))
-        handlers.sort(reverse=True)
-        handlers = [x[1:] for x in handlers]
-        _handler_cache[current_thread()] = handlers
-    return iter(handlers)
-
-
 def create_syshandler(application_name, level=NOTSET):
     """Creates the handler the operating system provides.  On Unix systems
     this creates a :class:`SyslogHandler`, on Windows sytems it will
@@ -178,7 +69,7 @@ def create_syshandler(application_name, level=NOTSET):
     return SyslogHandler(application_name, level=level)
 
 
-class Handler(object):
+class Handler(ContextObject):
     """Handler instances dispatch logging events to specific destinations.
 
     The base handler class. Acts as a placeholder which defines the Handler
@@ -201,8 +92,8 @@ class Handler(object):
     by setting bubbling to `False`.  This setup for example would swallow
     all log records::
 
-        handler = NullHandler()
-        handler.push_application(bubble=False)
+        handler = NullHandler(bubble=False)
+        handler.push_application()
 
     There are also context managers to setup the handler for the duration
     of a `with`-block::
@@ -213,16 +104,16 @@ class Handler(object):
         with handler.threadbound():
             ...
 
-    These methods are bubbling by default.  Because it is common to set up
-    a handler thread-local and non-bubbling, you can use the `with`
-    statement directly with the handler as well in which case it is bound
-    to the current thread and non-bubbling::
+    Because `threadbound` is a common operation, it is aliased to a with
+    on the handler itself::
 
         with handler:
             ...
     """
 
-    def __init__(self, level=NOTSET):
+    _co_abstract = False
+
+    def __init__(self, level=NOTSET, filter=None, bubble=True):
         #: the level for the handler.  Defaults to `NOTSET` which
         #: consumes all entries.
         self.level = lookup_level(level)
@@ -231,6 +122,10 @@ class Handler(object):
         #: handler as second and returns something formatted
         #: (usually a unicode string)
         self.formatter = None
+        #: the filter to be used with this handler
+        self.filter = filter
+        #: the bubble flag of this handler
+        self.bubble = bubble
 
     def __del__(self):
         try:
@@ -282,63 +177,6 @@ class Handler(object):
 
     def close(self):
         """Tidy up any resources used by the handler."""
-
-    def push_thread(self, processor=None, filter=None, bubble=True):
-        """Push the handler for the current thread."""
-        with _context_handler_lock:
-            _handler_cache.pop(current_thread(), None)
-            item = _stackop(), self, processor, filter, bubble
-            stack = getattr(_context_handlers, 'stack', None)
-            if stack is None:
-                _context_handlers.stack = [item]
-            else:
-                stack.append(item)
-
-    def pop_thread(self):
-        """Pop the handler from the current thread."""
-        with _context_handler_lock:
-            _handler_cache.pop(current_thread(), None)
-            stack = getattr(_context_handlers, 'stack', None)
-            assert stack, 'no handlers on stack'
-            popped = stack.pop()[1]
-            assert popped is self, 'popped unexpected handler'
-
-    def push_application(self, processor=None, filter=None, bubble=True):
-        """Push the handler to the global stack."""
-        _global_handlers.append((_stackop(), self, processor, filter, bubble))
-        _handler_cache.clear()
-
-    def pop_application(self):
-        """Pop the handler from the global stack."""
-        assert _global_handlers, 'no handlers on global stack'
-        popped = _global_handlers.pop()[1]
-        _handler_cache.clear()
-        assert popped is self, 'popped unexpected handler'
-
-    @contextmanager
-    def threadbound(self, processor=None, filter=None, bubble=True):
-        """Binds the handler temporarily to a thread."""
-        self.push_thread(processor, filter, bubble)
-        try:
-            yield self
-        finally:
-            self.pop_thread()
-
-    @contextmanager
-    def applicationbound(self, processor=None, filter=None, bubble=True):
-        """Binds the handler temporarily to the whole process."""
-        self.push_application(processor, filter, bubble)
-        try:
-            yield self
-        finally:
-            self.pop_application()
-
-    def __enter__(self):
-        self.push_thread(None, None, False)
-        return self
-
-    def __exit__(self, exc_type, exc_value, tb):
-        self.pop_thread()
 
     def handle_error(self, record, exc_info):
         """Handle errors which occur during an emit() call."""

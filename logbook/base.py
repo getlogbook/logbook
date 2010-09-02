@@ -15,6 +15,9 @@ import thread
 import warnings
 import threading
 import traceback
+from thread import get_ident as current_thread
+from contextlib import contextmanager
+from itertools import count
 from weakref import ref as weakref
 from datetime import datetime
 
@@ -26,6 +29,8 @@ NOTICE = 3
 INFO = 2
 DEBUG = 1
 NOTSET = 0
+
+_MAX_CONTEXT_OBJECT_CACHE = 256
 
 _level_names = {
     CRITICAL:   'CRITICAL',
@@ -139,6 +144,123 @@ class _ExceptionCatcher(object):
             kwargs['exc_info'] = (exc_type, exc_value, tb)
             self.logger.exception(*self.args, **kwargs)
         return True
+
+
+class _ContextObjectType(type):
+    """Helper metaclass for context objects that creates the class
+    specific registry objects.
+    """
+
+    def __new__(cls, name, bases, d):
+        rv = type.__new__(cls, name, bases, d)
+        if rv._co_abstract or hasattr(rv, '_co_stackop'):
+            return rv
+        rv._co_global = []
+        rv._co_context_lock = threading.Lock()
+        rv._co_context = threading.local()
+        rv._co_cache = {}
+        rv._co_stackop = count().next
+        return rv
+
+    def iter_context_objects(cls):
+        """Returns an iterator over all objects for the combined
+        application and context cache.
+        """
+        objects = cls._co_cache.get(current_thread())
+        if objects is None:
+            if len(cls._co_cache) > _MAX_CONTEXT_OBJECT_CACHE:
+                cls._co_cache.clear()
+            objects = cls._co_global[:]
+            objects.extend(getattr(cls._co_context, 'stack', ()))
+            objects.sort(reverse=True)
+            objects = [x[1] for x in objects]
+            cls._co_cache[current_thread()] = objects
+        return iter(objects)
+
+
+class ContextObject(object):
+    """An object that can be bound to a context."""
+    __metaclass__ = _ContextObjectType
+    _co_abstract = True
+
+    def push_thread(self):
+        """Pushes the context object to the thread stack."""
+        with _context_handler_lock:
+            self._co_cache.pop(current_thread(), None)
+            item = (self._co_stackop(), self)
+            stack = getattr(self._co_context, 'stack', None)
+            if stack is None:
+                self._context.stack = [item]
+            else:
+                stack.append(item)
+
+    def pop_thread(self):
+        """Pops the context object from the stack."""
+        with self._co_context_lock:
+            self._co_cache.pop(current_thread(), None)
+            stack = getattr(self._co_context, 'stack', None)
+            assert stack, 'no objects on stack'
+            popped = stack.pop()[1]
+            assert popped is self, 'popped unexpected object'
+
+    def push_application(self):
+        """Pushes the context object to the application stack."""
+        self._co_global.append((self._co_stackop(), self))
+        self._co_cache.clear()
+
+    def pop_application(self):
+        """Pops the context object from the stack."""
+        assert self._co_global, 'no objects on application stack'
+        popped = self._co_global.pop()[1]
+        self._co_cache.clear()
+        assert popped is self, 'popped unexpected object'
+
+    @contextmanager
+    def threadbound(self):
+        self.push_thread()
+        try:
+            yield self
+        finally:
+            self.pop_thread()
+
+    @contextmanager
+    def applicationbound(self):
+        self.push_application()
+        try:
+            yield self
+        finally:
+            self.pop_application()
+
+    def __enter__(self):
+        self.push_thread()
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.pop_thread()
+
+
+class Processor(ContextObject):
+    """Can be pushed to a stack to inject additional information into
+    a log record as necessary::
+
+        def inject_ip(record):
+            record.extra['ip'] = '127.0.0.1'
+
+        with Processor(inject_ip):
+            ...
+    """
+
+    _co_abstract = False
+
+    def __init__(self, callback=None):
+        self.callback = callback
+
+    def process(self, record):
+        if self.callback is not None:
+            self.callback(record)
+
+    def __call__(self, record):
+        self.process(record)
 
 
 class LogRecord(object):
@@ -471,6 +593,14 @@ class RecordDispatcher(object):
             self.process_record(record)
             self.call_handlers(record)
 
+    def process_record(self, record):
+        """Processes the record with all context specific processors.  This
+        can be overriden to also inject additional information as necessary
+        that can be provided by this record dispatcher.
+        """
+        for processor in Processor.iter_context_objects():
+            processor(record)
+
     def call_handlers(self, record):
         """Pass a record to all relevant handlers in the following
         order:
@@ -480,6 +610,11 @@ class RecordDispatcher(object):
             thread bound, then application bound) until one of the
             handlers is set up to not bubble up
         """
+        # for performance reasons records are only processed if at
+        # least one of the handlers has a higher level than the
+        # record.
+        record_processed = False
+
         # logger attached handlers are always handled and before the
         # context specific handlers are running.  There is no way to
         # disable those unless by removing the handlers.  They will
@@ -490,15 +625,24 @@ class RecordDispatcher(object):
 
         # after that, context specific handlers run (this includes the
         # global handlers)
-        for handler, processor, filter, bubble in iter_context_handlers():
+        for handler in Handler.iter_context_objects():
             if record.level >= handler.level:
-                # TODO: cloning?  expensive?  document that on bubbling
-                # the record is modified for outer processors too?
-                if processor is not None:
-                    processor(record, handler)
-                if filter is not None and not filter(record, handler):
+                # we are about to handle the record.  If it was not yet
+                # processed by context-specific record processors we
+                # have to do that now and remeber that we processed
+                # the record already.
+                if not record_processed:
+                    self.process_record(record)
+                    record_processed = True
+
+                # a filter can still veto the handling of the record.
+                if handler.filter is not None \
+                   and not handler.filter(record, handler):
                     continue
-                if handler.handle(record) and not bubble:
+
+                # handle the record.  If the record was handled and
+                # the record is not bubbling we can abort now.
+                if handler.handle(record) and not handler.bubble:
                     break
 
     def process_record(self, record):
@@ -583,4 +727,4 @@ class log_warnings_to(object):
         warnings.showwarning = self._showwarning
 
 
-from logbook.handlers import iter_context_handlers
+from logbook.handlers import Handler
