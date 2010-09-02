@@ -1,7 +1,7 @@
 Logbook Changelog
 =================
 
-Here you can see the full list of changes between each Logboo release.
+Here you can see the full list of changes between each Logbook release.
 
 Version 0.2
 -----------
@@ -12,27 +12,27 @@ Release date to be announced.
   alias for `threadbound`.
 - `applicationbound` and `threadbound` return the handler now.
 - Implemented channel recording on the log records.
-- the :class:`logbook.more.FingersCrossedHandler` now is set to
+- The :class:`logbook.more.FingersCrossedHandler` now is set to
   `ERROR` by default and has the ability to create new loggers
   from a factory function.
-- implemented maximum buffer size for the
+- Implemented maximum buffer size for the
   :class:`logbook.more.FingersCrossedHandler` as well as a lock
-  for thread safety
-- added ability to filter for context.
-- moved bubbling flags and filters to the handler object.
-- moved context processors on their own stack.
-- removed the iter_context_handlers function.
-- renamed `NestedHandlerSetup` to :class:`~logbook.NestedSetup`
+  for thread safety.
+- Added ability to filter for context.
+- Moved bubbling flags and filters to the handler object.
+- Moved context processors on their own stack.
+- Removed the `iter_context_handlers` function.
+- Renamed `NestedHandlerSetup` to :class:`~logbook.NestedSetup`
   because it can now also configure processors.
-- added the :class:`logbook.Processor` class.
-- there is no difference between logger attached handlers and
+- Added the :class:`logbook.Processor` class.
+- There is no difference between logger attached handlers and
   context specific handlers any more.
-- added a function to redirect warnings to logbook
-  (:func:`logbook.compat.log_warnings_to`)
-- Fixed and improved :class:`logbook.LoggerGroup`
-- the :class:`logbook.TestHandler` now keeps the record open
-  for further inspection
-- the traceback is removed from a log record after the record
-  was closed now.  The formatted traceback is a cached property
+- Added a function to redirect warnings to logbook
+  (:func:`logbook.compat.log_warnings_to`).
+- Fixed and improved :class:`logbook.LoggerGroup`.
+- The :class:`logbook.TestHandler` now keeps the record open
+  for further inspection.
+- The traceback is now removed from a log record when the record
+  is closed.  The formatted traceback is a cached property
   instead of a function.
-- added ticketing handlers that send logs directly into a database.
+- Added ticketing handlers that send logs directly into a database.

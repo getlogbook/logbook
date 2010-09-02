@@ -762,7 +762,7 @@ class Logger(RecordDispatcher, LoggerMixin):
 
 class LoggerGroup(object):
     """A LoggerGroup represents a group of loggers.  It cannot emit log
-    messages on it's own but it can be used to set the disabled flag and
+    messages on its own but it can be used to set the disabled flag and
     log level of all loggers in the group.
 
     Furthermore the :meth:`process_record` method of the group is called
