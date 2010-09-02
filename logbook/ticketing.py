@@ -148,8 +148,8 @@ class TicketingDatabase(object):
 
     def get_ticket(self, ticket_id):
         """Return a single ticket with all occurrences."""
-        rv = self.engine.execute(self._order(self.tickets.select(),
-            self.tickets, order_by).limit(limit).offset(offset)).fetchone()
+        rv = self.engine.execute(self.tickets.select().where(
+            self.tickets.c.ticket_id == ticket_id)).fetchone()
         if rv is not None:
             rv = dict(rv)
             rv['occurrences'] = self.get_occurrences(ticket_id)
