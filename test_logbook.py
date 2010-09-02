@@ -533,12 +533,12 @@ class MoreTestCase(LogbookTestCase):
         stream = StringIO()
         second_handler = logbook.StreamHandler(stream)
 
-        logger = TaggingLogger('name', 'cmd')
-        handler = TaggingHandler(
+        logger = TaggingLogger('name', ['cmd'])
+        handler = TaggingHandler(dict(
             info = logbook.default_handler,
             cmd = second_handler,
             both = [logbook.default_handler, second_handler],
-        )
+        ))
         handler.bubble = False
 
         with handler:

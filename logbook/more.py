@@ -23,7 +23,7 @@ class TaggingLogger(RecordDispatcher):
     records apart.  It is constructed with a descriptive name and at least
     one tag.  The tags are up for you to define::
 
-        logger = TaggingLogger('My Logger', 'info', 'warning')
+        logger = TaggingLogger('My Logger', ['info', 'warning'])
 
     For each tag defined that way, a method appears on the logger with
     that name::
@@ -37,11 +37,11 @@ class TaggingLogger(RecordDispatcher):
     :attr:`~logbook.LogRecord.extra` dictionary.
     """
 
-    def __init__(self, name=None, *tags):
+    def __init__(self, name=None, tags=None):
         RecordDispatcher.__init__(self, name)
         # create a method for each tag named
         list(setattr(self, tag, lambda msg, *args, **kwargs:
-                     self.log(tag, msg, *args, **kwargs)) for tag in tags)
+                     self.log(tag, msg, *args, **kwargs)) for tag in (tags or ()))
 
     def log(self, tags, msg, *args, **kwargs):
         if isinstance(tags, basestring):
@@ -65,14 +65,14 @@ class TaggingHandler(Handler):
         import logbook
         from logbook.more import TaggingHandler
 
-        handler = TaggingHandler(
+        handler = TaggingHandler(dict(
             info=OneHandler(),
             warning=AnotherHandler()
-        )
+        ))
     """
 
-    def __init__(self, **handlers):
-        Handler.__init__(self)
+    def __init__(self, handlers, filter=None, bubble=False):
+        Handler.__init__(self, NOTSET, filter, bubble)
         assert isinstance(handlers, dict)
         self._handlers = dict(
             (tag, isinstance(handler, Handler) and [handler] or handler)
