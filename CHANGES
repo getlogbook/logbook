@@ -27,3 +27,5 @@ Release date to be announced.
 - added the :class:`logbook.Processor` class.
 - there is no difference between logger attached handlers and
   context specific handlers any more.
+- added a function to redirect warnings to logbook
+  (:func:`logbook.compat.log_warnings_to`)

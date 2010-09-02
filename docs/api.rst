@@ -142,6 +142,14 @@ Logging Compatibility
    :members:
 
 
+Warnings Compatibility
+----------------------
+
+.. module:: logbook.compat
+
+.. autofunction:: log_warnings_to
+
+
 Internal API
 ------------
 

@@ -12,7 +12,6 @@
 import os
 import sys
 import thread
-import warnings
 import threading
 import traceback
 from thread import get_ident as current_thread
@@ -728,44 +727,6 @@ class LoggerGroup(LoggerMixin):
     def handle(self, record):
         for logger in self.loggers:
             logger.handle(record)
-
-
-class log_warnings_to(object):
-    """A context manager that copies and restores the warnings filter upon
-    exiting the context, and logs warnings using the logbook system.
-
-    The 'record' argument specifies whether warnings should be captured by a
-    custom implementation of :func:`warnings.showwarning` and be appended to a
-    list returned by the context manager. Otherwise None is returned by the
-    context manager. The objects appended to the list are arguments whose
-    attributes mirror the arguments to :func:`~warnings.showwarning`.
-    """
-
-    def __init__(self, logger):
-        self._logger = logger
-        self._entered = False
-
-    def __enter__(self):
-        if self._entered:
-            raise RuntimeError("Cannot enter %r twice" % self)
-        self._entered = True
-        if self._save_filters:
-            self._filters = warnings.filters
-            warnings.filters = self._filters[:]
-        self._showwarning = warnings.showwarning
-        def showwarning(message, category, filename, lineno,
-                        file=None, line=None):
-            formatted = warnings.formatwarning(message, category, filename,
-                                               lineno, line)
-            self._logger.warning(formatted)
-        warnings.showwarning = showwarning
-
-    def __exit__(self, exc_type, exc_value, tb):
-        if not self._entered:
-            raise RuntimeError("Cannot exit %r without entering first" % self)
-        if self._save_filters:
-            warnings.filters = self._filters
-        warnings.showwarning = self._showwarning
 
 
 from logbook.handlers import Handler

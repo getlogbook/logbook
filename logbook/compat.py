@@ -3,7 +3,8 @@
     logbook.compat
     ~~~~~~~~~~~~~~
 
-    Backwards compatibility with stdlib's logging package.
+    Backwards compatibility with stdlib's logging package and the
+    warnings module.
 
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
@@ -11,6 +12,7 @@
 
 import sys
 import logging
+import warnings
 import logbook
 from contextlib import contextmanager
 
@@ -104,3 +106,39 @@ class RedirectLoggingHandler(logging.Handler):
     def emit(self, record):
         converted_record = self.convert_record(record)
         self._logbook_logger.handle(converted_record)
+
+
+class log_warnings_to(object):
+    """A context manager that copies and restores the warnings filter upon
+    exiting the context, and logs warnings using the logbook system.
+
+    The 'record' argument specifies whether warnings should be captured by a
+    custom implementation of :func:`warnings.showwarning` and be appended to a
+    list returned by the context manager. Otherwise None is returned by the
+    context manager. The objects appended to the list are arguments whose
+    attributes mirror the arguments to :func:`~warnings.showwarning`.
+    """
+
+    def __init__(self, logger):
+        self._logger = logger
+        self._entered = False
+
+    def __enter__(self):
+        if self._entered:
+            raise RuntimeError("Cannot enter %r twice" % self)
+        self._entered = True
+        self._filters = warnings.filters
+        warnings.filters = self._filters[:]
+        self._showwarning = warnings.showwarning
+        def showwarning(message, category, filename, lineno,
+                        file=None, line=None):
+            formatted = warnings.formatwarning(message, category, filename,
+                                               lineno, line)
+            self._logger.warning(formatted)
+        warnings.showwarning = showwarning
+
+    def __exit__(self, exc_type, exc_value, tb):
+        if not self._entered:
+            raise RuntimeError("Cannot exit %r without entering first" % self)
+        warnings.filters = self._filters
+        warnings.showwarning = self._showwarning

@@ -455,6 +455,19 @@ class LoggingCompatTestCase(LogbookTestCase):
                          in captured.getvalue())
 
 
+class WarningsCompatTestCase(LogbookTestCase):
+
+    def test_warning_redirections(self):
+        from logbook.compat import log_warnings_to
+        handler = logbook.TestHandler()
+        with handler:
+            with log_warnings_to(self.log):
+                from warnings import warn
+                warn(DeprecationWarning('Testing'))
+        self.assertEqual(len(handler.records), 1)
+        self.assert_('DeprecationWarning: Testing' in handler.formatted_records[0])
+
+
 class MoreTestCase(LogbookTestCase):
 
     def test_fingerscrossed(self):
@@ -513,8 +526,7 @@ class MoreTestCase(LogbookTestCase):
         from logbook.more import FingersCrossedHandler
         logger = logbook.Logger('Test')
         test_handler = logbook.TestHandler()
-        handler = FingersCrossedHandler(test_handler, buffer_size=3,
-                                        )
+        handler = FingersCrossedHandler(test_handler, buffer_size=3)
 
         with handler:
             logger.info('Never gonna give you up')
