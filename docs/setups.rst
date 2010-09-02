@@ -21,14 +21,14 @@ handler::
     log_handler = FileHandler('application.log')
 
     if __name__ == '__main__':
-        with log_handler.applicationbound(bubble=False):
+        with log_handler.applicationbound():
             main()
 
 Alternatively you can also just push a handler in there::
 
     from logbook import FileHandler
     log_handler = FileHandler('application.log')
-    log_handler.push_application(bubble=False)
+    log_handler.push_application()
 
     if __name__ == '__main__':
         main()
@@ -75,7 +75,7 @@ errors happened during a WSGI application::
     Message:
 
     {record.message}
-    ''')
+    ''', bubble=True)
 
     def application(environ, start_response):
         req = Request(environ)
@@ -97,32 +97,30 @@ Deeply Nested Setups
 --------------------
 
 If you want deeply nested logger setups, you can use the
-:class:`NestedHandlerSetup` class which simplifies that.  This is best explained
+:class:`NestedSetup` class which simplifies that.  This is best explained
 using an example::
 
     from logbook import NestedHandlerSetup, NullHandler, FileHandler, \
          MailHandler
 
     # a nested handler setup can be used to configure more complex setups
-    handlers = logbook.NestedHandlerSetup()
+    setup = logbook.NestedSetup([
+        # make sure we never bubble up to the stderr handler
+        # if we run out of setup handling
+        NullHandler(),
+        # then write messages that are at least warnings to to a logfile
+        FileHandler('application.log', level='WARNING'),
+        # errors should then be delivered by mail and also be kept
+        # in the application log, so we let them bubble up.
+        MailHandler('servererrors@example.com',
+                       ['admin@example.com'],
+                       level='ERROR', bubble=True)
+    ])
 
-    # make sure we never bubble up to the stderr handler
-    # if we run out of handlers handling
-    handlers.add(NullHandler(), bubble=False)
-
-    # then write messages that are at least warnings to to a logfile
-    handlers.add(FileHandler('application.log', level='WARNING'))
-
-    # errors should then be delivered by mail and also be kept
-    # in the application log, so we let them bubble up.
-    handlers.add(MailHandler('servererrors@example.com',
-                             ['admin@example.com'],
-                             level='ERROR'))
-
-The :meth:`.NestedHandlerSetup.add` method accepts the same arguments as
-:meth:`.Handler.applicationbound` and others.  Once such a complex setup is
+The :meth:`NestedSetup.add` method accepts the same arguments as
+:meth:`Handler.applicationbound` and others.  Once such a complex setup is
 defined, the nested handler setup can be used as if it was a single handler::
 
-    with handlers.threadbound():
+    with setup.threadbound():
         # everything here is handled as specified by the rules above.
         ...

@@ -37,7 +37,7 @@ Handler Base Interface
 .. autoclass:: Handler
    :members:
 
-.. autoclass:: NestedHandlerSetup
+.. autoclass:: NestedSetup
    :members:
 
 .. autoclass:: StringFormatter

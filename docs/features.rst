@@ -71,7 +71,12 @@ Logbook in a Nutshell
 
 This is how easy it is to get started with Logbook::
 
-    from logbook import Logger
+    from logbook import warn
+    warn('This is a warning')
 
+That will use the default logging channel.  But you can create as many as
+you like::
+
+    from logbook import Logger
     log = Logger('My Logger')
     log.warn('This is a warning')

@@ -22,7 +22,7 @@ methods::
 
         def setUp(self):
             self.log_handler = logbook.TestHandler()
-            self.log_handler.push_thread(bubble=False)
+            self.log_handler.push_thread()
 
         def tearDown(self):
             self.log_handler.pop_thread()
@@ -47,7 +47,7 @@ as unicode strings:
 >>> from logbook import TestHandler, Logger
 >>> logger = Logger('Testing')
 >>> handler = TestHandler()
->>> handler.push_thread(bubble=False)
+>>> handler.push_thread()
 >>> logger.warn('Hello World')
 >>> handler.records
 [<logbook.base.LogRecord object at 0x100640cd0>]

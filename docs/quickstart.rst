@@ -68,18 +68,36 @@ If you want errors to go to syslog, you can set up logging like this::
         # error handler
         ...
 
-Additionally it is still logged to stderr.  If you don't want handled log
-records to go to the next handler (and in this case the global handler) you can
-disable this by setting *bubble* to False::
+This will send all errors to the syslog but warnings and lower record
+levels still to stderr.  This is because the handler is not bubbling by
+default which means that if a record is handled by the handler, it will
+not bubble up to a higher handler.  If you want to display all records on
+stderr, even if they went to the syslog you can enable bubbling by setting
+*bubble* to ``True``::
 
-    from logbook import FileHandler
+    from logbook import SyslogHandler
 
-    error_handler = FileHandler('errors.log', level='ERROR')
-    with error_handler.applicationbound(bubble=False):
+    error_handler = SyslogHandler('logbook example', level='ERROR')
+    with error_handler.applicationbound():
         # whatever is executed here and an error is logged to the
-        # error handler but it will not bubble up to the default
+        # error handler but it will also bubble up to the default
         # stderr handler.
         ...
+
+So what if you want to only log errors to the syslog and nothing to
+stderr?  Then you can combine this with a :class:`NullHandler`::
+
+    from logbook import SyslogHandler, NullHandler
+
+    error_handler = SyslogHandler('logbook example', level='ERROR')
+    null_handler = NullHandler()
+
+    with null_handler.applicationbound():
+        with error_handler.applicationbound():
+            # errors now go to the error_handler and everything else
+            # is swallowed by the null handler so nothing ends up
+            # on the default stderr handler
+            ...
 
 Record Processors
 -----------------
@@ -91,21 +109,23 @@ request in a web application.  Or, in a daemon process you might want to log
 the user and working directory of the process.
 
 A context processor can be injected at two places: you can either bind a
-processor when you push a handler to the stack or you can subclass a logger and
+processor to a stack like you do with handlers or you can override the
 override the :meth:`~logbook.Handler.process_record` method.
 
 Here an example that injects the current working directory into the
 `extra` dictionary of a log record::
 
     import os
+    from logbook import Processor
 
-    def inject_cwd(record, handler):
+    def inject_cwd(record):
         record.extra['cwd'] = os.getcwd()
 
-    with my_handler.applicationbound(processor=inject_cwd):
-        # everything logged here will have the current working
-        # directory in the log record.
-        ...
+    with my_handler.applicationbound():
+        with Processor(inject_cwd).applicationbound()::
+            # everything logged here will have the current working
+            # directory in the log record.
+            ...
 
 The alternative is to inject information just for one logger in which case
 you might want to subclass it::
@@ -115,6 +135,7 @@ you might want to subclass it::
     class MyLogger(logbook.Logger):
 
         def process_record(self, record):
+            logbook.Logger.process_record(self, record)
             record.extra['cwd'] = os.getcwd()
 
 

@@ -202,9 +202,10 @@ binding a handler to a thread::
     def my_application(environ, start_reponse):
         def inject_request_info(record, handler):
             record.extra['path'] = environ['PATH_INFO']
-        with my_handler.threadbound(processor=inject_request_info):
-            # rest of the request code here
-            ...
+        with Processor(inject_request_info).threadbound():
+            with my_handler.threadbound():
+                # rest of the request code here
+                ...
 
 Logging Compatibility
 ---------------------
