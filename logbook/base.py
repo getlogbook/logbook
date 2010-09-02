@@ -735,10 +735,10 @@ class log_warnings_to(object):
     exiting the context, and logs warnings using the logbook system.
 
     The 'record' argument specifies whether warnings should be captured by a
-    custom implementation of warnings.showwarning() and be appended to a list
-    returned by the context manager. Otherwise None is returned by the context
-    manager. The objects appended to the list are arguments whose attributes
-    mirror the arguments to showwarning().
+    custom implementation of :func:`warnings.showwarning` and be appended to a
+    list returned by the context manager. Otherwise None is returned by the
+    context manager. The objects appended to the list are arguments whose
+    attributes mirror the arguments to :func:`~warnings.showwarning`.
     """
 
     def __init__(self, logger):

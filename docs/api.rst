@@ -31,11 +31,19 @@ Logger Interface
    The log level constants
 
 
+Processor Interface
+-------------------
+
+.. autoclass:: Processor
+   :members:
+   :inherited-members:
+
 Handler Base Interface
 ----------------------
 
 .. autoclass:: Handler
    :members:
+   :inherited-members:
 
 .. autoclass:: NestedSetup
    :members:
@@ -43,7 +51,28 @@ Handler Base Interface
 .. autoclass:: StringFormatter
    :members:
 
-.. autofunction:: iter_context_handlers
+Utility Functions
+-----------------
+
+.. autofunction:: debug
+
+.. autofunction:: info
+
+.. autofunction:: warn
+
+.. autofunction:: warning
+
+.. autofunction:: notice
+
+.. autofunction:: error
+
+.. autofunction:: exception
+
+.. autofunction:: catch_exceptions
+
+.. autofunction:: critical
+
+.. autofunction:: log
 
 Core Handlers
 -------------

@@ -8,7 +8,8 @@ Version 0.2
 
 Release date to be announced.
 
-- Implemented default with statement for handlers.
+- Implemented default with statement for handlers which is an
+  alias for `threadbound`.
 - `applicationbound` and `threadbound` return the handler now.
 - Implemented channel recording on the log records.
 - the :class:`logbook.more.FingersCrossedHandler` now is set to
@@ -18,3 +19,11 @@ Release date to be announced.
   :class:`logbook.more.FingersCrossedHandler` as well as a lock
   for thread safety
 - added ability to filter for context.
+- moved bubbling flags and filters to the handler object.
+- moved context processors on their own stack.
+- removed the iter_context_handlers function.
+- renamed `NestedHandlerSetup` to :class:`~logbook.NestedSetup`
+  because it can now also configure processors.
+- added the :class:`logbook.Processor` class.
+- there is no difference between logger attached handlers and
+  context specific handlers any more.
