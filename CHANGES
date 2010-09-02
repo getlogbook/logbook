@@ -30,3 +30,8 @@ Release date to be announced.
 - added a function to redirect warnings to logbook
   (:func:`logbook.compat.log_warnings_to`)
 - Fixed and improved :class:`logbook.LoggerGroup`
+- the :class:`logbook.TestHandler` now keeps the record open
+  for further inspection
+- the traceback is removed from a log record after the record
+  was closed now.  The formatted traceback is a cached property
+  instead of a function.

@@ -3,6 +3,7 @@ import logbook
 import os
 import re
 import sys
+import pickle
 import shutil
 import unittest
 import tempfile
@@ -113,7 +114,37 @@ class BasicAPITestCase(LogbookTestCase):
             self.assert_(handler.has_error('Uncaught exception occurred'))
             self.assert_(handler.has_error('Awesome'))
         self.assert_(handler.records[0].exc_info is not None)
-        self.assert_('1/0' in handler.records[0].format_exception())
+        self.assert_('1/0' in handler.records[0].formatted_exception)
+
+    def test_exporting(self):
+        with logbook.TestHandler() as handler:
+            with self.log.catch_exceptions():
+                1/0
+            record = handler.records[0]
+
+        exported = record.to_dict()
+        record.close()
+        imported = logbook.LogRecord.from_dict(exported)
+        for key, value in record.__dict__.iteritems():
+            if key[0] == '_':
+                continue
+            self.assertEqual(value, getattr(imported, key))
+
+    def test_pickle(self):
+        with logbook.TestHandler() as handler:
+            with self.log.catch_exceptions():
+                1/0
+            record = handler.records[0]
+        record.pull_information()
+        record.close()
+
+        for p in xrange(pickle.HIGHEST_PROTOCOL):
+            exported = pickle.dumps(record, p)
+            imported = pickle.loads(exported)
+            for key, value in record.__dict__.iteritems():
+                if key[0] == '_':
+                    continue
+                self.assertEqual(value, getattr(imported, key))
 
 
 class HandlerTestCase(LogbookTestCase):

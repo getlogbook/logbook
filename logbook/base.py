@@ -313,6 +313,13 @@ class Processor(_ContextObject):
             self.callback(record)
 
 
+def _create_log_record(cls, dict):
+    """Extra function for reduce because on Python 3 unbound methods
+    can no longer be pickled.
+    """
+    return cls.from_dict(dict)
+
+
 class LogRecord(object):
     """A LogRecord instance represents an event being logged.
 
@@ -321,7 +328,13 @@ class LogRecord(object):
     main information passed in is in msg and args
     """
     _pullable_information = ('func_name', 'module', 'filename', 'lineno',
-                             'process_name', 'thread', 'thread_name')
+                             'process_name', 'thread', 'thread_name',
+                             'formatted_exception')
+    _noned_on_close = ('exc_info', 'frame', 'calling_frame')
+
+    #: can be overriden by a handler to not close the record.  This could
+    #: lead to memory leaks so it should be used carefully.
+    keep_open = False
 
     def __init__(self, logger_name, level, msg, args=None, kwargs=None,
                  exc_info=None, extra=None, frame=None, channel=None):
@@ -381,8 +394,36 @@ class LogRecord(object):
         This makes a log record safe for pickling and will clean up
         memory that might be still referenced by the frames.
         """
-        self.frame = None
-        self.calling_frame = None
+        for key in self._noned_on_close:
+            setattr(self, key, None)
+
+    def to_dict(self):
+        """Exports the log record into a dictionary without the information
+        that cannot be safely serialized like interpreter frames and
+        tracebacks.
+        """
+        self.pull_information()
+        rv = {}
+        for key, value in self.__dict__.iteritems():
+            if key[:1] != '_' and key not in self._noned_on_close:
+                rv[key] = value
+        # the extra dict is exported as regular dict
+        rv['extra'] = dict(rv['extra'])
+        return rv
+
+    def __reduce_ex__(self, protocol):
+        return _create_log_record, (type(self), self.to_dict())
+
+    @classmethod
+    def from_dict(cls, d):
+        """Creates a log record from an exported dictionary."""
+        rv = object.__new__(cls)
+        rv.__dict__.update(d)
+        for key in cls._noned_on_close:
+            setattr(rv, key, None)
+        rv._information_pulled = True
+        rv._channel = None
+        return rv
 
     @cached_property
     def message(self):
@@ -490,9 +531,10 @@ class LogRecord(object):
             except Exception:
                 pass
 
-    def format_exception(self):
-        """Returns the formatted exception which caused this record to be
-        created.
+    @cached_property
+    def formatted_exception(self):
+        """The formatted exception which caused this record to be created
+        in case there was any.
         """
         if self.exc_info is not None:
             lines = traceback.format_exception(*self.exc_info)
@@ -618,7 +660,8 @@ class LoggerMixin(object):
         try:
             self.handle(record)
         finally:
-            record.close()
+            if not record.keep_open:
+                record.close()
 
 
 class RecordDispatcher(object):

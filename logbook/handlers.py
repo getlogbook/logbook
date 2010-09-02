@@ -214,7 +214,7 @@ class StringFormatter(object):
         return self.format_string.format(record=record, handler=handler)
 
     def format_exception(self, record):
-        return record.format_exception()
+        return record.formatted_exception
 
     def __call__(self, record, handler):
         line = self.format_record(record, handler)
@@ -517,6 +517,10 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         self._formatted_record_cache = []
 
     def emit(self, record):
+        # keep records open because we will want to examine them after the
+        # call to the emit function.  If we don't do that, the traceback
+        # attribute and other things will already be removed.
+        record.keep_open = True
         self.records.append(record)
 
     @property
