@@ -258,8 +258,9 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
             pass
     """
 
-    def __init__(self, stream, level=NOTSET, format_string=None):
-        Handler.__init__(self, level)
+    def __init__(self, stream, level=NOTSET, format_string=None, filter=None,
+                 bubble=True):
+        Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.lock = threading.Lock()
         if stream is not _missing:
@@ -308,8 +309,8 @@ class FileHandler(StreamHandler):
     """
 
     def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
-                 format_string=None, delay=False):
-        StreamHandler.__init__(self, None, level, format_string)
+                 format_string=None, delay=False, filter=None, bubble=True):
+        StreamHandler.__init__(self, None, level, format_string, filter, bubble)
         self._filename = filename
         self._mode = mode
         self._encoding = encoding
@@ -348,8 +349,10 @@ class StderrHandler(StreamHandler):
     point to the old one.
     """
 
-    def __init__(self, level=NOTSET, format_string=None):
-        StreamHandler.__init__(self, _missing, level, format_string)
+    def __init__(self, level=NOTSET, format_string=None, filter=None,
+                 bubble=True):
+        StreamHandler.__init__(self, _missing, level, format_string,
+                               filter, bubble)
 
     @property
     def stream(self):
@@ -397,9 +400,9 @@ class RotatingFileHandler(RotatingFileHandlerBase):
 
     def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
                  format_string=None, delay=False, max_size=1024 * 1024,
-                 backup_count=5):
+                 backup_count=5, filter=None, bubble=True):
         RotatingFileHandlerBase.__init__(self, filename, mode, encoding, level,
-                                         format_string, delay)
+                                         format_string, delay, filter, bubble)
         self.max_size = max_size
         self.backup_count = backup_count
         assert backup_count > 0, 'at least one backup file has to be ' \
@@ -444,9 +447,9 @@ class TimedRotatingFileHandler(RotatingFileHandlerBase):
 
     def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
                  format_string=None, date_format='%Y-%m-%d',
-                 backup_count=0):
+                 backup_count=0, filter=None, bubble=True):
         RotatingFileHandlerBase.__init__(self, filename, mode, encoding, level,
-                                         format_string, True)
+                                         format_string, True, filter, bubble)
         self.date_format = date_format
         self.backup_count = backup_count
         self._fn_parts = os.path.splitext(os.path.abspath(filename))
@@ -500,8 +503,8 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
     """
     default_format_string = TEST_FORMAT_STRING
 
-    def __init__(self, level=NOTSET, format_string=None):
-        Handler.__init__(self, level)
+    def __init__(self, level=NOTSET, format_string=None, filter=None, bubble=True):
+        Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         #: captures the :class:`LogRecord`\s as instances
         self.records = []
@@ -618,8 +621,9 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
 
     def __init__(self, from_addr, recipients, subject=None,
                  server_addr=None, credentials=None, secure=None,
-                 level=NOTSET, format_string=None):
-        Handler.__init__(self, level)
+                 level=NOTSET, format_string=None, filter=None,
+                 bubble=True):
+        Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.from_addr = from_addr
         self.recipients = recipients
@@ -761,8 +765,9 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
     def __init__(self, application_name=None, address=None,
                  facility='user', socktype=socket.SOCK_DGRAM,
-                 level=NOTSET, format_string=None):
-        Handler.__init__(self, level)
+                 level=NOTSET, format_string=None, filter=None,
+                 bubble=True):
+        Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.application_name = application_name
 
@@ -834,8 +839,9 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
     default_format_string = NTLOG_FORMAT_STRING
 
     def __init__(self, application_name, log_type='Application',
-                 level=NOTSET, format_string=None):
-        Handler.__init__(self, level)
+                 level=NOTSET, format_string=None, filter=None,
+                 bubble=True):
+        Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
 
         if os.name != 'nt':

@@ -10,9 +10,9 @@
     :license: BSD, see LICENSE for more details.
 """
 
-from logbook.base import LogRecord, Logger, LoggerGroup, \
-     get_level_name, lookup_level, CRITICAL, ERROR, WARNING, NOTICE, INFO, \
-     DEBUG, NOTSET
+from logbook.base import LogRecord, Logger, LoggerGroup, NestedSetup, \
+     Processor, get_level_name, lookup_level, CRITICAL, ERROR, WARNING, \
+     NOTICE, INFO, DEBUG, NOTSET
 from logbook.handlers import Handler, StreamHandler, FileHandler, \
      StderrHandler, RotatingFileHandler, TimedRotatingFileHandler, \
      TestHandler, MailHandler, SyslogHandler, NullHandler, \

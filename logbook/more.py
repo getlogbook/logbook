@@ -127,8 +127,8 @@ class FingersCrossedHandler(Handler):
     """
 
     def __init__(self, handler, action_level=ERROR, buffer_size=0,
-                 pull_information=True):
-        Handler.__init__(self)
+                 pull_information=True, filter=None, bubble=False):
+        Handler.__init__(self, NOTSET, filter, bubble)
         self.lock = Lock()
         self._level = action_level
         if isinstance(handler, Handler):

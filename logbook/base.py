@@ -185,12 +185,12 @@ class ContextObject(object):
 
     def push_thread(self):
         """Pushes the context object to the thread stack."""
-        with _context_handler_lock:
+        with self._co_context_lock:
             self._co_cache.pop(current_thread(), None)
             item = (self._co_stackop(), self)
             stack = getattr(self._co_context, 'stack', None)
             if stack is None:
-                self._context.stack = [item]
+                self._co_context.stack = [item]
             else:
                 stack.append(item)
 
@@ -234,6 +234,56 @@ class ContextObject(object):
     def __enter__(self):
         self.push_thread()
         return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.pop_thread()
+
+
+class NestedSetup(object):
+    """A nested setup can be used to configure multiple handlers
+    and processors at once.
+    """
+
+    def __init__(self, objects=None):
+        self.objects = list(objects or ())
+
+    def add(self, object):
+        self.objects.append(object)
+
+    def push_application(self):
+        for obj in self.objects:
+            obj.push_application()
+
+    def pop_application(self):
+        for obj in reversed(self.objects):
+            self.pop_application()
+
+    def push_thread(self):
+        for obj in self.objects:
+            obj.push_thread()
+
+    def pop_thread(self):
+        for obj in reversed(self.objects):
+            obj.pop_thread()
+
+    @contextmanager
+    def applicationbound(self):
+        self.push_application()
+        try:
+            yield
+        finally:
+            self.pop_application()
+
+    @contextmanager
+    def threadbound(self):
+        self.push_thread()
+        try:
+            yield
+        finally:
+            self.pop_thread()
+
+    def __enter__(self):
+        self.push_thread()
 
     def __exit__(self, exc_type, exc_value, tb):
         self.pop_thread()
@@ -585,30 +635,22 @@ class RecordDispatcher(object):
         invoked automatically when a record should be handled.
         The default implementation checks if the dispatcher is disabled
         and if the record level is greater than the level of the
-        record dispatcher.  In that case it will process the record
-        (:meth:`process_record`) and call the handlers
+        record dispatcher.  In that case it will call the handlers
         (:meth:`call_handlers`).
         """
         if not self.disabled and record.level >= self.level:
-            self.process_record(record)
             self.call_handlers(record)
-
-    def process_record(self, record):
-        """Processes the record with all context specific processors.  This
-        can be overriden to also inject additional information as necessary
-        that can be provided by this record dispatcher.
-        """
-        for processor in Processor.iter_context_objects():
-            processor(record)
 
     def call_handlers(self, record):
         """Pass a record to all relevant handlers in the following
         order:
 
         -   per-dispatcher handlers are handled first
-        -   afterwards all the current context handlers (first
-            thread bound, then application bound) until one of the
-            handlers is set up to not bubble up
+        -   afterwards all the current context handlers in the
+            order they were pushed
+
+        Before the first handler is invoked, the record is processed
+        (:meth:`process_record`).
         """
         # for performance reasons records are only processed if at
         # least one of the handlers has a higher level than the
@@ -646,11 +688,14 @@ class RecordDispatcher(object):
                     break
 
     def process_record(self, record):
-        """Called before handling the record.  This can be used to stuff
-        additional information into a log record.
+        """Processes the record with all context specific processors.  This
+        can be overriden to also inject additional information as necessary
+        that can be provided by this record dispatcher.
         """
         if self.group is not None:
             self.group.process_record(record)
+        for processor in Processor.iter_context_objects():
+            processor(record)
 
 
 class Logger(RecordDispatcher, LoggerMixin):
@@ -719,7 +764,7 @@ class log_warnings_to(object):
             self._logger.warning(formatted)
         warnings.showwarning = showwarning
 
-    def __exit__(self, *exc_info):
+    def __exit__(self, exc_type, exc_value, tb):
         if not self._entered:
             raise RuntimeError("Cannot exit %r without entering first" % self)
         if self._save_filters:
