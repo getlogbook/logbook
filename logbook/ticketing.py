@@ -199,7 +199,7 @@ class TicketingDatabaseHandler(Handler):
         if record.module:
             hash.update('\x00' + record.module)
         if self.hash_salt is not None:
-            self.hash.update('\x00' + self.hash_salt)
+            hash.update('\x00' + self.hash_salt)
         return hash.hexdigest()
 
     def process_record(self, record, hash):
