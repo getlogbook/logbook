@@ -17,7 +17,7 @@ import threading
 import traceback
 from thread import get_ident as current_thread
 from contextlib import contextmanager
-from itertools import count
+from itertools import count, chain
 from weakref import ref as weakref
 from datetime import datetime
 
@@ -178,7 +178,7 @@ class _ContextObjectType(type):
         return iter(objects)
 
 
-class ContextObject(object):
+class _ContextObject(object):
     """An object that can be bound to a context."""
     __metaclass__ = _ContextObjectType
     _co_abstract = True
@@ -289,7 +289,7 @@ class NestedSetup(object):
         self.pop_thread()
 
 
-class Processor(ContextObject):
+class Processor(_ContextObject):
     """Can be pushed to a stack to inject additional information into
     a log record as necessary::
 
@@ -303,14 +303,15 @@ class Processor(ContextObject):
     _co_abstract = False
 
     def __init__(self, callback=None):
+        #: the callback that was passed to the constructor
         self.callback = callback
 
     def process(self, record):
+        """Called with the log record that should be overridden.  The default
+        implementation calls :attr:`callback` if it is not `None`.
+        """
         if self.callback is not None:
             self.callback(record)
-
-    def __call__(self, record):
-        self.process(record)
 
 
 class LogRecord(object):
@@ -545,7 +546,9 @@ class LoggerMixin(object):
         if WARNING >= self.level:
             self._log(WARNING, args, kwargs)
 
-    warning = warn
+    def warning(self, *args, **kwargs):
+        """ALias for :meth:`warn`."""
+        return self.warn(*args, **kwargs)
 
     def notice(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
@@ -657,17 +660,10 @@ class RecordDispatcher(object):
         # record.
         record_processed = False
 
-        # logger attached handlers are always handled and before the
-        # context specific handlers are running.  There is no way to
-        # disable those unless by removing the handlers.  They will
-        # always bubble
-        for handler in self.handlers:
-            if record.level >= handler.level:
-                handler.handle(record)
-
-        # after that, context specific handlers run (this includes the
-        # global handlers)
-        for handler in Handler.iter_context_objects():
+        # Both logger attached handlers as well as context specific
+        # handlers are handled one after another.  The latter also
+        # include global handlers.
+        for handler in chain(self.handlers, Handler.iter_context_objects()):
             if record.level >= handler.level:
                 # we are about to handle the record.  If it was not yet
                 # processed by context-specific record processors we
@@ -695,7 +691,7 @@ class RecordDispatcher(object):
         if self.group is not None:
             self.group.process_record(record)
         for processor in Processor.iter_context_objects():
-            processor(record)
+            processor.process(record)
 
 
 class Logger(RecordDispatcher, LoggerMixin):
