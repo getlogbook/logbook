@@ -35,3 +35,4 @@ Release date to be announced.
 - the traceback is removed from a log record after the record
   was closed now.  The formatted traceback is a cached property
   instead of a function.
+- added ticketing handlers that send logs directly into a database.

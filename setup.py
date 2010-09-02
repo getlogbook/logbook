@@ -20,7 +20,7 @@ Works for web apps too
 
 ::
 
-    from logbook import MailHandler
+    from logbook import MailHandler, Processor
 
     mailhandler = MailHandler(from_addr='servererror@example.com',
                               recipients=['admin@example.com'],
@@ -46,9 +46,10 @@ Works for web apps too
             record.extra['method'] = request.method
             record.extra['path'] = request.path
 
-        with mailhandler.threadbound(processor=inject_extra):
-            # execute code that might fail in the context of the
-            # request.
+        with Processor(inject_extra):
+            with mailhandler:
+                # execute code that might fail in the context of the
+                # request.
 """
 
 from setuptools import setup
@@ -65,5 +66,9 @@ setup(
     packages=['logbook'],
     zip_safe=False,
     platforms='any',
+    tests_require='''
+        SQLAlchemy>=0.6
+
+    ''',
     test_suite='test_logbook',
 )

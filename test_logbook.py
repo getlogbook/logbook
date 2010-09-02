@@ -3,6 +3,7 @@ import logbook
 import os
 import re
 import sys
+import thread
 import pickle
 import shutil
 import unittest
@@ -656,6 +657,41 @@ class MoreTestCase(LogbookTestCase):
             with handler:
                 self.log.info('info')
             self.assert_('testlogger/INFO' in handler.formatted_records)
+
+
+class TicketingTestCase(LogbookTestCase):
+
+    def test_basic_ticketing(self):
+        from logbook.ticketing import TicketingDatabaseHandler
+        handler = TicketingDatabaseHandler('sqlite:///')
+        with handler:
+            for x in xrange(5):
+                self.log.warn('A warning')
+                self.log.info('An error')
+                if x < 2:
+                    with self.log.catch_exceptions():
+                        1/0
+
+        self.assertEqual(handler.db.count_tickets(), 3)
+        tickets = handler.db.get_tickets()
+        self.assertEqual(len(tickets), 3)
+        self.assertEqual(tickets[0]['level'], logbook.INFO)
+        self.assertEqual(tickets[1]['level'], logbook.WARNING)
+        self.assertEqual(tickets[2]['level'], logbook.ERROR)
+        self.assertEqual(tickets[0]['occurrence_count'], 5)
+        self.assertEqual(tickets[1]['occurrence_count'], 5)
+        self.assertEqual(tickets[2]['occurrence_count'], 2)
+
+        occurrences = handler.db.get_occurrences(tickets[2]['ticket_id'])
+        self.assertEqual(len(occurrences), 2)
+        data = occurrences[0]['data']
+        self.assert_('test_logbook.py' in data['filename'])
+        self.assertEqual(data['func_name'], 'test_basic_ticketing')
+        self.assertEqual(data['level'], logbook.ERROR)
+        self.assertEqual(data['thread'], thread.get_ident())
+        self.assertEqual(data['process'], os.getpid())
+        self.assertEqual(data['logger_name'], 'testlogger')
+        self.assert_('1/0' in data['formatted_exception'])
 
 
 if __name__ == '__main__':
