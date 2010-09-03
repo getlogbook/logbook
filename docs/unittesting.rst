@@ -76,7 +76,7 @@ arguments:
     If provided and not `None` it will check if there is at least one log
     record where the message matches.
 
-`logger_name`
+`channel`
     If provided and not `None` it will check if there is at least one log
     record where the logger name of the record matches.
 
@@ -84,7 +84,7 @@ Example usage:
 
 >>> handler.has_warning('A different message')
 False
->>> handler.has_warning('Hello World', logger_name='Testing')
+>>> handler.has_warning('Hello World', channel='Testing')
 True
->>> handler.has_warning(logger_name='Testing')
+>>> handler.has_warning(channel='Testing')
 True

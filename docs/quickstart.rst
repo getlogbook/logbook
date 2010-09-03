@@ -157,7 +157,7 @@ You can override this attribute in which case a new string formatter is set:
 
 >>> from logbook import StderrHandler
 >>> handler = StderrHandler()
->>> handler.format_string = '{record.logger_name}: {record.message}'
+>>> handler.format_string = '{record.channel}: {record.message}'
 >>> handler.formatter
 <logbook.handlers.StringFormatter object at 0x100641b90>
 
@@ -179,7 +179,7 @@ Here is an example configuration that shows the current working directory from
 the example in the previous section::
 
     handler = StderrHandler(format_string=
-        '{record.logger_name}: {record.message) [{record.extra[cwd]}]')
+        '{record.channel}: {record.message) [{record.extra[cwd]}]')
 
 In the :mod:`~logbook.more` module there is a formatter that uses the Jinja2
 template engine to format log records, especially useful for multi-line log
