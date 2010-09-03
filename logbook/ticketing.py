@@ -202,24 +202,8 @@ class TicketingDatabase(object):
                 .limit(limit).offset(offset)).fetchall()]
 
 
-class TicketingDatabaseHandler(Handler):
-    """A handler that writes log records into a remote database.  This
-    database can be connected to from different dispatchers which makes
-    this a nice setup for web applications::
-
-        from logbook.ticketing import TicketingDatabaseHandler
-        handler = TicketingDatabaseHandler('sqlite:////tmp/myapp-logs.db')
-    """
-
-    def __init__(self, engine_or_uri, app_id='generic', table_prefix='logbook_',
-                 metadata=None, autocreate_tables=True, hash_salt=None,
-                 level=NOTSET, filter=None, bubble=False):
-        Handler.__init__(self, level, filter, bubble)
-        self.db = TicketingDatabase(engine_or_uri, table_prefix, metadata)
-        self.app_id = app_id
-        self.hash_salt = hash_salt or app_id.encode('utf-8')
-        if autocreate_tables:
-            self.db.metadata.create_all(bind=self.db.engine)
+class TicketingBaseHandler(Handler):
+    """Baseclass for all ticketing handlers."""
 
     def hash_record(self, record):
         """Returns the unique hash of a record."""
@@ -240,8 +224,37 @@ class TicketingDatabaseHandler(Handler):
         """
         return record.to_dict(json_safe=True)
 
+    def record_ticket(self, record, data, hash):
+        """Has to be implemented by subclasses and record either a new
+        ticket or a new occurrence for a ticket based on the hash.
+        """
+        raise NotImplementedError()
+
     def emit(self, record):
         """Emits a single record and writes it to the database."""
         hash = self.hash_record(record)
         data = self.process_record(record, hash)
+        self.record_ticket(record, data, hash)
+
+
+class TicketingDatabaseHandler(TicketingBaseHandler):
+    """A handler that writes log records into a remote database.  This
+    database can be connected to from different dispatchers which makes
+    this a nice setup for web applications::
+
+        from logbook.ticketing import TicketingDatabaseHandler
+        handler = TicketingDatabaseHandler('sqlite:////tmp/myapp-logs.db')
+    """
+
+    def __init__(self, engine_or_uri, app_id='generic', table_prefix='logbook_',
+                 metadata=None, autocreate_tables=True, hash_salt=None,
+                 level=NOTSET, filter=None, bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+        self.db = TicketingDatabase(engine_or_uri, table_prefix, metadata)
+        self.app_id = app_id
+        self.hash_salt = hash_salt or app_id.encode('utf-8')
+        if autocreate_tables:
+            self.db.metadata.create_all(bind=self.db.engine)
+
+    def record_ticket(self, record, data, hash):
         self.db.record_ticket(record, data, hash, self.app_id)
