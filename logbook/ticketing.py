@@ -9,8 +9,8 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-
 import hashlib
+from time import time
 from logbook.base import NOTSET, cached_property, _level_name_property, \
      LogRecord
 from logbook.handlers import Handler
@@ -39,7 +39,7 @@ class Ticket(object):
 
     def get_occurrences(self, order_by='-time', limit=50, offset=0):
         """Returns the occurrences for this ticket."""
-        return self.db.get_occurrences(self.ticket_id)
+        return self.db.get_occurrences(self.ticket_id, order_by, limit, offset)
 
     def solve(self):
         """Marks this ticket as solved."""
@@ -52,8 +52,6 @@ class Ticket(object):
 
     def __eq__(self, other):
         equal = True
-        if type(other) != type(self):
-            return False
         for key in self.__dict__.keys():
             if getattr(self, key) != getattr(other, key):
                 equal = False
@@ -111,7 +109,7 @@ class SQLAlchemyBackend(DatabaseBackend):
 
     def setup_backend(self):
         from sqlalchemy import create_engine, MetaData
-        engine_or_uri = self.options.pop('engine_or_uri', None)
+        engine_or_uri = self.options.pop('uri', None)
         metadata = self.options.pop('metadata', None)
         table_prefix = self.options.pop('table_prefix', 'logbook_')
 
@@ -237,6 +235,134 @@ class SQLAlchemyBackend(DatabaseBackend):
                 .limit(limit).offset(offset)).fetchall()]
 
 
+class MongoDBBackend(DatabaseBackend):
+    """Provides access to the database the :class:`TicketingDatabaseHandler`
+    is using.
+    """
+
+    class _FixedTicketClass(Ticket):
+        @property
+        def ticket_id(self):
+            return self._id
+
+    class _FixedOccurrenceClass(Occurrence):
+        def __init__(self, db, row):
+            self.update_from_dict(json.loads(row['data']))
+            self.db = db
+            self.time = row['time']
+            self.ticket_id = row['ticket_id']
+            self.occurrence_id = row['_id']
+
+    #TODO: Update connection setup once PYTHON-160 is solved.
+    def setup_backend(self):
+        from pymongo.connection import Connection, _parse_uri
+        from pymongo.errors import AutoReconnect
+
+        _connection = None
+        uri = self.options.pop('uri', u'')
+        _connection_attempts = 0
+
+        hosts, database, user, password = _parse_uri(uri, Connection.PORT)
+
+        # Handle auto reconnect signals properly
+        while _connection_attempts < 5:
+            try:
+                if _connection is None:
+                    _connection = Connection(uri)
+                database = _connection[database]
+                break
+            except AutoReconnect:
+                _connection_attempts += 1
+                time.sleep(0.1)
+
+        self.database = database
+
+    def _order(self, q, order_by):
+        from pymongo import ASCENDING, DESCENDING
+        col = '%s' % (order_by[1:] if order_by[0] == '-' else order_by)
+        if order_by[0] == '-':
+            return q.sort(col, DESCENDING)
+        return q.sort(col, ASCENDING)
+
+    def _oid(self, ticket_id):
+        from pymongo.objectid import ObjectId
+        return ObjectId(ticket_id)
+
+    def record_ticket(self, record, data, hash, app_id):
+        """Records a log record as ticket."""
+        db = self.database
+        try:
+            ticket = db.tickets.find_one({'record_hash': hash})
+            if not ticket:
+                doc = {'record_hash': hash,
+                       'level': record.level,
+                       'logger_name': record.logger_name or u'',
+                       'location': u'%s:%d' % (record.filename, record.lineno),
+                       'module': record.module or u'<unknown>',
+                       'orrucrence_count': 0,
+                       'solved': False,
+                       'app_id': app_id,
+                       'occurrences': []}
+                ticket_id = db.tickets.insert(doc)
+            else:
+                ticket_id = ticket['_id']
+
+            db.tickets.update({'_id': ticket_id}, {
+                '$push': {'occurrences': {
+                    'app_id': app_id,
+                    'data': json.dumps(data),
+                    'time': record.time}},
+                '$inc': {'occurrence_count': 1},
+                '$set': {'last_occurrence_time': record.time,
+                         'solved': False}
+            })
+            # We store occurrences in a seperate collection so that
+            # we can make it a capped collection optionally.
+            db.occurrences.insert({
+                'ticket_id': self._oid(ticket_id),
+                'app_id': app_id,
+                'time': record.time,
+                'data': json.dumps(data),
+            })
+        except Exception:
+            raise
+
+    def count_tickets(self):
+        """Returns the number of tickets."""
+        return self.database.tickets.find().count()
+
+    def get_tickets(self, order_by='-last_occurrence_time', limit=50, offset=0):
+        """Selects tickets from the database."""
+        query = self._order(self.database.tickets.find(), order_by) \
+                    .limit(limit).skip(offset)
+        return [self._FixedTicketClass(self, obj) for obj in query]
+
+
+    def solve_ticket(self, ticket_id):
+        """Marks a ticket as solved."""
+        self.database.tickets.update({'_id': self._oid(ticket_id)},
+                                     {'solved': True})
+
+    def delete_ticket(self, ticket_id):
+        """Deletes a ticket from the database."""
+        self.database.occurrences.remove({'ticket_id': self._oid(ticket_id)})
+        self.database.tickets.remove({'_id': self._oid(ticket_id)})
+
+    def get_ticket(self, ticket_id):
+        """Return a single ticket with all occurrences."""
+        ticket = self.database.tickets.find_one({'_id': self._oid(ticket_id)})
+        if ticket:
+            return Ticket(self, ticket)
+
+    def get_occurrences(self, ticket, order_by='-time', limit=50, offset=0):
+        """Selects occurrences from the database for a ticket."""
+        collection = self.database.occurrences
+        occurrences = self._order(collection.find(
+            {'ticket_id': self._oid(ticket)}
+        ), order_by).limit(limit).skip(offset)
+        return [self._FixedOccurrenceClass(self, obj) for obj in occurrences]
+
+
 class TicketingDatabaseHandler(Handler):
     """A handler that writes log records into a remote database.  This
     database can be connected to from different dispatchers which makes
@@ -248,13 +374,13 @@ class TicketingDatabaseHandler(Handler):
 
     _default_backend = SQLAlchemyBackend
 
-    def __init__(self, engine_or_uri, app_id='generic', level=NOTSET,
+    def __init__(self, uri, app_id='generic', level=NOTSET,
                  filter=None, bubble=False, hash_salt=None, backend=None,
                  **db_options):
         Handler.__init__(self, level, filter, bubble)
         if backend is None:
             backend = self._default_backend
-        db_options['engine_or_uri'] = engine_or_uri
+        db_options['uri'] = uri
         self.set_backend(backend, **db_options)
         self.app_id = app_id
         self.hash_salt = hash_salt or app_id.encode('utf-8')
