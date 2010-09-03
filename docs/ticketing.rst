@@ -1,11 +1,14 @@
-Ticketing Logging
-=================
+Logging to Tickets
+==================
 
 Logbook supports the concept of creating unique tickets for log records
 and keeping track of the number of times these log records were created.
 The default implementation logs into a relational database, but there is a
 baseclass that can be subclassed to log into existing ticketing systems
 such as trac or other data stores.
+
+The ticketing handlers and store backends are all implemented in the
+module :mod:`logbook.ticketing`.
 
 How does it work?
 -----------------
@@ -40,12 +43,12 @@ Common Setups
 -------------
 
 The builtin ticketing handler is called
-:class:`logbook.ticketing.TicketingHandler`.  It will connect to a
-relational database with the help of `SQLAlchemy`_ and log into two tables
-there: tickets go into ``${prefix}tickets`` and occurrences go into
-``${prefix}occurrences``.  The default table prefix is ``'logbook_'`` but
-can be overriden.  If the tables do not exist already, the handler will
-create them.
+:class:`~logbook.ticketing.TicketingHandler`.  In the default configuration
+it will connect to a relational database with the help of `SQLAlchemy`_
+and log into two tables there: tickets go into ``${prefix}tickets`` and
+occurrences go into ``${prefix}occurrences``.  The default table prefix is
+``'logbook_'`` but can be overriden.  If the tables do not exist already,
+the handler will create them.
 
 Here an example setup that logs into a postgres database::
 
@@ -57,5 +60,9 @@ Here an example setup that logs into a postgres database::
         # everything in this block and thread will be handled by
         # the ticketing database handler
         ...
+
+Alternative backends can be swapped in by providing the `backend`
+parameter.  There is a second implementation of a backend that is using
+MongoDB: :class:`~logbook.ticketing.MongoDBBackend`.
 
 .. _SQLAlchemy: http://sqlalchemy.org/
