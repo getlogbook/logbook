@@ -738,8 +738,17 @@ class TicketingTestCase(LogbookTestCase):
         self.assertEqual(tickets[0].occurrence_count, 5)
         self.assertEqual(tickets[1].occurrence_count, 5)
         self.assertEqual(tickets[2].occurrence_count, 2)
+        self.assertEqual(tickets[0].last_occurrence.level, logbook.INFO)
 
-        occurrences = handler.db.get_occurrences(tickets[2].ticket_id)
+        tickets[0].solve()
+        self.assert_(tickets[0].solved)
+        tickets[0].delete()
+
+        ticket = handler.db.get_ticket(tickets[1].ticket_id)
+        self.assertEqual(ticket, tickets[1])
+
+        occurrences = handler.db.get_occurrences(tickets[2].ticket_id,
+                                                 order_by='time')
         self.assertEqual(len(occurrences), 2)
         record = occurrences[0]
         self.assert_('test_logbook.py' in record.filename)
