@@ -25,6 +25,7 @@ Documentation
    quickstart
    setups
    unittesting
+   ticketing
    compat
    api
    designdefense
