@@ -66,9 +66,10 @@ class BasicAPITestCase(LogbookTestCase):
                 record.extra['ip'] = client_ip
 
         custom_log = CustomLogger('awesome logger')
-        handler = logbook.TestHandler(format_string=
-            '[{record.level_name}] {record.logger_name}: '
-            '{record.message} [{record.extra[ip]}]')
+        fmt = '[{record.level_name}] {record.logger_name}: ' \
+              '{record.message} [{record.extra[ip]}]'
+        handler = logbook.TestHandler(format_string=fmt)
+        self.assertEqual(handler.format_string, fmt)
 
         with handler.threadbound():
             custom_log.warn('Too many sounds')
@@ -78,6 +79,18 @@ class BasicAPITestCase(LogbookTestCase):
             '[WARNING] awesome logger: Too many sounds [127.0.0.1]',
             '[WARNING] testlogger: "Music" playing []'
         ])
+
+    def test_handler_exception(self):
+        class ErroringHandler(logbook.TestHandler):
+            def emit(self, record):
+                raise RuntimeError('something bad happened')
+
+        handler = ErroringHandler()
+        with capture_stderr() as stderr:
+            with handler:
+                self.log.warn('I warn you.')
+            self.assert_('something bad happened' in stderr.getvalue())
+            self.assert_('I warn you' not in stderr.getvalue())
 
     def test_formatting_exception(self):
         def make_record():
@@ -270,28 +283,25 @@ class HandlerTestCase(LogbookTestCase):
             self.assert_('This is not mailed' in fallback.getvalue())
 
     def test_syslog_handler(self):
-        inc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        inc.bind(('127.0.0.1', 0))
-        inc.settimeout(1)
-        handler = logbook.SyslogHandler(address=inc.getsockname(),
-                                        )
-        with handler:
-            self.log.warn('Syslog is weird')
-        try:
-            rv = inc.recvfrom(1024)[0]
-        except socket.error:
-            self.fail('got timeout on socket')
-        self.assertEqual(rv, '<12>testlogger: Syslog is weird\x00')
-
-        handler = logbook.SyslogHandler('Testing', inc.getsockname(),
-                                        )
-        with handler:
-            self.log.warn('Syslog is weird')
-        try:
-            rv = inc.recvfrom(1024)[0]
-        except socket.error:
-            self.fail('got timeout on socket')
-        self.assertEqual(rv, '<12>Testing:testlogger: Syslog is weird\x00')
+        to_test = [
+            (socket.AF_INET, ('127.0.0.1', 0)),
+        ]
+        if hasattr(socket, 'AF_UNIX'):
+            to_test.append((socket.AF_UNIX, self.filename))
+        for sock_family, address in to_test:
+            inc = socket.socket(sock_family, socket.SOCK_DGRAM)
+            inc.bind(address)
+            inc.settimeout(1)
+            for app_name in [None, 'Testing']:
+                handler = logbook.SyslogHandler(app_name, inc.getsockname())
+                with handler:
+                    self.log.warn('Syslog is weird')
+                try:
+                    rv = inc.recvfrom(1024)[0]
+                except socket.error:
+                    self.fail('got timeout on socket')
+                    self.assertEqual(rv, '<12>testlogger: Syslog is weird\x00'
+                                     % (app_name and app_name + ':' or ''))
 
     def test_handler_processors(self):
         handler = make_fake_mail_handler(format_string='''\
@@ -587,6 +597,9 @@ class MoreTestCase(LogbookTestCase):
             self.assert_(handlers[0].has_infos)
             self.assert_(handlers[0].has_warnings)
             self.assert_(handlers[0].has_errors)
+            self.assert_(not handlers[0].has_notices)
+            self.assert_(not handlers[0].has_criticals)
+            self.assert_(not handlers[0].has_debugs)
 
         with make_fch():
             self.log.info('some info')
