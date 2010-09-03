@@ -719,8 +719,8 @@ class MoreTestCase(LogbookTestCase):
 class TicketingTestCase(LogbookTestCase):
 
     def test_basic_ticketing(self):
-        from logbook.ticketing import TicketingDatabaseHandler
-        handler = TicketingDatabaseHandler('sqlite:///')
+        from logbook.ticketing import TicketingHandler
+        handler = TicketingHandler('sqlite:///')
         with handler:
             for x in xrange(5):
                 self.log.warn('A warning')

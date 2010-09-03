@@ -40,7 +40,7 @@ Common Setups
 -------------
 
 The builtin ticketing handler is called
-:class:`logbook.ticketing.TicketingDatabaseHandler`.  It will connect to a
+:class:`logbook.ticketing.TicketingHandler`.  It will connect to a
 relational database with the help of `SQLAlchemy`_ and log into two tables
 there: tickets go into ``${prefix}tickets`` and occurrences go into
 ``${prefix}occurrences``.  The default table prefix is ``'logbook_'`` but
@@ -50,8 +50,8 @@ create them.
 Here an example setup that logs into a postgres database::
 
     from logbook import ERROR
-    from logbook.ticketing import TicketingDatabaseHandler
-    handler = TicketingDatabaseHandler('postgres://localhost/database',
+    from logbook.ticketing import TicketingHandler
+    handler = TicketingHandler('postgres://localhost/database',
                                        level=ERROR)
     with handler:
         # everything in this block and thread will be handled by

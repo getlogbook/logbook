@@ -137,11 +137,15 @@ Ticketing Support
 .. autoclass:: TicketingBaseHandler
    :members:
 
-.. autoclass:: TicketingDatabaseHandler
+.. autoclass:: TicketingHandler
    :members:
 
-.. autoclass:: TicketingDatabase
+.. autoclass:: BackendBase
    :members:
+
+.. autoclass:: SQLAlchemyBackend
+
+.. autoclass:: MongoDBBackend
 
 
 Logging Compatibility

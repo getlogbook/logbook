@@ -73,7 +73,7 @@ class Occurrence(LogRecord):
         self.occurrence_id = row['occurrence_id']
 
 
-class DatabaseBackend(object):
+class BackendBase(object):
     """Provides an abstract interface to various databases."""
 
     def __init__(self, **options):
@@ -105,18 +105,20 @@ class DatabaseBackend(object):
         """Selects occurrences from the database for a ticket."""
 
 
-class SQLAlchemyBackend(DatabaseBackend):
-    """Provides access to the database the :class:`TicketingDatabaseHandler`
-    is using.
+class SQLAlchemyBackend(BackendBase):
+    """Implements a backend that is writing into a database SQLAlchemy can
+    interface.
 
-    This backend takes some additional options::
+    This backend takes some additional options:
 
-    table_prefix
+    `table_prefix`
         an optional table prefix for all tables created by
         the logbook ticketing handler.
-    metadata
+
+    `metadata`
         an optional SQLAlchemy metadata object for the table creation.
-    autocreate_tables
+
+    `autocreate_tables`
         can be set to `False` to disable the automatic
         creation of the logbook tables.
 
@@ -250,10 +252,8 @@ class SQLAlchemyBackend(DatabaseBackend):
                 .limit(limit).offset(offset)).fetchall()]
 
 
-class MongoDBBackend(DatabaseBackend):
-    """Provides access to the database the :class:`TicketingDatabaseHandler`
-    is using.
-    """
+class MongoDBBackend(BackendBase):
+    """Implements a backend that writes into a MongoDB database."""
 
     class _FixedTicketClass(Ticket):
         @property
@@ -378,40 +378,17 @@ class MongoDBBackend(DatabaseBackend):
         return [self._FixedOccurrenceClass(self, obj) for obj in occurrences]
 
 
-class TicketingDatabaseHandler(Handler):
-    """A handler that writes log records into a remote database.  This
-    database can be connected to from different dispatchers which makes
-    this a nice setup for web applications::
-
-        from logbook.ticketing import TicketingDatabaseHandler
-        handler = TicketingDatabaseHandler('sqlite:////tmp/myapp-logs.db')
-
-    :param uri: a backend specific string or object to decide where to log to.
-    :param app_id: a string with an optional ID for an application.  Can be
-                   used to keep multiple application setups apart when logging
-                   into the same database.
-    :param hash_salt: an optional salt (binary string) for the hashes.
-    :param backend: A backend class that implements the proper database handling.
-                    Backends available are: :cls:`SQLAlchemyBackend`,
-                    :cls:`MongoDBBackend`.
-
+class TicketingBaseHandler(Handler):
+    """Baseclass for ticketing handlers.  This can be used to interface
+    ticketing systems that do not necessarily provide an interface that
+    would be compatible with the :class:`BackendBase` interface.
     """
 
-    _default_backend = SQLAlchemyBackend
-
-    def __init__(self, uri, app_id='generic', level=NOTSET,
-                 filter=None, bubble=False, hash_salt=None, backend=None,
-                 **db_options):
-        Handler.__init__(self, level, filter, bubble)
-        if backend is None:
-            backend = self._default_backend
-        db_options['uri'] = uri
-        self.set_backend(backend, **db_options)
-        self.app_id = app_id
-        self.hash_salt = hash_salt or app_id.encode('utf-8')
-
-    def set_backend(self, cls, **options):
-        self.db = cls(**options)
+    def record_ticket(self, record, data, hash):
+        """Subclasses have to override this to implement the actual logic
+        of creating a ticket or new occurrence for an existing ticket.
+        """
+        raise NotImplementedError()
 
     def hash_record(self, record):
         """Returns the unique hash of a record."""
@@ -432,14 +409,52 @@ class TicketingDatabaseHandler(Handler):
         """
         return record.to_dict(json_safe=True)
 
-    def record_ticket(self, record, data, hash):
-        """Record either a new ticket or a new occurrence for a
-        ticket based on the hash.
-        """
-        self.db.record_ticket(record, data, hash, self.app_id)
-
     def emit(self, record):
         """Emits a single record and writes it to the database."""
         hash = self.hash_record(record)
         data = self.process_record(record, hash)
         self.record_ticket(record, data, hash)
+
+
+class TicketingHandler(TicketingBaseHandler):
+    """A handler that writes log records into a remote database.  This
+    database can be connected to from different dispatchers which makes
+    this a nice setup for web applications::
+
+        from logbook.ticketing import TicketingHandler
+        handler = TicketingHandler('sqlite:////tmp/myapp-logs.db')
+
+    :param uri: a backend specific string or object to decide where to log to.
+    :param app_id: a string with an optional ID for an application.  Can be
+                   used to keep multiple application setups apart when logging
+                   into the same database.
+    :param hash_salt: an optional salt (binary string) for the hashes.
+    :param backend: A backend class that implements the proper database handling.
+                    Backends available are: :class:`SQLAlchemyBackend`,
+                    :class:`MongoDBBackend`.
+    """
+
+    #: The default backend that is being used when no backend is specified.
+    #: Unless overriden by a subclass this will be the
+    #: :class:`SQLAlchemyBackend`.
+    default_backend = SQLAlchemyBackend
+
+    def __init__(self, uri, app_id='generic', level=NOTSET,
+                 filter=None, bubble=False, hash_salt=None, backend=None,
+                 **db_options):
+        TicketingBaseHandler.__init__(self, level, filter, bubble)
+        if backend is None:
+            backend = self.default_backend
+        db_options['uri'] = uri
+        self.set_backend(backend, **db_options)
+        self.app_id = app_id
+        self.hash_salt = hash_salt or app_id.encode('utf-8')
+
+    def set_backend(self, cls, **options):
+        self.db = cls(**options)
+
+    def record_ticket(self, record, data, hash):
+        """Record either a new ticket or a new occurrence for a
+        ticket based on the hash.
+        """
+        self.db.record_ticket(record, data, hash, self.app_id)
