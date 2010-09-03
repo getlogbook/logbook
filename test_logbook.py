@@ -70,6 +70,21 @@ class BasicAPITestCase(LogbookTestCase):
             '[WARNING] testlogger: This is a warning.  Nice hah?'
         ])
 
+    def test_extradict(self):
+        handler = logbook.TestHandler()
+        with handler:
+            self.log.warn('Test warning')
+        record = handler.records[0]
+        record.extra['existing'] = 'foo'
+        self.assertEqual(record.extra['nonexisting'], '')
+        self.assertEqual(record.extra['existing'], 'foo')
+        self.assertEqual(repr(record.extra),
+                         'ExtraDict({\'existing\': \'foo\'})')
+
+    def test_lookup_helpers(self):
+        self.assertRaises(LookupError, logbook.get_level_name, 37)
+        self.assertRaises(LookupError, logbook.lookup_level, 'FOO')
+
     def test_custom_logger(self):
         client_ip = '127.0.0.1'
         class CustomLogger(logbook.Logger):
@@ -395,8 +410,8 @@ Message:
             handlers = logbook.NestedSetup([
                 logbook.NullHandler(),
                 test_handler,
-                mail_handler
             ])
+            handlers.add(mail_handler)
 
             with handlers:
                 logger.warn('This is a warning')
@@ -412,6 +427,12 @@ Message:
             self.assert_('1/0' in mail_handler.mails[1][2])
             self.assert_('And here we go straight back to stderr'
                          in captured.getvalue())
+
+            with handlers.threadbound():
+                logger.warn('threadbound warning')
+
+            with handlers.applicationbound():
+                logger.warn('applicationbound warning')
 
     def test_channel(self):
         logger = logbook.Logger('App')
@@ -494,6 +515,7 @@ class AttributeTestCase(LogbookTestCase):
     def test_reflected_properties(self):
         group = logbook.LoggerGroup()
         group.add_logger(self.log)
+        self.assertEqual(self.log.group, group)
         group.level = logbook.ERROR
         self.assertEqual(self.log.level, logbook.ERROR)
         self.assertEqual(self.log.level_name, 'ERROR')
@@ -504,6 +526,8 @@ class AttributeTestCase(LogbookTestCase):
         group.level = logbook.DEBUG
         self.assertEqual(self.log.level, logbook.CRITICAL)
         self.assertEqual(self.log.level_name, 'CRITICAL')
+        group.remove_logger(self.log)
+        self.assertEqual(self.log.group, None)
 
 
 class LoggerGroupTestCase(LogbookTestCase):

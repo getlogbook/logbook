@@ -258,7 +258,7 @@ class NestedSetup(object):
 
     def pop_application(self):
         for obj in reversed(self.objects):
-            self.pop_application()
+            obj.pop_application()
 
     def push_thread(self):
         for obj in self.objects:
@@ -541,7 +541,7 @@ class LogRecord(object):
         # to run when multiprocessing calls import. See issue 8200
         # for an example
         mp = sys.modules.get('multiprocessing')
-        if mp is not None:
+        if mp is not None:  # pragma: no cover
             try:
                 return mp.current_process().name
             except Exception:
