@@ -41,7 +41,7 @@ class TaggingLogger(RecordDispatcher):
         RecordDispatcher.__init__(self, name)
         # create a method for each tag named
         list(setattr(self, tag, lambda msg, *args, **kwargs:
-                     self.log(tag, msg, *args, **kwargs)) for tag in (tags or ()))
+            self.log(tag, msg, *args, **kwargs)) for tag in (tags or ()))
 
     def log(self, tags, msg, *args, **kwargs):
         if isinstance(tags, basestring):

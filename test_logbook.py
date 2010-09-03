@@ -3,6 +3,7 @@ import logbook
 
 import os
 import re
+import new
 import sys
 import thread
 import pickle
@@ -26,6 +27,15 @@ def capture_stderr():
         yield sys.stderr
     finally:
         sys.stderr = old
+
+@contextmanager
+def unimport_module(name):
+    old = sys.modules[name]
+    sys.modules[name] = new.module('jinja2')
+    try:
+        yield
+    finally:
+        sys.modules[name] = old
 
 
 def make_fake_mail_handler(**kwargs):
@@ -563,6 +573,7 @@ class MoreTestCase(LogbookTestCase):
             with capture_stderr() as captured:
                 self.log.info('some info')
             self.assertEqual(captured.getvalue(), '')
+            self.assert_(not handler.triggered)
 
         # but if it does, all log messages are output
         with handler:
@@ -574,6 +585,7 @@ class MoreTestCase(LogbookTestCase):
             self.assert_('some info' in logs)
             self.assert_('something happened' in logs)
             self.assert_('something else happened' in logs)
+            self.assert_(handler.triggered)
 
     def test_fingerscrossed_factory(self):
         from logbook.more import FingersCrossedHandler
@@ -664,6 +676,9 @@ class MoreTestCase(LogbookTestCase):
             # at least check the RuntimeError is raised
             self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
         else:
+            # also check RuntimeError is raised
+            with unimport_module('jinja2'):
+                self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
             fmter = JinjaFormatter('{{ record.logger_name }}/'
                                    '{{ record.level_name }}')
             handler = logbook.TestHandler()
