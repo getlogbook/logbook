@@ -11,49 +11,14 @@
 """
 
 import hashlib
-from datetime import datetime
-from logbook.base import NOTSET, cached_property, _level_name_property
+from logbook.base import NOTSET, cached_property, _level_name_property, \
+     LogRecord
 from logbook.handlers import Handler
 
 try:
     import simplejson as json
 except ImportError:
     import json
-
-
-def to_safe_json(data):
-    """Makes a data structure safe for JSON silently discarding invalid
-    objects from nested structures.  This also converts dates.
-    """
-    _invalid = object()
-    def _convert(obj):
-        if obj is None:
-            return None
-        elif isinstance(obj, str):
-            return obj.decode('utf-8', 'replace')
-        elif isinstance(obj, (bool, int, long, float, unicode)):
-            return obj
-        elif isinstance(obj, datetime):
-            return obj.strftime('%Y-%m-%dT%H:%M:%SZ')
-        elif isinstance(obj, list):
-            return [x for x in map(_convert, obj) if x is not _invalid]
-        elif isinstance(obj, tuple):
-            return tuple(x for x in map(_convert, obj) if x is not _invalid)
-        elif isinstance(obj, dict):
-            rv = {}
-            for key, value in obj.iteritems():
-                value = _convert(value)
-                if value is not _invalid:
-                    if isinstance(key, str):
-                        key = key.decode('utf-8', 'replace')
-                    else:
-                        key = unicode(key)
-                    rv[key] = value
-            return rv
-        return _invalid
-    rv = _convert(data)
-    if rv is not _invalid:
-        return rv
 
 
 class Ticket(object):
@@ -86,13 +51,15 @@ class Ticket(object):
         self.db.delete_ticket(self.ticket_id)
 
 
-class Occurrence(object):
+class Occurrence(LogRecord):
     """Represents an occurrence of a ticket."""
 
     def __init__(self, db, row):
+        self.update_from_dict(json.loads(row['data']))
         self.db = db
-        self.__dict__.update(row)
-        self.data = json.loads(row['data'])
+        self.time = row['time']
+        self.ticket_id = row['ticket_id']
+        self.occurrence_id = row['occurrence_id']
 
 
 class TicketingDatabase(object):
@@ -258,7 +225,7 @@ class TicketingDatabaseHandler(Handler):
         """Subclasses can override this to tamper with the data dict that
         is sent to the database as JSON.
         """
-        return to_safe_json(record.to_dict())
+        return record.to_dict(json_safe=True)
 
     def emit(self, record):
         """Emits a single record and writes it to the database."""

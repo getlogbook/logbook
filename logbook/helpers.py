@@ -8,11 +8,23 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-import sys
 import os
+import re
+import sys
 import errno
 import time
 import random
+from datetime import datetime, timedelta
+
+
+# this regexp also matches incompatible dates like 20070101 because
+# some libraries (like the python xmlrpclib modules) use this
+_iso8601_re = re.compile(
+    # date
+    r'(\d{4})(?:-?(\d{2})(?:-?(\d{2}))?)?'
+    # time
+    r'(?:T(\d{2}):(\d{2})(?::(\d{2}(?:\.\d+)?))?(Z|[+-]\d{2}:\d{2})?)?$'
+)
 
 
 can_rename_open_file = False
@@ -94,3 +106,79 @@ if os.name == 'nt': # pragma: no cover
 else:
     rename = os.rename
     can_rename_open_file = True
+
+
+def to_safe_json(data):
+    """Makes a data structure safe for JSON silently discarding invalid
+    objects from nested structures.  This also converts dates.
+    """
+    _invalid = object()
+    def _convert(obj):
+        if obj is None:
+            return None
+        elif isinstance(obj, str):
+            return obj.decode('utf-8', 'replace')
+        elif isinstance(obj, (bool, int, long, float, unicode)):
+            return obj
+        elif isinstance(obj, datetime):
+            return format_iso8601(obj)
+        elif isinstance(obj, list):
+            return [x for x in map(_convert, obj) if x is not _invalid]
+        elif isinstance(obj, tuple):
+            return tuple(x for x in map(_convert, obj) if x is not _invalid)
+        elif isinstance(obj, dict):
+            rv = {}
+            for key, value in obj.iteritems():
+                value = _convert(value)
+                if value is not _invalid:
+                    if isinstance(key, str):
+                        key = key.decode('utf-8', 'replace')
+                    else:
+                        key = unicode(key)
+                    rv[key] = value
+            return rv
+        return _invalid
+    rv = _convert(data)
+    if rv is not _invalid:
+        return rv
+
+
+def format_iso8601(d=None):
+    """Returns a date in iso8601 format."""
+    if d is None:
+        d = datetime.utcnow()
+    return d.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def parse_iso8601(value):
+    """Parse an iso8601 date into a datetime object.  The timezone is
+    normalized to UTC.
+    """
+    m = _iso8601_re.match(value)
+    if m is None:
+        raise ValueError('not a valid iso8601 date value')
+
+    groups = m.groups()
+    args = []
+    for group in groups[:-2]:
+        if group is not None:
+            group = int(group)
+        args.append(group)
+    seconds = groups[-2]
+    if seconds is not None:
+        if '.' in seconds:
+            args.extend(map(int, seconds.split('.')))
+        else:
+            args.append(int(seconds))
+
+    rv = datetime(*args)
+    tz = groups[-1]
+    if tz and tz != 'Z':
+        args = map(int, tz[1:].split(':'))
+        delta = timedelta(hours=args[0], minutes=args[1])
+        if tz[0] == '+':
+            rv -= delta
+        else:
+            rv += delta
+
+    return rv

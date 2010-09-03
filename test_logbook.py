@@ -684,14 +684,14 @@ class TicketingTestCase(LogbookTestCase):
 
         occurrences = handler.db.get_occurrences(tickets[2].ticket_id)
         self.assertEqual(len(occurrences), 2)
-        data = occurrences[0].data
-        self.assert_('test_logbook.py' in data['filename'])
-        self.assertEqual(data['func_name'], 'test_basic_ticketing')
-        self.assertEqual(data['level'], logbook.ERROR)
-        self.assertEqual(data['thread'], thread.get_ident())
-        self.assertEqual(data['process'], os.getpid())
-        self.assertEqual(data['logger_name'], 'testlogger')
-        self.assert_('1/0' in data['formatted_exception'])
+        record = occurrences[0]
+        self.assert_('test_logbook.py' in record.filename)
+        self.assertEqual(record.func_name, 'test_basic_ticketing')
+        self.assertEqual(record.level, logbook.ERROR)
+        self.assertEqual(record.thread, thread.get_ident())
+        self.assertEqual(record.process, os.getpid())
+        self.assertEqual(record.logger_name, 'testlogger')
+        self.assert_('1/0' in record.formatted_exception)
 
 
 if __name__ == '__main__':

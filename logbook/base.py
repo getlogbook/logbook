@@ -20,6 +20,8 @@ from itertools import count, chain
 from weakref import ref as weakref
 from datetime import datetime
 
+from logbook.helpers import to_safe_json, parse_iso8601
+
 
 CRITICAL = 6
 ERROR = 5
@@ -398,7 +400,10 @@ class LogRecord(object):
         for key in self._noned_on_close:
             setattr(self, key, None)
 
-    def to_dict(self):
+    def __reduce_ex__(self, protocol):
+        return _create_log_record, (type(self), self.to_dict())
+
+    def to_dict(self, json_safe=False):
         """Exports the log record into a dictionary without the information
         that cannot be safely serialized like interpreter frames and
         tracebacks.
@@ -410,21 +415,31 @@ class LogRecord(object):
                 rv[key] = value
         # the extra dict is exported as regular dict
         rv['extra'] = dict(rv['extra'])
+        if json_safe:
+            return to_safe_json(rv)
         return rv
-
-    def __reduce_ex__(self, protocol):
-        return _create_log_record, (type(self), self.to_dict())
 
     @classmethod
     def from_dict(cls, d):
-        """Creates a log record from an exported dictionary."""
+        """Creates a log record from an exported dictionary.  This also
+        supports JSON exported dictionaries.
+        """
         rv = object.__new__(cls)
-        rv.__dict__.update(d)
-        for key in cls._noned_on_close:
-            setattr(rv, key, None)
-        rv._information_pulled = True
-        rv._channel = None
+        rv.update_from_dict(d)
         return rv
+
+    def update_from_dict(self, d):
+        """Like the :meth:`from_dict` classmethod, but will update the
+        instance in place.  Helpful for constructors.
+        """
+        self.__dict__.update(d)
+        for key in self._noned_on_close:
+            setattr(self, key, None)
+        self._information_pulled = True
+        self._channel = None
+        if isinstance(self.time, basestring):
+            self.time = parse_iso8601(self.time)
+        return self
 
     @cached_property
     def message(self):
@@ -447,10 +462,7 @@ class LogRecord(object):
                 lineno=self.lineno
             ))
 
-    @cached_property
-    def level_name(self):
-        """The name of the record's level."""
-        return get_level_name(self.level)
+    level_name = _level_name_property()
 
     @cached_property
     def calling_frame(self):
