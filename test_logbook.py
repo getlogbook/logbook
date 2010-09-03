@@ -542,7 +542,11 @@ class LoggingCompatTestCase(LogbookTestCase):
         logger = getLogger(name)
         with capture_stderr() as captured:
             with temporarily_redirected_logging():
+                logger.debug('This is from the old system')
+                logger.info('This is from the old system')
                 logger.warn('This is from the old system')
+                logger.error('This is from the old system')
+                logger.critical('This is from the old system')
             self.assert_(('WARNING: %s: This is from the old system' % name)
                          in captured.getvalue())
 

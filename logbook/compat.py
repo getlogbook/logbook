@@ -127,7 +127,7 @@ class log_warnings_to(object):
         self._entered = False
 
     def __enter__(self):
-        if self._entered:
+        if self._entered:  # pragma: no cover
             raise RuntimeError("Cannot enter %r twice" % self)
         self._entered = True
         self._filters = warnings.filters
@@ -141,7 +141,7 @@ class log_warnings_to(object):
         warnings.showwarning = showwarning
 
     def __exit__(self, exc_type, exc_value, tb):
-        if not self._entered:
+        if not self._entered:  # pragma: no cover
             raise RuntimeError("Cannot exit %r without entering first" % self)
         warnings.filters = self._filters
         warnings.showwarning = self._showwarning
