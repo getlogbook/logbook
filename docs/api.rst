@@ -129,6 +129,21 @@ The More Module
    :members:
 
 
+Ticketing Support
+-----------------
+
+.. module:: logbook.ticketing
+
+.. autoclass:: TicketingBaseHandler
+   :members:
+
+.. autoclass:: TicketingDatabaseHandler
+   :members:
+
+.. autoclass:: TicketingDatabase
+   :members:
+
+
 Logging Compatibility
 ---------------------
 

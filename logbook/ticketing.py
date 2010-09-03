@@ -58,6 +58,9 @@ class Ticket(object):
                 break
         return equal
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class Occurrence(LogRecord):
     """Represents an occurrence of a ticket."""
@@ -105,6 +108,18 @@ class DatabaseBackend(object):
 class SQLAlchemyBackend(DatabaseBackend):
     """Provides access to the database the :class:`TicketingDatabaseHandler`
     is using.
+
+    This backend takes some additional options::
+
+    table_prefix
+        an optional table prefix for all tables created by
+        the logbook ticketing handler.
+    metadata
+        an optional SQLAlchemy metadata object for the table creation.
+    autocreate_tables
+        can be set to `False` to disable the automatic
+        creation of the logbook tables.
+
     """
 
     def setup_backend(self):
@@ -370,6 +385,16 @@ class TicketingDatabaseHandler(Handler):
 
         from logbook.ticketing import TicketingDatabaseHandler
         handler = TicketingDatabaseHandler('sqlite:////tmp/myapp-logs.db')
+
+    :param uri: a backend specific string or object to decide where to log to.
+    :param app_id: a string with an optional ID for an application.  Can be
+                   used to keep multiple application setups apart when logging
+                   into the same database.
+    :param hash_salt: an optional salt (binary string) for the hashes.
+    :param backend: A backend class that implements the proper database handling.
+                    Backends available are: :cls:`SQLAlchemyBackend`,
+                    :cls:`MongoDBBackend`.
+
     """
 
     _default_backend = SQLAlchemyBackend
@@ -407,8 +432,14 @@ class TicketingDatabaseHandler(Handler):
         """
         return record.to_dict(json_safe=True)
 
+    def record_ticket(self, record, data, hash):
+        """Record either a new ticket or a new occurrence for a
+        ticket based on the hash.
+        """
+        self.db.record_ticket(record, data, hash, self.app_id)
+
     def emit(self, record):
         """Emits a single record and writes it to the database."""
         hash = self.hash_record(record)
         data = self.process_record(record, hash)
-        self.db.record_ticket(record, data, hash, self.app_id)
+        self.record_ticket(record, data, hash)

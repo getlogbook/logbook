@@ -110,7 +110,7 @@ class FingersCrossedHandler(Handler):
         def issue_logging():
             def factory(record, handler):
                 return FileHandler('/var/log/app/issue-%s.log' % record.time)
-            return FingersCrossedHandler(factory).threadbound(bubble=False)
+            return FingersCrossedHandler(factory)
 
         def application(environ, start_response):
             with issue_logging():
