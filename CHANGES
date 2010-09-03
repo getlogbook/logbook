@@ -36,3 +36,4 @@ Release date to be announced.
   is closed.  The formatted traceback is a cached property
   instead of a function.
 - Added ticketing handlers that send logs directly into a database.
+- Added MongoDB backend for ticketing handlers
