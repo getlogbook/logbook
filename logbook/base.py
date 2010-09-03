@@ -490,8 +490,11 @@ class LogRecord(object):
         """
         cf = self.calling_frame
         if cf is not None:
-            return os.path.abspath(cf.f_code.co_filename) \
-                .decode(sys.getfilesystemencoding() or 'utf-8', 'replace')
+            fn = cf.f_code.co_filename
+            if fn[:1] == '<' and fn[-1:] == '>':
+                return fn
+            return os.path.abspath(fn).decode(sys.getfilesystemencoding()
+                                              or 'utf-8', 'replace')
 
     @cached_property
     def lineno(self):

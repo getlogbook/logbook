@@ -90,6 +90,7 @@ class TicketingDatabase(object):
             db.Column('module', db.String(256)),
             db.Column('last_occurrence', db.DateTime),
             db.Column('occurrence_count', db.Integer),
+            db.Column('solved', db.Boolean),
             db.Column('app_id', db.String(80))
         )
         self.occurrences = table('occurrences',
@@ -121,6 +122,7 @@ class TicketingDatabase(object):
                     location=u'%s:%d' % (record.filename, record.lineno),
                     module=record.module or u'<unknown>',
                     occurrence_count=0,
+                    solved=False,
                     app_id=app_id
                 ))
                 ticket_id = row.inserted_primary_key[0]
@@ -134,7 +136,8 @@ class TicketingDatabase(object):
             cnx.execute(self.tickets.update()
                 .where(self.tickets.c.ticket_id == ticket_id)
                 .values(occurrence_count=self.tickets.c.occurrence_count + 1,
-                        last_occurrence=record.time))
+                        last_occurrence=record.time,
+                        solved=False))
             trans.commit()
         except Exception:
             trans.rollback()
@@ -193,6 +196,7 @@ class TicketingDatabaseHandler(Handler):
     def hash_record(self, record):
         """Returns the unique hash of a record."""
         hash = hashlib.sha1()
+        hash.update('%d\x00' % record.level)
         hash.update((record.logger_name or u'').encode('utf-8') + '\x00')
         hash.update(record.filename.encode('utf-8') + '\x00')
         hash.update(str(record.lineno))
