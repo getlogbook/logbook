@@ -167,7 +167,9 @@ def parse_iso8601(value):
     seconds = groups[-2]
     if seconds is not None:
         if '.' in seconds:
-            args.extend(map(int, seconds.split('.')))
+            sec, usec = seconds.split('.')
+            args.append(int(sec))
+            args.append(int(usec.ljust(6, '0')))
         else:
             args.append(int(seconds))
 
