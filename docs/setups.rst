@@ -100,11 +100,10 @@ If you want deeply nested logger setups, you can use the
 :class:`NestedSetup` class which simplifies that.  This is best explained
 using an example::
 
-    from logbook import NestedHandlerSetup, NullHandler, FileHandler, \
-         MailHandler
+    from logbook import NestedSetup, NullHandler, FileHandler, MailHandler
 
     # a nested handler setup can be used to configure more complex setups
-    setup = logbook.NestedSetup([
+    setup = NestedSetup([
         # make sure we never bubble up to the stderr handler
         # if we run out of setup handling
         NullHandler(),
