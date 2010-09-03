@@ -27,13 +27,13 @@ def redirect_logging():
 
 
 @contextmanager
-def temporarily_redirected_logging():
+def redirected_logging():
     """Temporarily redirects logging for all threads and reverts
     it later to the old handlers.  Mainly used by the internal
     unittests::
 
-        from logbook.compat import temporarily_redirected_logging
-        with temporarily_redirected_logging():
+        from logbook.compat import redirected_logging
+        with redirected_logging():
             ...
     """
     old_handlers = logging.root.handlers[:]
@@ -47,7 +47,7 @@ def temporarily_redirected_logging():
 class RedirectLoggingHandler(logging.Handler):
     """A handler for the stdlib's logging system that redirects
     transparently to logbook.  This is used by the
-    :func:`redirect_logging` and :func:`temporarily_redirected_logging`
+    :func:`redirect_logging` and :func:`redirected_logging`
     functions.
 
     If you want to customize the redirecting you can subclass it.
@@ -111,20 +111,52 @@ class RedirectLoggingHandler(logging.Handler):
         self._logbook_logger.handle(converted_record)
 
 
-class log_warnings_to(object):
+def redirect_warnings():
+    """Like :func:`redirected_warnings` but will redirect all warnings
+    to the shutdown of the interpreter::
+
+        from logbook.compat import redirect_warnings
+        redirect_warnings()
+    """
+    redirected_warnings().__enter__()
+
+
+class redirected_warnings(object):
     """A context manager that copies and restores the warnings filter upon
     exiting the context, and logs warnings using the logbook system.
 
-    The 'record' argument specifies whether warnings should be captured by a
-    custom implementation of :func:`warnings.showwarning` and be appended to a
-    list returned by the context manager. Otherwise None is returned by the
-    context manager. The objects appended to the list are arguments whose
-    attributes mirror the arguments to :func:`~warnings.showwarning`.
+    The :attr:`~logbook.LogRecord.logger_name` attribute of the log record
+    will be the import name of the warning.
+
+    Example usage::
+
+        from logbook.compat import redirected_warnings
+        from warnings import warn
+
+        with redirected_warnings():
+            warn(DeprecationWarning('logging should be deprecated'))
     """
 
-    def __init__(self, logger):
-        self._logger = logger
+    def __init__(self):
+        self._logger = logbook.Logger()
         self._entered = False
+
+    def message_to_unicode(self, message):
+        try:
+            return unicode(message)
+        except UnicodeError:
+            return str(message).decode('utf-8', 'replace')
+
+    def make_record(self, message, exception, filename, lineno):
+        category = exception.__name__
+        if exception.__module__ != 'exceptions':
+            category = exception.__module__ + '.' + category
+        rv = logbook.LogRecord(category, logbook.WARNING, message)
+        # we don't know the caller, but we get that information from the
+        # warning system.  Just attach them.
+        rv.filename = filename
+        rv.lineno = lineno
+        return rv
 
     def __enter__(self):
         if self._entered:  # pragma: no cover
@@ -135,9 +167,9 @@ class log_warnings_to(object):
         self._showwarning = warnings.showwarning
         def showwarning(message, category, filename, lineno,
                         file=None, line=None):
-            formatted = warnings.formatwarning(message, category, filename,
-                                               lineno, line)
-            self._logger.warning(formatted)
+            message = self.message_to_unicode(message)
+            record = self.make_record(message, category, filename, lineno)
+            self._logger.handle(record)
         warnings.showwarning = showwarning
 
     def __exit__(self, exc_type, exc_value, tb):

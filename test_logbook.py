@@ -560,12 +560,12 @@ class LoggingCompatTestCase(LogbookTestCase):
 
     def test_basic_compat(self):
         from logging import getLogger
-        from logbook.compat import temporarily_redirected_logging
+        from logbook.compat import redirected_logging
 
         name = 'test_logbook-%d' % randrange(1 << 32)
         logger = getLogger(name)
         with capture_stderr() as captured:
-            with temporarily_redirected_logging():
+            with redirected_logging():
                 logger.debug('This is from the old system')
                 logger.info('This is from the old system')
                 logger.warn('This is from the old system')
@@ -578,14 +578,16 @@ class LoggingCompatTestCase(LogbookTestCase):
 class WarningsCompatTestCase(LogbookTestCase):
 
     def test_warning_redirections(self):
-        from logbook.compat import log_warnings_to
+        from logbook.compat import redirected_warnings
         handler = logbook.TestHandler()
         with handler:
-            with log_warnings_to(self.log):
+            with redirected_warnings():
                 from warnings import warn
                 warn(DeprecationWarning('Testing'))
         self.assertEqual(len(handler.records), 1)
-        self.assert_('DeprecationWarning: Testing' in handler.formatted_records[0])
+        self.assertEqual('[WARNING] DeprecationWarning: Testing',
+                         handler.formatted_records[0])
+        self.assert_('test_logbook.py' in handler.records[0].filename)
 
 
 class MoreTestCase(LogbookTestCase):
@@ -593,8 +595,7 @@ class MoreTestCase(LogbookTestCase):
     def test_fingerscrossed(self):
         from logbook.more import FingersCrossedHandler
         handler = FingersCrossedHandler(logbook.default_handler,
-                                        logbook.WARNING,
-                                        )
+                                        logbook.WARNING)
 
         # if no warning occurs, the infos are not logged
         with handler:

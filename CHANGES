@@ -28,7 +28,7 @@ Release date to be announced.
 - There is no difference between logger attached handlers and
   context specific handlers any more.
 - Added a function to redirect warnings to logbook
-  (:func:`logbook.compat.log_warnings_to`).
+  (:func:`logbook.compat.redirected_warnings`).
 - Fixed and improved :class:`logbook.LoggerGroup`.
 - The :class:`logbook.TestHandler` now keeps the record open
   for further inspection.

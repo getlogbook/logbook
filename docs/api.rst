@@ -155,7 +155,7 @@ Logging Compatibility
 
 .. autofunction:: redirect_logging
 
-.. autofunction:: temporarily_redirected_logging
+.. autofunction:: redirected_logging
 
 .. autoclass:: RedirectLoggingHandler
    :members:
@@ -166,7 +166,9 @@ Warnings Compatibility
 
 .. module:: logbook.compat
 
-.. autofunction:: log_warnings_to
+.. autofunction:: redirect_warnings
+
+.. autofunction:: redirected_warnings
 
 
 Internal API
