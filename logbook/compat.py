@@ -55,10 +55,6 @@ class RedirectLoggingHandler(logging.Handler):
 
     def __init__(self):
         logging.Handler.__init__(self)
-        self._logbook_logger = logbook.Logger()
-        # just in case someone sends a log record from one of the
-        # standard logging functions on this object
-        self._logbook_logger.suppress_channel = True
 
     def convert_level(self, level):
         """Converts a logging level into a logbook level."""
@@ -107,8 +103,7 @@ class RedirectLoggingHandler(logging.Handler):
                                  self.find_caller(old_record))
 
     def emit(self, record):
-        converted_record = self.convert_record(record)
-        self._logbook_logger.handle(converted_record)
+        logbook.dispatch_record(self.convert_record(record))
 
 
 def redirect_warnings():
@@ -138,7 +133,6 @@ class redirected_warnings(object):
     """
 
     def __init__(self):
-        self._logger = logbook.Logger()
         self._entered = False
 
     def message_to_unicode(self, message):
@@ -169,7 +163,7 @@ class redirected_warnings(object):
                         file=None, line=None):
             message = self.message_to_unicode(message)
             record = self.make_record(message, category, filename, lineno)
-            self._logger.handle(record)
+            logbook.dispatch_record(record)
         warnings.showwarning = showwarning
 
     def __exit__(self, exc_type, exc_value, tb):

@@ -176,6 +176,8 @@ Internal API
 
 .. module:: logbook.base
 
+.. autofunction:: dispatch_record
+
 .. autoclass:: RecordDispatcher
    :members:
 

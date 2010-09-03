@@ -759,6 +759,7 @@ class RecordDispatcher(object):
             processor.process(record)
 
 
+
 class Logger(RecordDispatcher, LoggerMixin):
     """Instances of the Logger class represent a single logging channel.
     A "logging channel" indicates an area of an application. Exactly
@@ -821,6 +822,17 @@ class LoggerGroup(object):
         """
         if self.processor is not None:
             self.processor(record)
+
+
+_default_dispatcher = RecordDispatcher()
+
+
+def dispatch_record(record):
+    """Passes a record on to the handlers on the stack.  This is useful when
+    log records are created programmatically and already have all the
+    information attached and should be dispatched independent of a logger.
+    """
+    _default_dispatcher.call_handlers(record)
 
 
 from logbook.handlers import Handler
