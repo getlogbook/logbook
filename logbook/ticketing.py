@@ -60,6 +60,9 @@ class Ticket(object):
                 break
         return equal
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class Occurrence(LogRecord):
     """Represents an occurrence of a ticket."""
