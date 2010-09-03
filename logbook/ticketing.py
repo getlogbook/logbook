@@ -306,41 +306,47 @@ class MongoDBBackend(BackendBase):
     def record_ticket(self, record, data, hash, app_id):
         """Records a log record as ticket."""
         db = self.database
-        try:
-            ticket = db.tickets.find_one({'record_hash': hash})
-            if not ticket:
-                doc = {'record_hash': hash,
-                       'level': record.level,
-                       'logger_name': record.logger_name or u'',
-                       'location': u'%s:%d' % (record.filename, record.lineno),
-                       'module': record.module or u'<unknown>',
-                       'orrucrence_count': 0,
-                       'solved': False,
-                       'app_id': app_id,
-                       'occurrences': []}
-                ticket_id = db.tickets.insert(doc)
-            else:
-                ticket_id = ticket['_id']
+        ticket = db.tickets.find_one({'record_hash': hash})
+        if not ticket:
+            doc = {
+                'record_hash':      hash,
+                'level':            record.level,
+                'logger_name':      record.logger_name or u'',
+                'location':         u'%s:%d' % (record.filename, record.lineno),
+                'module':           record.module or u'<unknown>',
+                'occurrence_count': 0,
+                'solved':           False,
+                'app_id':           app_id,
+                'occurrences':      []
+            }
+            ticket_id = db.tickets.insert(doc)
+        else:
+            ticket_id = ticket['_id']
 
-            db.tickets.update({'_id': ticket_id}, {
-                '$push': {'occurrences': {
-                    'app_id': app_id,
-                    'data': json.dumps(data),
-                    'time': record.time}},
-                '$inc': {'occurrence_count': 1},
-                '$set': {'last_occurrence_time': record.time,
-                         'solved': False}
-            })
-            # We store occurrences in a seperate collection so that
-            # we can make it a capped collection optionally.
-            db.occurrences.insert({
-                'ticket_id': self._oid(ticket_id),
-                'app_id': app_id,
-                'time': record.time,
-                'data': json.dumps(data),
-            })
-        except Exception:
-            raise
+        db.tickets.update({'_id': ticket_id}, {
+            '$push': {
+                'occurrences': {
+                    'app_id':   app_id,
+                    'data':     json.dumps(data),
+                    'time':     record.time
+                }
+            },
+            '$inc': {
+                'occurrence_count':     1
+            },
+            '$set': {
+                'last_occurrence_time': record.time,
+                'solved':               False
+            }
+        })
+        # We store occurrences in a seperate collection so that
+        # we can make it a capped collection optionally.
+        db.occurrences.insert({
+            'ticket_id':    self._oid(ticket_id),
+            'app_id':       app_id,
+            'time':         record.time,
+            'data':         json.dumps(data),
+        })
 
     def count_tickets(self):
         """Returns the number of tickets."""
