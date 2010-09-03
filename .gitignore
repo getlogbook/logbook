@@ -3,3 +3,5 @@ docs/_build
 Logbook.egg-info
 *.pyc
 env
+.coverage
+cover
