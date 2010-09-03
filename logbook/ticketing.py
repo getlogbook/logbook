@@ -68,6 +68,7 @@ class Occurrence(LogRecord):
     def __init__(self, db, row):
         self.update_from_dict(json.loads(row['data']))
         self.db = db
+        self.time = row['time']
         self.ticket_id = row['ticket_id']
         self.occurrence_id = row['occurrence_id']
 
@@ -263,6 +264,7 @@ class MongoDBBackend(BackendBase):
         def __init__(self, db, row):
             self.update_from_dict(json.loads(row['data']))
             self.db = db
+            self.time = row['time']
             self.ticket_id = row['ticket_id']
             self.occurrence_id = row['_id']
 
