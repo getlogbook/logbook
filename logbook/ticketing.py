@@ -104,7 +104,7 @@ class DatabaseBackend(object):
         """Selects occurrences from the database for a ticket."""
 
 
-class TicketingDatabase(DatabaseBackend):
+class SQLAlchemyBackend(DatabaseBackend):
     """Provides access to the database the :class:`TicketingDatabaseHandler`
     is using.
     """
@@ -246,14 +246,21 @@ class TicketingDatabaseHandler(Handler):
         handler = TicketingDatabaseHandler('sqlite:////tmp/myapp-logs.db')
     """
 
+    _default_backend = SQLAlchemyBackend
+
     def __init__(self, engine_or_uri, app_id='generic', level=NOTSET,
-                 filter=None, bubble=False, hash_salt=None, **db_options):
+                 filter=None, bubble=False, hash_salt=None, backend=None,
+                 **db_options):
         Handler.__init__(self, level, filter, bubble)
+        if backend is None:
+            backend = self._default_backend
         db_options['engine_or_uri'] = engine_or_uri
-        self.db = TicketingDatabase(**db_options)
+        self.set_backend(backend, **db_options)
         self.app_id = app_id
         self.hash_salt = hash_salt or app_id.encode('utf-8')
 
+    def set_backend(self, cls, **options):
+        self.db = cls(**options)
 
     def hash_record(self, record):
         """Returns the unique hash of a record."""
