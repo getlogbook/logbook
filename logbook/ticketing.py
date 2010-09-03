@@ -72,13 +72,49 @@ class Occurrence(LogRecord):
         self.occurrence_id = row['occurrence_id']
 
 
-class TicketingDatabase(object):
+class DatabaseBackend(object):
+    """Provides an abstract interface to various databases."""
+
+    def __init__(self, **options):
+        self.options = options
+        self.setup_backend()
+
+    def setup_backend(self):
+        """Setup the database backend."""
+
+    def record_ticket(self, record, data, hash, app_id):
+        """Records a log record as ticket."""
+
+    def count_tickets(self):
+        """Returns the number of tickets."""
+
+    def get_tickets(self, order_by='-last_occurrence_time', limit=50, offset=0):
+        """Selects tickets from the database."""
+
+    def solve_ticket(self, ticket_id):
+        """Marks a ticket as solved."""
+
+    def delete_ticket(self, ticket_id):
+        """Deletes a ticket from the database."""
+
+    def get_ticket(self, ticket_id):
+        """Return a single ticket with all occurrences."""
+
+    def get_occurrences(self, ticket, order_by='-time', limit=50, offset=0):
+        """Selects occurrences from the database for a ticket."""
+
+
+class TicketingDatabase(DatabaseBackend):
     """Provides access to the database the :class:`TicketingDatabaseHandler`
     is using.
     """
 
-    def __init__(self, engine_or_uri, table_prefix='logbook_', metadata=None):
+    def setup_backend(self):
         from sqlalchemy import create_engine, MetaData
+        engine_or_uri = self.options.pop('engine_or_uri', None)
+        metadata = self.options.pop('metadata', None)
+        table_prefix = self.options.pop('table_prefix', 'logbook_')
+
         if hasattr(engine_or_uri, 'execute'):
             self.engine = engine_or_uri
         else:
@@ -88,6 +124,8 @@ class TicketingDatabase(object):
         self.table_prefix = table_prefix
         self.metadata = metadata
         self.create_tables()
+        if self.options.get('autocreate_tables', True):
+            self.metadata.create_all(bind=self.engine)
 
     def create_tables(self):
         """Creates the tables required for the handler on the class and
@@ -208,15 +246,14 @@ class TicketingDatabaseHandler(Handler):
         handler = TicketingDatabaseHandler('sqlite:////tmp/myapp-logs.db')
     """
 
-    def __init__(self, engine_or_uri, app_id='generic', table_prefix='logbook_',
-                 metadata=None, autocreate_tables=True, hash_salt=None,
-                 level=NOTSET, filter=None, bubble=False):
+    def __init__(self, engine_or_uri, app_id='generic', level=NOTSET,
+                 filter=None, bubble=False, hash_salt=None, **db_options):
         Handler.__init__(self, level, filter, bubble)
-        self.db = TicketingDatabase(engine_or_uri, table_prefix, metadata)
+        db_options['engine_or_uri'] = engine_or_uri
+        self.db = TicketingDatabase(**db_options)
         self.app_id = app_id
         self.hash_salt = hash_salt or app_id.encode('utf-8')
-        if autocreate_tables:
-            self.db.metadata.create_all(bind=self.db.engine)
+
 
     def hash_record(self, record):
         """Returns the unique hash of a record."""
