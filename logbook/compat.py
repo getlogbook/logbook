@@ -120,8 +120,8 @@ class redirected_warnings(object):
     """A context manager that copies and restores the warnings filter upon
     exiting the context, and logs warnings using the logbook system.
 
-    The :attr:`~logbook.LogRecord.logger_name` attribute of the log record
-    will be the import name of the warning.
+    The :attr:`~logbook.LogRecord.channel` attribute of the log record will be
+    the import name of the warning.
 
     Example usage::
 

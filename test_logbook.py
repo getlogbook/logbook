@@ -92,7 +92,7 @@ class BasicAPITestCase(LogbookTestCase):
                 record.extra['ip'] = client_ip
 
         custom_log = CustomLogger('awesome logger')
-        fmt = '[{record.level_name}] {record.logger_name}: ' \
+        fmt = '[{record.level_name}] {record.channel}: ' \
               '{record.message} [{record.extra[ip]}]'
         handler = logbook.TestHandler(format_string=fmt)
         self.assertEqual(handler.format_string, fmt)
@@ -200,7 +200,7 @@ class HandlerTestCase(LogbookTestCase):
 
     def test_file_handler(self):
         handler = logbook.FileHandler(self.filename, format_string=
-            '{record.level_name}:{record.logger_name}:{record.message}',
+            '{record.level_name}:{record.channel}:{record.message}',
             )
         with handler.threadbound():
             self.log.warn('warning message')
@@ -211,7 +211,7 @@ class HandlerTestCase(LogbookTestCase):
 
     def test_file_handler_delay(self):
         handler = logbook.FileHandler(self.filename, format_string=
-            '{record.level_name}:{record.logger_name}:{record.message}',
+            '{record.level_name}:{record.channel}:{record.message}',
             delay=True)
         self.assertFalse(os.path.isfile(self.filename))
         with handler.threadbound():
@@ -434,11 +434,11 @@ Message:
             with handlers.applicationbound():
                 logger.warn('applicationbound warning')
 
-    def test_channel(self):
+    def test_dispatcher(self):
         logger = logbook.Logger('App')
         with logbook.TestHandler() as test_handler:
             logger.warn('Logbook is too awesome for stdlib')
-            self.assertEqual(test_handler.records[0].channel, logger)
+            self.assertEqual(test_handler.records[0].dispatcher, logger)
 
     def test_filtering(self):
         logger1 = logbook.Logger('Logger1')
@@ -447,7 +447,7 @@ Message:
         outer_handler = logbook.TestHandler()
 
         def only_1(record, handler):
-            return record.channel is logger1
+            return record.dispatcher is logger1
         handler.filter = only_1
 
         with outer_handler:
@@ -455,10 +455,10 @@ Message:
                 logger1.warn('foo')
                 logger2.warn('bar')
 
-        self.assert_(handler.has_warning('foo', logger_name='Logger1'))
-        self.assert_(not handler.has_warning('bar', logger_name='Logger2'))
-        self.assert_(not outer_handler.has_warning('foo', logger_name='Logger1'))
-        self.assert_(outer_handler.has_warning('bar', logger_name='Logger2'))
+        self.assert_(handler.has_warning('foo', channel='Logger1'))
+        self.assert_(not handler.has_warning('bar', channel='Logger2'))
+        self.assert_(not outer_handler.has_warning('foo', channel='Logger1'))
+        self.assert_(outer_handler.has_warning('bar', channel='Logger2'))
 
     def test_different_context_pushing(self):
         h1 = logbook.TestHandler(level=logbook.DEBUG)
@@ -498,8 +498,8 @@ Message:
         self.assert_(handler.has_error('an error'))
         self.assert_(handler.has_critical('pretty critical'))
         self.assert_(handler.has_critical('critical too'))
-        self.assertEqual(handler.records[0].logger_name, 'generic')
-        self.assertEqual(handler.records[0].channel, None)
+        self.assertEqual(handler.records[0].channel, 'Generic')
+        self.assertEqual(handler.records[0].dispatcher, None)
 
 
 class AttributeTestCase(LogbookTestCase):
@@ -708,7 +708,7 @@ class MoreTestCase(LogbookTestCase):
             # also check RuntimeError is raised
             with unimport_module('jinja2'):
                 self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
-            fmter = JinjaFormatter('{{ record.logger_name }}/'
+            fmter = JinjaFormatter('{{ record.channel }}/'
                                    '{{ record.level_name }}')
             handler = logbook.TestHandler()
             handler.formatter = fmter
@@ -757,7 +757,7 @@ class TicketingTestCase(LogbookTestCase):
         self.assertEqual(record.level, logbook.ERROR)
         self.assertEqual(record.thread, thread.get_ident())
         self.assertEqual(record.process, os.getpid())
-        self.assertEqual(record.logger_name, 'testlogger')
+        self.assertEqual(record.channel, 'testlogger')
         self.assert_('1/0' in record.formatted_exception)
 
 

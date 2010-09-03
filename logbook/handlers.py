@@ -26,9 +26,9 @@ from logbook.helpers import rename
 
 DEFAULT_FORMAT_STRING = (
     u'[{record.time:%Y-%m-%d %H:%M}] '
-    u'{record.level_name}: {record.logger_name}: {record.message}'
+    u'{record.level_name}: {record.channel}: {record.message}'
 )
-SYSLOG_FORMAT_STRING = u'{record.logger_name}: {record.message}'
+SYSLOG_FORMAT_STRING = u'{record.channel}: {record.message}'
 NTLOG_FORMAT_STRING = u'''\
 Message Level: {record.level_name}
 Location: {record.filename}:{record.lineno}
@@ -41,7 +41,7 @@ Event provided Message:
 {record.message}
 '''
 TEST_FORMAT_STRING = \
-u'[{record.level_name}] {record.logger_name}: {record.message}'
+u'[{record.level_name}] {record.channel}: {record.message}'
 MAIL_FORMAT_STRING = u'''\
 Subject: {handler.subject}
 
@@ -609,11 +609,11 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         kwargs['level'] = DEBUG
         return self._test_for(*args, **kwargs)
 
-    def _test_for(self, message=None, logger_name=None, level=None):
+    def _test_for(self, message=None, channel=None, level=None):
         for record in self.records:
             if level is not None and record.level != level:
                 continue
-            if logger_name is not None and record.logger_name != logger_name:
+            if channel is not None and record.channel != channel:
                 continue
             if message is not None and record.message != message:
                 continue

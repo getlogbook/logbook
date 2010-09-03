@@ -339,16 +339,17 @@ class LogRecord(object):
     #: lead to memory leaks so it should be used carefully.
     keep_open = False
 
-    def __init__(self, logger_name, level, msg, args=None, kwargs=None,
-                 exc_info=None, extra=None, frame=None, channel=None):
+    def __init__(self, channel, level, msg, args=None, kwargs=None,
+                 exc_info=None, extra=None, frame=None, dispatcher=None):
         #: the time of the log record creation as :class:`datetime.datetime`
         #: object.
         self.time = datetime.utcnow()
-        #: the name of the logger that created it.  This is a descriptive
-        #: name and should not be used for logging.  A log record might have
-        #: a :attr:`channel` defined which provides more information for
+        #: the name of the logger that created it or any other textual
+        #: channel description.  This is a descriptive name and should not
+        #: be used for filtering.  A log record might have a
+        #: :attr:`dispatcher` defined which provides more information for
         #: filtering if this is absolutely necessary.
-        self.logger_name = logger_name
+        self.channel = channel
         #: The message of the log record as new-style format string.
         self.msg = msg
         #: the positional arguments for the format string.
@@ -371,9 +372,9 @@ class LogRecord(object):
         self.frame = frame
         #: the PID of the current process
         self.process = os.getpid()
-        if channel is not None:
-            channel = weakref(channel)
-        self._channel = channel
+        if dispatcher is not None:
+            dispatcher = weakref(dispatcher)
+        self._dispatcher = dispatcher
         self._information_pulled = False
 
     def pull_information(self):
@@ -558,15 +559,15 @@ class LogRecord(object):
             return rv.rstrip()
 
     @property
-    def channel(self):
-        """The channel that created the log record.  Might not exist because
-        a log record does not have to be created from a logger to be
-        handled by logbook.  If this is set, it will point to an object
-        that implements the :class:`~logbook.base.RecordDispatcher`
+    def dispatcher(self):
+        """The dispatcher that created the log record.  Might not exist because
+        a log record does not have to be created from a logger or other
+        dispatcher to be handled by logbook.  If this is set, it will point to
+        an object that implements the :class:`~logbook.base.RecordDispatcher`
         interface.
         """
-        if self._channel is not None:
-            return self._channel()
+        if self._dispatcher is not None:
+            return self._dispatcher()
 
 
 class LoggerMixin(object):
@@ -581,9 +582,9 @@ class LoggerMixin(object):
     #: created.
     level_name = _level_name_property()
 
-    #: If this is set to `True` the channel will be suppressed for log
-    #: records emitted from this logger.
-    suppress_channel = False
+    #: If this is set to `True` the dispatcher information will be suppressed
+    #: for log records emitted from this logger.
+    suppress_dispatcher = False
 
     def debug(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
@@ -669,7 +670,7 @@ class LoggerMixin(object):
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', None)
         channel = None
-        if not self.suppress_channel:
+        if not self.suppress_dispatcher:
             channel = self
         record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
                            extra, sys._getframe(), channel)

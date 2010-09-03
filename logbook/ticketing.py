@@ -154,7 +154,7 @@ class SQLAlchemyBackend(BackendBase):
             db.Column('ticket_id', db.Integer, primary_key=True),
             db.Column('record_hash', db.String(40), unique=True),
             db.Column('level', db.Integer),
-            db.Column('logger_name', db.String(120)),
+            db.Column('channel', db.String(120)),
             db.Column('location', db.String(512)),
             db.Column('module', db.String(256)),
             db.Column('last_occurrence_time', db.DateTime),
@@ -187,7 +187,7 @@ class SQLAlchemyBackend(BackendBase):
                 row = cnx.execute(self.tickets.insert().values(
                     record_hash=hash,
                     level=record.level,
-                    logger_name=record.logger_name or u'',
+                    channel=record.channel or u'',
                     location=u'%s:%d' % (record.filename, record.lineno),
                     module=record.module or u'<unknown>',
                     occurrence_count=0,
@@ -311,7 +311,7 @@ class MongoDBBackend(BackendBase):
             doc = {
                 'record_hash':      hash,
                 'level':            record.level,
-                'logger_name':      record.logger_name or u'',
+                'channel':          record.channel or u'',
                 'location':         u'%s:%d' % (record.filename, record.lineno),
                 'module':           record.module or u'<unknown>',
                 'occurrence_count': 0,
@@ -400,7 +400,7 @@ class TicketingBaseHandler(Handler):
         """Returns the unique hash of a record."""
         hash = hashlib.sha1()
         hash.update('%d\x00' % record.level)
-        hash.update((record.logger_name or u'').encode('utf-8') + '\x00')
+        hash.update((record.channel or u'').encode('utf-8') + '\x00')
         hash.update(record.filename.encode('utf-8') + '\x00')
         hash.update(str(record.lineno))
         if record.module:

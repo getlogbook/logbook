@@ -40,3 +40,4 @@ Release date to be announced.
 - Added a :func:`logbook.dispatch_record` function to dispatch
   records to handlers independently of a logger (uses the default
   record dispatching logic).
+- Renamed `logger_name` to `channel`

@@ -21,8 +21,8 @@ from logbook.handlers import Handler, StreamHandler, FileHandler, \
 
 # create an anonymous default logger and provide all important
 # methods of that logger as global functions
-_default_logger = Logger('generic')
-_default_logger.suppress_channel = True
+_default_logger = Logger('Generic')
+_default_logger.suppress_dispatcher = True
 debug = _default_logger.debug
 info = _default_logger.info
 warn = _default_logger.warn
