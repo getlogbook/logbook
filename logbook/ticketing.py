@@ -50,6 +50,16 @@ class Ticket(object):
         """Deletes the ticket from the database."""
         self.db.delete_ticket(self.ticket_id)
 
+    def __eq__(self, other):
+        equal = True
+        if type(other) != type(self):
+            return False
+        for key in self.__dict__.keys():
+            if getattr(self, key) != getattr(other, key):
+                equal = False
+                break
+        return equal
+
 
 class Occurrence(LogRecord):
     """Represents an occurrence of a ticket."""
