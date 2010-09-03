@@ -12,7 +12,7 @@
 
 import hashlib
 from datetime import datetime
-from logbook.base import NOTSET
+from logbook.base import NOTSET, cached_property, _level_name_property
 from logbook.handlers import Handler
 
 try:
@@ -56,6 +56,45 @@ def to_safe_json(data):
         return rv
 
 
+class Ticket(object):
+    """Represents a ticket from the database."""
+
+    level_name = _level_name_property()
+
+    def __init__(self, db, row):
+        self.db = db
+        self.__dict__.update(row)
+
+    @cached_property
+    def last_occurrence(self):
+        """The last occurrence."""
+        rv = self.get_occurrences(limit=1)
+        if rv:
+            return rv[0]
+
+    def get_occurrences(self, order_by='-time', limit=50, offset=0):
+        """Returns the occurrences for this ticket."""
+        return self.db.get_occurrences(self.ticket_id)
+
+    def solve(self):
+        """Marks this ticket as solved."""
+        self.db.solve_ticket(self.ticket_id)
+        self.solved = True
+
+    def delete(self):
+        """Deletes the ticket from the database."""
+        self.db.delete_ticket(self.ticket_id)
+
+
+class Occurrence(object):
+    """Represents an occurrence of a ticket."""
+
+    def __init__(self, db, row):
+        self.db = db
+        self.__dict__.update(row)
+        self.data = json.loads(row['data'])
+
+
 class TicketingDatabase(object):
     """Provides access to the database the :class:`TicketingDatabaseHandler`
     is using.
@@ -88,7 +127,7 @@ class TicketingDatabase(object):
             db.Column('logger_name', db.String(120)),
             db.Column('location', db.String(512)),
             db.Column('module', db.String(256)),
-            db.Column('last_occurrence', db.DateTime),
+            db.Column('last_occurrence_time', db.DateTime),
             db.Column('occurrence_count', db.Integer),
             db.Column('solved', db.Boolean),
             db.Column('app_id', db.String(80))
@@ -136,7 +175,7 @@ class TicketingDatabase(object):
             cnx.execute(self.tickets.update()
                 .where(self.tickets.c.ticket_id == ticket_id)
                 .values(occurrence_count=self.tickets.c.occurrence_count + 1,
-                        last_occurrence=record.time,
+                        last_occurrence_time=record.time,
                         solved=False))
             trans.commit()
         except Exception:
@@ -148,30 +187,39 @@ class TicketingDatabase(object):
         """Returns the number of tickets."""
         return self.engine.execute(self.tickets.count()).fetchone()[0]
 
-    def get_tickets(self, order_by='-last_occurrence', limit=50, offset=0):
+    def get_tickets(self, order_by='-last_occurrence_time', limit=50, offset=0):
         """Selects tickets from the database."""
-        return map(dict, self.engine.execute(self._order(self.tickets.select(),
-            self.tickets, order_by).limit(limit).offset(offset)).fetchall())
+        return [Ticket(self, row) for row in self.engine.execute(
+            self._order(self.tickets.select(), self.tickets, order_by)
+            .limit(limit).offset(offset)).fetchall()]
+
+    def solve_ticket(self, ticket_id):
+        """Marks a ticket as solved."""
+        self.engine.execute(self.tickets.update()
+            .where(self.tickets.c.ticket_id == ticket_id)
+            .values(solved=True))
+
+    def delete_ticket(self, ticket_id):
+        """Deletes a ticket from the database."""
+        self.engine.execute(self.occurrences.delete()
+            .where(self.occurrences.c.ticket_id == ticket_id))
+        self.engine.execute(self.tickets.delete()
+            .where(self.tickets.c.ticket_id == ticket_id))
 
     def get_ticket(self, ticket_id):
         """Return a single ticket with all occurrences."""
-        rv = self.engine.execute(self.tickets.select().where(
+        row = self.engine.execute(self.tickets.select().where(
             self.tickets.c.ticket_id == ticket_id)).fetchone()
-        if rv is not None:
-            rv = dict(rv)
-            rv['occurrences'] = self.get_occurrences(ticket_id)
-            return rv
+        if row is not None:
+            return Ticket(self, row)
 
     def get_occurrences(self, ticket, order_by='-time', limit=50, offset=0):
         """Selects occurrences from the database for a ticket."""
-        result = []
-        for item in self.engine.execute(self._order(self.occurrences
-            .select().where(self.occurrences.c.ticket_id == ticket),
-            self.occurrences, order_by).limit(limit).offset(offset)).fetchall():
-            d = dict(item)
-            d['data'] = json.loads(d['data'])
-            result.append(d)
-        return result
+        return [Occurrence(self, row) for row in
+                self.engine.execute(self._order(self.occurrences.select()
+                    .where(self.occurrences.c.ticket_id == ticket),
+                    self.occurrences, order_by)
+                .limit(limit).offset(offset)).fetchall()]
 
 
 class TicketingDatabaseHandler(Handler):
