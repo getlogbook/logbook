@@ -244,14 +244,30 @@ class TicketingDatabaseHandler(TicketingBaseHandler):
 
         from logbook.ticketing import TicketingDatabaseHandler
         handler = TicketingDatabaseHandler('sqlite:////tmp/myapp-logs.db')
+
+    :param engine_or_uri: a SQLAlchemy engine object or a string with an
+                          SQLAlchemy database connection URI
+    :param app_id: a string with an optional ID for an application.  Can be
+                   used to keep multiple application setups apart when logging
+                   into the same database.
+    :param table_prefix: an optional table prefix for all tables created by
+                         the logbook ticketing handler.
+    :param metadata: an optional SQLAlchemy metadata object for the table
+                     creation.
+    :param autocreate_tables: can be set to `False` to disable the automatic
+                              creation of the logbook tables.
+    :param hash_salt: an optional salt (binary string) for the hashes.
     """
 
     def __init__(self, engine_or_uri, app_id='generic', table_prefix='logbook_',
                  metadata=None, autocreate_tables=True, hash_salt=None,
                  level=NOTSET, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
+        #: The :class:`TicketingDatabase` for this handler.
         self.db = TicketingDatabase(engine_or_uri, table_prefix, metadata)
+        #: the application ID that is recorded.
         self.app_id = app_id
+        #: the salt for the hashes.
         self.hash_salt = hash_salt or app_id.encode('utf-8')
         if autocreate_tables:
             self.db.metadata.create_all(bind=self.db.engine)
