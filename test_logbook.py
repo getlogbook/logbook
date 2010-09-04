@@ -734,10 +734,6 @@ class MoreTestCase(LogbookTestCase):
                 self.log.info('info')
             self.assert_('testlogger/INFO' in handler.formatted_records)
 
-    def assertContains(self, a, b):
-        if b not in a:
-            raise AssertionError('%r not in %r' % (b, a))
-
     def test_zeromq_handler(self):
         uri = 'tcp://127.0.0.1:42000'
         tests = [
