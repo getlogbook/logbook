@@ -21,11 +21,7 @@ from cgi import parse_qsl
 from urllib import urlencode
 
 from logbook.base import LogRecord, RecordDispatcher, NOTSET, ERROR, WARNING
-<<<<<<< HEAD
-from logbook.handlers import Handler, StringFormatterHandlerMixin
-=======
-from logbook.handlers import Handler, StringFormatter, \
-     StringFormatterHandlerMixin
+from logbook.handlers import Handler, StringFormatter, StringFormatterHandlerMixin
 
 
 _ws_re = re.compile(r'(\s+)(?u)')
@@ -34,7 +30,6 @@ TWITTER_FORMAT_STRING = \
 u'[{record.channel}] {record.level_name}: {record.message}'
 TWITTER_ACCESS_TOKEN_URL = 'https://twitter.com/oauth/access_token'
 NEW_TWEET_URL = 'https://api.twitter.com/1/statuses/update.json'
->>>>>>> 25d60b8dfe740a852173c2a05b472baac394ad7c
 
 
 class TaggingLogger(RecordDispatcher):
