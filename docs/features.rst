@@ -52,19 +52,20 @@ Core Features
 Advantages over Logging
 -----------------------
 
-If properly configured, Logbook's logging calls will be very cheap and provide
-a great performance improvement over the standard library's logging module.
+If properly configured, Logbook's logging calls will be very cheap and
+provide a great performance improvement over the standard library's
+logging module.  While we are not there yet, there will be some
+performance improvements in the upcoming versions when we implement
+certain critical code paths in C.
 
-.. XXX time the performance
+It also supports the ability to inject additional information for all
+logging calls happening in a specific thread.  For example, this makes it
+possible for a web application to add request-specific information to each
+log record such as remote address, request URL, HTTP method and more.
 
-It also supports the ability to inject additional information for all logging
-calls happening in a specific thread.  For example, this makes it possible for a
-web application to add request-specific information to each log record such as
-remote address, request URL, HTTP method and more.
-
-The logging system is (besides the stack) stateless and unit testing it is very
-simple.  If context managers are used, it is impossible to corrupt the stack,
-so each test can easily hook in custom log handlers.
+The logging system is (besides the stack) stateless and unit testing it is
+very simple.  If context managers are used, it is impossible to corrupt
+the stack, so each test can easily hook in custom log handlers.
 
 Logbook in a Nutshell
 ---------------------
@@ -80,3 +81,15 @@ you like::
     from logbook import Logger
     log = Logger('My Logger')
     log.warn('This is a warning')
+
+Roadmap
+-------
+
+Here a list of things you can expect in upcoming versions:
+
+-   log handlers for libnotify.
+-   log handlers that queue records up in ZeroMQ queues.
+-   c implementation of the internal stack management and record
+    dispatching for higher performance.
+-   a ticketing log handler that creates tickets in trac and redmine.
+-   a web frontend for the ticketing database handler.
