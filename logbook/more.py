@@ -215,6 +215,12 @@ class MultiProcessingHandler(Handler):
     child processes to the parent.
     """
 
+    # XXX: this should use a smilar interface to the ZeroMQ subscriber
+    # which breaks up sender and receiver into two parts and provides an
+    # interface to shut down the subscriber thread.  Additionally and
+    # more importantly it does not deliver to a handler but dispatches
+    # to a setup which is more useful
+
     def __init__(self, handler, level=NOTSET, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
         self.handler = handler
