@@ -20,6 +20,12 @@ from Queue import Empty
 from cgi import parse_qsl
 from urllib import urlencode
 
+try:
+    import json
+except ImportError:
+    import simplejson as json
+
+
 from logbook.base import LogRecord, RecordDispatcher, NOTSET, ERROR, WARNING
 from logbook.handlers import Handler, StringFormatter, StringFormatterHandlerMixin
 
@@ -336,23 +342,23 @@ class GrowlHandler(Handler):
                               priority=self.get_priority(record))
 
 
-class ZeroMQHandler(Handler, StringFormatterHandlerMixin):
-    """A handler that acts as a ZeroMQ publisher."""
-    def __init__(self, uri, level=NOTSET, filter=None, bubble=False,
-                 format_string=None):
+class ZeroMQHandler(Handler):
+    """A handler that acts as a ZeroMQ publisher, which publishes each record
+    as json dump.
+    """
+    def __init__(self, uri, level=NOTSET, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
-        StringFormatterHandlerMixin.__init__(self, format_string)
 
         import zmq
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
         self.socket.bind(uri)
 
-    def format_and_encode(self, record):
-        return self.format(record).encode('utf-8')
+    def record_as_json(self, record):
+        return json.dumps(record.to_dict(json_safe=True)).encode('utf-8')
 
     def emit(self, record):
-        self.socket.send(self.format_and_encode(record))
+        self.socket.send(self.record_as_json(record))
 
     def close(self):
         self.socket.close()
