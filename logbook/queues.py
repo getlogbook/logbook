@@ -75,7 +75,8 @@ class ZeroMQThreadController(object):
         if self.setup is not None:
             self.setup.push_thread()
         try:
-            self.subscriber.dispatch_forever()
+            while self.running:
+                self.subscriber.dispatch_once(timeout=0.05)
         finally:
             if self.setup is not None:
                 self.setup.pop_thread()
@@ -107,13 +108,32 @@ class ZeroMQSubscriber(object):
         """Closes the zero mq socket."""
         self.socket.close()
 
-    def recv(self):
-        """Receives a single record from the socket."""
-        return LogRecord.from_dict(json.loads(self.socket.recv()))
+    def recv(self, timeout=None):
+        """Receives a single record from the socket.  Timeout of 0 means nonblocking,
+        `None` means blocking and otherwise it's a timeout in seconds after which
+        the function just returns with `None`.
+        """
+        if timeout is None:
+            rv = self.socket.recv()
+        elif not timeout:
+            rv = self.socket.recv(self._zmq.NOBLOCK)
+            if rv is None:
+                return
+        else:
+            if not self._zmq.select([self.socket], [], [], timeout)[0]:
+                return
+            rv = self.socket.recv(self._zmq.NOBLOCK)
+        return LogRecord.from_dict(json.loads(rv))
 
-    def dispatch_once(self):
-        """Receives one record from the socket, loads it and dispatches it."""
-        dispatch_record(self.recv())
+    def dispatch_once(self, timeout=None):
+        """Receives one record from the socket, loads it and dispatches it.  Returns
+        `True` if something was dispatched or `False` if it timed out.
+        """
+        rv = self.recv(timeout)
+        if rv is not None:
+            dispatch_record(rv)
+            return True
+        return False
 
     def dispatch_forever(self):
         """Starts a loop that dispatches log records forever."""

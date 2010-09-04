@@ -5,6 +5,7 @@ import os
 import re
 import new
 import sys
+import time
 import thread
 import pickle
 import shutil
@@ -734,14 +735,17 @@ class MoreTestCase(LogbookTestCase):
                 self.log.info('info')
             self.assert_('testlogger/INFO' in handler.formatted_records)
 
+
+class QueuesTestCase(LogbookTestCase):
+
     def test_zeromq_handler(self):
         from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
-        uri = 'tcp://127.0.0.1:42000'
         tests = [
             u'Logging something',
             u'Something with umlauts äöü',
             u'Something else for good measure',
         ]
+        uri = 'tcp://127.0.0.1:42000'
         handler = ZeroMQHandler(uri)
         subscriber = ZeroMQSubscriber(uri)
         for test in tests:
@@ -750,6 +754,27 @@ class MoreTestCase(LogbookTestCase):
                 record = subscriber.recv()
                 self.assertEqual(record.message, test)
                 self.assertEqual(record.channel, self.log.name)
+
+    def test_zeromq_background_thread(self):
+        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
+        uri = 'tcp://127.0.0.1:42001'
+        handler = ZeroMQHandler(uri)
+        subscriber = ZeroMQSubscriber(uri)
+        test_handler = logbook.TestHandler()
+        controller = subscriber.dispatch_in_background(test_handler)
+
+        with handler:
+            self.log.warn('This is a warning')
+            self.log.error('This is an error')
+
+        # stop the controller.  This will also stop the loop and join the
+        # background process.  Before that we give it a fraction of a second
+        # to get all results
+        time.sleep(0.1)
+        controller.stop()
+
+        self.assert_(test_handler.has_warning('This is a warning'))
+        self.assert_(test_handler.has_error('This is an error'))
 
 
 class TicketingTestCase(LogbookTestCase):
