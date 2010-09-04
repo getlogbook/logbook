@@ -345,6 +345,20 @@ class GrowlHandler(Handler):
 class ZeroMQHandler(Handler):
     """A handler that acts as a ZeroMQ publisher, which publishes each record
     as json dump.  Requires the pyzmq library.
+
+    The queue will be filled with JSON exported log records.  Here an example
+    of how to recieve the records::
+
+        import zmq
+        import json
+        from logbook import LogRecord
+        handler = logbook.more.ZeroMQHandler('tcp://127.0.0.1:5000')
+        context = zmq.Context()
+        socket = context.socket(zmq.SUB)
+        socket.connect(uri)
+        socket.setsockopt(zmq.SUBSCRIBE, '')
+        while 1:
+            record = LogRecord.from_dict(json.loads(socket.recv()))
     """
 
     def __init__(self, uri, level=NOTSET, filter=None, bubble=False):
