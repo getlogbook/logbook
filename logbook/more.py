@@ -9,6 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 
+import re
 import os
 import sys
 import time
@@ -16,9 +17,20 @@ from collections import deque
 from threading import Lock, Thread
 from multiprocessing import Queue
 from Queue import Empty
+from cgi import parse_qsl
+from urllib import urlencode
 
 from logbook.base import LogRecord, RecordDispatcher, NOTSET, ERROR, WARNING
-from logbook.handlers import Handler
+from logbook.handlers import Handler, StringFormatter, \
+     StringFormatterHandlerMixin
+
+
+_ws_re = re.compile(r'(\s+)(?u)')
+_traceback_file_re = re.compile(r'\s+File.*,line \d+, in')
+TWITTER_FORMAT_STRING = \
+u'[{record.channel}] {record.level_name}: {record.message}'
+TWITTER_ACCESS_TOKEN_URL = 'https://twitter.com/oauth/access_token'
+NEW_TWEET_URL = 'https://api.twitter.com/1/statuses/update.json'
 
 
 class TaggingLogger(RecordDispatcher):
@@ -323,6 +335,103 @@ class GrowlHandler(Handler):
         self._notifier.notify(record.level_name.title(), title, text,
                               sticky=self.is_sticky(record),
                               priority=self.get_priority(record))
+
+
+class TwitterFormatter(StringFormatter):
+    """Works like the standard string formatter and is used by the
+    :class:`TwitterHandler` unless changed.
+    """
+    max_length = 140
+
+    def format_exception(self, record):
+        # operate on the formatted exception instead of exc_info so
+        # that this also works if we deal with closed records
+        lines = (record.formatted_exception or '').splitlines()
+        lines.reverse()
+        for idx, line in enumerate(lines):
+            if _traceback_file_re.match(line):
+                return u' '.join(u' '.join(reversed(lines[:idx])).split())
+        return u''
+
+    def __call__(self, record, handler):
+        formatted = StringFormatter.__call__(self, record, handler)
+        rv = []
+        length = 0
+        for piece in _ws_re.split(formatted):
+            length += len(piece)
+            if length > self.max_length:
+                if length - len(piece) < self.max_length:
+                    rv.append(u'…')
+                break
+            rv.append(piece)
+        return u''.join(rv)
+
+
+class TwitterHandler(Handler, StringFormatterHandlerMixin):
+    """A handler that logs to twitter.  Requires that you sign up an
+    application on twitter and request xauth support.  Furthermore the
+    oauth2 library has to be installed.
+    """
+    default_format_string = TWITTER_FORMAT_STRING
+    formatter_class = TwitterFormatter
+
+    def __init__(self, consumer_key, consumer_secret, username,
+                 password, level=NOTSET, format_string=None, filter=None,
+                 bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+        StringFormatterHandlerMixin.__init__(self, format_string)
+        self.consumer_key = consumer_key
+        self.consumer_secret = consumer_secret
+        self.username = username
+        self.password = password
+
+        try:
+            import oauth2
+        except ImportError:
+            raise RuntimeError('python-oauth2 has to be installed for '
+                               'this handler.')
+
+        self._oauth = oauth2
+        self._oauth_token = None
+        self._oauth_token_secret = None
+        self._consumer = oauth2.Consumer(consumer_key,
+                                         consumer_secret)
+        self._client = oauth2.Client(self._consumer)
+
+    def get_oauth_token(self):
+        """Returns the oauth access token."""
+        if self._oauth_token is None:
+            resp, content = self._client.request(
+                TWITTER_ACCESS_TOKEN_URL + '?', 'POST',
+                body=urlencode({
+                    'x_auth_username':  self.username.encode('utf-8'),
+                    'x_auth_password':  self.password.encode('utf-8'),
+                    'x_auth_mode':      'client_auth'
+                }),
+                headers={'Content-Type': 'application/x-www-form-urlencoded'}
+            )
+            if resp['status'] != '200':
+                raise RuntimeError('unable to login with Twitter')
+            data = dict(parse_qsl(content))
+            self._oauth_token = data['oauth_token']
+            self._oauth_token_secret = data['oauth_token_secret']
+        return self._oauth.Token(self._oauth_token,
+                                 self._oauth_token_secret)
+
+    def make_client(self):
+        """Creates a new oauth client auth a new access token."""
+        return self._oauth.Client(self._consumer, self.get_oauth_token())
+
+    def tweet(self, status):
+        """Tweets a given status.  Status must not exceed 140 chars."""
+        client = self.make_client()
+        resp, content = client.request(NEW_TWEET_URL, 'POST',
+            body=urlencode({'status': status.encode('utf-8')}),
+            headers={'Content-Type': 'application/x-www-form-urlencoded'})
+        return resp['status'] == '200'
+
+    def emit(self, record):
+        self.tweet(self.format(record))
 
 
 class JinjaFormatter(object):

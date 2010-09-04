@@ -61,6 +61,7 @@ On top of those there are a couple of handlers for special use cases:
   process to a handler from the outer process.
 * :class:`logbook.more.GrowlHandler` for logging to the OS X Growl
   notification daemon
+* :class:`logbook.more.TwitterHandler` for logging to twitter.
 * :class:`logbook.ticketing.TicketingHandler` for creating tickets from
   log records in a database or other data store.
 

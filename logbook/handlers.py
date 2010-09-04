@@ -232,6 +232,9 @@ class StringFormatterHandlerMixin(object):
     #: constructor was invoked with `None`.
     default_format_string = DEFAULT_FORMAT_STRING
 
+    #: the class to be used for string formatting
+    formatter_class = StringFormatter
+
     def __init__(self, format_string):
         if format_string is None:
             format_string = self.default_format_string
@@ -244,7 +247,10 @@ class StringFormatterHandlerMixin(object):
         if isinstance(self.formatter, StringFormatter):
             return self.formatter.format_string
     def _set_format_string(self, value):
-        self.formatter = StringFormatter(value)
+        if value is None:
+            self.formatter = None
+        else:
+            self.formatter = self.formatter_class(value)
     format_string = property(_get_format_string, _set_format_string)
     del _get_format_string, _set_format_string
 
