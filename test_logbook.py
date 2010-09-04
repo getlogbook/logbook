@@ -744,14 +744,16 @@ class MoreTestCase(LogbookTestCase):
         import zmq
         handler = logbook.more.ZeroMQHandler(uri)
         context = zmq.Context()
-        socket = context.socket(zmq.SUBSCRIBE)
+        socket = context.socket(zmq.SUB)
         socket.connect(uri)
+        socket.setsockopt(zmq.SUBSCRIBE, '')
         for test in tests:
             with handler:
                 self.log.warn(test)
                 d = json.loads(socket.recv())
                 record = logbook.LogRecord.from_dict(d)
                 self.assertEqual(record.message, test)
+                self.assertEqual(record.channel, self.log.name)
         socket.close()
 
 
