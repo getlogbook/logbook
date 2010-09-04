@@ -17,6 +17,7 @@ from random import randrange
 from itertools import izip
 from contextlib import contextmanager
 from cStringIO import StringIO
+from logbook.more import json
 
 
 @contextmanager
@@ -738,23 +739,23 @@ class MoreTestCase(LogbookTestCase):
             raise AssertionError('%r not in %r' % (b, a))
 
     def test_zeromq_handler(self):
-        uri = 'tcp://127.0.0.1:6000'
+        uri = 'tcp://127.0.0.1:42000'
         tests = [
             u'Logging something',
             u'Something with umlauts äöü',
             u'Something else for good measure',
         ]
         import zmq
-        logger = logbook.Logger('test')
         handler = logbook.more.ZeroMQHandler(uri)
         context = zmq.Context()
         socket = context.socket(zmq.SUBSCRIBE)
         socket.connect(uri)
         for test in tests:
             with handler:
-                logger.warn(test)
-                message = socket.recv()
-                self.assertContains(message.decode('utf-8'), test)
+                self.log.warn(test)
+                d = json.loads(socket.recv())
+                record = logbook.LogRecord.from_dict(d)
+                self.assertEqual(record.message, test)
         socket.close()
 
 
