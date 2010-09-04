@@ -1,7 +1,7 @@
 The Design Explained
 ====================
 
-This part of the documentation explains the design of logbook in detail.
+This part of the documentation explains the design of Logbook in detail.
 This is not strictly necessary to make use of Logbook but might be helpful
 when writing custom handlers for Logbook or when using it in a more
 complex environment.
@@ -78,23 +78,23 @@ where the record was created from and if a traceback information should be
 attached.
 
 Normally if log records are dispatched they will be closed immediately
-after all handlers had their chance to write it down.  On closing the
+after all handlers had their chance to write it down.  On closing, the
 interpreter frame and traceback object will be removed from the log record
 to break up circular dependencies.
 
 Sometimes however it might be necessary to keep log records around for a
 longer time.  Logbook provides three different ways to accomplish that:
 
-1.  handlers can set the :attr:`~logbook.LogRecord.keep_open` attribute of
+1.  Handlers can set the :attr:`~logbook.LogRecord.keep_open` attribute of
     a log record to `True` so that the record dispatcher will not close
     the object.  This is for example used by the
-    :class:`~logbook.TestHandler` so that a unittests can still access
+    :class:`~logbook.TestHandler` so that unittests can still access
     interpreter frames and traceback objects if necessary.
 2.  Because some information on the log records depends on the interpreter
     frame (such as the location of the log call) it is possible to pull
-    that related information directly on the log record so that it can
+    that related information directly into the log record so that it can
     safely be closed without losing that information (see
-    :meth:`~logbook.LogRecord.pull_information`)
+    :meth:`~logbook.LogRecord.pull_information`).
 3.  Last but not least, log records can be converted to dictionaries and
     recreated from these.  It is also possible to make these dictionaries
     safe for JSON export which is used by the

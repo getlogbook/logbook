@@ -262,8 +262,8 @@ class GrowlHandler(Handler):
                  password=None, level=NOTSET, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
 
-        # growl is using md5.py and we really don't want to see that deprecation
-        # warning
+        # growl is using the deprecated md5 module, but we really don't need
+        # to see that deprecation warning
         from warnings import filterwarnings
         filterwarnings(module='Growl', category=DeprecationWarning,
                        action='ignore')
@@ -274,7 +274,7 @@ class GrowlHandler(Handler):
         except ImportError:
             raise RuntimeError('The growl module is not available.  You have '
                                'to install either growl-py or py-Growl to '
-                               'use it.')
+                               'use the GrowlHandler.')
 
         # if no application name is provided, guess it from the executable
         if application_name is None:
