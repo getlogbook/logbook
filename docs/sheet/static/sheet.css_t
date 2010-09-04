@@ -133,7 +133,7 @@ pre, tt {
 }
 
 dl.class dt {
-    margin-left: 60px;
+    padding-left: 60px;
     text-indent: -60px;
 }
 
