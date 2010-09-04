@@ -71,7 +71,7 @@ The Log Record Container
 
 The :class:`~logbook.LogRecord` class is a simple container that
 holds all the information necessary for a log record.  Usually they are
-craeted from a :class:`~logbook.Logger` or one of the default log
+created from a :class:`~logbook.Logger` or one of the default log
 functions (:func:`logbook.warn` etc.) and immediately dispatched to the
 handlers.  The logger will apply some additional knowledge to figure out
 where the record was created from and if a traceback information should be
