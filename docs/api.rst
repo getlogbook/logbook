@@ -131,6 +131,9 @@ The More Module
 .. autoclass:: GrowlHandler
    :members:
 
+.. autoclass:: TwitterHandler
+   :members:
+
 .. autoclass:: JinjaFormatter
    :members:
 
