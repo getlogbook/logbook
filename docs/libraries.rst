@@ -21,7 +21,7 @@ class that just swallows all calls::
     try:
         from logbook import Logger
     except ImportError:
-        class LoggerMixin(object):
+        class Logger(object):
             def __init__(self, name, level=0):
                 self.name = name
                 self.level = level
