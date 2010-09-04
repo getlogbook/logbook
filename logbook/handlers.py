@@ -19,8 +19,8 @@ import traceback
 from itertools import izip
 
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
-     NOTSET, _level_name_property, _missing, lookup_level, \
-     _ContextObject
+     NOTSET, level_name_property, _missing, lookup_level, \
+     ContextObject
 from logbook.helpers import rename
 
 
@@ -69,7 +69,7 @@ def create_syshandler(application_name, level=NOTSET):
     return SyslogHandler(application_name, level=level)
 
 
-class Handler(_ContextObject):
+class Handler(ContextObject):
     """Handler instances dispatch logging events to specific destinations.
 
     The base handler class. Acts as a placeholder which defines the Handler
@@ -138,7 +138,7 @@ class Handler(_ContextObject):
             # ignore any exception that might be raised here
             pass
 
-    level_name = _level_name_property()
+    level_name = level_name_property()
 
     def format(self, record):
         """Formats a record with the given formatter.  If no formatter

@@ -11,7 +11,7 @@
 """
 import hashlib
 from time import time
-from logbook.base import NOTSET, cached_property, _level_name_property, \
+from logbook.base import NOTSET, cached_property, level_name_property, \
      LogRecord
 from logbook.handlers import Handler
 
@@ -24,7 +24,7 @@ except ImportError:
 class Ticket(object):
     """Represents a ticket from the database."""
 
-    level_name = _level_name_property()
+    level_name = level_name_property()
 
     def __init__(self, db, row):
         self.db = db

@@ -66,7 +66,7 @@ class cached_property(object):
         return value
 
 
-def _level_name_property():
+def level_name_property():
     """Returns a property that reflects the level as name from
     the internal level attribute.
     """
@@ -154,7 +154,7 @@ class _ContextObjectType(type):
 
     def __new__(cls, name, bases, d):
         rv = type.__new__(cls, name, bases, d)
-        if bases == (object,) or hasattr(rv, '_co_stackop'):
+        if bases == (StackedObject,) or hasattr(rv, '_co_stackop'):
             return rv
         rv._co_global = []
         rv._co_context_lock = threading.Lock()
@@ -179,7 +179,58 @@ class _ContextObjectType(type):
         return iter(objects)
 
 
-class _ContextObject(object):
+class StackedObject(object):
+    """Baseclass for all objects that provide stack manipulation
+    operations.
+    """
+
+    def push_thread(self):
+        """Pushes the stacked object to the thread stack."""
+        raise NotImplementedError()
+
+    def pop_thread(self):
+        """Pops the stacked object from the thread stack."""
+        raise NotImplementedError()
+
+    def push_application(self):
+        """Pushes the stacked object to the application stack."""
+        raise NotImplementedError()
+
+    def pop_application(self):
+        """Pops the stacked object from the application stack."""
+        raise NotImplementedError()
+
+    @contextmanager
+    def threadbound(self):
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the thread.
+        """
+        self.push_thread()
+        try:
+            yield self
+        finally:
+            self.pop_thread()
+
+    @contextmanager
+    def applicationbound(self):
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the application.
+        """
+        self.push_application()
+        try:
+            yield self
+        finally:
+            self.pop_application()
+
+    def __enter__(self):
+        self.push_thread()
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.pop_thread()
+
+
+class ContextObject(StackedObject):
     """An object that can be bound to a context.  The actual context
     object registry is initialized from the first subclass of this class.
     """
@@ -217,31 +268,8 @@ class _ContextObject(object):
         self._co_cache.clear()
         assert popped is self, 'popped unexpected object'
 
-    @contextmanager
-    def threadbound(self):
-        self.push_thread()
-        try:
-            yield self
-        finally:
-            self.pop_thread()
 
-    @contextmanager
-    def applicationbound(self):
-        self.push_application()
-        try:
-            yield self
-        finally:
-            self.pop_application()
-
-    def __enter__(self):
-        self.push_thread()
-        return self
-
-    def __exit__(self, exc_type, exc_value, tb):
-        self.pop_thread()
-
-
-class NestedSetup(object):
+class NestedSetup(StackedObject):
     """A nested setup can be used to configure multiple handlers
     and processors at once.
     """
@@ -268,30 +296,8 @@ class NestedSetup(object):
         for obj in reversed(self.objects):
             obj.pop_thread()
 
-    @contextmanager
-    def applicationbound(self):
-        self.push_application()
-        try:
-            yield
-        finally:
-            self.pop_application()
 
-    @contextmanager
-    def threadbound(self):
-        self.push_thread()
-        try:
-            yield
-        finally:
-            self.pop_thread()
-
-    def __enter__(self):
-        self.push_thread()
-
-    def __exit__(self, exc_type, exc_value, tb):
-        self.pop_thread()
-
-
-class Processor(_ContextObject):
+class Processor(ContextObject):
     """Can be pushed to a stack to inject additional information into
     a log record as necessary::
 
@@ -463,7 +469,7 @@ class LogRecord(object):
                 lineno=self.lineno
             ))
 
-    level_name = _level_name_property()
+    level_name = level_name_property()
 
     @cached_property
     def calling_frame(self):
@@ -580,7 +586,7 @@ class LoggerMixin(object):
 
     #: The name of the minimium logging level required for records to be
     #: created.
-    level_name = _level_name_property()
+    level_name = level_name_property()
 
     #: If this is set to `True` the dispatcher information will be suppressed
     #: for log records emitted from this logger.
