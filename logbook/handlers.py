@@ -514,6 +514,11 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         self._formatted_records = []
         self._formatted_record_cache = []
 
+    def close(self):
+        """Close all records down when the handler is closed."""
+        for record in self.records:
+            record.close()
+
     def emit(self, record):
         # keep records open because we will want to examine them after the
         # call to the emit function.  If we don't do that, the traceback

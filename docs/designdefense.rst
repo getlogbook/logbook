@@ -1,5 +1,5 @@
-The Design of Logbook
-=====================
+Design Principles
+=================
 
 .. currentmodule:: logbook
 
