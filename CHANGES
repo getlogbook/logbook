@@ -43,3 +43,5 @@ Release date to be announced.
 - Renamed `logger_name` to `channel`
 - Added a multi processing log handler
   (:class:`logbook.more.MultiProcessingHandler`)
+- Added a twitter handler
+- Added a ZeroMQ handler

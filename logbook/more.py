@@ -344,8 +344,9 @@ class GrowlHandler(Handler):
 
 class ZeroMQHandler(Handler):
     """A handler that acts as a ZeroMQ publisher, which publishes each record
-    as json dump.
+    as json dump.  Requires the pyzmq library.
     """
+
     def __init__(self, uri, level=NOTSET, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
 
