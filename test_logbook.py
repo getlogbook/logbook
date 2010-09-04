@@ -756,7 +756,6 @@ class MoreTestCase(LogbookTestCase):
                 message = socket.recv()
                 self.assertContains(message.decode('utf-8'), test)
         socket.close()
-        context.close()
 
 
 class TicketingTestCase(LogbookTestCase):
