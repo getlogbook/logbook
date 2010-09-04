@@ -125,6 +125,9 @@ The More Module
 .. autoclass:: FingersCrossedHandler
    :members:
 
+.. autoclass:: MultiProcessingHandler
+   :members:
+
 .. autoclass:: JinjaFormatter
    :members:
 

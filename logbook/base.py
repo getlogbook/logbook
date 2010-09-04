@@ -335,7 +335,7 @@ class LogRecord(object):
     """
     _pullable_information = ('func_name', 'module', 'filename', 'lineno',
                              'process_name', 'thread', 'thread_name',
-                             'formatted_exception')
+                             'formatted_exception', 'message')
     _noned_on_close = ('exc_info', 'frame', 'calling_frame')
 
     #: can be overriden by a handler to not close the record.  This could

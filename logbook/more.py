@@ -10,8 +10,11 @@
 """
 
 import sys
+import time
 from collections import deque
-from threading import Lock
+from threading import Lock, Thread
+from multiprocessing import Queue
+from Queue import Empty
 
 from logbook.base import LogRecord, RecordDispatcher, NOTSET, ERROR
 from logbook.handlers import Handler
@@ -190,6 +193,70 @@ class FingersCrossedHandler(Handler):
                 self._handler.emit(record)
             else:
                 self.enqueue(record)
+
+
+_multiprocessing_log_fixed = False
+_multiprocessing_log_lock = Lock()
+
+
+def _fix_multiprocessing_log():
+    """This actually fixes an issue with the stdlib.  Believe it or not.
+    That must be the most awesome workaround I ever wrote.
+    """
+    global _multiprocessing_log_fixed
+    with _multiprocessing_log_lock:
+        if _multiprocessing_log_fixed:
+            return
+        from multiprocessing import util, process
+        import logging
+        util._check_logger_class()
+        old_class = logging.getLoggerClass()
+        class AwesomeLogClass(old_class):
+            def __del__(self):
+                util.info = util.debug = lambda *a, **kw: None
+                process._cleanup = lambda *a, **kw: None
+                old_class.__del__(self)
+        logging.setLoggerClass(AwesomeLogClass)
+        _multiprocessing_log_fixed = True
+
+
+class MultiProcessingHandler(Handler):
+    """Implements a handler that dispatches to another handler directly
+    from the same processor or with the help of a unix pipe from the
+    child processes to the parent.
+    """
+
+    def __init__(self, handler, level=NOTSET, filter=None, bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+        self.handler = handler
+        self.queue = Queue(-1)
+
+        # start a thread in this process that receives data from the pipe
+        self._alive = True
+        self._rec_thread = Thread(target=self.receive)
+        self._rec_thread.setDaemon(True)
+        self._rec_thread.start()
+
+        _fix_multiprocessing_log()
+
+    def close(self):
+        if not self._alive:
+            return
+        self._alive = False
+        self._rec_thread.join()
+        self.queue.close()
+        self.queue.join_thread()
+
+    def receive(self):
+        while self._alive:
+            try:
+                item = self.queue.get(timeout=0.25)
+            except Empty:
+                continue
+            self.handler.handle(LogRecord.from_dict(item))
+
+    def emit(self, record):
+        self.queue.put_nowait(record.to_dict(json_safe=True))
 
 
 class JinjaFormatter(object):

@@ -112,7 +112,6 @@ def to_safe_json(data):
     """Makes a data structure safe for JSON silently discarding invalid
     objects from nested structures.  This also converts dates.
     """
-    _invalid = object()
     def _convert(obj):
         if obj is None:
             return None
@@ -123,24 +122,19 @@ def to_safe_json(data):
         elif isinstance(obj, datetime):
             return format_iso8601(obj)
         elif isinstance(obj, list):
-            return [x for x in map(_convert, obj) if x is not _invalid]
+            return [_convert(x) for x in obj]
         elif isinstance(obj, tuple):
-            return tuple(x for x in map(_convert, obj) if x is not _invalid)
+            return tuple(_convert(x) for x in obj)
         elif isinstance(obj, dict):
             rv = {}
             for key, value in obj.iteritems():
-                value = _convert(value)
-                if value is not _invalid:
-                    if isinstance(key, str):
-                        key = key.decode('utf-8', 'replace')
-                    else:
-                        key = unicode(key)
-                    rv[key] = value
+                if isinstance(key, str):
+                    key = key.decode('utf-8', 'replace')
+                else:
+                    key = unicode(key)
+                rv[key] = _convert(value)
             return rv
-        return _invalid
-    rv = _convert(data)
-    if rv is not _invalid:
-        return rv
+    return _convert(data)
 
 
 def format_iso8601(d=None):

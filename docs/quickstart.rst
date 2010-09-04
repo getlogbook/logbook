@@ -57,6 +57,8 @@ On top of those there are a couple of handlers for special use cases:
 * :class:`logbook.more.TaggingHandler` for dispatching log records that
   are tagged (used in combination with a
   :class:`logbook.more.TaggingLogger`)
+* :class:`logbook.more.MultiProcessingHandler` for logging from a child
+  process to a handler from the outer process.
 * :class:`logbook.ticketing.TicketingHandler` for creating tickets from
   log records in a database or other data store.
 

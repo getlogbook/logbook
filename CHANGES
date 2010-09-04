@@ -41,3 +41,5 @@ Release date to be announced.
   records to handlers independently of a logger (uses the default
   record dispatching logic).
 - Renamed `logger_name` to `channel`
+- Added a multi processing log handler
+  (:class:`logbook.more.MultiProcessingHandler`)

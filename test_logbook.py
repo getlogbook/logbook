@@ -410,8 +410,8 @@ Message:
             handlers = logbook.NestedSetup([
                 logbook.NullHandler(),
                 test_handler,
+                mail_handler
             ])
-            handlers.add(mail_handler)
 
             with handlers:
                 logger.warn('This is a warning')
@@ -697,6 +697,23 @@ class MoreTestCase(LogbookTestCase):
         self.assert_('all message' in stringio)
         self.assert_('cmd message' in stringio)
 
+    def test_multi_processing_handler(self):
+        from multiprocessing import Process
+        from logbook.more import MultiProcessingHandler
+        test_handler = logbook.TestHandler()
+        mp_handler = MultiProcessingHandler(test_handler)
+
+        def send_back():
+            logbook.warn('Hello World')
+
+        with mp_handler.applicationbound():
+            p = Process(target=send_back)
+            p.start()
+            p.join()
+        mp_handler.close()
+
+        self.assert_(test_handler.has_warning('Hello World'))
+
     def test_jinja_formatter(self):
         from logbook.more import JinjaFormatter
         try:
@@ -779,7 +796,8 @@ class HelperTestCase(unittest.TestCase):
         ])
         self.assertEqual(
             rv, [None, u'foo', u'jäger', 1, '2000-01-01T00:00:00Z',
-                 {u'jäger1': 1, u'jäger2': 2, u'bogus': 3}])
+                 {u'jäger1': 1, u'jäger2': 2, u'bogus': 3,
+                  'invalid': None}, None])
 
     def test_datehelpers(self):
         from logbook.helpers import format_iso8601, parse_iso8601

@@ -28,6 +28,7 @@ Documentation
    ticketing
    compat
    api
+   designexplained
    designdefense
 
 Project Information
