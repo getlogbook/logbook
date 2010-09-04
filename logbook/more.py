@@ -337,6 +337,7 @@ class GrowlHandler(Handler):
 
 
 class ZeroMQHandler(Handler, StringFormatterHandlerMixin):
+    """A handler that acts as a ZeroMQ publisher."""
     def __init__(self, uri, level=NOTSET, filter=None, bubble=False,
                  format_string=None):
         Handler.__init__(self, level, filter, bubble)
