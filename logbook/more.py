@@ -195,31 +195,6 @@ class FingersCrossedHandler(Handler):
                 self.enqueue(record)
 
 
-_multiprocessing_log_fixed = False
-_multiprocessing_log_lock = Lock()
-
-
-def _fix_multiprocessing_log():
-    """This actually fixes an issue with the stdlib.  Believe it or not.
-    That must be the most awesome workaround I ever wrote.
-    """
-    global _multiprocessing_log_fixed
-    with _multiprocessing_log_lock:
-        if _multiprocessing_log_fixed:
-            return
-        from multiprocessing import util, process
-        import logging
-        util._check_logger_class()
-        old_class = logging.getLoggerClass()
-        class AwesomeLogClass(old_class):
-            def __del__(self):
-                util.info = util.debug = lambda *a, **kw: None
-                process._cleanup = lambda *a, **kw: None
-                old_class.__del__(self)
-        logging.setLoggerClass(AwesomeLogClass)
-        _multiprocessing_log_fixed = True
-
-
 class MultiProcessingHandler(Handler):
     """Implements a handler that dispatches to another handler directly
     from the same processor or with the help of a unix pipe from the
@@ -237,7 +212,13 @@ class MultiProcessingHandler(Handler):
         self._rec_thread.setDaemon(True)
         self._rec_thread.start()
 
-        _fix_multiprocessing_log()
+        # necessary for older python's to disable a broken monkeypatch
+        # in the logging module.  See multiprocessing/util.py for the
+        # hasattr() check.  At least in Python 2.6 the multiprocessing
+        # module is not imported by logging and as such the test in
+        # the util fails.
+        import logging, multiprocessing
+        logging.multiprocessing = multiprocessing
 
     def close(self):
         if not self._alive:
