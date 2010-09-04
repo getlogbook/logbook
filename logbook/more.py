@@ -349,7 +349,10 @@ class ZeroMQHandler(Handler):
     def __init__(self, uri, level=NOTSET, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
 
-        import zmq
+        try:
+            import zmq
+        except ImportError:
+            raise RuntimeError('pyzmq has to be installed for this handler.')
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
         self.socket.bind(uri)
