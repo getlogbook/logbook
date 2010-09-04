@@ -17,7 +17,7 @@ from random import randrange
 from itertools import izip
 from contextlib import contextmanager
 from cStringIO import StringIO
-from logbook.more import json
+from logbook.helpers import json
 
 
 @contextmanager
@@ -735,14 +735,15 @@ class MoreTestCase(LogbookTestCase):
             self.assert_('testlogger/INFO' in handler.formatted_records)
 
     def test_zeromq_handler(self):
+        from logbook.queues import ZeroMQHandler
+        import zmq
         uri = 'tcp://127.0.0.1:42000'
         tests = [
             u'Logging something',
             u'Something with umlauts äöü',
             u'Something else for good measure',
         ]
-        import zmq
-        handler = logbook.more.ZeroMQHandler(uri)
+        handler = ZeroMQHandler(uri)
         context = zmq.Context()
         socket = context.socket(zmq.SUB)
         socket.connect(uri)

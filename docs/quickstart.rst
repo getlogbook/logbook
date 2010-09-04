@@ -59,10 +59,10 @@ On top of those there are a couple of handlers for special use cases:
   :class:`logbook.more.TaggingLogger`)
 * :class:`logbook.more.MultiProcessingHandler` for logging from a child
   process to a handler from the outer process.
-* :class:`logbook.more.ZeroMQHandler` for logging to ZeroMQ
 * :class:`logbook.more.GrowlHandler` for logging to the OS X Growl
   notification daemon
 * :class:`logbook.more.TwitterHandler` for logging to twitter.
+* :class:`logbook.queues.ZeroMQHandler` for logging to ZeroMQ
 * :class:`logbook.ticketing.TicketingHandler` for creating tickets from
   log records in a database or other data store.
 

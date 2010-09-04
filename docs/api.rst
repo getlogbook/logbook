@@ -128,9 +128,6 @@ The More Module
 .. autoclass:: MultiProcessingHandler
    :members:
 
-.. autoclass:: ZeroMQHandler
-   :members:
-
 .. autoclass:: GrowlHandler
    :members:
 
@@ -138,6 +135,15 @@ The More Module
    :members:
 
 .. autoclass:: JinjaFormatter
+   :members:
+
+
+Queue Support
+-------------
+
+.. module:: logbook.queues
+
+.. autoclass:: ZeroMQHandler
    :members:
 
 

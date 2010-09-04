@@ -17,6 +17,12 @@ import random
 from datetime import datetime, timedelta
 
 
+try:
+    import json
+except ImportError:
+    import simplejson as json
+
+
 # this regexp also matches incompatible dates like 20070101 because
 # some libraries (like the python xmlrpclib modules) use this
 _iso8601_re = re.compile(

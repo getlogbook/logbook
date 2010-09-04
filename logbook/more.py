@@ -20,14 +20,10 @@ from Queue import Empty
 from cgi import parse_qsl
 from urllib import urlencode
 
-try:
-    import json
-except ImportError:
-    import simplejson as json
-
 
 from logbook.base import LogRecord, RecordDispatcher, NOTSET, ERROR, WARNING
 from logbook.handlers import Handler, StringFormatter, StringFormatterHandlerMixin
+from logbook.helpers import json
 
 
 _ws_re = re.compile(r'(\s+)(?u)')
@@ -340,47 +336,6 @@ class GrowlHandler(Handler):
         self._notifier.notify(record.level_name.title(), title, text,
                               sticky=self.is_sticky(record),
                               priority=self.get_priority(record))
-
-
-class ZeroMQHandler(Handler):
-    """A handler that acts as a ZeroMQ publisher, which publishes each record
-    as json dump.  Requires the pyzmq library.
-
-    The queue will be filled with JSON exported log records.  Here an example
-    of how to recieve the records::
-
-        import zmq
-        import json
-        from logbook import LogRecord
-        handler = logbook.more.ZeroMQHandler('tcp://127.0.0.1:5000')
-        context = zmq.Context()
-        socket = context.socket(zmq.SUB)
-        socket.connect(uri)
-        socket.setsockopt(zmq.SUBSCRIBE, '')
-        while 1:
-            record = LogRecord.from_dict(json.loads(socket.recv()))
-    """
-
-    def __init__(self, uri, level=NOTSET, filter=None, bubble=False):
-        Handler.__init__(self, level, filter, bubble)
-
-        try:
-            import zmq
-        except ImportError:
-            raise RuntimeError('pyzmq has to be installed for this handler.')
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.PUB)
-        self.socket.bind(uri)
-
-    def export_record(self, record):
-        """Exports the record into a dictionary ready for JSON dumping."""
-        return record.to_dict(json_safe=True)
-
-    def emit(self, record):
-        self.socket.send(json.dumps(self.export_record(record)))
-
-    def close(self):
-        self.socket.close()
 
 
 class TwitterFormatter(StringFormatter):
