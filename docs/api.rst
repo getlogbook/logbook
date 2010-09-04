@@ -128,6 +128,9 @@ The More Module
 .. autoclass:: MultiProcessingHandler
    :members:
 
+.. autoclass:: GrowlNotifier
+   :members:
+
 .. autoclass:: JinjaFormatter
    :members:
 
