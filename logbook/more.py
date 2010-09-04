@@ -214,7 +214,7 @@ class MultiProcessingHandler(Handler):
 
         # necessary for older python's to disable a broken monkeypatch
         # in the logging module.  See multiprocessing/util.py for the
-        # hasattr() check.  At least in Python 2.6 the multiprocessing
+        # hasattr() check.  At least in Python 2.6.1 the multiprocessing
         # module is not imported by logging and as such the test in
         # the util fails.
         import logging, multiprocessing
