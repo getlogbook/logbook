@@ -24,6 +24,7 @@ Documentation
    features
    quickstart
    setups
+   libraries
    unittesting
    ticketing
    compat
