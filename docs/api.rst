@@ -146,6 +146,12 @@ Queue Support
 .. autoclass:: ZeroMQHandler
    :members:
 
+.. autoclass:: ZeroMQSubscriber
+   :members:
+
+.. autoclass:: ZeroMQThreadController
+   :members:
+
 
 Ticketing Support
 -----------------
@@ -195,6 +201,9 @@ Internal API
 .. module:: logbook.base
 
 .. autofunction:: dispatch_record
+
+.. autoclass:: StackedObject
+   :members:
 
 .. autoclass:: RecordDispatcher
    :members:

@@ -735,8 +735,7 @@ class MoreTestCase(LogbookTestCase):
             self.assert_('testlogger/INFO' in handler.formatted_records)
 
     def test_zeromq_handler(self):
-        from logbook.queues import ZeroMQHandler
-        import zmq
+        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
         uri = 'tcp://127.0.0.1:42000'
         tests = [
             u'Logging something',
@@ -744,18 +743,13 @@ class MoreTestCase(LogbookTestCase):
             u'Something else for good measure',
         ]
         handler = ZeroMQHandler(uri)
-        context = zmq.Context()
-        socket = context.socket(zmq.SUB)
-        socket.connect(uri)
-        socket.setsockopt(zmq.SUBSCRIBE, '')
+        subscriber = ZeroMQSubscriber(uri)
         for test in tests:
             with handler:
                 self.log.warn(test)
-                d = json.loads(socket.recv())
-                record = logbook.LogRecord.from_dict(d)
+                record = subscriber.recv()
                 self.assertEqual(record.message, test)
                 self.assertEqual(record.channel, self.log.name)
-        socket.close()
 
 
 class TicketingTestCase(LogbookTestCase):
