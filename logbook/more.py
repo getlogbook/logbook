@@ -358,11 +358,12 @@ class ZeroMQHandler(Handler):
         self.socket = self.context.socket(zmq.PUB)
         self.socket.bind(uri)
 
-    def record_as_json(self, record):
-        return json.dumps(record.to_dict(json_safe=True)).encode('utf-8')
+    def export_record(self, record):
+        """Exports the record into a dictionary ready for JSON dumping."""
+        return record.to_dict(json_safe=True)
 
     def emit(self, record):
-        self.socket.send(self.record_as_json(record))
+        self.socket.send(json.dumps(self.export_record(record)))
 
     def close(self):
         self.socket.close()
