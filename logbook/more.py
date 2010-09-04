@@ -18,7 +18,7 @@ from multiprocessing import Queue
 from Queue import Empty
 
 from logbook.base import LogRecord, RecordDispatcher, NOTSET, ERROR, WARNING
-from logbook.handlers import Handler
+from logbook.handlers import Handler, StringFormatterHandlerMixin
 
 
 class TaggingLogger(RecordDispatcher):
@@ -323,6 +323,27 @@ class GrowlHandler(Handler):
         self._notifier.notify(record.level_name.title(), title, text,
                               sticky=self.is_sticky(record),
                               priority=self.get_priority(record))
+
+
+class ZeroMQHandler(Handler, StringFormatterHandlerMixin):
+    def __init__(self, uri, level=NOTSET, filter=None, bubble=False,
+                 format_string=None):
+        Handler.__init__(self, level, filter, bubble)
+        StringFormatterHandlerMixin.__init__(self, format_string)
+
+        import zmq
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.PUB)
+        self.socket.bind(uri)
+
+    def format_and_encode(self, record):
+        return self.format(record).encode('utf-8')
+
+    def emit(self, record):
+        self.socket.send(self.format_and_encode(record))
+
+    def close(self):
+        self.socket.close()
 
 
 class JinjaFormatter(object):
