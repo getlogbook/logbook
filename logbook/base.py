@@ -277,9 +277,6 @@ class NestedSetup(StackedObject):
     def __init__(self, objects=None):
         self.objects = list(objects or ())
 
-    def add(self, object):
-        self.objects.append(object)
-
     def push_application(self):
         for obj in self.objects:
             obj.push_application()
