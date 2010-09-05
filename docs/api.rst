@@ -188,7 +188,7 @@ Logging Compatibility
 Warnings Compatibility
 ----------------------
 
-.. module:: logbook.compat
+.. currentmodule:: logbook.compat
 
 .. autofunction:: redirect_warnings
 
