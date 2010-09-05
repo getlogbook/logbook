@@ -14,9 +14,9 @@ from logbook.base import LogRecord, Logger, LoggerGroup, NestedSetup, \
      Processor, get_level_name, lookup_level, dispatch_record, CRITICAL, \
      ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET
 from logbook.handlers import Handler, StreamHandler, FileHandler, \
-     StderrHandler, RotatingFileHandler, TimedRotatingFileHandler, \
-     TestHandler, MailHandler, SyslogHandler, NullHandler, \
-     NTEventLogHandler, create_syshandler, StringFormatter
+     MonitoringFileHandler, StderrHandler, RotatingFileHandler, \
+     TimedRotatingFileHandler, TestHandler, MailHandler, SyslogHandler, \
+     NullHandler, NTEventLogHandler, create_syshandler, StringFormatter
 
 
 # create an anonymous default logger and provide all important
@@ -32,6 +32,8 @@ error = _default_logger.error
 exception = _default_logger.exception
 catch_exceptions = _default_logger.catch_exceptions
 critical = _default_logger.critical
+exception = _default_logger.exception
+catch_exceptions = _default_logger.catch_exceptions
 log = _default_logger.log
 del _default_logger
 

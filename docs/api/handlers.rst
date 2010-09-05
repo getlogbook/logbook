@@ -1,0 +1,60 @@
+Handlers
+========
+
+This documents the base handler interface as well as the provided core
+handlers.  There are additional handlers for special purposes in the
+:mod:`logbook.more`, :mod:`logbook.ticketing` and :mod:`logbook.queues`
+modules.
+
+.. module:: logbook
+
+Base Interface
+--------------
+
+.. autoclass:: Handler
+   :members:
+   :inherited-members:
+
+.. autoclass:: NestedSetup
+   :members:
+
+.. autoclass:: StringFormatter
+   :members:
+
+Core Handlers
+-------------
+
+.. autoclass:: StreamHandler
+   :members:
+
+.. autoclass:: FileHandler
+   :members:
+
+.. autoclass:: MonitoringFileHandler
+   :members:
+
+.. autoclass:: StderrHandler
+   :members:
+
+.. autoclass:: RotatingFileHandler
+   :members:
+
+.. autoclass:: TimedRotatingFileHandler
+   :members:
+
+.. autoclass:: TestHandler
+   :members:
+
+.. autoclass:: MailHandler
+   :members:
+
+.. autoclass:: SyslogHandler
+   :members:
+
+.. autoclass:: NTEventLogHandler
+   :members:
+
+.. autoclass:: NullHandler
+   :members:
+
+.. autofunction:: create_syshandler

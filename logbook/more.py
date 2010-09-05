@@ -14,9 +14,7 @@ import os
 import sys
 import time
 from collections import deque
-from threading import Lock, Thread
-from multiprocessing import Queue
-from Queue import Empty
+from threading import Lock
 from cgi import parse_qsl
 from urllib import urlencode
 
@@ -209,57 +207,6 @@ class FingersCrossedHandler(Handler):
                 self.enqueue(record)
 
 
-class MultiProcessingHandler(Handler):
-    """Implements a handler that dispatches to another handler directly
-    from the same processor or with the help of a unix pipe from the
-    child processes to the parent.
-    """
-
-    # XXX: this should use a smilar interface to the ZeroMQ subscriber
-    # which breaks up sender and receiver into two parts and provides an
-    # interface to shut down the subscriber thread.  Additionally and
-    # more importantly it does not deliver to a handler but dispatches
-    # to a setup which is more useful
-
-    def __init__(self, handler, level=NOTSET, filter=None, bubble=False):
-        Handler.__init__(self, level, filter, bubble)
-        self.handler = handler
-        self.queue = Queue(-1)
-
-        # start a thread in this process that receives data from the pipe
-        self._alive = True
-        self._rec_thread = Thread(target=self.receive)
-        self._rec_thread.setDaemon(True)
-        self._rec_thread.start()
-
-        # necessary for older python's to disable a broken monkeypatch
-        # in the logging module.  See multiprocessing/util.py for the
-        # hasattr() check.  At least in Python 2.6.1 the multiprocessing
-        # module is not imported by logging and as such the test in
-        # the util fails.
-        import logging, multiprocessing
-        logging.multiprocessing = multiprocessing
-
-    def close(self):
-        if not self._alive:
-            return
-        self._alive = False
-        self._rec_thread.join()
-        self.queue.close()
-        self.queue.join_thread()
-
-    def receive(self):
-        while self._alive:
-            try:
-                item = self.queue.get(timeout=0.25)
-            except Empty:
-                continue
-            self.handler.handle(LogRecord.from_dict(item))
-
-    def emit(self, record):
-        self.queue.put_nowait(record.to_dict(json_safe=True))
-
-
 class GrowlHandler(Handler):
     """A handler that dispatches to Growl.  Requires that either growl-py or
     py-Growl are installed.
@@ -341,20 +288,22 @@ class GrowlHandler(Handler):
                               priority=self.get_priority(record))
 
 
-class PyNotifyHandler(Handler):
-    """A handler that dispatches to libnotify.  Requires pynotify to be installed."""
+class LibNotifyHandler(Handler):
+    """A handler that dispatches to libnotify.  Requires pynotify installed."""
 
-    def __init__(self, icon=None, level=NOTSET, filter=None, bubble=False):
+    def __init__(self, application_name=None, icon=None, level=NOTSET,
+                 filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
 
         try:
             import pynotify
             self._pynotify = pynotify
         except ImportError:
-            raise RuntimeError('The pynotify module is not available.  You have '
-                               'to install pynotify to use the PyNotifyHandler.')
+            raise RuntimeError('The pynotify library is required for '
+                               'the LibNotifyHandler.')
 
-        application_name = get_application_name()
+        if application_name is None:
+            application_name = get_application_name()
         pynotify.init(application_name)
         self.icon = icon
 
@@ -363,7 +312,7 @@ class PyNotifyHandler(Handler):
             from gtk import gdk
         except ImportError:
             #TODO: raise a warning?
-            raise RuntimeError('You need Gdk to set a icon')
+            raise RuntimeError('The gtk.gdk module is required to set an icon.')
 
         if icon is not None:
             if not isinstance(icon, gdk.Pixbuf):
@@ -372,7 +321,7 @@ class PyNotifyHandler(Handler):
 
     def get_expires(self, record):
         """Returns either EXPIRES_DEFAULT or EXPIRES_NEVER for this record.
-        The default implementation marks errors and criticals as EXPIRES_NEVER
+        The default implementation marks errors and criticals as EXPIRES_NEVER.
         """
         pn = self._pynotify
         return pn.EXPIRES_NEVER if record.level >= ERROR else pn.EXPIRES_DEFAULT

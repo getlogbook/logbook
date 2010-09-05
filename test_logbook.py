@@ -223,6 +223,23 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline(),
                              'WARNING:testlogger:warning message\n')
 
+    def test_monitoring_file_handler(self):
+        if os.name == 'nt':
+            # skipped on windows
+            return
+
+        handler = logbook.MonitoringFileHandler(self.filename, format_string=
+            '{record.level_name}:{record.channel}:{record.message}',
+            delay=True)
+        with handler.threadbound():
+            self.log.warn('warning message')
+            os.rename(self.filename, self.filename + '.old')
+            self.log.warn('another warning message')
+        handler.close()
+        with open(self.filename) as f:
+            self.assertEqual(f.read().strip(),
+                             'WARNING:testlogger:another warning message')
+
     def test_custom_formatter(self):
         def custom_format(record, handler):
             return record.level_name + ':' + record.message
@@ -699,23 +716,6 @@ class MoreTestCase(LogbookTestCase):
         self.assert_('all message' in stringio)
         self.assert_('cmd message' in stringio)
 
-    def test_multi_processing_handler(self):
-        from multiprocessing import Process
-        from logbook.more import MultiProcessingHandler
-        test_handler = logbook.TestHandler()
-        mp_handler = MultiProcessingHandler(test_handler)
-
-        def send_back():
-            logbook.warn('Hello World')
-
-        with mp_handler.applicationbound():
-            p = Process(target=send_back)
-            p.start()
-            p.join()
-        mp_handler.close()
-
-        self.assert_(test_handler.has_warning('Hello World'))
-
     def test_jinja_formatter(self):
         from logbook.more import JinjaFormatter
         try:
@@ -775,6 +775,26 @@ class QueuesTestCase(LogbookTestCase):
 
         self.assert_(test_handler.has_warning('This is a warning'))
         self.assert_(test_handler.has_error('This is an error'))
+
+    def test_multi_processing_handler(self):
+        from multiprocessing import Process, Queue
+        from logbook.queues import MultiProcessingHandler, \
+             MultiProcessingSubscriber
+        queue = Queue(-1)
+        test_handler = logbook.TestHandler()
+        subscriber = MultiProcessingSubscriber(queue)
+
+        def send_back():
+            with MultiProcessingHandler(queue):
+                logbook.warn('Hello World')
+
+        p = Process(target=send_back)
+        p.start()
+        p.join()
+
+        with test_handler:
+            subscriber.dispatch_once()
+            self.assert_(test_handler.has_warning('Hello World'))
 
 
 class TicketingTestCase(LogbookTestCase):

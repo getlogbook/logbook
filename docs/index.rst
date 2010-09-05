@@ -28,7 +28,7 @@ Documentation
    unittesting
    ticketing
    compat
-   api
+   api/index
    designexplained
    designdefense
    changelog
