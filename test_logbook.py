@@ -760,21 +760,24 @@ class QueuesTestCase(LogbookTestCase):
         self.assert_(test_handler.has_error('This is an error'))
 
     def test_multi_processing_handler(self):
-        from multiprocessing import Process
-        from logbook.queues import MultiProcessingHandler
+        from multiprocessing import Process, Queue
+        from logbook.queues import MultiProcessingHandler, \
+             MultiProcessingSubscriber
+        queue = Queue(-1)
         test_handler = logbook.TestHandler()
-        mp_handler = MultiProcessingHandler(test_handler)
+        subscriber = MultiProcessingSubscriber(queue)
 
         def send_back():
-            logbook.warn('Hello World')
+            with MultiProcessingHandler(queue):
+                logbook.warn('Hello World')
 
-        with mp_handler.applicationbound():
-            p = Process(target=send_back)
-            p.start()
-            p.join()
-        mp_handler.close()
+        p = Process(target=send_back)
+        p.start()
+        p.join()
 
-        self.assert_(test_handler.has_warning('Hello World'))
+        with test_handler:
+            subscriber.dispatch_once()
+            self.assert_(test_handler.has_warning('Hello World'))
 
 
 class TicketingTestCase(LogbookTestCase):

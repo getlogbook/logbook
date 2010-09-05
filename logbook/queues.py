@@ -49,10 +49,11 @@ class ZeroMQHandler(Handler):
         self.socket.close()
 
 
-class ZeroMQThreadController(object):
-    """A helper class used by :class:`ZeroMQSubscriber` to control
-    the background thread.  This is usually created and started in
-    one go by :meth:`~logbook.queues.ZeroMQSubscriber.dispatch_in_background`.
+class ThreadController(object):
+    """A helper class used by queue subscreibers to control the background
+    thread.  This is usually created and started in one go by
+    :meth:`~logbook.queues.ZeroMQSubscriber.dispatch_in_background` or
+    a comparable function.
     """
 
     def __init__(self, subscriber, setup=None):
@@ -86,7 +87,48 @@ class ZeroMQThreadController(object):
                 self.setup.pop_thread()
 
 
-class ZeroMQSubscriber(object):
+class SubscriberBase(object):
+    """Baseclass for all subscribers."""
+
+    def recv(self, timeout=None):
+        """Receives a single record from the socket.  Timeout of 0 means nonblocking,
+        `None` means blocking and otherwise it's a timeout in seconds after which
+        the function just returns with `None`.
+
+        Subclasses have to override this.
+        """
+        raise NotImplementedError()
+
+    def dispatch_once(self, timeout=None):
+        """Receives one record from the socket, loads it and dispatches it.  Returns
+        `True` if something was dispatched or `False` if it timed out.
+        """
+        rv = self.recv(timeout)
+        if rv is not None:
+            dispatch_record(rv)
+            return True
+        return False
+
+    def dispatch_forever(self):
+        """Starts a loop that dispatches log records forever."""
+        while 1:
+            self.dispatch_once()
+
+    def dispatch_in_background(self, setup=None):
+        """Starts a new daemonized thread that dispatches in the background.
+        An optional handler setup can be provided that pushed to the new
+        thread (can be any :class:`logbook.base.StackedObject`).
+
+        Returns a :class:`ZeroMQThreadController` object for shutting down
+        the background thread.  The background thread will already be
+        running when this function returns.
+        """
+        controller = ThreadController(self, setup)
+        controller.start()
+        return controller
+
+
+class ZeroMQSubscriber(SubscriberBase):
     """A helper that acts as ZeroMQ subscriber and will dispatch received
     log records to the active handler setup.  There are multiple ways to
     use this class.
@@ -155,39 +197,21 @@ class ZeroMQSubscriber(object):
             rv = self.socket.recv(self._zmq.NOBLOCK)
         return LogRecord.from_dict(json.loads(rv))
 
-    def dispatch_once(self, timeout=None):
-        """Receives one record from the socket, loads it and dispatches it.  Returns
-        `True` if something was dispatched or `False` if it timed out.
-        """
-        rv = self.recv(timeout)
-        if rv is not None:
-            dispatch_record(rv)
-            return True
-        return False
 
-    def dispatch_forever(self):
-        """Starts a loop that dispatches log records forever."""
-        while 1:
-            self.dispatch_once()
-
-    def dispatch_in_background(self, setup=None):
-        """Starts a new daemonized thread that dispatches in the background.
-        An optional handler setup can be provided that pushed to the new
-        thread (can be any :class:`logbook.base.StackedObject`).
-
-        Returns a :class:`ZeroMQThreadController` object for shutting down
-        the background thread.  The background thread will already be
-        running when this function returns.
-        """
-        controller = ZeroMQThreadController(self, setup)
-        controller.start()
-        return controller
+def _fix_261_mplog():
+    """necessary for older python's to disable a broken monkeypatch
+    in the logging module.  See multiprocessing/util.py for the
+    hasattr() check.  At least in Python 2.6.1 the multiprocessing
+    module is not imported by logging and as such the test in
+    the util fails.
+    """
+    import logging, multiprocessing
+    logging.multiprocessing = multiprocessing
 
 
 class MultiProcessingHandler(Handler):
-    """Implements a handler that dispatches to another handler directly
-    from the same processor or with the help of a unix pipe from the
-    child processes to the parent.
+    """Implements a handler that dispatches over a queue to a different
+    process.
     """
 
     # XXX: this should use a smilar interface to the ZeroMQ subscriber
@@ -196,40 +220,30 @@ class MultiProcessingHandler(Handler):
     # more importantly it does not deliver to a handler but dispatches
     # to a setup which is more useful
 
-    def __init__(self, handler, level=NOTSET, filter=None, bubble=False):
+    def __init__(self, queue, level=NOTSET, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
-        self.handler = handler
-        self.queue = Queue(-1)
-
-        # start a thread in this process that receives data from the pipe
-        self._alive = True
-        self._rec_thread = Thread(target=self.receive)
-        self._rec_thread.setDaemon(True)
-        self._rec_thread.start()
-
-        # necessary for older python's to disable a broken monkeypatch
-        # in the logging module.  See multiprocessing/util.py for the
-        # hasattr() check.  At least in Python 2.6.1 the multiprocessing
-        # module is not imported by logging and as such the test in
-        # the util fails.
-        import logging, multiprocessing
-        logging.multiprocessing = multiprocessing
-
-    def close(self):
-        if not self._alive:
-            return
-        self._alive = False
-        self._rec_thread.join()
-        self.queue.close()
-        self.queue.join_thread()
-
-    def receive(self):
-        while self._alive:
-            try:
-                item = self.queue.get(timeout=0.25)
-            except Empty:
-                continue
-            self.handler.handle(LogRecord.from_dict(item))
+        self.queue = queue
+        _fix_261_mplog()
 
     def emit(self, record):
         self.queue.put_nowait(record.to_dict(json_safe=True))
+
+
+class MultiProcessingSubscriber(SubscriberBase):
+    """Receives log records from the given multiprocessing queue and
+    dispatches them to the active handler setup.
+    """
+
+    def __init__(self, queue):
+        self.queue = queue
+        _fix_261_mplog()
+
+    def recv(self, timeout=None):
+        if timeout is None:
+            rv = self.queue.get()
+        else:
+            try:
+                rv = self.queue.get(block=False, timeout=timeout)
+            except Empty:
+                return None
+        return LogRecord.from_dict(rv)
