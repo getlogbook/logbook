@@ -94,7 +94,7 @@ stderr, even if they went to the syslog you can enable bubbling by setting
 
     from logbook import SyslogHandler
 
-    error_handler = SyslogHandler('logbook example', level='ERROR')
+    error_handler = SyslogHandler('logbook example', level='ERROR', bubble=True)
     with error_handler.applicationbound():
         # whatever is executed here and an error is logged to the
         # error handler but it will also bubble up to the default
@@ -127,7 +127,7 @@ the user and working directory of the process.
 
 A context processor can be injected at two places: you can either bind a
 processor to a stack like you do with handlers or you can override the
-override the :meth:`~logbook.Handler.process_record` method.
+override the :meth:`.RecordDispatcher.process_record` method.
 
 Here an example that injects the current working directory into the
 `extra` dictionary of a log record::
@@ -139,7 +139,7 @@ Here an example that injects the current working directory into the
         record.extra['cwd'] = os.getcwd()
 
     with my_handler.applicationbound():
-        with Processor(inject_cwd).applicationbound()::
+        with Processor(inject_cwd).applicationbound():
             # everything logged here will have the current working
             # directory in the log record.
             ...
@@ -183,7 +183,7 @@ with the record and handler as arguments:
 
 >>> def my_formatter(record, handler):
 ...  return record.message
-... 
+...
 >>> handler.formatter = my_formatter
 
 The format string used for the default string formatter has one variable called

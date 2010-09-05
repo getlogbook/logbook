@@ -10,7 +10,7 @@ Dispatchers and Channels
 ------------------------
 
 Logbook does not use traditional loggers, instead a logger is internally
-named as :class:`~logbook.RecordDispatcher`.  While a logger also has
+named as :class:`~logbook.base.RecordDispatcher`.  While a logger also has
 methods to create new log records, the base class for all record
 dispatchers itself only has ways to dispatch :class:`~logbook.LogRecord`\s
 to the handlers.  A log record itself might have an attribute that points
@@ -49,7 +49,7 @@ True
 
 You don't need a record dispatcher to dispatch a log record though.  The
 default dispatching can be triggered from a function
-:func:`~logbook.dispatch_record`:
+:func:`~logbook.base.dispatch_record`:
 
 >>> from logbook import dispatch_record, LogRecord, INFO
 >>> record = LogRecord('My channel', INFO, 'Hello World!')
@@ -61,7 +61,7 @@ Here some common use cases for log records without a dispatcher:
 
 -   log records that were redirected from a different logging system
     such as the standard library's :mod:`logging` module or the
-    :mod:`warning` module.
+    :mod:`warnings` module.
 -   log records that came from different processes and do not have a
     dispatcher equivalent in the current process.
 -   log records that came from over the network.

@@ -97,8 +97,8 @@ Deeply Nested Setups
 --------------------
 
 If you want deeply nested logger setups, you can use the
-:class:`NestedSetup` class which simplifies that.  This is best explained
-using an example::
+:class:`~logbook.NestedSetup` class which simplifies that.  This is best
+explained using an example::
 
     from logbook import NestedSetup, NullHandler, FileHandler, MailHandler
 
@@ -116,9 +116,8 @@ using an example::
                        level='ERROR', bubble=True)
     ])
 
-The :meth:`NestedSetup.add` method accepts the same arguments as
-:meth:`Handler.applicationbound` and others.  Once such a complex setup is
-defined, the nested handler setup can be used as if it was a single handler::
+Once such a complex setup is defined, the nested handler setup can be used as if
+it was a single handler::
 
     with setup.threadbound():
         # everything here is handled as specified by the rules above.

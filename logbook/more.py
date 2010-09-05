@@ -21,7 +21,7 @@ from urllib import urlencode
 
 from logbook.base import LogRecord, RecordDispatcher, NOTSET, ERROR, WARNING
 from logbook.handlers import Handler, StringFormatter, StringFormatterHandlerMixin
-from logbook.helpers import json
+from logbook.helpers import json, get_application_name
 
 
 _ws_re = re.compile(r'(\s+)(?u)')
@@ -232,10 +232,7 @@ class GrowlHandler(Handler):
 
         # if no application name is provided, guess it from the executable
         if application_name is None:
-            if not sys.argv or not sys.argv[0]:
-                application_name = 'Python'
-            else:
-                application_name = os.path.basename(sys.argv[0]).title()
+            application_name = get_application_name()
 
         if icon is not None:
             if not os.path.isfile(icon):
@@ -289,6 +286,74 @@ class GrowlHandler(Handler):
         self._notifier.notify(record.level_name.title(), title, text,
                               sticky=self.is_sticky(record),
                               priority=self.get_priority(record))
+
+
+class LibNotifyHandler(Handler):
+    """A handler that dispatches to libnotify.  Requires pynotify installed."""
+
+    def __init__(self, application_name=None, icon=None, level=NOTSET,
+                 filter=None, bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+
+        try:
+            import pynotify
+            self._pynotify = pynotify
+        except ImportError:
+            raise RuntimeError('The pynotify library is required for '
+                               'the LibNotifyHandler.')
+
+        if application_name is None:
+            application_name = get_application_name()
+        pynotify.init(application_name)
+        self.icon = icon
+
+    def set_icon(self, notifier, icon):
+        try:
+            from gtk import gdk
+        except ImportError:
+            #TODO: raise a warning?
+            raise RuntimeError('The gtk.gdk module is required to set an icon.')
+
+        if icon is not None:
+            if not isinstance(icon, gdk.Pixbuf):
+                icon = gdk.pixbuf_new_from_file(icon)
+            notifier.set_icon_from_pixbuf(icon)
+
+    def get_expires(self, record):
+        """Returns either EXPIRES_DEFAULT or EXPIRES_NEVER for this record.
+        The default implementation marks errors and criticals as EXPIRES_NEVER.
+        """
+        pn = self._pynotify
+        return pn.EXPIRES_NEVER if record.level >= ERROR else pn.EXPIRES_DEFAULT
+
+    def get_urgency(self, record):
+        """Returns the urgency flag for pynotify.  Errors and criticals are
+        get highest urgency (CRITICAL), warnings get higher priority (NORMAL)
+        and the rest gets LOW.
+        """
+        pn = self._pynotify
+        if record.level >= ERROR:
+            return pn.URGENCY_CIRITICAL
+        elif record.level == WARNING:
+            return pn.URGENCY_NORMAL
+        return pn.URGENCY_LOW
+
+    def make_summary(self, record):
+        """Called to get the summary from the record."""
+        return u'%s: %s' % (record.channel, record.level_name.title())
+
+    def make_body(self, record):
+        """Called to get the body of the record."""
+        return record.message
+
+    def emit(self, record):
+        summary = self.make_summary(record)
+        body = self.make_body(record)
+        notifier = self._pynotify.Notification(summary, body)
+        notifier.set_urgency(self.get_urgency(record))
+        notifier.set_timeout(self.get_expires(record))
+        self.set_icon(notifier, self.icon)
+        notifier.show()
 
 
 class TwitterFormatter(StringFormatter):
