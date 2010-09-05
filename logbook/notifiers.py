@@ -21,7 +21,7 @@ def create_notification_handler(application_name=None, level=NOTSET, icon=None):
     systems this creates a :class:`LibNotifyHandler`, on OS X systems it
     will create a :class:`GrowlHandler`.
     """
-    if os.platform == 'darwin':
+    if sys.platform == 'darwin':
         return GrowlHandler(application_name, level=level, icon=icon)
     return LibNotifyHandler(application_name, level=level, icon=icon)
 
