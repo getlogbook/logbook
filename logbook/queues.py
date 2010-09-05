@@ -84,7 +84,31 @@ class ZeroMQThreadController(object):
 
 class ZeroMQSubscriber(object):
     """A helper that acts as ZeroMQ subscriber and will dispatch received
-    log records to the active handler setup.
+    log records to the active handler setup.  There are multiple ways to
+    use this class.
+
+    It can be used to receive log records from a queue::
+
+        subscriber = ZeroMQSubscriber('tcp://127.0.0.1:5000')
+        record = subscriber.recv()
+
+    But it can also be used to receive and dispatch these in one go::
+
+        with target_handler:
+            subscriber = ZeroMQSubscriber('tcp://127.0.0.1:5000')
+            subscriber.dispatch_forever()
+
+    This will take all the log records from that queue and dispatch them
+    over to `target_handler`.  If you want you can also do that in the
+    background::
+
+        subscriber = ZeroMQSubscriber('tcp://127.0.0.1:5000')
+        controller = subscriber.dispatch_in_background(target_handler)
+
+    The controller returned can be used to shut down the background
+    thread::
+
+        controller.stop()
     """
 
     def __init__(self, uri):
