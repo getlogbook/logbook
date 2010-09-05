@@ -130,14 +130,16 @@ Distributed Logging
 
 For applications that are spread over multiple processes or even machines
 logging into a central system can be a pain.  Logbook supports ZeroMQ to
-deal with that.  You can set up a handler that acts as ZeroMQ publisher
-and will send log records encoded as JSON over the wire::
+deal with that.  You can set up a :class:`~logbook.queues.ZeroMQHandler`
+that acts as ZeroMQ publisher and will send log records encoded as JSON
+over the wire::
 
     from logbook.queues import ZeroMQHandler
     handler = ZeroMQHandler('tcp://127.0.0.1:5000')
 
 Then you just need a separate process that can receive the log records and
-hand it over to another log handler.  The usual setup is this::
+hand it over to another log handler using the
+:class:`~logbook.queues.ZeroMQSubscriber`.  The usual setup is this::
 
     from logbook.queues import ZeroMQSubscriber
     subscriber = ZeroMQSubscriber('tcp://127.0.0.1:5000')
@@ -150,3 +152,16 @@ You can also run that loop in a background thread with
     from logbook.queues import ZeroMQSubscriber
     subscriber = ZeroMQSubscriber('tcp://127.0.0.1:5000')
     subscriber.dispatch_in_background(my_handler)
+
+If you just want to use this in a :mod:`multiprocessing` environment you
+can use the :class:`~logbook.queues.MultiProcessingHandler` and
+:class:`~logbook.queues.MultiProcessingSubscriber` instead.  They work the
+same way as the ZeroMQ equivalents but are connected through a
+:class:`multiprocessing.Queue`::
+
+    from multiprocessing import Queue
+    from logbook.queues import MultiProcessingHandler, \
+         MultiProcessingSubscriber
+    queue = Queue(-1)
+    handler = MultiProcessingHandler(queue)
+    subscriber = MultiProcessingSubscriber(queue)
