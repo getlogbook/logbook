@@ -45,6 +45,8 @@ Release date to be announced.
   (:class:`logbook.more.MultiProcessingHandler`).
 - Added a twitter handler.
 - Added a ZeroMQ handler.
+- Added a Growl handler.
+- Added a Libnotify handler.
 - Added a monitoring file handler.
 
 Version 0.1
