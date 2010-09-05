@@ -9,6 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 import os
+import sys
 
 from logbook.base import NOTSET, ERROR, WARNING
 from logbook.handlers import Handler
@@ -20,9 +21,9 @@ def create_notification_handler(application_name=None, level=NOTSET, icon=None):
     systems this creates a :class:`LibNotifyHandler`, on OS X systems it
     will create a :class:`GrowlHandler`.
     """
-    if os.name == 'posix':
-        return LibNotifyHandler(application_name, level=level, icon=icon)
-    return GrowlHandler(application_name, level=level, icon=icon)
+    if os.platform == 'darwin':
+        return GrowlHandler(application_name, level=level, icon=icon)
+    return LibNotifyHandler(application_name, level=level, icon=icon)
 
 
 class GrowlHandler(Handler):
