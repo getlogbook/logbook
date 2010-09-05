@@ -365,7 +365,7 @@ class MonitoringFileHandler(FileHandler):
         FileHandler.__init__(self, filename, mode, encoding, level,
                              format_string, delay, filter, bubble)
         if os.name == 'nt':
-            raise RuntimeError('NTLogEventLogHandler does not support Windows')
+            raise RuntimeError('MonitoringFileHandler does not support Windows')
         self._query_fd()
 
     def _query_fd(self):
