@@ -342,7 +342,7 @@ class GrowlHandler(Handler):
 
 
 class PyNotifyHandler(Handler):
-    """A handler that dispatches to libnotify.  Requires pynotify installed."""
+    """A handler that dispatches to libnotify.  Requires pynotify to be installed."""
 
     def __init__(self, icon=None, level=NOTSET, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
