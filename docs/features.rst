@@ -44,6 +44,8 @@ Core Features
 -   Logbook was designed to be fast and with modern Python features in mind.
     For example, it uses context managers to handle the stack of handlers as
     well as new-style string formatting for all of the core log calls.
+-   Builtin support for ZeroMQ and other means to distribute log messages
+    between heavily distributed systems and multiple processes.
 -   The Logbook system does not depend on log levels.  In fact, custom log
     levels are not supported, instead we strongly recommend using logging
     subclasses or log processors that inject tagged information into the log
@@ -92,3 +94,4 @@ Here a list of things you can expect in upcoming versions:
     dispatching for higher performance.
 -   a ticketing log handler that creates tickets in trac and redmine.
 -   a web frontend for the ticketing database handler.
+-   support for Python 2.5
