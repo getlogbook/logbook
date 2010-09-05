@@ -55,7 +55,7 @@ class ZeroMQHandler(Handler):
 
 
 class ThreadController(object):
-    """A helper class used by queue subscreibers to control the background
+    """A helper class used by queue subscribers to control the background
     thread.  This is usually created and started in one go by
     :meth:`~logbook.queues.ZeroMQSubscriber.dispatch_in_background` or
     a comparable function.
