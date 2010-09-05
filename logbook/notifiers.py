@@ -15,6 +15,16 @@ from logbook.handlers import Handler
 from logbook.helpers import get_application_name
 
 
+def create_notification_handler(application_name, level=NOTSET):
+    """Creates a handler perfectly fit the current platform.  On Linux
+    systems this creates a :class:`LibNotifyHandler`, on OS X systems it
+    will create a :class:`GrowlHandler`.
+    """
+    if os.name == 'posix':
+        return LibNotifyHandler(application_name, level=level)
+    return GrowlHandler(application_name, level=level)
+
+
 class GrowlHandler(Handler):
     """A handler that dispatches to Growl.  Requires that either growl-py or
     py-Growl are installed.
