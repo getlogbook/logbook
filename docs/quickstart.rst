@@ -139,7 +139,7 @@ Here an example that injects the current working directory into the
         record.extra['cwd'] = os.getcwd()
 
     with my_handler.applicationbound():
-        with Processor(inject_cwd).applicationbound()::
+        with Processor(inject_cwd).applicationbound():
             # everything logged here will have the current working
             # directory in the log record.
             ...
