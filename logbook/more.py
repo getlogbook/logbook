@@ -289,10 +289,12 @@ class GrowlHandler(Handler):
 
 
 class LibNotifyHandler(Handler):
-    """A handler that dispatches to libnotify.  Requires pynotify installed."""
+    """A handler that dispatches to libnotify.  Requires pynotify installed.
+    If `no_init` is set to `True` the initialization of libnotify is skipped.
+    """
 
-    def __init__(self, application_name=None, icon=None, level=NOTSET,
-                 filter=None, bubble=False):
+    def __init__(self, application_name=None, icon=None, no_init=False,
+                 level=NOTSET, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
 
         try:
@@ -302,9 +304,11 @@ class LibNotifyHandler(Handler):
             raise RuntimeError('The pynotify library is required for '
                                'the LibNotifyHandler.')
 
-        if application_name is None:
-            application_name = get_application_name()
-        pynotify.init(application_name)
+        if not self.no_init:
+            if application_name is None:
+                application_name = get_application_name()
+            pynotify.init(application_name)
+        self.application_name = application_name
         self.icon = icon
 
     def set_icon(self, notifier, icon):
