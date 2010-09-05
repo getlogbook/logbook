@@ -31,6 +31,7 @@ Documentation
    api
    designexplained
    designdefense
+   changelog
 
 Project Information
 -------------------
