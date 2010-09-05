@@ -187,3 +187,9 @@ def parse_iso8601(value):
             rv += delta
 
     return rv
+
+
+def get_application_name():
+    if not sys.argv or not sys.argv[0]:
+        return 'Python'
+    return os.path.basename(sys.argv[0]).title()
