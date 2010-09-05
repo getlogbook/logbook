@@ -344,17 +344,19 @@ class GrowlHandler(Handler):
 class PyNotifyHandler(Handler):
     """A handler that dispatches to libnotify.  Requires pynotify installed."""
 
-    def __init__(self, icon=None, level=NOTSET, filter=None, bubble=False):
+    def __init__(self, application_name=None, icon=None, level=NOTSET,
+                 filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
 
         try:
             import pynotify
             self._pynotify = pynotify
         except ImportError:
-            raise RuntimeError('The pynotify module is not available.  You have '
-                               'to install pynotify to use the PyNotifyHandler.')
+            raise RuntimeError('The pynotify library is required for '
+                               'the PyNotifyHandler.')
 
-        application_name = get_application_name()
+        if application_name is None:
+            application_name = get_application_name()
         pynotify.init(application_name)
         self.icon = icon
 
@@ -363,7 +365,7 @@ class PyNotifyHandler(Handler):
             from gtk import gdk
         except ImportError:
             #TODO: raise a warning?
-            raise RuntimeError('You need Gdk to set a icon')
+            raise RuntimeError('The gtk.gdk module is required to set an icon.')
 
         if icon is not None:
             if not isinstance(icon, gdk.Pixbuf):
@@ -372,7 +374,7 @@ class PyNotifyHandler(Handler):
 
     def get_expires(self, record):
         """Returns either EXPIRES_DEFAULT or EXPIRES_NEVER for this record.
-        The default implementation marks errors and criticals as EXPIRES_NEVER
+        The default implementation marks errors and criticals as EXPIRES_NEVER.
         """
         pn = self._pynotify
         return pn.EXPIRES_NEVER if record.level >= ERROR else pn.EXPIRES_DEFAULT
