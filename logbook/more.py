@@ -23,7 +23,7 @@ from urllib import urlencode
 
 from logbook.base import LogRecord, RecordDispatcher, NOTSET, ERROR, WARNING
 from logbook.handlers import Handler, StringFormatter, StringFormatterHandlerMixin
-from logbook.helpers import json
+from logbook.helpers import json, get_application_name
 
 
 _ws_re = re.compile(r'(\s+)(?u)')
@@ -285,10 +285,7 @@ class GrowlHandler(Handler):
 
         # if no application name is provided, guess it from the executable
         if application_name is None:
-            if not sys.argv or not sys.argv[0]:
-                application_name = 'Python'
-            else:
-                application_name = os.path.basename(sys.argv[0]).title()
+            application_name = get_application_name()
 
         if icon is not None:
             if not os.path.isfile(icon):
