@@ -223,6 +223,23 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline(),
                              'WARNING:testlogger:warning message\n')
 
+    def test_monitoring_file_handler(self):
+        if os.name == 'nt':
+            # skipped on windows
+            return
+
+        handler = logbook.MonitoringFileHandler(self.filename, format_string=
+            '{record.level_name}:{record.channel}:{record.message}',
+            delay=True)
+        with handler.threadbound():
+            self.log.warn('warning message')
+            os.rename(self.filename, self.filename + '.old')
+            self.log.warn('another warning message')
+        handler.close()
+        with open(self.filename) as f:
+            self.assertEqual(f.read().strip(),
+                             'WARNING:testlogger:another warning message')
+
     def test_custom_formatter(self):
         def custom_format(record, handler):
             return record.level_name + ':' + record.message

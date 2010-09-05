@@ -11,6 +11,7 @@
 
 import os
 import sys
+import stat
 import errno
 import codecs
 import socket
@@ -342,11 +343,51 @@ class FileHandler(StreamHandler):
         if self.stream is not None:
             self.flush()
             self.stream.close()
+            self.stream = None
 
     def emit(self, record):
         if self.stream is None:
             self._open()
         StreamHandler.emit(self, record)
+
+
+class MonitoringFileHandler(FileHandler):
+    """A file handler that will check if the file was moved while it was
+    open.  This might happen on POSIX systems if an application like
+    logrotate moves the logfile over.
+
+    Because of different IO concepts on Windows, this handler will not
+    work on a windows system.
+    """
+
+    def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
+                 format_string=None, delay=False, filter=None, bubble=False):
+        FileHandler.__init__(self, filename, mode, encoding, level,
+                             format_string, delay, filter, bubble)
+        if os.name == 'nt':
+            raise RuntimeError('NTLogEventLogHandler does not support Windows')
+        self._query_fd()
+
+    def _query_fd(self):
+        if self.stream is None:
+            self._last_stat = None, None
+        else:
+            try:
+                st = os.stat(self._filename)
+            except OSError, e:
+                if e.errno != 2:
+                    raise
+                self._last_stat = None, None
+            else:
+                self._last_stat = st[stat.ST_DEV], st[stat.ST_INO]
+
+    def emit(self, record):
+        last_stat = self._last_stat
+        self._query_fd()
+        if last_stat != self._last_stat:
+            self.close()
+        FileHandler.emit(self, record)
+        self._query_fd()
 
 
 class StderrHandler(StreamHandler):

@@ -30,6 +30,9 @@ Core Handlers
 .. autoclass:: FileHandler
    :members:
 
+.. autoclass:: MonitoringFileHandler
+   :members:
+
 .. autoclass:: StderrHandler
    :members:
 
