@@ -40,11 +40,12 @@ Release date to be announced.
 - Added a :func:`logbook.base.dispatch_record` function to dispatch
   records to handlers independently of a logger (uses the default
   record dispatching logic).
-- Renamed `logger_name` to `channel`
+- Renamed `logger_name` to `channel`.
 - Added a multi processing log handler
-  (:class:`logbook.more.MultiProcessingHandler`)
-- Added a twitter handler
-- Added a ZeroMQ handler
+  (:class:`logbook.more.MultiProcessingHandler`).
+- Added a twitter handler.
+- Added a ZeroMQ handler.
+- Added a monitoring file handler.
 
 Version 0.1
 -----------
