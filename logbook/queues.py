@@ -27,7 +27,8 @@ class ZeroMQHandler(Handler):
         try:
             import zmq
         except ImportError:
-            raise RuntimeError('pyzmq has to be installed for this handler.')
+            raise RuntimeError('The pyzmq library is required for '
+                               'the ZeroMQHandler.')
         #: the zero mq context
         self.context = zmq.Context()
         #: the zero mq socket.
@@ -115,7 +116,8 @@ class ZeroMQSubscriber(object):
         try:
             import zmq
         except ImportError:
-            raise RuntimeError('pyzmq has to be installed for this handler.')
+            raise RuntimeError('The pyzmq library is required for '
+                               'the ZeroMQSubscriber.')
         self._zmq = zmq
 
         #: the zero mq context

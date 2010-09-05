@@ -395,8 +395,8 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
         try:
             import oauth2
         except ImportError:
-            raise RuntimeError('python-oauth2 has to be installed for '
-                               'this handler.')
+            raise RuntimeError('The python-oauth2 library is required for '
+                               'the TwitterHandler.')
 
         self._oauth = oauth2
         self._oauth_token = None
@@ -418,7 +418,7 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
                 headers={'Content-Type': 'application/x-www-form-urlencoded'}
             )
             if resp['status'] != '200':
-                raise RuntimeError('unable to login with Twitter')
+                raise RuntimeError('unable to login to Twitter')
             data = dict(parse_qsl(content))
             self._oauth_token = data['oauth_token']
             self._oauth_token_secret = data['oauth_token_secret']
@@ -450,8 +450,8 @@ class JinjaFormatter(object):
         try:
             from jinja2 import Template
         except ImportError:
-            raise RuntimeError('JinjaFormatter requires the "jinja2" module '
-                               'which could not be imported.')
+            raise RuntimeError('The jinja2 library is required for '
+                               'the JinjaFormatter.')
         self.template = Template(template)
 
     def __call__(self, record, handler):

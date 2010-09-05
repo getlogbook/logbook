@@ -863,14 +863,14 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
         StringFormatterHandlerMixin.__init__(self, format_string)
 
         if os.name != 'nt':
-            raise RuntimeError('NTLog handler requires a windows '
+            raise RuntimeError('NTLogEventLogHandler requires a Windows '
                                'operating system.')
 
         try:
             import win32evtlogutil, win32evtlog
         except ImportError:
-            raise RuntimeError('pywin32 library is required '
-                               'for NTLog handling')
+            raise RuntimeError('The pywin32 library is required '
+                               'for the NTEventLogHandler.')
 
         self.application_name = application_name
         self._welu = win32evtlogutil
