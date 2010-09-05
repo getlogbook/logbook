@@ -29,6 +29,8 @@ warn = _default_logger.warn
 warning = _default_logger.warning
 notice = _default_logger.notice
 error = _default_logger.error
+exception = _default_logger.exception
+catch_exceptions = _default_logger.catch_exceptions
 critical = _default_logger.critical
 log = _default_logger.log
 del _default_logger
