@@ -127,7 +127,7 @@ the user and working directory of the process.
 
 A context processor can be injected at two places: you can either bind a
 processor to a stack like you do with handlers or you can override the
-override the :meth:`~logbook.Handler.process_record` method.
+override the :meth:`~logbook.RecordDispatcher.process_record` method.
 
 Here an example that injects the current working directory into the
 `extra` dictionary of a log record::
