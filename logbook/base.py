@@ -577,8 +577,8 @@ class LoggerMixin(object):
     """This mixin class defines and implements the "usual" logger
     interface (i.e. the descriptive logging functions).
 
-    Classes using this mixin have to implement a :meth:`handle` method which
-    takes a :class:`LogRecord` and passes it along.
+    Classes using this mixin have to implement a :meth:`!handle` method which
+    takes a :class:`~logbook.LogRecord` and passes it along.
     """
 
     #: The name of the minimium logging level required for records to be
@@ -591,14 +591,14 @@ class LoggerMixin(object):
 
     def debug(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
-        to :data:`~logbook.DEBUG`
+        to :data:`~logbook.DEBUG`.
         """
         if DEBUG >= self.level:
             self._log(DEBUG, args, kwargs)
 
     def info(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
-        to :data:`~logbook.INFO`
+        to :data:`~logbook.INFO`.
         """
         if INFO >= self.level:
             self._log(INFO, args, kwargs)
@@ -617,14 +617,14 @@ class LoggerMixin(object):
 
     def notice(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
-        to :data:`~logbook.NOTICE`
+        to :data:`~logbook.NOTICE`.
         """
         if NOTICE >= self.level:
             self._log(NOTICE, args, kwargs)
 
     def error(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
-        to :data:`~logbook.ERROR`
+        to :data:`~logbook.ERROR`.
         """
         if ERROR >= self.level:
             self._log(ERROR, args, kwargs)
@@ -652,7 +652,7 @@ class LoggerMixin(object):
 
     def critical(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
-        to :data:`~logbook.CRITICAL`
+        to :data:`~logbook.CRITICAL`.
         """
         if CRITICAL >= self.level:
             self._log(CRITICAL, args, kwargs)
@@ -794,9 +794,9 @@ class LoggerGroup(object):
         if loggers is None:
             loggers = []
         #: a list of all loggers on the logger group.  Use the
-        #: :meth:`add_logger` and :meth:`remove_logger` methods to
-        #: add or remove loggers from this list, or make sure to
-        #: set the :attr:`Logger.group` attribute appropriately.
+        #: :meth:`add_logger` and :meth:`remove_logger` methods to add
+        #: or remove loggers from this list, or make sure to set their
+        #: :attr:`~RecordDispatcher.group` attribute appropriately.
         self.loggers = loggers
         #: the level of the group.  This is reflected to the loggers
         #: in the group unless they overrode the setting.

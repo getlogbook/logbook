@@ -127,7 +127,7 @@ the user and working directory of the process.
 
 A context processor can be injected at two places: you can either bind a
 processor to a stack like you do with handlers or you can override the
-override the :meth:`~logbook.RecordDispatcher.process_record` method.
+override the :meth:`.RecordDispatcher.process_record` method.
 
 Here an example that injects the current working directory into the
 `extra` dictionary of a log record::
@@ -183,7 +183,7 @@ with the record and handler as arguments:
 
 >>> def my_formatter(record, handler):
 ...  return record.message
-... 
+...
 >>> handler.formatter = my_formatter
 
 The format string used for the default string formatter has one variable called

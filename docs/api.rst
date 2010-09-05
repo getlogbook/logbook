@@ -24,6 +24,7 @@ Logger Interface
 .. data:: CRITICAL
           ERROR
           WARNING
+          NOTICE
           INFO
           DEBUG
           NOTSET

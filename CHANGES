@@ -37,7 +37,7 @@ Release date to be announced.
   instead of a function.
 - Added ticketing handlers that send logs directly into a database.
 - Added MongoDB backend for ticketing handlers
-- Added a :func:`logbook.dispatch_record` function to dispatch
+- Added a :func:`logbook.base.dispatch_record` function to dispatch
   records to handlers independently of a logger (uses the default
   record dispatching logic).
 - Renamed `logger_name` to `channel`
