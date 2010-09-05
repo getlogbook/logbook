@@ -1,6 +1,9 @@
 Internal API
 ============
 
+This documents the internal API that might be useful for more advanced
+setups or custom handlers.
+
 .. module:: logbook.base
 
 .. autofunction:: dispatch_record

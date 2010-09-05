@@ -1,6 +1,11 @@
 Queue Support
 =============
 
+The queue support module makes it possible to add log records to a queue
+system.  This is useful for distributed setups where you want multiple
+processes to log to the same backend.  Currently supported are ZeroMQ as
+well as the :mod:`multiprocessing` :class:`~multiprocessing.Queue` class.
+
 .. module:: logbook.queues
 
 ZeroMQ

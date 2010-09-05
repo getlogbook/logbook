@@ -1,6 +1,8 @@
 Utilities
 =========
 
+This documents general purpose utility functions available in Logbook.
+
 .. module:: logbook
 
 .. autofunction:: debug

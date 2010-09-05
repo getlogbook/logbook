@@ -1,6 +1,8 @@
 Core Interface
 ==============
 
+This implements the core interface.
+
 .. module:: logbook
 
 .. autoclass:: Logger

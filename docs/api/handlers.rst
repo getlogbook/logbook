@@ -1,6 +1,11 @@
 Handlers
 ========
 
+This documents the base handler interface as well as the provided core
+handlers.  There are additional handlers for special purposes in the
+:mod:`logbook.more`, :mod:`logbook.ticketing` and :mod:`logbook.queues`
+modules.
+
 .. module:: logbook
 
 Base Interface

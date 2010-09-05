@@ -1,6 +1,9 @@
 Compatibility
 =============
 
+This documents compatibility support with existing systems such as
+:mod:`logging` and :mod:`warnings`.
+
 .. module:: logbook.compat
 
 Logging Compatibility
