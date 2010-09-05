@@ -272,9 +272,17 @@ class MultiProcessingSubscriber(SubscriberBase):
     thread::
 
         controller.stop()
+
+    If no queue is provided the subscriber will create one.  This one can the
+    be used by handlers::
+
+        subscriber = MultiProcessingSubscriber()
+        handler = MultiProcessingHandler(subscriber.queue)
     """
 
-    def __init__(self, queue):
+    def __init__(self, queue=None):
+        if queue is None:
+            queue = Queue(-1)
         self.queue = queue
         _fix_261_mplog()
 
