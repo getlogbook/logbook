@@ -699,23 +699,6 @@ class MoreTestCase(LogbookTestCase):
         self.assert_('all message' in stringio)
         self.assert_('cmd message' in stringio)
 
-    def test_multi_processing_handler(self):
-        from multiprocessing import Process
-        from logbook.more import MultiProcessingHandler
-        test_handler = logbook.TestHandler()
-        mp_handler = MultiProcessingHandler(test_handler)
-
-        def send_back():
-            logbook.warn('Hello World')
-
-        with mp_handler.applicationbound():
-            p = Process(target=send_back)
-            p.start()
-            p.join()
-        mp_handler.close()
-
-        self.assert_(test_handler.has_warning('Hello World'))
-
     def test_jinja_formatter(self):
         from logbook.more import JinjaFormatter
         try:
@@ -775,6 +758,23 @@ class QueuesTestCase(LogbookTestCase):
 
         self.assert_(test_handler.has_warning('This is a warning'))
         self.assert_(test_handler.has_error('This is an error'))
+
+    def test_multi_processing_handler(self):
+        from multiprocessing import Process
+        from logbook.queues import MultiProcessingHandler
+        test_handler = logbook.TestHandler()
+        mp_handler = MultiProcessingHandler(test_handler)
+
+        def send_back():
+            logbook.warn('Hello World')
+
+        with mp_handler.applicationbound():
+            p = Process(target=send_back)
+            p.start()
+            p.join()
+        mp_handler.close()
+
+        self.assert_(test_handler.has_warning('Hello World'))
 
 
 class TicketingTestCase(LogbookTestCase):

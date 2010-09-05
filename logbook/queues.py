@@ -9,6 +9,8 @@
     :license: BSD, see LICENSE for more details.
 """
 from threading import Thread
+from multiprocessing import Queue
+from Queue import Empty
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler
 from logbook.helpers import json
@@ -180,3 +182,54 @@ class ZeroMQSubscriber(object):
         controller = ZeroMQThreadController(self, setup)
         controller.start()
         return controller
+
+
+class MultiProcessingHandler(Handler):
+    """Implements a handler that dispatches to another handler directly
+    from the same processor or with the help of a unix pipe from the
+    child processes to the parent.
+    """
+
+    # XXX: this should use a smilar interface to the ZeroMQ subscriber
+    # which breaks up sender and receiver into two parts and provides an
+    # interface to shut down the subscriber thread.  Additionally and
+    # more importantly it does not deliver to a handler but dispatches
+    # to a setup which is more useful
+
+    def __init__(self, handler, level=NOTSET, filter=None, bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+        self.handler = handler
+        self.queue = Queue(-1)
+
+        # start a thread in this process that receives data from the pipe
+        self._alive = True
+        self._rec_thread = Thread(target=self.receive)
+        self._rec_thread.setDaemon(True)
+        self._rec_thread.start()
+
+        # necessary for older python's to disable a broken monkeypatch
+        # in the logging module.  See multiprocessing/util.py for the
+        # hasattr() check.  At least in Python 2.6.1 the multiprocessing
+        # module is not imported by logging and as such the test in
+        # the util fails.
+        import logging, multiprocessing
+        logging.multiprocessing = multiprocessing
+
+    def close(self):
+        if not self._alive:
+            return
+        self._alive = False
+        self._rec_thread.join()
+        self.queue.close()
+        self.queue.join_thread()
+
+    def receive(self):
+        while self._alive:
+            try:
+                item = self.queue.get(timeout=0.25)
+            except Empty:
+                continue
+            self.handler.handle(LogRecord.from_dict(item))
+
+    def emit(self, record):
+        self.queue.put_nowait(record.to_dict(json_safe=True))

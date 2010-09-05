@@ -125,9 +125,6 @@ The More Module
 .. autoclass:: FingersCrossedHandler
    :members:
 
-.. autoclass:: MultiProcessingHandler
-   :members:
-
 .. autoclass:: GrowlHandler
    :members:
 
@@ -150,6 +147,9 @@ Queue Support
    :members:
 
 .. autoclass:: ZeroMQThreadController
+   :members:
+
+.. autoclass:: MultiProcessingHandler
    :members:
 
 
