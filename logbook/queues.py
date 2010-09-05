@@ -22,7 +22,7 @@ class ZeroMQHandler(Handler):
     log records from a queue you can use the :class:`ZeroMQSubscriber`.
     """
 
-    def __init__(self, uri, level=NOTSET, filter=None, bubble=False):
+    def __init__(self, uri=None, level=NOTSET, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
         try:
             import zmq
@@ -33,7 +33,8 @@ class ZeroMQHandler(Handler):
         self.context = zmq.Context()
         #: the zero mq socket.
         self.socket = self.context.socket(zmq.PUB)
-        self.socket.bind(uri)
+        if uri is not None:
+            self.socket.bind(uri)
 
     def export_record(self, record):
         """Exports the record into a dictionary ready for JSON dumping."""
@@ -112,7 +113,7 @@ class ZeroMQSubscriber(object):
         controller.stop()
     """
 
-    def __init__(self, uri):
+    def __init__(self, uri=None):
         try:
             import zmq
         except ImportError:
@@ -124,7 +125,8 @@ class ZeroMQSubscriber(object):
         self.context = zmq.Context()
         #: the zero mq socket.
         self.socket = self.context.socket(zmq.SUB)
-        self.socket.connect(uri)
+        if uri is not None:
+            self.socket.connect(uri)
         self.socket.setsockopt(zmq.SUBSCRIBE, '')
 
     def __del__(self):
