@@ -341,7 +341,7 @@ class GrowlHandler(Handler):
                               priority=self.get_priority(record))
 
 
-class PyNotifyHandler(Handler):
+class LibNotifyHandler(Handler):
     """A handler that dispatches to libnotify.  Requires pynotify installed."""
 
     def __init__(self, application_name=None, icon=None, level=NOTSET,
@@ -353,7 +353,7 @@ class PyNotifyHandler(Handler):
             self._pynotify = pynotify
         except ImportError:
             raise RuntimeError('The pynotify library is required for '
-                               'the PyNotifyHandler.')
+                               'the LibNotifyHandler.')
 
         if application_name is None:
             application_name = get_application_name()
