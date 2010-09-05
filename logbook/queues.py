@@ -22,6 +22,11 @@ class ZeroMQHandler(Handler):
 
     The queue will be filled with JSON exported log records.  To receive such
     log records from a queue you can use the :class:`ZeroMQSubscriber`.
+
+
+    Example setup::
+
+        handler = ZeroMQHandler('tcp://127.0.0.1:5000')
     """
 
     def __init__(self, uri=None, level=NOTSET, filter=None, bubble=False):
@@ -211,7 +216,14 @@ def _fix_261_mplog():
 
 class MultiProcessingHandler(Handler):
     """Implements a handler that dispatches over a queue to a different
-    process.
+    process.  It is connected to a subscriber with a
+    :class:`multiprocessing.Queue`::
+
+        from multiprocessing import Queue
+        from logbook.queues import MultiProcessingHandler
+        queue = Queue(-1)
+        handler = MultiProcessingHandler(queue)
+
     """
 
     # XXX: this should use a smilar interface to the ZeroMQ subscriber
@@ -231,7 +243,35 @@ class MultiProcessingHandler(Handler):
 
 class MultiProcessingSubscriber(SubscriberBase):
     """Receives log records from the given multiprocessing queue and
-    dispatches them to the active handler setup.
+    dispatches them to the active handler setup.  Make sure to use the same
+    queue for both handler and subscriber.  Idaelly the queue is set
+    up with maximum size (``-1``)::
+
+        from multiprocessing import Queue
+        queue = Queue(-1)
+
+    It can be used to receive log records from a queue::
+
+        subscriber = MultiProcessingSubscriber(queue)
+        record = subscriber.recv()
+
+    But it can also be used to receive and dispatch these in one go::
+
+        with target_handler:
+            subscriber = MultiProcessingSubscriber(queue)
+            subscriber.dispatch_forever()
+
+    This will take all the log records from that queue and dispatch them
+    over to `target_handler`.  If you want you can also do that in the
+    background::
+
+        subscriber = MultiProcessingSubscriber(queue)
+        controller = subscriber.dispatch_in_background(target_handler)
+
+    The controller returned can be used to shut down the background
+    thread::
+
+        controller.stop()
     """
 
     def __init__(self, queue):
