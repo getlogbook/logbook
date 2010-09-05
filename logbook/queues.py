@@ -124,7 +124,7 @@ class SubscriberBase(object):
         An optional handler setup can be provided that pushed to the new
         thread (can be any :class:`logbook.base.StackedObject`).
 
-        Returns a :class:`ZeroMQThreadController` object for shutting down
+        Returns a :class:`ThreadController` object for shutting down
         the background thread.  The background thread will already be
         running when this function returns.
         """

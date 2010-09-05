@@ -1,52 +1,24 @@
-Handlers
-========
+Utilities
+=========
 
 .. module:: logbook
 
-Base Interface
---------------
+.. autofunction:: debug
 
-.. autoclass:: Handler
-   :members:
-   :inherited-members:
+.. autofunction:: info
 
-.. autoclass:: NestedSetup
-   :members:
+.. autofunction:: warn
 
-.. autoclass:: StringFormatter
-   :members:
+.. autofunction:: warning
 
-Core Handlers
--------------
+.. autofunction:: notice
 
-.. autoclass:: StreamHandler
-   :members:
+.. autofunction:: error
 
-.. autoclass:: FileHandler
-   :members:
+.. autofunction:: exception
 
-.. autoclass:: StderrHandler
-   :members:
+.. autofunction:: catch_exceptions
 
-.. autoclass:: RotatingFileHandler
-   :members:
+.. autofunction:: critical
 
-.. autoclass:: TimedRotatingFileHandler
-   :members:
-
-.. autoclass:: TestHandler
-   :members:
-
-.. autoclass:: MailHandler
-   :members:
-
-.. autoclass:: SyslogHandler
-   :members:
-
-.. autoclass:: NTEventLogHandler
-   :members:
-
-.. autoclass:: NullHandler
-   :members:
-
-.. autofunction:: create_syshandler
+.. autofunction:: log
