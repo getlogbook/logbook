@@ -94,7 +94,7 @@ stderr, even if they went to the syslog you can enable bubbling by setting
 
     from logbook import SyslogHandler
 
-    error_handler = SyslogHandler('logbook example', level='ERROR')
+    error_handler = SyslogHandler('logbook example', level='ERROR', bubble=True)
     with error_handler.applicationbound():
         # whatever is executed here and an error is logged to the
         # error handler but it will also bubble up to the default
