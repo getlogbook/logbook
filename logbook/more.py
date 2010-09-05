@@ -341,6 +341,72 @@ class GrowlHandler(Handler):
                               priority=self.get_priority(record))
 
 
+class PyNotifyHandler(Handler):
+    """A handler that dispatches to libnotify.  Requires pynotify installed."""
+
+    def __init__(self, icon=None, level=NOTSET, filter=None, bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+
+        try:
+            import pynotify
+            self._pynotify = pynotify
+        except ImportError:
+            raise RuntimeError('The pynotify module is not available.  You have '
+                               'to install pynotify to use the PyNotifyHandler.')
+
+        application_name = get_application_name()
+        pynotify.init(application_name)
+        self.icon = icon
+
+    def set_icon(self, notifier, icon):
+        try:
+            from gtk import gdk
+        except ImportError:
+            #TODO: raise a warning?
+            raise RuntimeError('You need Gdk to set a icon')
+
+        if icon is not None:
+            if not isinstance(icon, gdk.Pixbuf):
+                icon = gdk.pixbuf_new_from_file(icon)
+            notifier.set_icon_from_pixbuf(icon)
+
+    def get_expires(self, record):
+        """Returns either EXPIRES_DEFAULT or EXPIRES_NEVER for this record.
+        The default implementation marks errors and criticals as EXPIRES_NEVER
+        """
+        pn = self._pynotify
+        return pn.EXPIRES_NEVER if record.level >= ERROR else pn.EXPIRES_DEFAULT
+
+    def get_urgency(self, record):
+        """Returns the urgency flag for pynotify.  Errors and criticals are
+        get highest urgency (CRITICAL), warnings get higher priority (NORMAL)
+        and the rest gets LOW.
+        """
+        pn = self._pynotify
+        if record.level >= ERROR:
+            return pn.URGENCY_CIRITICAL
+        elif record.level == WARNING:
+            return pn.URGENCY_NORMAL
+        return pn.URGENCY_LOW
+
+    def make_summary(self, record):
+        """Called to get the summary from the record."""
+        return u'%s: %s' % (record.channel, record.level_name.title())
+
+    def make_body(self, record):
+        """Called to get the body of the record."""
+        return record.message
+
+    def emit(self, record):
+        summary = self.make_summary(record)
+        body = self.make_body(record)
+        notifier = self._pynotify.Notification(summary, body)
+        notifier.set_urgency(self.get_urgency(record))
+        notifier.set_timeout(self.get_expires(record))
+        self.set_icon(notifier, self.icon)
+        notifier.show()
+
+
 class TwitterFormatter(StringFormatter):
     """Works like the standard string formatter and is used by the
     :class:`TwitterHandler` unless changed.
