@@ -130,7 +130,7 @@ class LibNotifyHandler(Handler):
             application_name = get_application_name()
         self.application_name = application_name
         self.icon = icon
-        if not self.no_init:
+        if not no_init:
             pynotify.init(application_name)
 
     def set_icon(self, notifier, icon):
