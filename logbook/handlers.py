@@ -799,7 +799,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
             msg.add_header(*[x.strip() for x in pieces])
         body = '\r\n'.join(lineiter)
         if suppressed:
-            body += '\r\n\r\nThis message was occurred additional %d ' \
+            body += '\r\n\r\nThis message occurred additional %d ' \
                     'time(s) and was suppressed' % suppressed
         msg.set_payload(body)
         return msg
