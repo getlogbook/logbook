@@ -48,6 +48,10 @@ Release date to be announced.
 - Added a Growl handler.
 - Added a Libnotify handler.
 - Added a monitoring file handler.
+- Added a handler wrapper that moves the actual handling into a
+  background thread.
+- The mail handler can now be configured to deliver each log record
+  not more than n times in m seconds.
 
 Version 0.1
 -----------

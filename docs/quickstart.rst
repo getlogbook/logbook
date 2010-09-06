@@ -58,14 +58,17 @@ On top of those there are a couple of handlers for special use cases:
 * :class:`logbook.more.TaggingHandler` for dispatching log records that
   are tagged (used in combination with a
   :class:`logbook.more.TaggingLogger`)
-* :class:`logbook.queue.MultiProcessingHandler` for logging from a child
+* :class:`logbook.queues.ZeroMQHandler` for logging to ZeroMQ
+* :class:`logbook.queues.MultiProcessingHandler` for logging from a child
   process to a handler from the outer process.
+* :class:`logbook.queues.ThreadedWrapperHandler` for moving the actual
+  handling of a handler into a background thread and using a queue to
+  deliver records to that thread.
 * :class:`logbook.notifiers.GrowlHandler` and
   :class:`logbook.notifiers.LibNotifyHandler` for logging to the OS X Growl
   or the linux notification daemon.
 * :class:`logbook.notifiers.BoxcarHandler` for logging to `boxcar`_.
 * :class:`logbook.more.TwitterHandler` for logging to twitter.
-* :class:`logbook.queues.ZeroMQHandler` for logging to ZeroMQ
 * :class:`logbook.ticketing.TicketingHandler` for creating tickets from
   log records in a database or other data store.
 
