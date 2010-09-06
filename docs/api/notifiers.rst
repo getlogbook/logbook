@@ -14,9 +14,14 @@ OSX Specific Handlers
 .. autoclass:: GrowlHandler
    :members:
 
-
 Linux Specific Handlers
 -----------------------
 
 .. autoclass:: LibNotifyHandler
+   :members:
+
+Other Services
+--------------
+
+.. autoclass:: BoxcarHandler
    :members:

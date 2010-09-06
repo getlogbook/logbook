@@ -9,6 +9,9 @@
     :license: BSD, see LICENSE for more details.
 """
 import os
+import base64
+import urllib2
+from urllib import urlencode
 
 from logbook.base import NOTSET, ERROR, WARNING
 from logbook.handlers import Handler
@@ -176,3 +179,36 @@ class LibNotifyHandler(Handler):
         notifier.set_timeout(self.get_expires(record))
         self.set_icon(notifier, self.icon)
         notifier.show()
+
+
+class BoxcarHandler(Handler):
+    """Sends notifications to boxcar.io.  Can be forwarded to your iPhone or
+    other compatible device.
+    """
+    api_url = 'https://boxcar.io/notifications/'
+
+    def __init__(self, email, password, level=NOTSET, filter=None, bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+        self.email = email
+        self.password = password
+
+    def get_screen_name(self, record):
+        """Returns the value of the screen name field."""
+        return record.level_name.title()
+
+    def get_message(self, record):
+        """Returns the message to be attached."""
+        return record.message
+
+    def emit(self, record):
+        data = {
+            'notification[from_screen_name]':
+                self.get_screen_name(record).encode('utf-8'),
+            'notification[message]':
+                self.get_message(record).encode('utf-8')
+        }
+        req = urllib2.Request(self.api_url, urlencode(data))
+        req.add_header('Authorization', 'Basic %s' %
+            base64.encodestring(('%s:%s' % (self.email, self.password))
+                                .encode('utf-8')))
+        urllib2.urlopen(req).read()
