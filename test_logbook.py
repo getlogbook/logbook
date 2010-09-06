@@ -13,7 +13,7 @@ import unittest
 import tempfile
 import string
 import socket
-from datetime import datetime
+from datetime import datetime, timedelta
 from random import randrange
 from itertools import izip
 from contextlib import contextmanager
@@ -326,6 +326,26 @@ class HandlerTestCase(LogbookTestCase):
             self.assert_('\r\n\r\nTraceback' in mail)
             self.assert_('1/0' in mail)
             self.assert_('This is not mailed' in fallback.getvalue())
+
+    def test_mail_handler_record_limits(self):
+        suppression_test = re.compile('This message occurred additional \d+ '
+                                      'time\(s\) and was suppressed').search
+        handler = make_fake_mail_handler(record_limit=1,
+                                         record_delta=timedelta(seconds=0.5))
+        with handler:
+            later = datetime.utcnow() + timedelta(seconds=1.1)
+            while datetime.utcnow() < later:
+                self.log.error('Over and over...')
+            # first mail that is always delivered + 0.5 seconds * 2
+            # and 0.1 seconds of room for rounding errors makes 3 mails
+            self.assertEqual(len(handler.mails), 3)
+
+            # first mail is always delivered
+            assert not suppression_test(handler.mails[0][2])
+
+            # the next two have a supression count
+            assert suppression_test(handler.mails[1][2])
+            assert suppression_test(handler.mails[2][2])
 
     def test_syslog_handler(self):
         to_test = [
