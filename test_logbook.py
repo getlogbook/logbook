@@ -816,6 +816,22 @@ class QueuesTestCase(LogbookTestCase):
             subscriber.dispatch_once()
             self.assert_(test_handler.has_warning('Hello World'))
 
+    def test_threaded_wrapper_handler(self):
+        from logbook.queues import ThreadedWrapperHandler
+        test_handler = logbook.TestHandler()
+        handler = ThreadedWrapperHandler(test_handler)
+        with handler:
+            self.log.warn('Just testing')
+            self.log.error('More testing')
+
+        # give it some time to sync up
+        time.sleep(0.1)
+        handler.close()
+
+        self.assert_(not handler.controller.running)
+        self.assert_(test_handler.has_warning('Just testing'))
+        self.assert_(test_handler.has_error('More testing'))
+
 
 class TicketingTestCase(LogbookTestCase):
 

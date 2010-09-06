@@ -10,7 +10,7 @@
 """
 from threading import Thread
 from multiprocessing import Queue
-from Queue import Empty
+from Queue import Empty, Queue as ThreadQueue
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler
 from logbook.helpers import json
@@ -52,6 +52,36 @@ class ZeroMQHandler(Handler):
 
     def close(self):
         self.socket.close()
+
+
+class SimpleThreadController(object):
+    """A very basic thread controller that calls a function for as long
+    the thread is running.  This is used for the management of the
+    :class:`ThreadedWrapperHandler` background thread.
+    """
+
+    def __init__(self, callback):
+        self.callback = callback
+        self.running = False
+        self._thread = None
+
+    def start(self):
+        """Starts the task thread."""
+        self.running = True
+        self._thread = Thread(target=self._target)
+        self._thread.setDaemon(True)
+        self._thread.start()
+
+    def stop(self):
+        """Stops the task thread."""
+        if self.running:
+            self.running = False
+            self._thread.join()
+            self._thread = None
+
+    def _target(self):
+        while self.running:
+            self.callback()
 
 
 class ThreadController(object):
@@ -289,3 +319,56 @@ class MultiProcessingSubscriber(SubscriberBase):
             except Empty:
                 return None
         return LogRecord.from_dict(rv)
+
+
+class ThreadedWrapperHandler(Handler):
+    """This handled uses a single background thread to dispatch log records
+    to a specific other handler using an internal queue.  The idea is that if
+    you are using a handler that requires some time to hand off the log records
+    (such as the mail handler) and would block your request, you can let
+    Logbook do that in a background thread.
+
+    The levels, filters and bubble setting is removed from the inner handler
+    and moved to the outer one.
+    """
+
+    def __init__(self, handler):
+        Handler.__init__(self)
+        #: the inner handler.  It must not be used on its own because after
+        #: attaching the level, filter and bubble settings are restored to
+        #: the defaults and moved over to the outer threaded handler.
+        self.handler = handler
+
+        #: the internal queue (:class:`Queue.Queue`)
+        self.queue = ThreadQueue(-1)
+
+        #: the internal :class:`SimpleThreadController`
+        self.controller = SimpleThreadController(self._handle)
+        self.controller.start()
+
+    def _handle(self, timeout=0.05):
+        try:
+            record = self.queue.get(block=False, timeout=timeout)
+        except Empty:
+            return
+        self.handler.emit(record)
+
+    def close(self):
+        self.controller.stop()
+        self.handler.close()
+
+    def _get_handler(self):
+        return self._handler
+    def _set_handler(self, handler):
+        assert handler is not None, 'handler required'
+        self.level = handler.level
+        handler.level = NOTSET
+        self.filter = handler.filter
+        handler.filter = None
+        self.bubble = handler.bubble
+        handler.bubble = False
+        self._handler = handler
+    handler = property(_get_handler, _set_handler)
+
+    def emit(self, record):
+        self.queue.put_nowait(record)
