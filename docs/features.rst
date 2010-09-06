@@ -89,7 +89,6 @@ Roadmap
 
 Here a list of things you can expect in upcoming versions:
 
--   log handlers for libnotify.
 -   c implementation of the internal stack management and record
     dispatching for higher performance.
 -   a ticketing log handler that creates tickets in trac and redmine.
