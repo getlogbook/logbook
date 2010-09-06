@@ -330,13 +330,18 @@ class ThreadedWrapperHandler(Handler):
 
     The levels, filters and bubble setting is removed from the inner handler
     and moved to the outer one.
+
+    Example::
+
+        handler = ThreadedWrapperHandler(MailHandler(...))
     """
 
     def __init__(self, handler):
         Handler.__init__(self)
-        #: the inner handler.  It must not be used on its own because after
-        #: attaching the level, filter and bubble settings are restored to
-        #: the defaults and moved over to the outer threaded handler.
+        #: the inner handler.  It must not be used on its own for logging
+        #: because after attaching the level, filter and bubble settings are
+        #: restored to the defaults and moved over to the outer threaded
+        #: handler.
         self.handler = handler
 
         #: the internal queue (:class:`Queue.Queue`)
