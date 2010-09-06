@@ -403,8 +403,6 @@ class TicketingBaseHandler(Handler):
         hash.update((record.channel or u'').encode('utf-8') + '\x00')
         hash.update(record.filename.encode('utf-8') + '\x00')
         hash.update(str(record.lineno))
-        if record.module:
-            hash.update('\x00' + record.module)
         if self.hash_salt is not None:
             hash.update('\x00' + self.hash_salt)
         return hash.hexdigest()
