@@ -700,6 +700,12 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
                               record_delta=timedelta(minutes=1))
 
     The default timedelta is 60 seconds (one minute).
+
+    The mail handler is sending mails in a blocking manner.  If you are not
+    using some centralized system for logging these messages (with the help
+    of ZeroMQ or others) and the logging system slows you down you can
+    wrap the handler in a :class:`logbook.queues.ThreadedWrapperHandler`
+    that will then send the mails in a background thread.
     """
     default_format_string = MAIL_FORMAT_STRING
     default_subject = u'Server Error in Application'
