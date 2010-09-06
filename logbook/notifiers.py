@@ -9,6 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 import os
+import sys
 import base64
 import urllib2
 from urllib import urlencode
@@ -18,14 +19,14 @@ from logbook.handlers import Handler
 from logbook.helpers import get_application_name
 
 
-def create_notification_handler(application_name, level=NOTSET, icon=None):
+def create_notification_handler(application_name=None, level=NOTSET, icon=None):
     """Creates a handler perfectly fit the current platform.  On Linux
     systems this creates a :class:`LibNotifyHandler`, on OS X systems it
     will create a :class:`GrowlHandler`.
     """
-    if os.name == 'posix':
-        return LibNotifyHandler(application_name, level=level, icon=icon)
-    return GrowlHandler(application_name, level=level, icon=icon)
+    if sys.platform == 'darwin':
+        return GrowlHandler(application_name, level=level, icon=icon)
+    return LibNotifyHandler(application_name, level=level, icon=icon)
 
 
 class GrowlHandler(Handler):
