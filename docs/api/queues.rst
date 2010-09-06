@@ -18,12 +18,21 @@ ZeroMQ
    :members:
    :inherited-members:
 
+MultiProcessing
+---------------
+
 .. autoclass:: MultiProcessingHandler
    :members:
 
 .. autoclass:: MultiProcessingSubscriber
    :members:
    :inherited-members:
+
+Other
+-----
+
+.. autoclass:: ThreadedWrapperHandler
+   :members:
 
 Base Interface
 --------------
@@ -32,4 +41,7 @@ Base Interface
    :members:
 
 .. autoclass:: ThreadController
+   :members:
+
+.. autoclass:: SimpleThreadController
    :members:
