@@ -15,8 +15,10 @@ import stat
 import errno
 import codecs
 import socket
+import hashlib
 import threading
 import traceback
+from datetime import datetime, timedelta
 from itertools import izip
 
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
@@ -674,14 +676,42 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
 
 class MailHandler(Handler, StringFormatterHandlerMixin):
-    """A handler that sends error mails."""
+    """A handler that sends error mails.  The format string used by this
+    handler are the contents of the mail plus the headers.  This is handy
+    if you want to use a custom subject or ``X-`` header::
+
+        handler = MailHandler(format_string='''\
+        Subject: {record.level_name} on My Application
+
+        {record.message}
+        ''')
+
+    This handler will always emit text-only mails for maximum portability and
+    best performance.
+
+    In the default setting it delivers all log records but it can be set up
+    to not send more than n mails for the same record each hour to not
+    overload an inbox and the network in case a message is triggered multiple
+    times a minute.  The following example limits it to 60 mails an hour (once
+    a minute) which are evenly distributed::
+
+        handler = MailHandler(record_limit=60)
+    """
     default_format_string = MAIL_FORMAT_STRING
     default_subject = u'Server Error in Application'
 
+    #: the maximum number of record hashes in the cache for the limiting
+    #: feature.  Afterwards, record_cache_prune percent of the oldest
+    #: entries are removed
+    max_record_cache = 512
+
+    #: the number of items to prune on a cache overflow in percent.
+    record_cache_prune = 0.333
+
     def __init__(self, from_addr, recipients, subject=None,
                  server_addr=None, credentials=None, secure=None,
-                 level=NOTSET, format_string=None, filter=None,
-                 bubble=False):
+                 record_limit=None, level=NOTSET, format_string=None,
+                 filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.from_addr = from_addr
@@ -692,11 +722,73 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
         self.server_addr = server_addr
         self.credentials = credentials
         self.secure = secure
+        self.record_limit = record_limit
+        if self.record_limit is not None:
+            self._limit_td = timedelta(seconds=3600 / record_limit)
+            self._limit_lock = Lock()
+            self._record_limits = {}
+
+    def hash_record(self, record):
+        """Returns a hash for a record to keep it apart from other records.
+        This is used for the `record_limit` feature.  By default 
+        The level, channel, filename and location are hashed.
+        """
+        hash = hashlib.sha1()
+        hash.update('%d\x00' % record.level)
+        hash.update((record.channel or u'').encode('utf-8') + '\x00')
+        hash.update(record.filename.encode('utf-8') + '\x00')
+        hash.update(str(record.lineno))
+        return hash.hexdigest()
+
+    def record_over_limit(self, record, hash):
+        """Checks if this record was delivered more often than the
+        limit allows.
+        """
+        if self.record_limit is None or hash not in self._record_limits:
+            return False
+        first_count, count = self._record_limits[hash]
+        return count >= self.record_limit and \
+               (first_count + self._limit_td >= datetime.utcnow())
+
+    def count_missed_delivery(self, hash):
+        """Counts a missed delivery."""
+        if self.record_limit is None:
+            return
+        new = True
+        now = datetime.utcnow()
+        if hash in self._record_limits:
+            new = False
+            first_count, old_count = self._record_limits[hash]
+            if first_count + self._limit_td < now:
+                first_count = now
+                old_count = 0
+        else:
+            first_count = now
+            old_count = 0
+        if new and len(self._record_limits) >= self.max_record_cache:
+            cache_items = self._record_limits.items()
+            cache_items.sort()
+            del cache_items[:int(self._record_limits) * self.record_cache_prune]
+            self._record_limits = dict(cache_items)
+        self._record_limits[hash] = (old_count + 1, first_count)
+
+    def reset_missed_deliveries(self, hash):
+        """Resets the counter for missed deliveries for this hash."""
+        if self.record_limit is not None:
+            return self._record_limits.pop(hash, None)[1]
+        return 0
 
     def get_recipients(self, record):
+        """Returns the recipients for a record.  By default the
+        :attr:`recipients` attribute is returned for all records.
+        """
         return self.recipients
 
-    def message_from_record(self, record):
+    def message_from_record(self, record, suppressed):
+        """Creates a new message for a record as email message object
+        (:class:`email.message.Message`).  `suppressed` is the number
+        of mails not sent if the `record_limit` feature is active.
+        """
         from email.message import Message
         msg = Message()
         lineiter = iter(self.format(record).splitlines())
@@ -705,17 +797,28 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
                 break
             pieces = line.split(':', 1)
             msg.add_header(*[x.strip() for x in pieces])
-        msg.set_payload('\r\n'.join(lineiter))
+        body = '\r\n'.join(lineiter)
+        if suppressed:
+            body += '\r\n\r\nThis message was occurred additional %d ' \
+                    'time(s) and was suppressed' % suppressed
+        msg.set_payload(body)
         return msg
 
-    def generate_mail(self, record):
+    def generate_mail(self, record, suppressed=0):
+        """Generates the final email (:class:`email.message.Message`)
+        with headers and date.  `suppressed` is the number of mails
+        that were not send if the `record_limit` feature is active.
+        """
         from email.utils import formatdate
-        msg = self.message_from_record(record)
+        msg = self.message_from_record(record, suppressed)
         msg['From'] = self.from_addr
         msg['Date'] = formatdate()
         return msg
 
     def get_connection(self):
+        """Returns an SMTP connection.  By default it reconnects for
+        each sent mail.
+        """
         from smtplib import SMTP, SMTP_PORT, SMTP_SSL_PORT
         if self.server_addr is None:
             host = ''
@@ -733,6 +836,9 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
         return con
 
     def close_connection(self, con):
+        """Closes the connection that was returned by
+        :meth:`get_connection`.
+        """
         try:
             if con is not None:
                 con.quit()
@@ -740,6 +846,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
             pass
 
     def deliver(self, msg, recipients):
+        """Delivers the given message to a list of recpients."""
         con = self.get_connection()
         try:
             con.sendmail(self.from_addr, recipients, msg.as_string())
@@ -747,7 +854,16 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
             self.close_connection(con)
 
     def emit(self, record):
-        self.deliver(self.generate_mail(record), self.get_recipients(record))
+        suppressed = 0
+        if self.record_limit is not None:
+            with self._limit_lock:
+                hash = self.record_hash(record)
+                if self.record_over_limit(record, hash):
+                    self.count_missed_delivery(hash)
+                    return
+                suppressed = self.reset_missed_deliveries(hash)
+        self.deliver(self.generate_mail(record, suppressed),
+                     self.get_recipients(record))
 
 
 class SyslogHandler(Handler, StringFormatterHandlerMixin):
