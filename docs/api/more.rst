@@ -24,14 +24,13 @@ Special Handlers
 .. autoclass:: FingersCrossedHandler
    :members:
 
-.. autoclass:: GrowlHandler
-   :members:
-
 .. autoclass:: TwitterHandler
    :members:
 
 Other
 -----
+
+.. currentmodule:: logbook.more
 
 .. autoclass:: JinjaFormatter
    :members:

@@ -8,6 +8,8 @@ beyond the scope of Logbook itself or depend on external libraries.
 
 .. module:: logbook.notifiers
 
+.. autofunction:: create_notification_handler
+
 OSX Specific Handlers
 ---------------------
 

@@ -13,5 +13,6 @@ provided by Logbook.
    queues
    ticketing
    more
+   notifiers
    compat
    internal

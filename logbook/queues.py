@@ -329,7 +329,7 @@ class ThreadedWrapperHandler(Handler):
     Logbook do that in a background thread.
 
     The threaded wrapper handler will automatically adopt the methods and
-    properties of the wrapped handler.  All the values will be reflected::
+    properties of the wrapped handler.  All the values will be reflected:
 
     >>> twh = ThreadedWrapperHandler(TestHandler())
     >>> from logbook import WARNING
