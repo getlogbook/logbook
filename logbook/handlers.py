@@ -26,7 +26,7 @@ from threading import Lock
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      ContextObject
-from logbook.helpers import rename, F
+from logbook.helpers import rename, f
 
 
 DEFAULT_FORMAT_STRING = (
@@ -211,7 +211,7 @@ class StringFormatter(object):
     """
 
     def __init__(self, format_string):
-        self.format_string = F(format_string)
+        self.format_string = f(format_string)
 
     def format_record(self, record, handler):
         return self.format_string.format(record=record, handler=handler)
@@ -744,7 +744,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
 
     def hash_record(self, record):
         """Returns a hash for a record to keep it apart from other records.
-        This is used for the `record_limit` feature.  By default 
+        This is used for the `record_limit` feature.  By default
         The level, channel, filename and location are hashed.
         """
         hash = hashlib.sha1()
