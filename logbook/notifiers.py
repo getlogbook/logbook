@@ -15,7 +15,7 @@ import urllib2
 from urllib import urlencode
 
 from logbook.base import NOTSET, ERROR, WARNING
-from logbook.handlers import Handler
+from logbook.handlers import Handler, LimitingHandlerMixin
 from logbook.helpers import get_application_name
 
 
@@ -29,14 +29,36 @@ def create_notification_handler(application_name=None, level=NOTSET, icon=None):
     return LibNotifyHandler(application_name, level=level, icon=icon)
 
 
-class GrowlHandler(Handler):
+class NotificationBaseHandler(Handler, LimitingHandlerMixin):
+    """Baseclass for notification handlers."""
+
+    def __init__(self, application_name=None, record_limit=None,
+                 record_delta=None, level=NOTSET, filter=None, bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+        LimitingHandlerMixin.__init__(self, record_limit, record_delta)
+        if application_name is None:
+            application_name = get_application_name()
+        self.application_name = application_name
+
+    def make_title(self, record):
+        """Called to get the title from the record."""
+        return u'%s: %s' % (record.channel, record.level_name.title())
+
+    def make_text(self, record):
+        """Called to get the text of the record."""
+        return record.message
+
+
+class GrowlHandler(NotificationBaseHandler):
     """A handler that dispatches to Growl.  Requires that either growl-py or
     py-Growl are installed.
     """
 
     def __init__(self, application_name=None, icon=None, host=None,
-                 password=None, level=NOTSET, filter=None, bubble=False):
-        Handler.__init__(self, level, filter, bubble)
+                 password=None, record_limit=None, record_delta=None,
+                 level=NOTSET, filter=None, bubble=False):
+        NotificationBaseHandler.__init__(self, application_name, record_limit,
+                                         record_delta, level, filter, bubble)
 
         # growl is using the deprecated md5 module, but we really don't need
         # to see that deprecation warning
@@ -52,10 +74,6 @@ class GrowlHandler(Handler):
                                'to install either growl-py or py-Growl to '
                                'use the GrowlHandler.')
 
-        # if no application name is provided, guess it from the executable
-        if application_name is None:
-            application_name = get_application_name()
-
         if icon is not None:
             if not os.path.isfile(icon):
                 raise IOError('Filename to an icon expected.')
@@ -66,9 +84,8 @@ class GrowlHandler(Handler):
             except TypeError:
                 icon = None
 
-        self.application_name = application_name
         self._notifier = self._growl.GrowlNotifier(
-            applicationName=application_name,
+            applicationName=self.application_name,
             applicationIcon=icon,
             notifications=['Notset', 'Debug', 'Info', 'Notice', 'Warning',
                            'Error', 'Critical'],
@@ -94,30 +111,26 @@ class GrowlHandler(Handler):
             return 1
         return 0
 
-    def make_title(self, record):
-        """Called to get the title from the record."""
-        return u'%s: %s' % (record.channel, record.level_name.title())
-
-    def make_text(self, record):
-        """Called to get the text of the record."""
-        return record.message
-
     def emit(self, record):
-        title = self.make_title(record)
-        text = self.make_text(record)
-        self._notifier.notify(record.level_name.title(), title, text,
+        if not self.check_delivery(record)[1]:
+            return
+        self._notifier.notify(record.level_name.title(),
+                              self.make_title(record),
+                              self.make_text(record),
                               sticky=self.is_sticky(record),
                               priority=self.get_priority(record))
 
 
-class LibNotifyHandler(Handler):
+class LibNotifyHandler(NotificationBaseHandler):
     """A handler that dispatches to libnotify.  Requires pynotify installed.
     If `no_init` is set to `True` the initialization of libnotify is skipped.
     """
 
-    def __init__(self, application_name=None, icon=None, no_init=False, level=NOTSET,
+    def __init__(self, application_name=None, icon=None, no_init=False,
+                 record_limit=None, record_delta=None, level=NOTSET,
                  filter=None, bubble=False):
-        Handler.__init__(self, level, filter, bubble)
+        NotificationBaseHandler.__init__(self, application_name, record_limit,
+                                         record_delta, level, filter, bubble)
 
         try:
             import pynotify
@@ -126,14 +139,12 @@ class LibNotifyHandler(Handler):
             raise RuntimeError('The pynotify library is required for '
                                'the LibNotifyHandler.')
 
-        if application_name is None:
-            application_name = get_application_name()
-        self.application_name = application_name
         self.icon = icon
         if not no_init:
-            pynotify.init(application_name)
+            pynotify.init(self.application_name)
 
-    def set_icon(self, notifier, icon):
+    def set_notifier_icon(self, notifier, icon):
+        """Used to attach an icon on a notifier object."""
         try:
             from gtk import gdk
         except ImportError:
@@ -164,32 +175,27 @@ class LibNotifyHandler(Handler):
             return pn.URGENCY_NORMAL
         return pn.URGENCY_LOW
 
-    def make_summary(self, record):
-        """Called to get the summary from the record."""
-        return u'%s: %s' % (record.channel, record.level_name.title())
-
-    def make_body(self, record):
-        """Called to get the body of the record."""
-        return record.message
-
     def emit(self, record):
-        summary = self.make_summary(record)
-        body = self.make_body(record)
-        notifier = self._pynotify.Notification(summary, body)
+        if not self.check_delivery(record)[1]:
+            return
+        notifier = self._pynotify.Notification(self.make_title(record),
+                                               self.make_body(record))
         notifier.set_urgency(self.get_urgency(record))
         notifier.set_timeout(self.get_expires(record))
-        self.set_icon(notifier, self.icon)
+        self.set_notifier_icon(notifier, self.icon)
         notifier.show()
 
 
-class BoxcarHandler(Handler):
+class BoxcarHandler(NotificationBaseHandler):
     """Sends notifications to boxcar.io.  Can be forwarded to your iPhone or
     other compatible device.
     """
     api_url = 'https://boxcar.io/notifications/'
 
-    def __init__(self, email, password, level=NOTSET, filter=None, bubble=False):
-        Handler.__init__(self, level, filter, bubble)
+    def __init__(self, email, password, record_limit=None, record_delta=None,
+                 level=NOTSET, filter=None, bubble=False):
+        NotificationBaseHandler.__init__(self, record_limit, record_delta,
+                                         level, filter, bubble)
         self.email = email
         self.password = password
 
@@ -202,6 +208,8 @@ class BoxcarHandler(Handler):
         return record.message
 
     def emit(self, record):
+        if not self.check_delivery(record)[1]:
+            return
         data = {
             'notification[from_screen_name]':
                 self.get_screen_name(record).encode('utf-8'),

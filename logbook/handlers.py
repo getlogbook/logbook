@@ -319,10 +319,10 @@ class LimitingHandlerMixin(HashingHandlerMixin):
         The first one is the number of items that were not delivered so far,
         the second is a boolean flag if a delivery should happen now.
         """
+        if self.record_limit is None:
+            return 0, True
         hash = self.hash_record(record)
         with self._limit_lock:
-            if self.record_limit is None:
-                return
 
             allow_delivery = None
             suppression_count = old_count = 0
