@@ -17,11 +17,24 @@ import random
 from datetime import datetime, timedelta
 
 
+# Python 2.5 compatibility
+
 try:
     import json
 except ImportError:
     import simplejson as json
 
+if hasattr(str, 'format'):
+    def F(format_string):
+        return format_string
+else:
+    from logbook.string2 import Formatter
+
+    def F(format_string, _formatter=Formatter):
+        if isinstance(format_string, _formatter):
+            return format_string
+        return _formatter(format_string)
+    del Formatter
 
 # this regexp also matches incompatible dates like 20070101 because
 # some libraries (like the python xmlrpclib modules) use this

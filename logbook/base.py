@@ -8,6 +8,7 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
+from __future__ import with_statement
 
 import os
 import sys
@@ -20,7 +21,7 @@ from itertools import count, chain
 from weakref import ref as weakref
 from datetime import datetime
 
-from logbook.helpers import to_safe_json, parse_iso8601
+from logbook.helpers import to_safe_json, parse_iso8601, F
 
 
 CRITICAL = 6
@@ -451,16 +452,16 @@ class LogRecord(object):
         if not (self.args or self.kwargs):
             return self.msg
         try:
-            return self.msg.format(*self.args, **self.kwargs)
+            return F(self.msg).format(*self.args, **self.kwargs)
         except Exception, e:
             # this obviously will not give a proper error message if the
             # information was not pulled and the log record no longer has
             # access to the frame.  But there is not much we can do about
             # that.
-            raise TypeError('Could not format message with provided '
-                            'arguments: {err}\n  msg=\'{msg}\'\n  args={args} '
-                            '\n  kwargs={kwargs}.\n'
-                            'Happened in file {file}, line {lineno}'.format(
+            raise TypeError(F('Could not format message with provided '
+                              'arguments: {err}\n  msg=\'{msg}\'\n  '
+                              'args={args} \n  kwargs={kwargs}.\n'
+                              'Happened in file {file}, line {lineno}').format(
                 err=e, msg=self.msg.encode('utf-8'), args=self.args,
                 kwargs=self.kwargs, file=self.filename.encode('utf-8'),
                 lineno=self.lineno
@@ -535,7 +536,7 @@ class LogRecord(object):
         if the log record is passed to another thread, :meth:`pull_information`
         was called in the old thread.
         """
-        return threading.currentThread().name
+        return threading.currentThread().getName()
 
     @cached_property
     def process_name(self):
