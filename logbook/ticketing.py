@@ -82,27 +82,35 @@ class BackendBase(object):
 
     def setup_backend(self):
         """Setup the database backend."""
+        raise NotImplementedError()
 
     def record_ticket(self, record, data, hash, app_id):
         """Records a log record as ticket."""
+        raise NotImplementedError()
 
     def count_tickets(self):
         """Returns the number of tickets."""
+        raise NotImplementedError()
 
     def get_tickets(self, order_by='-last_occurrence_time', limit=50, offset=0):
         """Selects tickets from the database."""
+        raise NotImplementedError()
 
     def solve_ticket(self, ticket_id):
         """Marks a ticket as solved."""
+        raise NotImplementedError()
 
     def delete_ticket(self, ticket_id):
         """Deletes a ticket from the database."""
+        raise NotImplementedError()
 
     def get_ticket(self, ticket_id):
         """Return a single ticket with all occurrences."""
+        raise NotImplementedError()
 
     def get_occurrences(self, ticket, order_by='-time', limit=50, offset=0):
         """Selects occurrences from the database for a ticket."""
+        raise NotImplementedError()
 
 
 class SQLAlchemyBackend(BackendBase):
