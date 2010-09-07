@@ -5,8 +5,8 @@ Although the Python standard library provides a logging system, you should use
 Logbook.  Currently logbook is an alpha version and should be considered a
 developer preview.  Because it was prototyped in a couple of days, it leverages
 some features of Python that are not available in older Python releases.
-Currently Logbook only supports Python 2.6 and 2.7, with upcoming support for
-Python 3.
+Logbook requires Python 2.5 or higher and does not yet support Python 3
+but support is upcoming.
 
 Core Features
 -------------
@@ -93,4 +93,3 @@ Here a list of things you can expect in upcoming versions:
     dispatching for higher performance.
 -   a ticketing log handler that creates tickets in trac and redmine.
 -   a web frontend for the ticketing database handler.
--   support for Python 2.5
