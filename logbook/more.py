@@ -26,7 +26,6 @@ from logbook.helpers import json, get_application_name
 
 
 _ws_re = re.compile(r'(\s+)(?u)')
-_traceback_file_re = re.compile(r'\s+File.*,line \d+, in')
 TWITTER_FORMAT_STRING = \
 u'[{record.channel}] {record.level_name}: {record.message}'
 TWITTER_ACCESS_TOKEN_URL = 'https://twitter.com/oauth/access_token'
@@ -215,14 +214,8 @@ class TwitterFormatter(StringFormatter):
     max_length = 140
 
     def format_exception(self, record):
-        # operate on the formatted exception instead of exc_info so
-        # that this also works if we deal with closed records
-        lines = (record.formatted_exception or '').splitlines()
-        lines.reverse()
-        for idx, line in enumerate(lines):
-            if _traceback_file_re.match(line):
-                return u' '.join(u' '.join(reversed(lines[:idx])).split())
-        return u''
+        return u'%s: %s' % (record.exception_shortname,
+                            record.exception_message)
 
     def __call__(self, record, handler):
         formatted = StringFormatter.__call__(self, record, handler)

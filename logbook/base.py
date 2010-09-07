@@ -336,7 +336,8 @@ class LogRecord(object):
     """
     _pullable_information = ('func_name', 'module', 'filename', 'lineno',
                              'process_name', 'thread', 'thread_name',
-                             'formatted_exception', 'message')
+                             'formatted_exception', 'message',
+                             'exception_name', 'exception_message')
     _noned_on_close = ('exc_info', 'frame', 'calling_frame')
 
     #: can be overriden by a handler to not close the record.  This could
@@ -561,6 +562,28 @@ class LogRecord(object):
             lines = traceback.format_exception(*self.exc_info)
             rv = ''.join(lines).decode('utf-8', 'replace')
             return rv.rstrip()
+
+    @cached_property
+    def exception_name(self):
+        """The name of the exception."""
+        if self.exc_info is not None:
+            cls = self.exc_info[0]
+            return unicode(cls.__module__ + '.' + cls.__name__)
+
+    @property
+    def exception_shortname(self):
+        """An abbreviated exception name (no import path)"""
+        return self.exception_name.rsplit('.')[-1]
+
+    @cached_property
+    def exception_message(self):
+        """The message of the exception."""
+        if self.exc_info is not None:
+            val = self.exc_info[1]
+            try:
+                return unicode(val)
+            except UnicodeError:
+                return str(val).decode('utf-8', 'replace')
 
     @property
     def dispatcher(self):
