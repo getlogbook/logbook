@@ -102,12 +102,12 @@ def _format_field(value, parts, conv, spec):
     return value
 
 
-class Formatter(object):
+class FormatableString(object):
     """Class which implements method format().
 
     The method format() behaves like str.format() in python 2.6+.
 
-    >>> Formatter(u'{a:5}').format(a=42)    # Same as u'{a:5}'.format(a=42)
+    >>> FormatableString(u'{a:5}').format(a=42)   # Same as u'{a:5}'.format(a=42)
     u'   42'
 
     """
@@ -123,7 +123,7 @@ class Formatter(object):
         self._string = FORMAT_STR.sub(self._prepare, format_string)
 
     def __eq__(self, other):
-        if isinstance(other, Formatter):
+        if isinstance(other, FormatableString):
             return self.format_string == other.format_string
         # Compare equal with the original string.
         return self.format_string == other
