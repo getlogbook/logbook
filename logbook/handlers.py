@@ -26,7 +26,7 @@ from threading import Lock
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      ContextObject
-from logbook.helpers import rename, f
+from logbook.helpers import rename, F
 
 
 DEFAULT_FORMAT_STRING = (
@@ -211,10 +211,18 @@ class StringFormatter(object):
     """
 
     def __init__(self, format_string):
-        self.format_string = f(format_string)
+        self.format_string = format_string
+
+    def _get_format_string(self):
+        return self._format_string
+    def _set_format_string(self, value):
+        self._format_string = value
+        self._formatter = F(value)
+    format_string = property(_get_format_string, _set_format_string)
+    del _get_format_string, _set_format_string
 
     def format_record(self, record, handler):
-        return self.format_string.format(record=record, handler=handler)
+        return self._formatter.format(record=record, handler=handler)
 
     def format_exception(self, record):
         return record.formatted_exception

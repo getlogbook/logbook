@@ -9,7 +9,6 @@
     :license: BSD, see LICENSE for more details.
 """
 from threading import Thread
-from multiprocessing import Queue
 from Queue import Empty, Queue as ThreadQueue
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler
@@ -306,6 +305,7 @@ class MultiProcessingSubscriber(SubscriberBase):
 
     def __init__(self, queue=None):
         if queue is None:
+            from multiprocessing import Queue
             queue = Queue(-1)
         self.queue = queue
         _fix_261_mplog()

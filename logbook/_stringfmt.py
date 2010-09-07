@@ -11,21 +11,24 @@
 """
 
 import re
+import datetime
 
-FORMAT_STR = re.compile(
+
+_date_classes = (datetime.datetime, datetime.date, datetime.time)
+_format_str_re = re.compile(
     r'((?<!{)(?:{{)+'                       # '{{'
     r'|(?:}})+(?!})'                        # '}}
     r'|{(?:[^{](?:[^{}]+|{[^{}]*})*)?})'    # replacement field
 )
-FORMAT_SUB = re.compile(r'({[^{}]*})')      # nested replacement field
-FORMAT_SPEC = re.compile(
+_format_sub_re = re.compile(r'({[^{}]*})')  # nested replacement field
+_format_spec_re = re.compile(
     r'((?:[^{}]?[<>=^])?)'      # alignment
     r'([-+ ]?)'                 # sign
     r'(#?)' r'(\d*)' r'(,?)'    # base prefix, minimal width, thousands sep
     r'((?:\.\d+)?)'             # precision
     r'([bcdefgnosxEFGX%]?)$'    # type
 )
-FIELD_PART = re.compile('((?:^|\.)[^[.]+|\[[^]]+\])')
+_field_part_re = re.compile('((?:^|\.)[^[.]+|\[[^]]+\])')
 
 
 def _strformat(value, format_spec=""):
@@ -37,7 +40,7 @@ def _strformat(value, format_spec=""):
      - alignment option '='
      - thousand separator
     """
-    m = FORMAT_SPEC.match(format_spec)
+    m = _format_spec_re.match(format_spec)
     if not m:
         raise ValueError('Invalid conversion specification')
     align, sign, prefix, width, comma, precision, conversion = m.groups()
@@ -95,7 +98,7 @@ def _format_field(value, parts, conv, spec):
         value = ('%r' if (conv == 'r') else '%s') % (value,)
     if hasattr(value, '__format__'):
         value = value.__format__(spec)
-    elif hasattr(value, 'strftime') and spec:
+    elif isinstance(value, _date_classes) and spec:
         value = value.strftime(str(spec))
     else:
         value = _strformat(value, spec)
@@ -120,7 +123,7 @@ class FormatableString(object):
         self._nested = {}
 
         self.format_string = format_string
-        self._string = FORMAT_STR.sub(self._prepare, format_string)
+        self._string = _format_str_re.sub(self._prepare, format_string)
 
     def __eq__(self, other):
         if isinstance(other, FormatableString):
@@ -139,7 +142,7 @@ class FormatableString(object):
         field, _, format_spec = repl.partition(':')
 
         literal, _, conversion = field.partition('!')
-        name_parts = FIELD_PART.findall(literal)
+        name_parts = _field_part_re.findall(literal)
         if not name_parts or name_parts[0].startswith(('.', '[')):
             name = ''
         else:
@@ -160,7 +163,7 @@ class FormatableString(object):
                     'to manual field specification')
             self._index = None
         if '{' in format_spec:
-            format_spec = FORMAT_SUB.sub(self._prepare, format_spec)
+            format_spec = _format_sub_re.sub(self._prepare, format_spec)
             rv = (name_parts, conversion, format_spec)
             self._nested.setdefault(name, []).append(rv)
         else:

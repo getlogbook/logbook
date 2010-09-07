@@ -21,7 +21,7 @@ from itertools import count, chain
 from weakref import ref as weakref
 from datetime import datetime
 
-from logbook.helpers import to_safe_json, parse_iso8601, f
+from logbook.helpers import to_safe_json, parse_iso8601, F
 
 
 CRITICAL = 6
@@ -452,13 +452,13 @@ class LogRecord(object):
         if not (self.args or self.kwargs):
             return self.msg
         try:
-            return f(self.msg).format(*self.args, **self.kwargs)
+            return F(self.msg).format(*self.args, **self.kwargs)
         except Exception, e:
             # this obviously will not give a proper error message if the
             # information was not pulled and the log record no longer has
             # access to the frame.  But there is not much we can do about
             # that.
-            raise TypeError(f('Could not format message with provided '
+            raise TypeError(F('Could not format message with provided '
                               'arguments: {err}\n  msg=\'{msg}\'\n  '
                               'args={args} \n  kwargs={kwargs}.\n'
                               'Happened in file {file}, line {lineno}').format(

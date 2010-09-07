@@ -25,16 +25,10 @@ except ImportError:
     import simplejson as json
 
 if hasattr(str, 'format'):
-    def f(format_string):
+    def F(format_string):
         return format_string
 else:
-    from logbook.string2 import FormatableString
-
-    def f(format_string, _formatable=FormatableString):
-        if isinstance(format_string, _formatable):
-            return format_string
-        return _formatable(format_string)
-    del FormatableString
+    from logbook._stringfmt import FormatableString as F
 
 # this regexp also matches incompatible dates like 20070101 because
 # some libraries (like the python xmlrpclib modules) use this
