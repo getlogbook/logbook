@@ -116,7 +116,6 @@ class Formatter(object):
                  '_string', 'format_string')
 
     def __init__(self, format_string):
-        str.__init__(self, format_string)
         self._index = 0
         self._indexes = set()
         self._kwords = {}
