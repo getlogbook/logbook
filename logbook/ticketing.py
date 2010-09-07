@@ -13,7 +13,7 @@ import hashlib
 from time import time
 from logbook.base import NOTSET, cached_property, level_name_property, \
      LogRecord
-from logbook.handlers import Handler
+from logbook.handlers import Handler, HashingHandlerMixin
 
 try:
     import simplejson as json
@@ -392,11 +392,15 @@ class MongoDBBackend(BackendBase):
         return [self._FixedOccurrenceClass(self, obj) for obj in occurrences]
 
 
-class TicketingBaseHandler(Handler):
+class TicketingBaseHandler(Handler, HashingHandlerMixin):
     """Baseclass for ticketing handlers.  This can be used to interface
     ticketing systems that do not necessarily provide an interface that
     would be compatible with the :class:`BackendBase` interface.
     """
+
+    def __init__(self, hash_salt, level=NOTSET, filter=None, bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+        self.hash_salt = hash_salt
 
     def record_ticket(self, record, data, hash):
         """Subclasses have to override this to implement the actual logic
@@ -404,16 +408,12 @@ class TicketingBaseHandler(Handler):
         """
         raise NotImplementedError()
 
-    def hash_record(self, record):
+    def hash_record_raw(self, record):
         """Returns the unique hash of a record."""
-        hash = hashlib.sha1()
-        hash.update('%d\x00' % record.level)
-        hash.update((record.channel or u'').encode('utf-8') + '\x00')
-        hash.update(record.filename.encode('utf-8') + '\x00')
-        hash.update(str(record.lineno))
+        hash = HashingHandlerMixin.hash_record_raw(self, record)
         if self.hash_salt is not None:
             hash.update('\x00' + self.hash_salt)
-        return hash.hexdigest()
+        return hash
 
     def process_record(self, record, hash):
         """Subclasses can override this to tamper with the data dict that
@@ -454,13 +454,14 @@ class TicketingHandler(TicketingBaseHandler):
     def __init__(self, uri, app_id='generic', level=NOTSET,
                  filter=None, bubble=False, hash_salt=None, backend=None,
                  **db_options):
-        TicketingBaseHandler.__init__(self, level, filter, bubble)
+        if hash_salt is None:
+            hash_salt = 'apphash-' + app_id.encode('utf-8')
+        TicketingBaseHandler.__init__(self, hash_salt, level, filter, bubble)
         if backend is None:
             backend = self.default_backend
         db_options['uri'] = uri
         self.set_backend(backend, **db_options)
         self.app_id = app_id
-        self.hash_salt = hash_salt or app_id.encode('utf-8')
 
     def set_backend(self, cls, **options):
         self.db = cls(**options)

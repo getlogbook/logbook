@@ -271,17 +271,23 @@ class StringFormatterHandlerMixin(object):
 class HashingHandlerMixin(object):
     """Mixin class for handlers that are hashing records."""
 
-    def hash_record(self, record):
-        """Returns a hash for a record to keep it apart from other records.
-        This is used for the `record_limit` feature.  By default
-        The level, channel, filename and location are hashed.
-        """
+    def hash_record_raw(self, record):
+        """Returns a hashlib object with the hash of the record."""
         hash = hashlib.sha1()
         hash.update('%d\x00' % record.level)
         hash.update((record.channel or u'').encode('utf-8') + '\x00')
         hash.update(record.filename.encode('utf-8') + '\x00')
         hash.update(str(record.lineno))
-        return hash.hexdigest()
+        return hash
+
+    def hash_record(self, record):
+        """Returns a hash for a record to keep it apart from other records.
+        This is used for the `record_limit` feature.  By default
+        The level, channel, filename and location are hashed.
+
+        Calls into :meth:`hash_record_raw`.
+        """
+        return self.hash_record_raw(record).hexdigest()
 
 
 class LimitingHandlerMixin(HashingHandlerMixin):
