@@ -9,16 +9,11 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-import hashlib
 from time import time
 from logbook.base import NOTSET, cached_property, level_name_property, \
      LogRecord
 from logbook.handlers import Handler, HashingHandlerMixin
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
+from logbook.helpers import json
 
 
 class Ticket(object):
@@ -402,30 +397,12 @@ class TicketingBaseHandler(Handler, HashingHandlerMixin):
         Handler.__init__(self, level, filter, bubble)
         self.hash_salt = hash_salt
 
-    def record_ticket(self, record, data, hash):
-        """Subclasses have to override this to implement the actual logic
-        of creating a ticket or new occurrence for an existing ticket.
-        """
-        raise NotImplementedError()
-
     def hash_record_raw(self, record):
         """Returns the unique hash of a record."""
         hash = HashingHandlerMixin.hash_record_raw(self, record)
         if self.hash_salt is not None:
             hash.update('\x00' + self.hash_salt)
         return hash
-
-    def process_record(self, record, hash):
-        """Subclasses can override this to tamper with the data dict that
-        is sent to the database as JSON.
-        """
-        return record.to_dict(json_safe=True)
-
-    def emit(self, record):
-        """Emits a single record and writes it to the database."""
-        hash = self.hash_record(record)
-        data = self.process_record(record, hash)
-        self.record_ticket(record, data, hash)
 
 
 class TicketingHandler(TicketingBaseHandler):
@@ -466,8 +443,20 @@ class TicketingHandler(TicketingBaseHandler):
     def set_backend(self, cls, **options):
         self.db = cls(**options)
 
+    def process_record(self, record, hash):
+        """Subclasses can override this to tamper with the data dict that
+        is sent to the database as JSON.
+        """
+        return record.to_dict(json_safe=True)
+
     def record_ticket(self, record, data, hash):
         """Record either a new ticket or a new occurrence for a
         ticket based on the hash.
         """
         self.db.record_ticket(record, data, hash, self.app_id)
+
+    def emit(self, record):
+        """Emits a single record and writes it to the database."""
+        hash = self.hash_record(record)
+        data = self.process_record(record, hash)
+        self.record_ticket(record, data, hash)
