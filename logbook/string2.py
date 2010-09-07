@@ -112,19 +112,15 @@ class Formatter(object):
 
     """
 
-    __slots__ = ('_index', '_indexes', '_kwords', '_nested',
-                 '_string', 'format_string')
+    __slots__ = '_index', '_kwords', '_nested', '_string', 'format_string'
 
     def __init__(self, format_string):
         self._index = 0
-        self._indexes = set()
         self._kwords = {}
         self._nested = {}
 
         self.format_string = format_string
         self._string = FORMAT_STR.sub(self._prepare, format_string)
-        self._indexes = (sorted(self._indexes)
-                         if self._indexes else range(self._index))
 
     def __eq__(self, other):
         if isinstance(other, Formatter):
@@ -149,18 +145,20 @@ class Formatter(object):
         else:
             name = name_parts.pop(0)
         if not name:
-            if not self._index and self._indexes:
+            # Auto-numbering
+            if self._index is None:
                 raise ValueError(
                     'cannot switch from manual field specification '
                     'to automatic field numbering')
             name = str(self._index)
             self._index += 1
-        elif name.isdigit():
+        elif name.isdigit() and self._index is not None:
+            # Manual specification
             if self._index:
                 raise ValueError(
                     'cannot switch from automatic field numbering '
                     'to manual field specification')
-            self._indexes.add(int(name))
+            self._index = None
         if '{' in format_spec:
             format_spec = FORMAT_SUB.sub(self._prepare, format_spec)
             rv = (name_parts, conversion, format_spec)
@@ -174,7 +172,7 @@ class Formatter(object):
         """Same as str.format() and unicode.format() in Python 2.6+."""
         if args:
             kwargs.update(dict((str(i), value)
-                               for (i, value) in zip(self._indexes, args)))
+                               for (i, value) in enumerate(args)))
         params = {}
         for name, items in self._kwords.items():
             value = kwargs[name]
