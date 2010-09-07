@@ -58,3 +58,15 @@ Core Handlers
    :members:
 
 .. autofunction:: create_syshandler
+
+Mixin Classes
+-------------
+
+.. autoclass:: StringFormatterHandlerMixin
+   :members:
+
+.. autoclass:: HashingHandlerMixin
+   :members:
+
+.. autoclass:: LimitingHandlerMixin
+   :members:

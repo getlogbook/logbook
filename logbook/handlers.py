@@ -268,6 +268,82 @@ class StringFormatterHandlerMixin(object):
     del _get_format_string, _set_format_string
 
 
+class HashingHandlerMixin(object):
+    """Mixin class for handlers that are hashing records."""
+
+    def hash_record(self, record):
+        """Returns a hash for a record to keep it apart from other records.
+        This is used for the `record_limit` feature.  By default
+        The level, channel, filename and location are hashed.
+        """
+        hash = hashlib.sha1()
+        hash.update('%d\x00' % record.level)
+        hash.update((record.channel or u'').encode('utf-8') + '\x00')
+        hash.update(record.filename.encode('utf-8') + '\x00')
+        hash.update(str(record.lineno))
+        return hash.hexdigest()
+
+
+class LimitingHandlerMixin(HashingHandlerMixin):
+    """Mixin class for handlers that want to limit emitting records.
+
+    In the default setting it delivers all log records but it can be set up
+    to not send more than n mails for the same record each hour to not
+    overload an inbox and the network in case a message is triggered multiple
+    times a minute.  The following example limits it to 60 mails an hour::
+
+        from datetime import timedelta
+        handler = MailHandler(record_limit=1,
+                              record_delta=timedelta(minutes=1))
+    """
+
+    def __init__(self, record_limit, record_delta):
+        self.record_limit = record_limit
+        self._limit_lock = Lock()
+        self._record_limits = {}
+        if record_delta is None:
+            record_delta = timedelta(seconds=60)
+        elif isinstance(record_delta, (int, long, float)):
+            record_delta = timedelta(seconds=record_delta)
+        self.record_delta = record_delta
+
+    def check_delivery(self, record):
+        """Helper function to check if data should be delivered by this
+        handler.  It returns a tuple in the form ``(suppression_count, allow)``.
+        The first one is the number of items that were not delivered so far,
+        the second is a boolean flag if a delivery should happen now.
+        """
+        hash = self.hash_record(record)
+        with self._limit_lock:
+            if self.record_limit is None:
+                return
+
+            allow_delivery = None
+            suppression_count = old_count = 0
+            first_count = now = datetime.utcnow()
+
+            if hash in self._record_limits:
+                last_count, suppression_count = self._record_limits[hash]
+                if last_count + self.record_delta < now:
+                    allow_delivery = True
+                else:
+                    first_count = last_count
+                    old_count = suppression_count
+
+            if not suppression_count and \
+               len(self._record_limits) >= self.max_record_cache:
+                cache_items = self._record_limits.items()
+                cache_items.sort()
+                del cache_items[:int(self._record_limits) * self.record_cache_prune]
+                self._record_limits = dict(cache_items)
+
+            self._record_limits[hash] = (first_count, old_count + 1)
+
+            if allow_delivery is None:
+                allow_delivery = old_count < self.record_limit
+            return suppression_count, allow_delivery
+
+
 class StreamHandler(Handler, StringFormatterHandlerMixin):
     """a handler class which writes logging records, appropriately formatted,
     to a stream. note that this class does not close the stream, as sys.stdout
@@ -685,7 +761,8 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         return False
 
 
-class MailHandler(Handler, StringFormatterHandlerMixin):
+class MailHandler(Handler, StringFormatterHandlerMixin,
+                  LimitingHandlerMixin):
     """A handler that sends error mails.  The format string used by this
     handler are the contents of the mail plus the headers.  This is handy
     if you want to use a custom subject or ``X-`` header::
@@ -733,6 +810,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
                  format_string=None, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
+        LimitingHandlerMixin.__init__(self, record_limit, record_delta)
         self.from_addr = from_addr
         self.recipients = recipients
         if subject is None:
@@ -741,55 +819,6 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
         self.server_addr = server_addr
         self.credentials = credentials
         self.secure = secure
-        self.record_limit = record_limit
-        self._limit_lock = Lock()
-        self._record_limits = {}
-        if record_delta is None:
-            record_delta = timedelta(seconds=60)
-        elif isinstance(record_delta, (int, long, float)):
-            record_delta = timedelta(seconds=record_delta)
-        self.record_delta = record_delta
-
-    def hash_record(self, record):
-        """Returns a hash for a record to keep it apart from other records.
-        This is used for the `record_limit` feature.  By default
-        The level, channel, filename and location are hashed.
-        """
-        hash = hashlib.sha1()
-        hash.update('%d\x00' % record.level)
-        hash.update((record.channel or u'').encode('utf-8') + '\x00')
-        hash.update(record.filename.encode('utf-8') + '\x00')
-        hash.update(str(record.lineno))
-        return hash.hexdigest()
-
-    def check_delivery(self, hash):
-        if self.record_limit is None:
-            return
-
-        allow_delivery = None
-        suppression_count = old_count = 0
-        first_count = now = datetime.utcnow()
-
-        if hash in self._record_limits:
-            last_count, suppression_count = self._record_limits[hash]
-            if last_count + self.record_delta < now:
-                allow_delivery = True
-            else:
-                first_count = last_count
-                old_count = suppression_count
-
-        if not suppression_count and \
-           len(self._record_limits) >= self.max_record_cache:
-            cache_items = self._record_limits.items()
-            cache_items.sort()
-            del cache_items[:int(self._record_limits) * self.record_cache_prune]
-            self._record_limits = dict(cache_items)
-
-        self._record_limits[hash] = (first_count, old_count + 1)
-
-        if allow_delivery is None:
-            allow_delivery = old_count < self.record_limit
-        return suppression_count, allow_delivery
 
     def get_recipients(self, record):
         """Returns the recipients for a record.  By default the
@@ -869,11 +898,9 @@ class MailHandler(Handler, StringFormatterHandlerMixin):
     def emit(self, record):
         suppressed = 0
         if self.record_limit is not None:
-            with self._limit_lock:
-                hash = self.hash_record(record)
-                suppressed, allow_delivery = self.check_delivery(hash)
-                if not allow_delivery:
-                    return
+            suppressed, allow_delivery = self.check_delivery(record)
+            if not allow_delivery:
+                return
         self.deliver(self.generate_mail(record, suppressed),
                      self.get_recipients(record))
 
