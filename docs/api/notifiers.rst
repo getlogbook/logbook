@@ -27,3 +27,9 @@ Other Services
 
 .. autoclass:: BoxcarHandler
    :members:
+
+Base Interface
+--------------
+
+.. autoclass:: NotificationBaseHandler
+   :members:
