@@ -170,7 +170,7 @@ class LibNotifyHandler(NotificationBaseHandler):
         """
         pn = self._pynotify
         if record.level >= ERROR:
-            return pn.URGENCY_CIRITICAL
+            return pn.URGENCY_CRITICAL
         elif record.level == WARNING:
             return pn.URGENCY_NORMAL
         return pn.URGENCY_LOW
