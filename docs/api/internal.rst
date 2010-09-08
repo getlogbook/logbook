@@ -16,6 +16,7 @@ setups or custom handlers.
 
 .. autoclass:: LoggerMixin
    :members:
+   :inherited-members:
 
 .. module:: logbook.handlers
 

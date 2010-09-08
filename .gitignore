@@ -1,8 +1,11 @@
 .ropeproject
 docs/_build
+logbook/_speedups.c
+logbook/_speedups.so
 Logbook.egg-info
 *.pyc
 env
 env*
 .coverage
 cover
+build

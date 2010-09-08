@@ -24,6 +24,9 @@ from datetime import datetime
 from logbook.helpers import to_safe_json, parse_iso8601, F
 
 
+_MAX_CONTEXT_OBJECT_CACHE = 256
+
+# make sure to sync these up with _speedups.pyx
 CRITICAL = 6
 ERROR = 5
 WARNING = 4
@@ -31,8 +34,6 @@ NOTICE = 3
 INFO = 2
 DEBUG = 1
 NOTSET = 0
-
-_MAX_CONTEXT_OBJECT_CACHE = 256
 
 _level_names = {
     CRITICAL:   'CRITICAL',
@@ -79,6 +80,16 @@ def level_name_property():
         'The level as unicode string')
 
 
+def lookup_level(level):
+    """Return the integer representation of a logging level."""
+    if isinstance(level, (int, long)):
+        return level
+    try:
+        return _reverse_level_names[level]
+    except KeyError:
+        raise LookupError('unknown level name %s' % level)
+
+
 def _group_reflected_property(name, default, fallback=_missing):
     """Returns a property for a given name that falls back to the
     value of the group if set.  If there is no such group, the
@@ -104,16 +115,6 @@ def get_level_name(level):
         return _level_names[level]
     except KeyError:
         raise LookupError('unknown level')
-
-
-def lookup_level(level):
-    """Return the integer representation of a logging level."""
-    if isinstance(level, (int, long)):
-        return level
-    try:
-        return _reverse_level_names[level]
-    except KeyError:
-        raise LookupError('unknown level name %s' % level)
 
 
 class ExtraDict(dict):
@@ -663,17 +664,6 @@ class LoggerMixin(object):
             kwargs.setdefault('exc_info', sys.exc_info())
         return self.error(*args, **kwargs)
 
-    def catch_exceptions(self, *args, **kwargs):
-        """A context manager that catches exceptions and calls
-        :meth:`exception` for exceptions caught that way.  Example::
-
-            with logger.catch_exceptions():
-                execute_code_that_might_fail()
-        """
-        if not args:
-            args = ('Uncaught exception occurred',)
-        return _ExceptionCatcher(self, args, kwargs)
-
     def critical(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
         to :data:`~logbook.CRITICAL`.
@@ -691,6 +681,17 @@ class LoggerMixin(object):
         level = lookup_level(level)
         if level >= self.level:
             self._log(level, args, kwargs)
+
+    def catch_exceptions(self, *args, **kwargs):
+        """A context manager that catches exceptions and calls
+        :meth:`exception` for exceptions caught that way.  Example::
+
+            with logger.catch_exceptions():
+                execute_code_that_might_fail()
+        """
+        if not args:
+            args = ('Uncaught exception occurred',)
+        return _ExceptionCatcher(self, args, kwargs)
 
     def _log(self, level, args, kwargs):
         msg, args = args[0], args[1:]
@@ -863,4 +864,5 @@ def dispatch_record(record):
     _default_dispatcher.call_handlers(record)
 
 
+# at that point we are save to import handler
 from logbook.handlers import Handler
