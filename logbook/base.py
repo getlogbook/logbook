@@ -384,9 +384,10 @@ class LogRecord(object):
         #: where custom log processors can attach custom context sensitive
         #: data.
         self.extra = ExtraDict(extra or ())
-        #: If available, optionally the interpreter frame that created the
-        #: log record.  Might not be available for all calls and is removed
-        #: when the log record is closed.
+        #: If available, optionally the interpreter frame that pulled the
+        #: heavy init.  This usually points to somewhere in the dispatcher.
+        #: Might not be available for all calls and is removed when the log
+        #: record is closed.
         self.frame = frame
         #: the PID of the current process
         self.process = os.getpid()
@@ -409,7 +410,7 @@ class LogRecord(object):
         self.heavy_initialized = True
         self.time = datetime.utcnow()
         if self.frame is None:
-            self.frame = sys._getframe()
+            self.frame = sys._getframe(1)
 
     def pull_information(self):
         """A helper function that pulls all frame-related information into
