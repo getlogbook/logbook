@@ -454,6 +454,12 @@ Message:
         finally:
             logbook.LogRecord.heavy_init = heavy_init
 
+    def test_calling_frame(self):
+        handler = logbook.TestHandler()
+        with handler:
+            logbook.warn('test')
+        self.assertEqual(handler.records[0].calling_frame, sys._getframe())
+
     def test_nested_setups(self):
         with capture_stderr() as captured:
             logger = logbook.Logger('App')

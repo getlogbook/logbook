@@ -46,7 +46,6 @@ _level_names = {
 }
 _reverse_level_names = dict((v, k) for (k, v) in _level_names.iteritems())
 _missing = object()
-_main_thread = thread.get_ident()
 
 
 class cached_property(object):
@@ -173,7 +172,8 @@ class _ContextObjectType(type):
         """Returns an iterator over all objects for the combined
         application and context cache.
         """
-        objects = cls._co_cache.get(current_thread())
+        tid = current_thread()
+        objects = cls._co_cache.get(tid)
         if objects is None:
             if len(cls._co_cache) > _MAX_CONTEXT_OBJECT_CACHE:
                 cls._co_cache.clear()
@@ -181,7 +181,7 @@ class _ContextObjectType(type):
             objects.extend(getattr(cls._co_context, 'stack', ()))
             objects.sort(reverse=True)
             objects = [x[1] for x in objects]
-            cls._co_cache[current_thread()] = objects
+            cls._co_cache[tid] = objects
         return iter(objects)
 
 
@@ -339,11 +339,12 @@ class LogRecord(object):
     contain all the information pertinent to the event being logged. The
     main information passed in is in msg and args
     """
-    _pullable_information = ('func_name', 'module', 'filename', 'lineno',
-                             'process_name', 'thread', 'thread_name',
-                             'formatted_exception', 'message',
-                             'exception_name', 'exception_message')
-    _noned_on_close = ('exc_info', 'frame', 'calling_frame')
+    _pullable_information = frozenset((
+        'func_name', 'module', 'filename', 'lineno', 'process_name', 'thread',
+        'thread_name', 'formatted_exception', 'message', 'exception_name',
+        'exception_message'
+    ))
+    _noned_on_close = frozenset(('exc_info', 'frame', 'calling_frame'))
 
     #: can be overriden by a handler to not close the record.  This could
     #: lead to memory leaks so it should be used carefully.
@@ -389,12 +390,13 @@ class LogRecord(object):
         #: where custom log processors can attach custom context sensitive
         #: data.
         self.extra = ExtraDict(extra or ())
-        #: If available, optionally the interpreter frame that created the
-        #: log record.  Might not be available for all calls and is removed
-        #: when the log record is closed.
+        #: If available, optionally the interpreter frame that pulled the
+        #: heavy init.  This usually points to somewhere in the dispatcher.
+        #: Might not be available for all calls and is removed when the log
+        #: record is closed.
         self.frame = frame
         #: the PID of the current process
-        self.process = os.getpid()
+        self.process = None
         if dispatcher is not None:
             dispatcher = weakref(dispatcher)
         self._dispatcher = dispatcher
@@ -412,9 +414,10 @@ class LogRecord(object):
             return
         assert not self.late, 'heavy init is no longer possible'
         self.heavy_initialized = True
+        self.process = os.getpid()
         self.time = datetime.utcnow()
         if self.frame is None:
-            self.frame = sys._getframe()
+            self.frame = sys._getframe(1)
 
     def pull_information(self):
         """A helper function that pulls all frame-related information into
@@ -793,36 +796,39 @@ class RecordDispatcher(object):
         # for performance reasons records are only heavy initialized
         # and processed if at least one of the handlers has a higher
         # level than the record and that handler is not a black hole.
-        record_processed = False
+        record_initialized = False
 
         # Both logger attached handlers as well as context specific
         # handlers are handled one after another.  The latter also
         # include global handlers.
         for handler in chain(self.handlers, Handler.iter_context_objects()):
-            if record.level >= handler.level:
-                # if this is a blackhole handler, don't even try to
-                # do further processing, stop right away
-                if handler.blackhole:
-                    break
+            # skip records that this handler is not interested in
+            if record.level < handler.level:
+                continue
 
-                # we are about to handle the record.  If it was not yet
-                # processed by context-specific record processors we
-                # have to do that now and remeber that we processed
-                # the record already.
-                if not record_processed:
-                    record.heavy_init()
-                    self.process_record(record)
-                    record_processed = True
+            # if this is a blackhole handler, don't even try to
+            # do further processing, stop right away
+            if handler.blackhole:
+                break
 
-                # a filter can still veto the handling of the record.
-                if handler.filter is not None \
-                   and not handler.filter(record, handler):
-                    continue
+            # we are about to handle the record.  If it was not yet
+            # processed by context-specific record processors we
+            # have to do that now and remeber that we processed
+            # the record already.
+            if not record_initialized:
+                record.heavy_init()
+                self.process_record(record)
+                record_initialized = True
 
-                # handle the record.  If the record was handled and
-                # the record is not bubbling we can abort now.
-                if handler.handle(record) and not handler.bubble:
-                    break
+            # a filter can still veto the handling of the record.
+            if handler.filter is not None \
+               and not handler.filter(record, handler):
+                continue
+
+            # handle the record.  If the record was handled and
+            # the record is not bubbling we can abort now.
+            if handler.handle(record) and not handler.bubble:
+                break
 
     def process_record(self, record):
         """Processes the record with all context specific processors.  This
