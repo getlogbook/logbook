@@ -194,7 +194,7 @@ class BoxcarHandler(NotificationBaseHandler):
 
     def __init__(self, email, password, record_limit=None, record_delta=None,
                  level=NOTSET, filter=None, bubble=False):
-        NotificationBaseHandler.__init__(self, record_limit, record_delta,
+        NotificationBaseHandler.__init__(self, None, record_limit, record_delta,
                                          level, filter, bubble)
         self.email = email
         self.password = password
