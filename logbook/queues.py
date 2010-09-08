@@ -318,7 +318,7 @@ class TWHThreadController(object):
             self._thread = None
 
     def _target(self):
-        while self.running:
+        while 1:
             record = self.wrapper_handler.queue.get()
             if record is self._sentinel:
                 self.running = False
