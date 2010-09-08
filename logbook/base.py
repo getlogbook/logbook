@@ -810,7 +810,7 @@ class RecordDispatcher(object):
                 if not record_initialized:
                     record.heavy_init()
                     self.process_record(record)
-                    record_processed = True
+                    record_initialized = True
 
                 # a filter can still veto the handling of the record.
                 if handler.filter is not None \
