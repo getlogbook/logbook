@@ -179,7 +179,7 @@ class LibNotifyHandler(NotificationBaseHandler):
         if not self.check_delivery(record)[1]:
             return
         notifier = self._pynotify.Notification(self.make_title(record),
-                                               self.make_body(record))
+                                               self.make_text(record))
         notifier.set_urgency(self.get_urgency(record))
         notifier.set_timeout(self.get_expires(record))
         self.set_notifier_icon(notifier, self.icon)
