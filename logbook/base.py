@@ -45,7 +45,6 @@ _level_names = {
 }
 _reverse_level_names = dict((v, k) for (k, v) in _level_names.iteritems())
 _missing = object()
-_main_thread = thread.get_ident()
 
 
 class cached_property(object):
@@ -168,7 +167,8 @@ class _ContextObjectType(type):
         """Returns an iterator over all objects for the combined
         application and context cache.
         """
-        objects = cls._co_cache.get(current_thread())
+        tid = current_thread()
+        objects = cls._co_cache.get(tid)
         if objects is None:
             if len(cls._co_cache) > _MAX_CONTEXT_OBJECT_CACHE:
                 cls._co_cache.clear()
@@ -176,7 +176,7 @@ class _ContextObjectType(type):
             objects.extend(getattr(cls._co_context, 'stack', ()))
             objects.sort(reverse=True)
             objects = [x[1] for x in objects]
-            cls._co_cache[current_thread()] = objects
+            cls._co_cache[tid] = objects
         return iter(objects)
 
 
@@ -797,30 +797,33 @@ class RecordDispatcher(object):
         # handlers are handled one after another.  The latter also
         # include global handlers.
         for handler in chain(self.handlers, Handler.iter_context_objects()):
-            if record.level >= handler.level:
-                # if this is a blackhole handler, don't even try to
-                # do further processing, stop right away
-                if handler.blackhole:
-                    break
+            # skip records that this handler is not interested in
+            if record.level < handler.level:
+                continue
 
-                # we are about to handle the record.  If it was not yet
-                # processed by context-specific record processors we
-                # have to do that now and remeber that we processed
-                # the record already.
-                if not record_initialized:
-                    record.heavy_init()
-                    self.process_record(record)
-                    record_initialized = True
+            # if this is a blackhole handler, don't even try to
+            # do further processing, stop right away
+            if handler.blackhole:
+                break
 
-                # a filter can still veto the handling of the record.
-                if handler.filter is not None \
-                   and not handler.filter(record, handler):
-                    continue
+            # we are about to handle the record.  If it was not yet
+            # processed by context-specific record processors we
+            # have to do that now and remeber that we processed
+            # the record already.
+            if not record_initialized:
+                record.heavy_init()
+                self.process_record(record)
+                record_initialized = True
 
-                # handle the record.  If the record was handled and
-                # the record is not bubbling we can abort now.
-                if handler.handle(record) and not handler.bubble:
-                    break
+            # a filter can still veto the handling of the record.
+            if handler.filter is not None \
+               and not handler.filter(record, handler):
+                continue
+
+            # handle the record.  If the record was handled and
+            # the record is not bubbling we can abort now.
+            if handler.handle(record) and not handler.bubble:
+                break
 
     def process_record(self, record):
         """Processes the record with all context specific processors.  This
