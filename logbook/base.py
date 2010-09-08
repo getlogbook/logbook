@@ -344,11 +344,24 @@ class LogRecord(object):
     #: lead to memory leaks so it should be used carefully.
     keep_open = False
 
+    #: the time of the log record creation as :class:`datetime.datetime`
+    #: object.  This information is unavailable until the record was
+    #: heavy initialized.
+    time = None
+
+    #: a flag that is `True` if the log record is heavy initialized which
+    #: is not the case by default.
+    heavy_initialized = False
+
+    #: a flag that is `True` when heavy initialization is no longer possible
+    late = False
+
+    #: a flag that is `True` when all the information was pulled from the
+    #: information that becomes unavailable on close.
+    information_pulled = False
+
     def __init__(self, channel, level, msg, args=None, kwargs=None,
                  exc_info=None, extra=None, frame=None, dispatcher=None):
-        #: the time of the log record creation as :class:`datetime.datetime`
-        #: object.
-        self.time = datetime.utcnow()
         #: the name of the logger that created it or any other textual
         #: channel description.  This is a descriptive name and should not
         #: be used for filtering.  A log record might have a
@@ -380,21 +393,37 @@ class LogRecord(object):
         if dispatcher is not None:
             dispatcher = weakref(dispatcher)
         self._dispatcher = dispatcher
-        self._information_pulled = False
+
+    def heavy_init(self):
+        """Does the heavy initialization that could be expensive.  This must
+        not be called from a higher stack level than when the log record was
+        created and the later the initialization happens, the more off the
+        date information will be for example.
+
+        This is internally used by the record dispatching system and usually
+        something not to worry about.
+        """
+        if self.heavy_initialized:
+            return
+        assert not self.late, 'heavy init is no longer possible'
+        self.heavy_initialized = True
+        self.time = datetime.utcnow()
+        if self.frame is None:
+            self.frame = sys._getframe()
 
     def pull_information(self):
         """A helper function that pulls all frame-related information into
         the object so that this information is available after the log
         record was closed.
         """
-        if self._information_pulled:
+        if self.information_pulled:
             return
         # due to how cached_property is implemented, the attribute access
         # has the side effect of caching the attribute on the instance of
         # the class.
         for key in self._pullable_information:
             getattr(self, key)
-        self._information_pulled = True
+        self.information_pulled = True
 
     def close(self):
         """Closes the log record.  This will set the frame and calling
@@ -405,6 +434,7 @@ class LogRecord(object):
         """
         for key in self._noned_on_close:
             setattr(self, key, None)
+        self.late = True
 
     def __reduce_ex__(self, protocol):
         return _create_log_record, (type(self), self.to_dict())
@@ -700,10 +730,11 @@ class LoggerMixin(object):
         if not self.suppress_dispatcher:
             channel = self
         record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
-                           extra, sys._getframe(), channel)
+                           extra, None, channel)
         try:
             self.handle(record)
         finally:
+            record.late = True
             if not record.keep_open:
                 record.close()
 
@@ -748,9 +779,9 @@ class RecordDispatcher(object):
         Before the first handler is invoked, the record is processed
         (:meth:`process_record`).
         """
-        # for performance reasons records are only processed if at
-        # least one of the handlers has a higher level than the
-        # record.
+        # for performance reasons records are only heavy initialized
+        # and processed if at least one of the handlers has a higher
+        # level than the record and that handler is not a black hole.
         record_processed = False
 
         # Both logger attached handlers as well as context specific
@@ -758,11 +789,17 @@ class RecordDispatcher(object):
         # include global handlers.
         for handler in chain(self.handlers, Handler.iter_context_objects()):
             if record.level >= handler.level:
+                # if this is a blackhole handler, don't even try to
+                # do further processing, stop right away
+                if handler.blackhole:
+                    break
+
                 # we are about to handle the record.  If it was not yet
                 # processed by context-specific record processors we
                 # have to do that now and remeber that we processed
                 # the record already.
                 if not record_processed:
+                    record.heavy_init()
                     self.process_record(record)
                     record_processed = True
 
