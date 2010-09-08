@@ -121,6 +121,11 @@ class Handler(ContextObject):
             ...
     """
 
+    #: a flag for this handler that can be set to `True` for handlers that
+    #: are consuming log records but are not actually displaying it.  This
+    #: flag is set for the :class:`NullHandler` for instance.
+    blackhole = False
+
     def __init__(self, level=NOTSET, filter=None, bubble=False):
         #: the level for the handler.  Defaults to `NOTSET` which
         #: consumes all entries.
@@ -200,6 +205,7 @@ class NullHandler(Handler):
     """A handler that does nothing, meant to be inserted in a handler chain
     with ``bubble=False`` to stop further processing.
     """
+    blackhole = True
 
 
 class StringFormatter(object):
