@@ -639,10 +639,6 @@ class LoggerMixin(object):
     #: created.
     level_name = level_name_property()
 
-    #: If this is set to `True` the dispatcher information will be suppressed
-    #: for log records emitted from this logger.
-    suppress_dispatcher = False
-
     def debug(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
         to :data:`~logbook.DEBUG`.
@@ -723,26 +719,20 @@ class LoggerMixin(object):
             self._log(level, args, kwargs)
 
     def _log(self, level, args, kwargs):
-        msg, args = args[0], args[1:]
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', None)
-        channel = None
-        if not self.suppress_dispatcher:
-            channel = self
-        record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
-                           extra, None, channel)
-        try:
-            self.handle(record)
-        finally:
-            record.late = True
-            if not record.keep_open:
-                record.close()
+        self.make_record_and_handle(level, args[0], args[1:], kwargs,
+                                    exc_info, extra)
 
 
 class RecordDispatcher(object):
     """A record dispatcher is the internal base class that implements
     the logic used by the :class:`~logbook.Logger`.
     """
+
+    #: If this is set to `True` the dispatcher information will be suppressed
+    #: for log records emitted from this logger.
+    suppress_dispatcher = False
 
     def __init__(self, name=None, level=NOTSET):
         #: the name of the record dispatcher
@@ -767,6 +757,22 @@ class RecordDispatcher(object):
         """
         if not self.disabled and record.level >= self.level:
             self.call_handlers(record)
+
+    def make_record_and_handle(self, level, msg, args, kwargs, exc_info, extra):
+        """Creates a record from some given arguments and heads it
+        over to the handling system.
+        """
+        channel = None
+        if not self.suppress_dispatcher:
+            channel = self
+        record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
+                           extra, None, channel)
+        try:
+            self.handle(record)
+        finally:
+            record.late = True
+            if not record.keep_open:
+                record.close()
 
     def call_handlers(self, record):
         """Pass a record to all relevant handlers in the following
@@ -822,7 +828,6 @@ class RecordDispatcher(object):
             self.group.process_record(record)
         for processor in Processor.iter_context_objects():
             processor.process(record)
-
 
 
 class Logger(RecordDispatcher, LoggerMixin):
