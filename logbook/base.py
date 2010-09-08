@@ -90,23 +90,27 @@ def lookup_level(level):
         raise LookupError('unknown level name %s' % level)
 
 
-def group_reflected_property(name, default, fallback=_missing):
-    """Returns a property for a given name that falls back to the
-    value of the group if set.  If there is no such group, the
-    provided default is used.
-    """
-    def _get(self):
-        rv = getattr(self, '_' + name, _missing)
-        if rv is not _missing and rv != fallback:
-            return rv
-        if self.group is None:
-            return default
-        return getattr(self.group, name)
-    def _set(self, value):
-        setattr(self, '_' + name, value)
-    def _del(self):
-        delattr(self, '_' + name)
-    return property(_get, _set, _del)
+# load in speedups
+try:
+    from logbook._speedups import group_reflected_property
+except ImportError:
+    def group_reflected_property(name, default, fallback=_missing):
+        """Returns a property for a given name that falls back to the
+        value of the group if set.  If there is no such group, the
+        provided default is used.
+        """
+        def _get(self):
+            rv = getattr(self, '_' + name, _missing)
+            if rv is not _missing and rv != fallback:
+                return rv
+            if self.group is None:
+                return default
+            return getattr(self.group, name)
+        def _set(self, value):
+            setattr(self, '_' + name, value)
+        def _del(self):
+            delattr(self, '_' + name)
+        return property(_get, _set, _del)
 
 
 def get_level_name(level):
