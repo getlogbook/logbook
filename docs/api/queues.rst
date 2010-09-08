@@ -43,5 +43,5 @@ Base Interface
 .. autoclass:: ThreadController
    :members:
 
-.. autoclass:: SimpleThreadController
+.. autoclass:: TWHThreadController
    :members:

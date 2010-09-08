@@ -90,7 +90,7 @@ def lookup_level(level):
         raise LookupError('unknown level name %s' % level)
 
 
-def _group_reflected_property(name, default, fallback=_missing):
+def group_reflected_property(name, default, fallback=_missing):
     """Returns a property for a given name that falls back to the
     value of the group if set.  If there is no such group, the
     provided default is used.
@@ -345,11 +345,24 @@ class LogRecord(object):
     #: lead to memory leaks so it should be used carefully.
     keep_open = False
 
+    #: the time of the log record creation as :class:`datetime.datetime`
+    #: object.  This information is unavailable until the record was
+    #: heavy initialized.
+    time = None
+
+    #: a flag that is `True` if the log record is heavy initialized which
+    #: is not the case by default.
+    heavy_initialized = False
+
+    #: a flag that is `True` when heavy initialization is no longer possible
+    late = False
+
+    #: a flag that is `True` when all the information was pulled from the
+    #: information that becomes unavailable on close.
+    information_pulled = False
+
     def __init__(self, channel, level, msg, args=None, kwargs=None,
                  exc_info=None, extra=None, frame=None, dispatcher=None):
-        #: the time of the log record creation as :class:`datetime.datetime`
-        #: object.
-        self.time = datetime.utcnow()
         #: the name of the logger that created it or any other textual
         #: channel description.  This is a descriptive name and should not
         #: be used for filtering.  A log record might have a
@@ -381,21 +394,37 @@ class LogRecord(object):
         if dispatcher is not None:
             dispatcher = weakref(dispatcher)
         self._dispatcher = dispatcher
-        self._information_pulled = False
+
+    def heavy_init(self):
+        """Does the heavy initialization that could be expensive.  This must
+        not be called from a higher stack level than when the log record was
+        created and the later the initialization happens, the more off the
+        date information will be for example.
+
+        This is internally used by the record dispatching system and usually
+        something not to worry about.
+        """
+        if self.heavy_initialized:
+            return
+        assert not self.late, 'heavy init is no longer possible'
+        self.heavy_initialized = True
+        self.time = datetime.utcnow()
+        if self.frame is None:
+            self.frame = sys._getframe()
 
     def pull_information(self):
         """A helper function that pulls all frame-related information into
         the object so that this information is available after the log
         record was closed.
         """
-        if self._information_pulled:
+        if self.information_pulled:
             return
         # due to how cached_property is implemented, the attribute access
         # has the side effect of caching the attribute on the instance of
         # the class.
         for key in self._pullable_information:
             getattr(self, key)
-        self._information_pulled = True
+        self.information_pulled = True
 
     def close(self):
         """Closes the log record.  This will set the frame and calling
@@ -406,6 +435,7 @@ class LogRecord(object):
         """
         for key in self._noned_on_close:
             setattr(self, key, None)
+        self.late = True
 
     def __reduce_ex__(self, protocol):
         return _create_log_record, (type(self), self.to_dict())
@@ -610,10 +640,6 @@ class LoggerMixin(object):
     #: created.
     level_name = level_name_property()
 
-    #: If this is set to `True` the dispatcher information will be suppressed
-    #: for log records emitted from this logger.
-    suppress_dispatcher = False
-
     def debug(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
         to :data:`~logbook.DEBUG`.
@@ -694,25 +720,20 @@ class LoggerMixin(object):
         return _ExceptionCatcher(self, args, kwargs)
 
     def _log(self, level, args, kwargs):
-        msg, args = args[0], args[1:]
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', None)
-        channel = None
-        if not self.suppress_dispatcher:
-            channel = self
-        record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
-                           extra, sys._getframe(), channel)
-        try:
-            self.handle(record)
-        finally:
-            if not record.keep_open:
-                record.close()
+        self.make_record_and_handle(level, args[0], args[1:], kwargs,
+                                    exc_info, extra)
 
 
 class RecordDispatcher(object):
     """A record dispatcher is the internal base class that implements
     the logic used by the :class:`~logbook.Logger`.
     """
+
+    #: If this is set to `True` the dispatcher information will be suppressed
+    #: for log records emitted from this logger.
+    suppress_dispatcher = False
 
     def __init__(self, name=None, level=NOTSET):
         #: the name of the record dispatcher
@@ -724,8 +745,8 @@ class RecordDispatcher(object):
         #: the level of the record dispatcher as integer
         self.level = level
 
-    disabled = _group_reflected_property('disabled', False)
-    level = _group_reflected_property('level', NOTSET, fallback=NOTSET)
+    disabled = group_reflected_property('disabled', False)
+    level = group_reflected_property('level', NOTSET, fallback=NOTSET)
 
     def handle(self, record):
         """Call the handlers for the specified record.  This is
@@ -738,6 +759,22 @@ class RecordDispatcher(object):
         if not self.disabled and record.level >= self.level:
             self.call_handlers(record)
 
+    def make_record_and_handle(self, level, msg, args, kwargs, exc_info, extra):
+        """Creates a record from some given arguments and heads it
+        over to the handling system.
+        """
+        channel = None
+        if not self.suppress_dispatcher:
+            channel = self
+        record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
+                           extra, None, channel)
+        try:
+            self.handle(record)
+        finally:
+            record.late = True
+            if not record.keep_open:
+                record.close()
+
     def call_handlers(self, record):
         """Pass a record to all relevant handlers in the following
         order:
@@ -749,9 +786,9 @@ class RecordDispatcher(object):
         Before the first handler is invoked, the record is processed
         (:meth:`process_record`).
         """
-        # for performance reasons records are only processed if at
-        # least one of the handlers has a higher level than the
-        # record.
+        # for performance reasons records are only heavy initialized
+        # and processed if at least one of the handlers has a higher
+        # level than the record and that handler is not a black hole.
         record_processed = False
 
         # Both logger attached handlers as well as context specific
@@ -759,11 +796,17 @@ class RecordDispatcher(object):
         # include global handlers.
         for handler in chain(self.handlers, Handler.iter_context_objects()):
             if record.level >= handler.level:
+                # if this is a blackhole handler, don't even try to
+                # do further processing, stop right away
+                if handler.blackhole:
+                    break
+
                 # we are about to handle the record.  If it was not yet
                 # processed by context-specific record processors we
                 # have to do that now and remeber that we processed
                 # the record already.
                 if not record_processed:
+                    record.heavy_init()
                     self.process_record(record)
                     record_processed = True
 
@@ -786,7 +829,6 @@ class RecordDispatcher(object):
             self.group.process_record(record)
         for processor in Processor.iter_context_objects():
             processor.process(record)
-
 
 
 class Logger(RecordDispatcher, LoggerMixin):

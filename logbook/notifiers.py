@@ -170,7 +170,7 @@ class LibNotifyHandler(NotificationBaseHandler):
         """
         pn = self._pynotify
         if record.level >= ERROR:
-            return pn.URGENCY_CIRITICAL
+            return pn.URGENCY_CRITICAL
         elif record.level == WARNING:
             return pn.URGENCY_NORMAL
         return pn.URGENCY_LOW
@@ -179,7 +179,7 @@ class LibNotifyHandler(NotificationBaseHandler):
         if not self.check_delivery(record)[1]:
             return
         notifier = self._pynotify.Notification(self.make_title(record),
-                                               self.make_body(record))
+                                               self.make_text(record))
         notifier.set_urgency(self.get_urgency(record))
         notifier.set_timeout(self.get_expires(record))
         self.set_notifier_icon(notifier, self.icon)

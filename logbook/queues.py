@@ -53,36 +53,6 @@ class ZeroMQHandler(Handler):
         self.socket.close()
 
 
-class SimpleThreadController(object):
-    """A very basic thread controller that calls a function for as long
-    the thread is running.  This is used for the management of the
-    :class:`ThreadedWrapperHandler` background thread.
-    """
-
-    def __init__(self, callback):
-        self.callback = callback
-        self.running = False
-        self._thread = None
-
-    def start(self):
-        """Starts the task thread."""
-        self.running = True
-        self._thread = Thread(target=self._target)
-        self._thread.setDaemon(True)
-        self._thread.start()
-
-    def stop(self):
-        """Stops the task thread."""
-        if self.running:
-            self.running = False
-            self._thread.join()
-            self._thread = None
-
-    def _target(self):
-        while self.running:
-            self.callback()
-
-
 class ThreadController(object):
     """A helper class used by queue subscribers to control the background
     thread.  This is usually created and started in one go by
@@ -321,6 +291,41 @@ class MultiProcessingSubscriber(SubscriberBase):
         return LogRecord.from_dict(rv)
 
 
+class TWHThreadController(object):
+    """A very basic thread controller that pulls things in from a
+    queue and sends it to a handler.  Both queue and handler are
+    taken from the passed :class:`ThreadedWrapperHandler`.
+    """
+    _sentinel = object()
+
+    def __init__(self, wrapper_handler):
+        self.wrapper_handler = wrapper_handler
+        self.running = False
+        self._thread = None
+
+    def start(self):
+        """Starts the task thread."""
+        self.running = True
+        self._thread = Thread(target=self._target)
+        self._thread.setDaemon(True)
+        self._thread.start()
+
+    def stop(self):
+        """Stops the task thread."""
+        if self.running:
+            self.wrapper_handler.queue.put_nowait(self._sentinel)
+            self._thread.join()
+            self._thread = None
+
+    def _target(self):
+        while 1:
+            record = self.wrapper_handler.queue.get()
+            if record is self._sentinel:
+                self.running = False
+                break
+            self.wrapper_handler.handler.emit(record)
+
+
 class ThreadedWrapperHandler(Handler):
     """This handled uses a single background thread to dispatch log records
     to a specific other handler using an internal queue.  The idea is that if
@@ -342,7 +347,7 @@ class ThreadedWrapperHandler(Handler):
     def __init__(self, handler):
         self.handler = handler
         self.queue = ThreadQueue(-1)
-        self.controller = SimpleThreadController(self._handle)
+        self.controller = TWHThreadController(self)
         self.controller.start()
 
     def __getattr__(self, name):
@@ -352,13 +357,6 @@ class ThreadedWrapperHandler(Handler):
         if name in self._direct_attrs:
             return Handler.__setattr__(self, name, value)
         setattr(self.handler, name, value)
-
-    def _handle(self, timeout=0.05):
-        try:
-            record = self.queue.get(block=False, timeout=timeout)
-        except Empty:
-            return
-        self.handler.emit(record)
 
     def close(self):
         self.controller.stop()
