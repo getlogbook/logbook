@@ -79,7 +79,7 @@ def level_name_property():
         'The level as unicode string')
 
 
-def _group_reflected_property(name, default, fallback=_missing):
+def group_reflected_property(name, default, fallback=_missing):
     """Returns a property for a given name that falls back to the
     value of the group if set.  If there is no such group, the
     provided default is used.
@@ -744,8 +744,8 @@ class RecordDispatcher(object):
         #: the level of the record dispatcher as integer
         self.level = level
 
-    disabled = _group_reflected_property('disabled', False)
-    level = _group_reflected_property('level', NOTSET, fallback=NOTSET)
+    disabled = group_reflected_property('disabled', False)
+    level = group_reflected_property('level', NOTSET, fallback=NOTSET)
 
     def handle(self, record):
         """Call the handlers for the specified record.  This is
