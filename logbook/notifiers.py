@@ -11,8 +11,9 @@
 import os
 import sys
 import base64
-import urllib2
+from time import time
 from urllib import urlencode
+from httplib import HTTPSConnection
 
 from logbook.base import NOTSET, ERROR, WARNING
 from logbook.handlers import Handler, LimitingHandlerMixin
@@ -210,14 +211,18 @@ class BoxcarHandler(NotificationBaseHandler):
     def emit(self, record):
         if not self.check_delivery(record)[1]:
             return
-        data = {
+        body = urlencode({
             'notification[from_screen_name]':
                 self.get_screen_name(record).encode('utf-8'),
             'notification[message]':
-                self.get_message(record).encode('utf-8')
-        }
-        req = urllib2.Request(self.api_url, urlencode(data))
-        req.add_header('Authorization', 'Basic %s' %
-            base64.encodestring(('%s:%s' % (self.email, self.password))
-                                .encode('utf-8')))
-        urllib2.urlopen(req).read()
+                self.get_message(record).encode('utf-8'),
+            'notification[from_remote_service_id]': str(int(time() * 100))
+        })
+        con = HTTPSConnection('boxcar.io')
+        con.request('POST', '/notifications/', headers={
+            'Authorization': 'Basic ' +
+                base64.b64encode((u'%s:%s' %
+                    (self.email, self.password)).encode('utf-8')).strip(),
+            'Content-Length': str(len(body))
+        }, body=body)
+        con.close()
