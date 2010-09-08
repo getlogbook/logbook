@@ -827,7 +827,6 @@ class QueuesTestCase(LogbookTestCase):
             self.log.error('More testing')
 
         # give it some time to sync up
-        time.sleep(0.1)
         handler.close()
 
         self.assert_(not handler.controller.running)
