@@ -334,11 +334,12 @@ class LogRecord(object):
     contain all the information pertinent to the event being logged. The
     main information passed in is in msg and args
     """
-    _pullable_information = ('func_name', 'module', 'filename', 'lineno',
-                             'process_name', 'thread', 'thread_name',
-                             'formatted_exception', 'message',
-                             'exception_name', 'exception_message')
-    _noned_on_close = ('exc_info', 'frame', 'calling_frame')
+    _pullable_information = frozenset((
+        'func_name', 'module', 'filename', 'lineno', 'process_name', 'thread',
+        'thread_name', 'formatted_exception', 'message', 'exception_name',
+        'exception_message'
+    ))
+    _noned_on_close = frozenset(('exc_info', 'frame', 'calling_frame'))
 
     #: can be overriden by a handler to not close the record.  This could
     #: lead to memory leaks so it should be used carefully.
@@ -390,7 +391,7 @@ class LogRecord(object):
         #: record is closed.
         self.frame = frame
         #: the PID of the current process
-        self.process = os.getpid()
+        self.process = None
         if dispatcher is not None:
             dispatcher = weakref(dispatcher)
         self._dispatcher = dispatcher
@@ -408,6 +409,7 @@ class LogRecord(object):
             return
         assert not self.late, 'heavy init is no longer possible'
         self.heavy_initialized = True
+        self.process = os.getpid()
         self.time = datetime.utcnow()
         if self.frame is None:
             self.frame = sys._getframe(1)
@@ -789,7 +791,7 @@ class RecordDispatcher(object):
         # for performance reasons records are only heavy initialized
         # and processed if at least one of the handlers has a higher
         # level than the record and that handler is not a black hole.
-        record_processed = False
+        record_initialized = False
 
         # Both logger attached handlers as well as context specific
         # handlers are handled one after another.  The latter also
@@ -805,7 +807,7 @@ class RecordDispatcher(object):
                 # processed by context-specific record processors we
                 # have to do that now and remeber that we processed
                 # the record already.
-                if not record_processed:
+                if not record_initialized:
                     record.heavy_init()
                     self.process_record(record)
                     record_processed = True
