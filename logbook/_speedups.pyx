@@ -13,7 +13,8 @@ import thread
 import threading
 
 from cpython.dict cimport PyDict_Clear, PyDict_SetItem
-from cpython.list cimport PyList_Append, PyList_Sort, PyList_GET_SIZE
+from cpython.list cimport PyList_New, PyList_Append, PyList_Sort, \
+     PyList_SET_ITEM, PyList_GET_SIZE
 from cpython.pythread cimport PyThread_type_lock, PyThread_allocate_lock, \
      PyThread_release_lock, PyThread_acquire_lock, WAIT_LOCK
 
@@ -94,8 +95,15 @@ cdef class ContextStackManager:
             objects = self._global[:]
             objects.extend(getattr3(self._context, 'stack', ()))
             PyList_Sort(objects)
-            objects = [(<_StackItem>x).val for x in objects]
-            PyDict_SetItem(self._cache, tid, objects)
+
+            len = PyList_GET_SIZE(objects)
+            rv = PyList_New(len)
+            i = 0
+            while i < len:
+                PyList_SET_ITEM(rv, i, (<_StackItem>objects[i]).val)
+                i += 1
+            PyDict_SetItem(self._cache, tid, rv)
+            return iter(rv)
         return iter(objects)
 
     cpdef push_thread(self, obj):
