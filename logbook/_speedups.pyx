@@ -1,5 +1,3 @@
-from stdlib cimport pythread
-
 cdef object _missing = object()
 
 
