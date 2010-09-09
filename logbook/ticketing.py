@@ -273,6 +273,7 @@ class MongoDBBackend(BackendBase):
 
     #TODO: Update connection setup once PYTHON-160 is solved.
     def setup_backend(self):
+        from pymongo import ASCENDING, DESCENDING
         from pymongo.connection import Connection, _parse_uri
         from pymongo.errors import AutoReconnect
 
@@ -294,6 +295,11 @@ class MongoDBBackend(BackendBase):
                 time.sleep(0.1)
 
         self.database = database
+
+        # setup correct indexes
+        database.tickets.ensure_index([('record_hash', ASCENDING)], unique=True)
+        database.tickets.ensure_index([('solved', ASCENDING), ('level', ASCENDING)])
+        database.occurrences.ensure_index([('time', DESCENDING)])
 
     def _order(self, q, order_by):
         from pymongo import ASCENDING, DESCENDING
@@ -320,20 +326,12 @@ class MongoDBBackend(BackendBase):
                 'occurrence_count': 0,
                 'solved':           False,
                 'app_id':           app_id,
-                'occurrences':      []
             }
             ticket_id = db.tickets.insert(doc)
         else:
             ticket_id = ticket['_id']
 
         db.tickets.update({'_id': ticket_id}, {
-            '$push': {
-                'occurrences': {
-                    'app_id':   app_id,
-                    'data':     json.dumps(data),
-                    'time':     record.time
-                }
-            },
             '$inc': {
                 'occurrence_count':     1
             },
