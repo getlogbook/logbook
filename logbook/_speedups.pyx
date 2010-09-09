@@ -1,3 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+    logbook._speedups
+    ~~~~~~~~~~~~~~~~~
+
+    Cython implementation of some core objects.
+
+    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+    :license: BSD, see LICENSE for more details.
+"""
+
 cdef object _missing = object()
 
 

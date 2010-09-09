@@ -25,7 +25,7 @@ from threading import Lock
 
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
-     ContextObject
+     ContextObject, ContextStackManager
 from logbook.helpers import rename, F
 
 
@@ -120,6 +120,8 @@ class Handler(ContextObject):
         with handler:
             ...
     """
+
+    stack_manager = ContextStackManager()
 
     #: a flag for this handler that can be set to `True` for handlers that
     #: are consuming log records but are not actually displaying it.  This

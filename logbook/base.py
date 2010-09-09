@@ -15,16 +15,13 @@ import sys
 import thread
 import threading
 import traceback
-from thread import get_ident as current_thread
 from contextlib import contextmanager
-from itertools import count, chain
+from itertools import chain
 from weakref import ref as weakref
 from datetime import datetime
 
 from logbook.helpers import to_safe_json, parse_iso8601, F
 
-
-_MAX_CONTEXT_OBJECT_CACHE = 256
 
 # make sure to sync these up with _speedups.pyx
 CRITICAL = 6
@@ -89,27 +86,12 @@ def lookup_level(level):
         raise LookupError('unknown level name %s' % level)
 
 
-# load in speedups
 try:
-    from logbook._speedups import group_reflected_property
+    from logbook._speedups import group_reflected_property, \
+         ContextStackManager
 except ImportError:
-    def group_reflected_property(name, default, fallback=_missing):
-        """Returns a property for a given name that falls back to the
-        value of the group if set.  If there is no such group, the
-        provided default is used.
-        """
-        def _get(self):
-            rv = getattr(self, '_' + name, _missing)
-            if rv is not _missing and rv != fallback:
-                return rv
-            if self.group is None:
-                return default
-            return getattr(self.group, name)
-        def _set(self, value):
-            setattr(self, '_' + name, value)
-        def _del(self):
-            delattr(self, '_' + name)
-        return property(_get, _set, _del)
+    from logbook._fallback import group_reflected_property, \
+         ContextStackManager
 
 
 def get_level_name(level):
@@ -150,62 +132,6 @@ class _ExceptionCatcher(object):
             kwargs['exc_info'] = (exc_type, exc_value, tb)
             self.logger.exception(*self.args, **kwargs)
         return True
-
-
-class ContextStackManager(object):
-    """Helper class for context objects that manages a stack of
-    objects.
-    """
-
-    def __init__(self):
-        self._global = []
-        self._context_lock = threading.Lock()
-        self._context = threading.local()
-        self._cache = {}
-        self._stackop = count().next
-
-    def iter_context_objects(self):
-        """Returns an iterator over all objects for the combined
-        application and context cache.
-        """
-        tid = current_thread()
-        objects = self._cache.get(tid)
-        if objects is None:
-            if len(self._cache) > _MAX_CONTEXT_OBJECT_CACHE:
-                self._cache.clear()
-            objects = self._global[:]
-            objects.extend(getattr(self._context, 'stack', ()))
-            objects.sort(reverse=True)
-            objects = [x[1] for x in objects]
-            self._cache[tid] = objects
-        return iter(objects)
-
-    def push_thread(self, obj):
-        with self._context_lock:
-            self._cache.pop(current_thread(), None)
-            item = (self._stackop(), obj)
-            stack = getattr(self._context, 'stack', None)
-            if stack is None:
-                self._context.stack = [item]
-            else:
-                stack.append(item)
-
-    def pop_thread(self):
-        with self._context_lock:
-            self._cache.pop(current_thread(), None)
-            stack = getattr(self._context, 'stack', None)
-            assert stack, 'no objects on stack'
-            return stack.pop()[1]
-
-    def push_application(self, obj):
-        self._global.append((self._stackop(), obj))
-        self._cache.clear()
-
-    def pop_application(self):
-        assert self._global, 'no objects on application stack'
-        popped = self._global.pop()[1]
-        self._cache.clear()
-        return popped
 
 
 class StackedObject(object):
@@ -749,8 +675,6 @@ class RecordDispatcher(object):
     """A record dispatcher is the internal base class that implements
     the logic used by the :class:`~logbook.Logger`.
     """
-
-    stack_manager = ContextStackManager()
 
     #: If this is set to `True` the dispatcher information will be suppressed
     #: for log records emitted from this logger.
