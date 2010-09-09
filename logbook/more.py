@@ -64,12 +64,7 @@ class TaggingLogger(RecordDispatcher):
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', {})
         extra['tags'] = list(tags)
-        record = LogRecord(self.name, NOTSET, msg, args, kwargs, exc_info,
-                           extra, sys._getframe(), self)
-        try:
-            self.handle(record)
-        finally:
-            record.close()
+        return self.make_record_and_handle(NOTSET, msg, args, kwargs, exc_info, extra)
 
 
 class TaggingHandler(Handler):

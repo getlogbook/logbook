@@ -442,6 +442,24 @@ Message:
             self.assertFalse(handler.has_warning('A warning'))
             self.assert_(handler.has_error('An error'))
 
+    def test_blackhole_setting(self):
+        null_handler = logbook.NullHandler()
+        heavy_init = logbook.LogRecord.heavy_init
+        try:
+            def new_heavy_init(self):
+                raise RuntimeError('should not be triggered')
+            logbook.LogRecord.heavy_init = new_heavy_init
+            with null_handler:
+                logbook.warn('Awesome')
+        finally:
+            logbook.LogRecord.heavy_init = heavy_init
+
+    def test_calling_frame(self):
+        handler = logbook.TestHandler()
+        with handler:
+            logbook.warn('test')
+        self.assertEqual(handler.records[0].calling_frame, sys._getframe())
+
     def test_nested_setups(self):
         with capture_stderr() as captured:
             logger = logbook.Logger('App')
@@ -827,7 +845,6 @@ class QueuesTestCase(LogbookTestCase):
             self.log.error('More testing')
 
         # give it some time to sync up
-        time.sleep(0.1)
         handler.close()
 
         self.assert_(not handler.controller.running)
