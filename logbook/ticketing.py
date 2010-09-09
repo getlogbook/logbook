@@ -351,7 +351,7 @@ class MongoDBBackend(BackendBase):
 
     def count_tickets(self):
         """Returns the number of tickets."""
-        return self.database.tickets.find().count()
+        return self.database.tickets.count()
 
     def get_tickets(self, order_by='-last_occurrence_time', limit=50, offset=0):
         """Selects tickets from the database."""
