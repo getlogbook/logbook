@@ -152,37 +152,60 @@ class _ExceptionCatcher(object):
         return True
 
 
-class _ContextObjectType(type):
-    """Helper metaclass for context objects that creates the class
-    specific registry objects.
+class ContextStackManager(object):
+    """Helper class for context objects that manages a stack of
+    objects.
     """
 
-    def __new__(cls, name, bases, d):
-        rv = type.__new__(cls, name, bases, d)
-        if bases == (StackedObject,) or hasattr(rv, '_co_stackop'):
-            return rv
-        rv._co_global = []
-        rv._co_context_lock = threading.Lock()
-        rv._co_context = threading.local()
-        rv._co_cache = {}
-        rv._co_stackop = count().next
-        return rv
+    def __init__(self):
+        self._global = []
+        self._context_lock = threading.Lock()
+        self._context = threading.local()
+        self._cache = {}
+        self._stackop = count().next
 
-    def iter_context_objects(cls):
+    def iter_context_objects(self):
         """Returns an iterator over all objects for the combined
         application and context cache.
         """
         tid = current_thread()
-        objects = cls._co_cache.get(tid)
+        objects = self._cache.get(tid)
         if objects is None:
-            if len(cls._co_cache) > _MAX_CONTEXT_OBJECT_CACHE:
-                cls._co_cache.clear()
-            objects = cls._co_global[:]
-            objects.extend(getattr(cls._co_context, 'stack', ()))
+            if len(self._cache) > _MAX_CONTEXT_OBJECT_CACHE:
+                self._cache.clear()
+            objects = self._global[:]
+            objects.extend(getattr(self._context, 'stack', ()))
             objects.sort(reverse=True)
             objects = [x[1] for x in objects]
-            cls._co_cache[tid] = objects
+            self._cache[tid] = objects
         return iter(objects)
+
+    def push_thread(self, obj):
+        with self._context_lock:
+            self._cache.pop(current_thread(), None)
+            item = (self._stackop(), obj)
+            stack = getattr(self._context, 'stack', None)
+            if stack is None:
+                self._context.stack = [item]
+            else:
+                stack.append(item)
+
+    def pop_thread(self):
+        with self._context_lock:
+            self._cache.pop(current_thread(), None)
+            stack = getattr(self._context, 'stack', None)
+            assert stack, 'no objects on stack'
+            return stack.pop()[1]
+
+    def push_application(self, obj):
+        self._global.append((self._stackop(), obj))
+        self._cache.clear()
+
+    def pop_application(self):
+        assert self._global, 'no objects on application stack'
+        popped = self._global.pop()[1]
+        self._cache.clear()
+        return popped
 
 
 class StackedObject(object):
@@ -237,41 +260,26 @@ class StackedObject(object):
 
 
 class ContextObject(StackedObject):
-    """An object that can be bound to a context.  The actual context
-    object registry is initialized from the first subclass of this class.
-    """
-    __metaclass__ = _ContextObjectType
+    """An object that can be bound to a context.  It is managed by the
+    :class:`ContextStackManager`"""
+    stack_manager = ContextStackManager()
 
     def push_thread(self):
         """Pushes the context object to the thread stack."""
-        with self._co_context_lock:
-            self._co_cache.pop(current_thread(), None)
-            item = (self._co_stackop(), self)
-            stack = getattr(self._co_context, 'stack', None)
-            if stack is None:
-                self._co_context.stack = [item]
-            else:
-                stack.append(item)
+        self.stack_manager.push_thread(self)
 
     def pop_thread(self):
         """Pops the context object from the stack."""
-        with self._co_context_lock:
-            self._co_cache.pop(current_thread(), None)
-            stack = getattr(self._co_context, 'stack', None)
-            assert stack, 'no objects on stack'
-            popped = stack.pop()[1]
-            assert popped is self, 'popped unexpected object'
+        popped = self.stack_manager.pop_thread()
+        assert popped is self, 'popped unexpected object'
 
     def push_application(self):
         """Pushes the context object to the application stack."""
-        self._co_global.append((self._co_stackop(), self))
-        self._co_cache.clear()
+        self.stack_manager.push_application(self)
 
     def pop_application(self):
         """Pops the context object from the stack."""
-        assert self._co_global, 'no objects on application stack'
-        popped = self._co_global.pop()[1]
-        self._co_cache.clear()
+        popped = self.stack_manager.pop_application()
         assert popped is self, 'popped unexpected object'
 
 
@@ -311,7 +319,7 @@ class Processor(ContextObject):
             ...
     """
 
-    _co_abstract = False
+    stack_manager = ContextStackManager()
 
     def __init__(self, callback=None):
         #: the callback that was passed to the constructor
@@ -738,6 +746,8 @@ class RecordDispatcher(object):
     the logic used by the :class:`~logbook.Logger`.
     """
 
+    stack_manager = ContextStackManager()
+
     #: If this is set to `True` the dispatcher information will be suppressed
     #: for log records emitted from this logger.
     suppress_dispatcher = False
@@ -801,7 +811,7 @@ class RecordDispatcher(object):
         # Both logger attached handlers as well as context specific
         # handlers are handled one after another.  The latter also
         # include global handlers.
-        for handler in chain(self.handlers, Handler.iter_context_objects()):
+        for handler in chain(self.handlers, Handler.stack_manager.iter_context_objects()):
             # skip records that this handler is not interested in
             if record.level < handler.level:
                 continue
@@ -837,7 +847,7 @@ class RecordDispatcher(object):
         """
         if self.group is not None:
             self.group.process_record(record)
-        for processor in Processor.iter_context_objects():
+        for processor in Processor.stack_manager.iter_context_objects():
             processor.process(record)
 
 
