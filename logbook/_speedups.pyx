@@ -95,15 +95,8 @@ cdef class ContextStackManager:
             objects = self._global[:]
             objects.extend(getattr3(self._context, 'stack', ()))
             PyList_Sort(objects)
-
-            len = PyList_GET_SIZE(objects)
-            rv = PyList_New(len)
-            i = 0
-            while i < len:
-                PyList_SET_ITEM(rv, i, (<_StackItem>objects[i]).val)
-                i += 1
-            PyDict_SetItem(self._cache, tid, rv)
-            return iter(rv)
+            objects = [(<_StackItem>x).val for x in objects]
+            PyDict_SetItem(self._cache, tid, objects)
         return iter(objects)
 
     cpdef push_thread(self, obj):
