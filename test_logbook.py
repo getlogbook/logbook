@@ -851,6 +851,25 @@ class QueuesTestCase(LogbookTestCase):
         self.assert_(test_handler.has_warning('Just testing'))
         self.assert_(test_handler.has_error('More testing'))
 
+    def test_execnet_handler(self):
+        def run_on_remote(channel):
+            import logbook
+            from logbook.queues import ExecnetChannelHandler
+            handler = ExecnetChannelHandler(channel)
+            log = logbook.Logger("Execnet")
+            with handler:
+                log.info('Execnet works')
+        
+        import execnet
+        gw = execnet.makegateway()
+        channel = gw.remote_exec(run_on_remote)
+        from logbook.queues import ExecnetChannelSubscriber
+        subscriber = ExecnetChannelSubscriber(channel)
+        record = subscriber.recv()
+        self.assertEqual(record.msg, 'Execnet works')
+
+                
+
 
 class TicketingTestCase(LogbookTestCase):
 
