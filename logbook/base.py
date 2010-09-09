@@ -262,7 +262,11 @@ class StackedObject(object):
 class ContextObject(StackedObject):
     """An object that can be bound to a context.  It is managed by the
     :class:`ContextStackManager`"""
-    stack_manager = ContextStackManager()
+
+    #: subclasses have to instanciate a :class:`ContextStackManager`
+    #: object on this attribute which is then shared for all the
+    #: subclasses of it.
+    stack_manager = None
 
     def push_thread(self):
         """Pushes the context object to the thread stack."""
