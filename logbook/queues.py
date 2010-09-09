@@ -291,6 +291,37 @@ class MultiProcessingSubscriber(SubscriberBase):
         return LogRecord.from_dict(rv)
 
 
+class ExecnetChannelHandler(Handler):
+    """Implements a handler that dispatches over a execnet channel
+    to a different process.
+    """
+
+    def __init__(self, channel, level=NOTSET, filter=None, bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+        self.channel = channel
+
+    def emit(self, record):
+        self.channel.send(record.to_dict(json_safe=True))
+
+
+class ExecnetChannelSubscriber(SubscriberBase):
+    """subscribes to a execnet channel"""
+
+    def __init__(self, channel):
+        self.channel = channel
+
+    def recv(self, timeout=-1):
+        try:
+            rv = self.channel.receive(timeout=timeout)
+        except self.channel.RemoteError:
+            #XXX: handle
+            return None
+        except (self.channel.TimeoutError, EOFError):
+            return None
+        else:
+            return LogRecord.from_dict(rv)
+
+
 class TWHThreadController(object):
     """A very basic thread controller that pulls things in from a
     queue and sends it to a handler.  Both queue and handler are
