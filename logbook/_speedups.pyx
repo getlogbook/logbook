@@ -1,13 +1,15 @@
-_missing = object()
+from stdlib cimport pythread
+
+cdef object _missing = object()
 
 
 cdef class group_reflected_property:
     cdef char* name
     cdef char* _name
-    cdef default
-    cdef fallback
+    cdef object default
+    cdef object fallback
 
-    def __init__(self, char* name, default, fallback=_missing):
+    def __init__(self, char* name, object default, object fallback=_missing):
         self.name = name
         _name = '_' + name
         self._name = _name
