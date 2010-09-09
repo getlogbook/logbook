@@ -63,6 +63,13 @@ class BuildFailed(Exception):
     pass
 
 
+ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
+if sys.platform == 'win32' and sys.version_info > (2, 6):
+   # 2.6's distutils.msvc9compiler can raise an IOError when failing to
+   # find the compiler
+   ext_errors += (IOError,)
+
+
 cmdclass = {}
 class ve_build_ext(build_ext):
     """This class allows C extension building to fail."""
