@@ -12,9 +12,11 @@ upload-docs:
 	make -C docs html SPHINXOPTS=-Aonline=1
 	python setup.py upload_docs
 
-cybuild:
+logbook/_speedups.so: logbook/_speedups.pyx
 	cython logbook/_speedups.pyx
 	python setup.py build
 	cp build/*/logbook/_speedups.so logbook
+
+cybuild: logbook/_speedups.so
 
 .PHONY: test upload-docs clean-pyc cybuild all

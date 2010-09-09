@@ -90,6 +90,7 @@ try:
     from logbook._speedups import group_reflected_property, \
          ContextStackManager
 except ImportError:
+    raise
     from logbook._fallback import group_reflected_property, \
          ContextStackManager
 
