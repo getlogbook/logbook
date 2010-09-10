@@ -204,10 +204,6 @@ class BoxcarHandler(NotificationBaseHandler):
         """Returns the value of the screen name field."""
         return record.level_name.title()
 
-    def get_message(self, record):
-        """Returns the message to be attached."""
-        return record.message
-
     def emit(self, record):
         if not self.check_delivery(record)[1]:
             return
@@ -215,7 +211,7 @@ class BoxcarHandler(NotificationBaseHandler):
             'notification[from_screen_name]':
                 self.get_screen_name(record).encode('utf-8'),
             'notification[message]':
-                self.get_message(record).encode('utf-8'),
+                self.make_text(record).encode('utf-8'),
             'notification[from_remote_service_id]': str(int(time() * 100))
         })
         con = HTTPSConnection('boxcar.io')
