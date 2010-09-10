@@ -219,6 +219,5 @@ class BoxcarHandler(NotificationBaseHandler):
             'Authorization': 'Basic ' +
                 base64.b64encode((u'%s:%s' %
                     (self.email, self.password)).encode('utf-8')).strip(),
-            'Content-Length': str(len(body))
         }, body=body)
         con.close()
