@@ -28,7 +28,8 @@ class ZeroMQHandler(Handler):
         handler = ZeroMQHandler('tcp://127.0.0.1:5000')
     """
 
-    def __init__(self, uri=None, level=NOTSET, filter=None, bubble=False):
+    def __init__(self, uri=None, level=NOTSET, filter=None, bubble=False,
+                 context=None):
         Handler.__init__(self, level, filter, bubble)
         try:
             import zmq
@@ -36,7 +37,7 @@ class ZeroMQHandler(Handler):
             raise RuntimeError('The pyzmq library is required for '
                                'the ZeroMQHandler.')
         #: the zero mq context
-        self.context = zmq.Context()
+        self.context = context or zmq.Context()
         #: the zero mq socket.
         self.socket = self.context.socket(zmq.PUB)
         if uri is not None:
@@ -161,7 +162,7 @@ class ZeroMQSubscriber(SubscriberBase):
         controller.stop()
     """
 
-    def __init__(self, uri=None):
+    def __init__(self, uri=None, context=None):
         try:
             import zmq
         except ImportError:
@@ -170,7 +171,7 @@ class ZeroMQSubscriber(SubscriberBase):
         self._zmq = zmq
 
         #: the zero mq context
-        self.context = zmq.Context()
+        self.context = context or zmq.Context()
         #: the zero mq socket.
         self.socket = self.context.socket(zmq.SUB)
         if uri is not None:
