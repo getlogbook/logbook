@@ -50,11 +50,7 @@ def _strformat(value, format_spec=""):
     if is_numeric and conversion == 'n':
         # Default to 'd' for ints and 'g' for floats
         conversion = 'd' if is_integer else 'g'
-    try:
-        rv = ('%' + prefix + precision + (conversion or 's')) % (value,)
-    except ValueError:
-        raise ValueError("Unknown format code %r for object of type %r" %
-                         (conversion, value.__class__.__name__))
+    rv = ('%' + prefix + precision + (conversion or 's')) % (value,)
     if sign not in '-' and value >= 0:
         # sign in (' ', '+')
         rv = sign + rv
