@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-    logbook.string2
-    ~~~~~~~~~~~~~~~
+    logbook._stringfmt
+    ~~~~~~~~~~~~~~~~~~
 
-    String formatting for Python 2.5.
-    This is an implementation of the new string formatting (PEP 3101).
+    Advanced string formatting for Python 2.5.
+    This is a stripped version of 'stringformat', available at
+     * http://pypi.python.org/pypi/StringFormat
 
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl, Florent Xicluna.
     :license: BSD, see LICENSE for more details.
@@ -26,74 +27,78 @@ _format_spec_re = re.compile(
     r'([-+ ]?)'                 # sign
     r'(#?)' r'(\d*)' r'(,?)'    # base prefix, minimal width, thousands sep
     r'((?:\.\d+)?)'             # precision
-    r'([bcdefgnosxEFGX%]?)$'    # type
+    r'(.?)$'                    # type
 )
-_field_part_re = re.compile('((?:^|\.)[^[.]+|\[[^]]+\])')
+_field_part_re = re.compile(
+    r'(?:(\[)|\.|^)'            # start or '.' or '['
+    r'((?(1)[^]]*|[^.[]*))'     # part
+    r'(?(1)(?:\]|$)([^.[]+)?)'  # ']' and invalid tail
+)
 
 
 def _strformat(value, format_spec=""):
     """Internal string formatter.
 
     It implements the Format Specification Mini-Language.
-
-    TODO:
-     - alignment option '='
-     - thousand separator
     """
-    m = _format_spec_re.match(format_spec)
+    m = _format_spec_re.match(str(format_spec))
     if not m:
         raise ValueError('Invalid conversion specification')
     align, sign, prefix, width, comma, precision, conversion = m.groups()
-    zero, width = (width and width[0] == '0'), int(width or 0)
-    fill, align = (align[:-1] or ' '), align[-1:]
-    if not align:
+    is_numeric = hasattr(value, '__float__')
+    is_integer = is_numeric and hasattr(value, '__index__')
+    if is_numeric and conversion == 'n':
+        # Default to 'd' for ints and 'g' for floats
+        conversion = 'd' if is_integer else 'g'
+    try:
+        rv = ('%' + prefix + precision + (conversion or 's')) % (value,)
+    except ValueError:
+        raise ValueError("Unknown format code %r for object of type %r" %
+                         (conversion, value.__class__.__name__))
+    if sign not in '-' and value >= 0:
+        # sign in (' ', '+')
+        rv = sign + rv
+    if width:
+        zero = (width[0] == '0')
+        width = int(width)
+    else:
+        zero = False
+        width = 0
+    # Fastpath when alignment is not required
+    if width <= len(rv):
+        return rv
+    fill, align = align[:-1], align[-1:]
+    if not fill:
+        fill = '0' if zero else ' '
+    if align == '^':
+        padding = width - len(rv)
+        # tweak the formatting if the padding is odd
+        if padding % 2:
+            rv += fill
+        rv = rv.center(width, fill)
+    elif align == '=' or (zero and not align):
+        if value < 0 or sign not in '-':
+            rv = rv[0] + rv[1:].rjust(width - 1, fill)
+        else:
+            rv = rv.rjust(width, fill)
+    elif align in ('>', '=') or (is_numeric and not align):
         # numeric value right aligned by default
-        if hasattr(value, '__float__'):
-            align = '>'
-        else:
-            align = '<'
-    elif align == '^':
-        value = str(value)
-        padding = width - len(value)
-        if padding > 0 and padding % 2:
-            value += fill
-        value = value.center(width, fill)
-    elif align == '=':
-        # TODO: '=' alignment
-        pass
-    if comma:
-        # TODO: thousand separator
-        pass
-    if fill not in ' 0':
-        if not isinstance(value, basestring):
-            value = str(values)
-        if align == '<':
-            value = value.ljust(width, fill)
-        else:
-            value = value.rjust(width, fill)
-    oldspec = (r'%%%(flags)s%(width)s%(precision)s%(type)s' % {
-        'flags': ('#' if (prefix or zero) else '') +
-                 ('-' if (align == '<') else '') +
-                 ('0' if (fill == '0') else '') +
-                 (sign if (sign != '-') else ''),
-        'width': width,
-        'precision': precision,
-        'type': conversion or 's',
-    })
-    return oldspec % (value,)
+        rv = rv.rjust(width, fill)
+    else:
+        rv = rv.ljust(width, fill)
+    return rv
 
 
 def _format_field(value, parts, conv, spec):
     """Format a replacement field."""
-    for part in parts:
-        if part.startswith('.'):
-            value = getattr(value, part[1:])
-        else:
-            key = part[1:-1]
-            if key.isdigit():
-                value = value[int(key)]
+    for k, part, _ in parts:
+        if k:
+            if part.isdigit():
+                value = value[int(part)]
             else:
-                value = value[key]
+                value = value[part]
+        else:
+            value = getattr(value, part)
     if conv:
         value = ('%r' if (conv == 'r') else '%s') % (value,)
     if hasattr(value, '__format__'):
@@ -105,12 +110,13 @@ def _format_field(value, parts, conv, spec):
     return value
 
 
-class FormatableString(object):
+class FormattableString(object):
     """Class which implements method format().
 
     The method format() behaves like str.format() in python 2.6+.
 
-    >>> FormatableString(u'{a:5}').format(a=42)   # Same as u'{a:5}'.format(a=42)
+    >>> FormattableString(u'{a:5}').format(a=42)
+    ... # Same as u'{a:5}'.format(a=42)
     u'   42'
 
     """
@@ -126,7 +132,7 @@ class FormatableString(object):
         self._string = _format_str_re.sub(self._prepare, format_string)
 
     def __eq__(self, other):
-        if isinstance(other, FormatableString):
+        if isinstance(other, FormattableString):
             return self.format_string == other.format_string
         # Compare equal with the original string.
         return self.format_string == other
@@ -140,28 +146,20 @@ class FormatableString(object):
             return part[:len(part) // 2]
         repl = part[1:-1]
         field, _, format_spec = repl.partition(':')
-
-        literal, _, conversion = field.partition('!')
+        literal, sep, conversion = field.partition('!')
         name_parts = _field_part_re.findall(literal)
-        if not name_parts or name_parts[0].startswith(('.', '[')):
-            name = ''
-        else:
-            name = name_parts.pop(0)
-        if not name:
+        if literal[:1] in '.[':
             # Auto-numbering
-            if self._index is None:
-                raise ValueError(
-                    'cannot switch from manual field specification '
-                    'to automatic field numbering')
             name = str(self._index)
             self._index += 1
-        elif name.isdigit() and self._index is not None:
-            # Manual specification
-            if self._index:
-                raise ValueError(
-                    'cannot switch from automatic field numbering '
-                    'to manual field specification')
-            self._index = None
+            if not literal:
+                del name_parts[0]
+        else:
+            name = name_parts.pop(0)[1]
+            if name.isdigit() and self._index is not None:
+                # Manual specification
+                self._index = None
+        empty_attribute = False
         if '{' in format_spec:
             format_spec = _format_sub_re.sub(self._prepare, format_spec)
             rv = (name_parts, conversion, format_spec)

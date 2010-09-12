@@ -28,7 +28,7 @@ if hasattr(str, 'format'):
     def F(format_string):
         return format_string
 else:
-    from logbook._stringfmt import FormatableString as F
+    from logbook._stringfmt import FormattableString as F
 
 # this regexp also matches incompatible dates like 20070101 because
 # some libraries (like the python xmlrpclib modules) use this
