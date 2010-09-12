@@ -401,7 +401,7 @@ class ThreadedWrapperHandler(Handler):
 
 class SubscriberGroup(SubscriberBase):
     """This is a subscriber which represents a group of subscribers.
-    
+
     This is helpful if you are writing a server-like application which has
     "slaves". This way a user is easily able to view every log record which
     happened somewhere in the entire system without having to check every
