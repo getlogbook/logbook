@@ -53,6 +53,8 @@ Release date to be announced.
 - The mail handler can now be configured to deliver each log record
   not more than n times in m seconds.
 - Added support for Python 2.5
+- Added a :class:`logbook.queues.SubscriberGroup` to deal with multiple
+  subscribers.
 
 Version 0.1
 -----------

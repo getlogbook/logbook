@@ -868,7 +868,21 @@ class QueuesTestCase(LogbookTestCase):
         record = subscriber.recv()
         self.assertEqual(record.msg, 'Execnet works')
 
-                
+    def test_subscriber_group(self):
+        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber, SubscriberGroup
+        uri_a = 'tcp://127.0.0.1:43000'
+        uri_b = 'tcp://127.0.0.1:44000'
+        handler_a = ZeroMQHandler(uri_a)
+        handler_b = ZeroMQHandler(uri_b)
+        subscribers = SubscriberGroup([
+            ZeroMQSubscriber(uri_a),
+            ZeroMQSubscriber(uri_b)
+        ])
+        for handler, test in [(handler_a, 'foo'), (handler_b, 'bar')]:
+            with handler:
+                self.log.warn(test)
+                record = subscribers.recv()
+                self.assertEqual(record.message, test)
 
 
 class TicketingTestCase(LogbookTestCase):

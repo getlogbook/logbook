@@ -10,6 +10,7 @@
 """
 from threading import Thread
 from Queue import Empty, Queue as ThreadQueue
+from itertools import cycle
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler
 from logbook.helpers import json
@@ -396,3 +397,38 @@ class ThreadedWrapperHandler(Handler):
 
     def emit(self, record):
         self.queue.put_nowait(record)
+
+
+class SubscriberGroup(SubscriberBase):
+    """This is a subscriber which represents a group of subscribers.
+    
+    This is helpful if you are writing a server-like application which has
+    "slaves". This way a user is easily able to view every log record which
+    happened somewhere in the entire system without having to check every
+    single slave::
+
+        subscribers = SubscriberGroup([
+            MultiProcessingSubscriber(queue),
+            ZeroMQSubscriber('tcp://localhost:5000')
+        ])
+        with target_handler:
+            subscribers.dispatch_forever()
+    """
+    def __init__(self, subscribers=None):
+        self.subscribers = subscribers or []
+        self.cycle_subscribers = cycle(self.subscribers)
+
+    def add(self, subscriber):
+        """Adds the given `subscriber` to the group."""
+        self.subscribers.append(subscriber)
+        self.cycle_subscribers = cycle(self.subscribers)
+
+    def recv(self, timeout=None):
+        """Receives a single record by cycling through all the subscribers. If
+        there are no subscribers `None` is returned.
+        """
+        try:
+            subscriber = self.cycle_subscribers.next()
+        except StopIteration:
+            return
+        return subscriber.recv(timeout)

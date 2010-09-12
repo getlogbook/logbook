@@ -34,6 +34,9 @@ Other
 .. autoclass:: ThreadedWrapperHandler
    :members:
 
+.. autoclass:: SubscriberGroup
+   :members:
+
 Base Interface
 --------------
 
