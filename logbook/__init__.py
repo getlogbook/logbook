@@ -16,7 +16,8 @@ from logbook.base import LogRecord, Logger, LoggerGroup, NestedSetup, \
 from logbook.handlers import Handler, StreamHandler, FileHandler, \
      MonitoringFileHandler, StderrHandler, RotatingFileHandler, \
      TimedRotatingFileHandler, TestHandler, MailHandler, SyslogHandler, \
-     NullHandler, NTEventLogHandler, create_syshandler, StringFormatter
+     NullHandler, NTEventLogHandler, create_syshandler, StringFormatter, \
+     StringFormatterHandlerMixin, HashingHandlerMixin, LimitingHandlerMixin
 
 
 # create an anonymous default logger and provide all important
