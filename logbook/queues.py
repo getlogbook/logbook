@@ -399,6 +399,27 @@ class ThreadedWrapperHandler(Handler):
         self.queue.put_nowait(record)
 
 
+class GroupMember(ThreadController):
+    def __init__(self, subscriber, queue):
+        ThreadController.__init__(self, subscriber, None)
+        self.queue = queue
+
+    def _target(self):
+        if self.setup is not None:
+            self.setup.push_thread()
+        try:
+            while self.running:
+                record = self.subscriber.recv()
+                if record:
+                    try:
+                        self.queue.put(record, timeout=0.05)
+                    except Queue.Full:
+                        pass
+        finally:
+            if self.setup is not None:
+                self.setup.pop_thread()
+
+
 class SubscriberGroup(SubscriberBase):
     """This is a subscriber which represents a group of subscribers.
 
@@ -414,21 +435,27 @@ class SubscriberGroup(SubscriberBase):
         with target_handler:
             subscribers.dispatch_forever()
     """
-    def __init__(self, subscribers=None):
-        self.subscribers = subscribers or []
-        self.cycle_subscribers = cycle(self.subscribers)
+    def __init__(self, subscribers=None, queue_limit=10):
+        self.members = []
+        self.queue = ThreadQueue(queue_limit)
+        for subscriber in subscribers or []:
+            self.add(subscriber)
 
     def add(self, subscriber):
         """Adds the given `subscriber` to the group."""
-        self.subscribers.append(subscriber)
-        self.cycle_subscribers = cycle(self.subscribers)
+        member = GroupMember(subscriber, self.queue)
+        member.start()
+        self.members.append(member)
 
     def recv(self, timeout=None):
-        """Receives a single record by cycling through all the subscribers. If
-        there are no subscribers `None` is returned.
-        """
         try:
-            subscriber = self.cycle_subscribers.next()
-        except StopIteration:
+            return self.queue.get(timeout=timeout)
+        except Empty:
             return
-        return subscriber.recv(timeout)
+
+    def stop(self):
+        """Stops the group from internally recieving any more messages, once the
+        internal queue is exhausted :meth:`recv` will always return `None`.
+        """
+        for member in self.members:
+            self.member.stop()
