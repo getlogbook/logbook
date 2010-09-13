@@ -872,7 +872,7 @@ class QueuesTestCase(LogbookTestCase):
             log = logbook.Logger("Execnet")
             with handler:
                 log.info('Execnet works')
-        
+
         import execnet
         gw = execnet.makegateway()
         channel = gw.remote_exec(run_on_remote)
