@@ -263,6 +263,65 @@ class Processor(ContextObject):
             self.callback(record)
 
 
+class _InheritedType(object):
+    __slots__ = ()
+    def __repr__(self):
+        return 'Inherit'
+    def __reduce__(self):
+        return 'Inherit'
+Inherit = _InheritedType()
+
+
+class Flags(ContextObject):
+    """Allows flags to be pushed on a flag stack.  Currently two flags
+    are available:
+
+    `current_time`
+        Used instead of :meth:`datetime.datetime.utcnow` when the current
+        time is needed as datetime object.  This is for example useful if
+        you know the logging code finishes in under a second and this is
+        good enough for you as resolution.  In that case it will save a
+        couple of syscalls which are usually quite slow.
+
+    `errors`
+        Can be set to override the current error behaviour.  This value is
+        used when logging calls fail.  The default behaviour is spitting
+        out the stacktrace to stderr but this can be overridden:
+
+        =================== ==========================================
+        ``'silent'``        fail silently
+        ``'raise'``         raise a catchable exception
+        ``'print'``         print the stacktrace to stderr (default)
+        =================== ==========================================
+
+    Example usage::
+
+        with Flags(errors='silent'):
+            ...
+    """
+    stack_manager = ContextStackManager()
+
+    def __init__(self, current_time=Inherit, errors=Inherit):
+        self.current_time = current_time
+        self.errors = errors
+
+    @staticmethod
+    def get_flag(flag, default=None):
+        """Looks up the current value of a specific flag."""
+        for flags in Flags.stack_manager.iter_context_objects():
+            val = getattr(flags, flag, Inherit)
+            if val is not Inherit:
+                return val
+        return default
+
+    @staticmethod
+    def get_current_time():
+        rv = Flags.get_flag('current_time')
+        if rv is None:
+            rv = datetime.utcnow()
+        return rv
+
+
 def _create_log_record(cls, dict):
     """Extra function for reduce because on Python 3 unbound methods
     can no longer be pickled.
@@ -353,7 +412,7 @@ class LogRecord(object):
         assert not self.late, 'heavy init is no longer possible'
         self.heavy_initialized = True
         self.process = os.getpid()
-        self.time = datetime.utcnow()
+        self.time = Flags.get_current_time()
         if self.frame is None:
             self.frame = sys._getframe(1)
 

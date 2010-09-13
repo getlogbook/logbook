@@ -25,7 +25,7 @@ from threading import Lock
 
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
-     ContextObject, ContextStackManager
+     ContextObject, ContextStackManager, Flags
 from logbook.helpers import rename, F
 
 
@@ -219,11 +219,19 @@ class Handler(ContextObject):
         """
 
     def handle_error(self, record, exc_info):
-        """Handle errors which occur during an emit() call."""
+        """Handle errors which occur during an emit() call.  The behaviour of
+        this function depends on the current `errors` setting.
+
+        Check :class:`Flags` for more information.
+        """
         try:
-            traceback.print_exception(*(exc_info + (None, sys.stderr)))
-            sys.stderr.write('Logged from file %s, line %s\n' % (
-                             record.filename, record.lineno))
+            behaviour = Flags.get_flag('errors', 'print')
+            if behaviour == 'raise':
+                raise exc_info[0], exc_info[1], exc_info[2]
+            elif behaviour == 'print':
+                traceback.print_exception(*(exc_info + (None, sys.stderr)))
+                sys.stderr.write('Logged from file %s, line %s\n' % (
+                                 record.filename, record.lineno))
         except IOError:
             pass
 
