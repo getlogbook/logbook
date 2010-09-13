@@ -164,6 +164,12 @@ class Handler(ContextObject):
             return record.message
         return self.formatter(record, self)
 
+    def should_handle(self, record):
+        """Returns `True` if this handler wants to handle the record.  The
+        default implementation checks the level.
+        """
+        return record.level >= self.level
+
     def handle(self, record):
         """Emits the record and falls back.  It tries to :meth:`emit` the
         record and if that fails, it will call into :meth:`handle_error` with

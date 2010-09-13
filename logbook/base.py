@@ -797,8 +797,9 @@ class RecordDispatcher(object):
         # handlers are handled one after another.  The latter also
         # include global handlers.
         for handler in chain(self.handlers, Handler.iter_context_objects()):
-            # skip records that this handler is not interested in
-            if record.level < handler.level:
+            # skip records that this handler is not interested in based
+            # on the 
+            if not handler.should_handle(record):
                 continue
 
             # if this is a blackhole handler, don't even try to

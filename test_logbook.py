@@ -430,6 +430,19 @@ Message:
             self.assert_(handler.has_warning('From my logger'))
             self.assert_('From another logger' in captured.getvalue())
 
+    def test_custom_handling_tester(self):
+        flag = True
+        class MyTestHandler(logbook.TestHandler):
+            def should_handle(self, record):
+                return flag
+        with logbook.NullHandler():
+            with MyTestHandler() as handler:
+                self.log.warn('1')
+                flag = False
+                self.log.warn('2')
+                self.assert_(handler.has_warning('1'))
+                self.assert_(not handler.has_warning('2'))
+
     def test_null_handler(self):
         null_handler = logbook.NullHandler()
         handler = logbook.TestHandler(level='ERROR')
