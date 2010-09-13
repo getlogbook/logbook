@@ -10,6 +10,7 @@
 """
 from threading import Thread
 from Queue import Empty, Queue as ThreadQueue
+from itertools import cycle
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler
 from logbook.helpers import json
@@ -28,7 +29,8 @@ class ZeroMQHandler(Handler):
         handler = ZeroMQHandler('tcp://127.0.0.1:5000')
     """
 
-    def __init__(self, uri=None, level=NOTSET, filter=None, bubble=False):
+    def __init__(self, uri=None, level=NOTSET, filter=None, bubble=False,
+                 context=None):
         Handler.__init__(self, level, filter, bubble)
         try:
             import zmq
@@ -36,7 +38,7 @@ class ZeroMQHandler(Handler):
             raise RuntimeError('The pyzmq library is required for '
                                'the ZeroMQHandler.')
         #: the zero mq context
-        self.context = zmq.Context()
+        self.context = context or zmq.Context()
         #: the zero mq socket.
         self.socket = self.context.socket(zmq.PUB)
         if uri is not None:
@@ -161,7 +163,7 @@ class ZeroMQSubscriber(SubscriberBase):
         controller.stop()
     """
 
-    def __init__(self, uri=None):
+    def __init__(self, uri=None, context=None):
         try:
             import zmq
         except ImportError:
@@ -170,7 +172,7 @@ class ZeroMQSubscriber(SubscriberBase):
         self._zmq = zmq
 
         #: the zero mq context
-        self.context = zmq.Context()
+        self.context = context or zmq.Context()
         #: the zero mq socket.
         self.socket = self.context.socket(zmq.SUB)
         if uri is not None:
@@ -395,3 +397,65 @@ class ThreadedWrapperHandler(Handler):
 
     def emit(self, record):
         self.queue.put_nowait(record)
+
+
+class GroupMember(ThreadController):
+    def __init__(self, subscriber, queue):
+        ThreadController.__init__(self, subscriber, None)
+        self.queue = queue
+
+    def _target(self):
+        if self.setup is not None:
+            self.setup.push_thread()
+        try:
+            while self.running:
+                record = self.subscriber.recv()
+                if record:
+                    try:
+                        self.queue.put(record, timeout=0.05)
+                    except Queue.Full:
+                        pass
+        finally:
+            if self.setup is not None:
+                self.setup.pop_thread()
+
+
+class SubscriberGroup(SubscriberBase):
+    """This is a subscriber which represents a group of subscribers.
+
+    This is helpful if you are writing a server-like application which has
+    "slaves". This way a user is easily able to view every log record which
+    happened somewhere in the entire system without having to check every
+    single slave::
+
+        subscribers = SubscriberGroup([
+            MultiProcessingSubscriber(queue),
+            ZeroMQSubscriber('tcp://localhost:5000')
+        ])
+        with target_handler:
+            subscribers.dispatch_forever()
+    """
+    def __init__(self, subscribers=None, queue_limit=10):
+        self.members = []
+        self.queue = ThreadQueue(queue_limit)
+        for subscriber in subscribers or []:
+            self.add(subscriber)
+
+    def add(self, subscriber):
+        """Adds the given `subscriber` to the group."""
+        member = GroupMember(subscriber, self.queue)
+        member.start()
+        self.members.append(member)
+
+    def recv(self, timeout=None):
+        try:
+            return self.queue.get(timeout=timeout)
+        except Empty:
+            return
+
+    def stop(self):
+        """Stops the group from internally recieving any more messages, once the
+        internal queue is exhausted :meth:`recv` will always return `None`.
+        """
+        for member in self.members:
+            self.member.stop()
