@@ -25,7 +25,7 @@ from threading import Lock
 
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
-     ContextObject
+     ContextObject, _ContextObjectType
 from logbook.helpers import rename, F
 
 
@@ -74,6 +74,29 @@ def create_syshandler(application_name, level=NOTSET):
     return SyslogHandler(application_name, level=level)
 
 
+class _HandlerType(_ContextObjectType):
+    """The metaclass of handlers injects a destructor if the class has an
+    overridden close method.  This makes it possible that the default
+    handler class as well as all subclasses that don't need cleanup to be
+    collected with less overhead.
+    """
+
+    def __new__(cls, name, bases, d):
+        # aha, that thing has a custom close method.  We will need a magic
+        # __del__ for it to be called on cleanup.
+        if bases != (ContextObject,) and 'close' in d and '__del__' not in d \
+           and not any(hasattr(x, '__del__') for x in bases):
+            def _magic_del(self):
+                try:
+                    self.close()
+                except Exception:
+                    # del is also invoked when init fails, so we better just
+                    # ignore any exception that might be raised here
+                    pass
+            d['__del__'] = _magic_del
+        return _ContextObjectType.__new__(cls, name, bases, d)
+
+
 class Handler(ContextObject):
     """Handler instances dispatch logging events to specific destinations.
 
@@ -120,6 +143,7 @@ class Handler(ContextObject):
         with handler:
             ...
     """
+    __metaclass__ = _HandlerType
 
     #: a flag for this handler that can be set to `True` for handlers that
     #: are consuming log records but are not actually displaying it.  This
@@ -139,14 +163,6 @@ class Handler(ContextObject):
         self.filter = filter
         #: the bubble flag of this handler
         self.bubble = bubble
-
-    def __del__(self):
-        try:
-            self.close()
-        except Exception:
-            # del is also invoked when init fails, so we better just
-            # ignore any exception that might be raised here
-            pass
 
     level_name = level_name_property()
 
