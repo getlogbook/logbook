@@ -211,7 +211,10 @@ class Handler(ContextObject):
         """
 
     def close(self):
-        """Tidy up any resources used by the handler."""
+        """Tidy up any resources used by the handler.  This is automatically
+        called by the destructor of the class as well, but explicit calls are
+        encouraged.  Make sure that multiple calls to close are possible.
+        """
 
     def handle_error(self, record, exc_info):
         """Handle errors which occur during an emit() call."""
