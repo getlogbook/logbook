@@ -25,7 +25,7 @@ from threading import Lock
 
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
-     ContextObject, ContextStackManager, _ContextObjectType
+     ContextObject, ContextStackManager
 from logbook.helpers import rename, F
 
 
@@ -74,7 +74,7 @@ def create_syshandler(application_name, level=NOTSET):
     return SyslogHandler(application_name, level=level)
 
 
-class _HandlerType(_ContextObjectType):
+class _HandlerType(type):
     """The metaclass of handlers injects a destructor if the class has an
     overridden close method.  This makes it possible that the default
     handler class as well as all subclasses that don't need cleanup to be
@@ -94,7 +94,7 @@ class _HandlerType(_ContextObjectType):
                     # ignore any exception that might be raised here
                     pass
             d['__del__'] = _magic_del
-        return _ContextObjectType.__new__(cls, name, bases, d)
+        return type.__new__(cls, name, bases, d)
 
 
 class Handler(ContextObject):
