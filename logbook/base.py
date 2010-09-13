@@ -741,7 +741,7 @@ class RecordDispatcher(object):
         # include global handlers.
         for handler in chain(self.handlers, Handler.stack_manager.iter_context_objects()):
             # skip records that this handler is not interested in
-            if record.level < handler.level:
+            if not handler.should_handle(record):
                 continue
 
             # if this is a blackhole handler, don't even try to
