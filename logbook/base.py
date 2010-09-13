@@ -301,9 +301,8 @@ class Flags(ContextObject):
     """
     stack_manager = ContextStackManager()
 
-    def __init__(self, current_time=Inherit, errors=Inherit):
-        self.current_time = current_time
-        self.errors = errors
+    def __init__(self, **flags):
+        self.__dict__.update(flags)
 
     @staticmethod
     def get_flag(flag, default=None):
