@@ -859,6 +859,7 @@ class QueuesTestCase(LogbookTestCase):
         self.assert_(test_handler.has_error('This is an error'))
 
     def test_missing_zeromq(self):
+        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
         try:
             import zmq
         except ImportError:
