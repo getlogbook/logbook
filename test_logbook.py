@@ -922,23 +922,32 @@ class QueuesTestCase(LogbookTestCase):
         self.assertEqual(record.msg, 'Execnet works')
         gw.exit()
 
-    @require('zmq')
     def test_subscriber_group(self):
-        from logbook.queues import (ZeroMQHandler, ZeroMQSubscriber,
-                                    SubscriberGroup)
-        uri_a = 'tcp://127.0.0.1:43000'
-        uri_b = 'tcp://127.0.0.1:44000'
-        handler_a = ZeroMQHandler(uri_a)
-        handler_b = ZeroMQHandler(uri_b)
-        subscribers = SubscriberGroup([
-            ZeroMQSubscriber(uri_a),
-            ZeroMQSubscriber(uri_b)
+        from multiprocessing import Process, Queue
+        from logbook.queues import MultiProcessingHandler, \
+                                   MultiProcessingSubscriber, SubscriberGroup
+        a_queue = Queue(-1)
+        b_queue = Queue(-1)
+        test_handler = logbook.TestHandler()
+        subscriber = SubscriberGroup([
+            MultiProcessingSubscriber(a_queue),
+            MultiProcessingSubscriber(b_queue)
         ])
-        for handler, test in [(handler_a, 'foo'), (handler_b, 'bar')]:
-            with handler:
-                self.log.warn(test)
-                record = subscribers.recv()
-                self.assertEqual(record.message, test)
+
+        def make_send_back(message, queue):
+            def send_back():
+                with MultiProcessingHandler(queue):
+                    logbook.warn(message)
+            return send_back
+        
+        p1 = Process(target=make_send_back('foo', a_queue))
+        p2 = Process(target=make_send_back('bar', b_queue))
+        p1.start()
+        p2.start()
+        p1.join()
+        p2.join()
+        self.assertEqual(subscriber.recv().message, 'foo')
+        self.assertEqual(subscriber.recv().message, 'bar')
 
 
 class TicketingTestCase(LogbookTestCase):
