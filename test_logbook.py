@@ -886,10 +886,6 @@ class QueuesTestCase(LogbookTestCase):
         record = subscriber.recv()
         self.assertEqual(record.msg, 'Execnet works')
 
-    # execnet is broken on os x
-    if sys.platform == 'darwin':
-        del test_execnet_handler
-
     def test_subscriber_group(self):
         from logbook.queues import ZeroMQHandler, ZeroMQSubscriber, SubscriberGroup
         uri_a = 'tcp://127.0.0.1:43000'
