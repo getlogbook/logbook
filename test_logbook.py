@@ -933,6 +933,7 @@ class QueuesTestCase(LogbookTestCase):
 
 class TicketingTestCase(LogbookTestCase):
 
+    @require('sqlalchemy')
     def test_basic_ticketing(self):
         from logbook.ticketing import TicketingHandler
         handler = TicketingHandler('sqlite:///')
