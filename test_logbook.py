@@ -875,8 +875,8 @@ class QueuesTestCase(LogbookTestCase):
             from logbook.queues import ExecnetChannelHandler
             handler = ExecnetChannelHandler(channel)
             log = logbook.Logger("Execnet")
-            with handler:
-                log.info('Execnet works')
+            handler.push_application()
+            log.info('Execnet works')
 
         import execnet
         gw = execnet.makegateway()
@@ -885,6 +885,7 @@ class QueuesTestCase(LogbookTestCase):
         subscriber = ExecnetChannelSubscriber(channel)
         record = subscriber.recv()
         self.assertEqual(record.msg, 'Execnet works')
+        gw.exit()
 
     # execnet is broken on os x
     if sys.platform == 'darwin':
