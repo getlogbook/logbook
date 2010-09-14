@@ -42,6 +42,20 @@ def unimport_module(name):
         sys.modules[name] = old
 
 
+def require(name):
+    def decorate(f):
+        if name in _skipped_modules:
+            return None
+        try:
+            __import__(name)
+        except ImportError:
+            _skipped_modules.append(name)
+            return None
+        return f
+    return decorate
+_skipped_modules = []
+
+
 def make_fake_mail_handler(**kwargs):
     class FakeMailHandler(logbook.MailHandler):
         mails = []
@@ -804,6 +818,7 @@ class MoreTestCase(LogbookTestCase):
 
 class QueuesTestCase(LogbookTestCase):
 
+    @require('zmq')
     def test_zeromq_handler(self):
         from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
         tests = [
@@ -821,6 +836,7 @@ class QueuesTestCase(LogbookTestCase):
                 self.assertEqual(record.message, test)
                 self.assertEqual(record.channel, self.log.name)
 
+    @require('zmq')
     def test_zeromq_background_thread(self):
         from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
         uri = 'tcp://127.0.0.1:42001'
@@ -877,6 +893,7 @@ class QueuesTestCase(LogbookTestCase):
         self.assert_(test_handler.has_warning('Just testing'))
         self.assert_(test_handler.has_error('More testing'))
 
+    @require('execnet')
     def test_execnet_handler(self):
         def run_on_remote(channel):
             import logbook
@@ -895,6 +912,7 @@ class QueuesTestCase(LogbookTestCase):
         self.assertEqual(record.msg, 'Execnet works')
         gw.exit()
 
+    @require('zmq')
     def test_subscriber_group(self):
         from logbook.queues import (ZeroMQHandler, ZeroMQSubscriber,
                                     SubscriberGroup)
@@ -996,4 +1014,9 @@ class HelperTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    try:
+        unittest.main()
+    finally:
+        for modname in _skipped_modules:
+            msg = '*** Failed to import %s, tests skipped.\n' % modname
+            sys.stderr.write(msg)
