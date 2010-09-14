@@ -371,6 +371,10 @@ class Flags(ContextObject):
 
     @staticmethod
     def get_current_time():
+        """Returns the current time from either the flags or if nothing
+        pushed the current time to the stack, the
+        :meth:`datetime.datetime.utcnow` method is called.
+        """
         rv = Flags.get_flag('current_time')
         if rv is None:
             rv = datetime.utcnow()
