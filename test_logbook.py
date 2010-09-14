@@ -53,7 +53,7 @@ def missing(name):
     def decorate(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            old = sys.modules.get(name)
+            old = sys.modules.get(name, _missing)
             sys.modules[name] = None
             try:
                 f(*args, **kwargs)
