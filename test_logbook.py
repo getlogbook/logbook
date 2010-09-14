@@ -858,6 +858,15 @@ class QueuesTestCase(LogbookTestCase):
         self.assert_(test_handler.has_warning('This is a warning'))
         self.assert_(test_handler.has_error('This is an error'))
 
+    def test_missing_zeromq(self):
+        try:
+            import jinja2
+        except ImportError:
+            self.assertRaises(RuntimeError, ZeroMQHandler,
+                              'tcp://127.0.0.1:42000')
+            self.assertRaises(RuntimeError, ZeroMQSubscriber,
+                              'tcp://127.0.0.1:42000')
+
     def test_multi_processing_handler(self):
         from multiprocessing import Process, Queue
         from logbook.queues import MultiProcessingHandler, \
