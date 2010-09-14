@@ -226,10 +226,6 @@ class HandlerTestCase(LogbookTestCase):
                              'WARNING:testlogger:warning message\n')
 
     def test_monitoring_file_handler(self):
-        if os.name == 'nt':
-            # skipped on windows
-            return
-
         handler = logbook.MonitoringFileHandler(self.filename, format_string=
             '{record.level_name}:{record.channel}:{record.message}',
             delay=True)
@@ -241,6 +237,10 @@ class HandlerTestCase(LogbookTestCase):
         with open(self.filename) as f:
             self.assertEqual(f.read().strip(),
                              'WARNING:testlogger:another warning message')
+
+    # unsupported on windows due to different IO (also unneeded)
+    if os.name == 'nt':
+        del test_monitoring_file_handler
 
     def test_custom_formatter(self):
         def custom_format(record, handler):
@@ -885,6 +885,10 @@ class QueuesTestCase(LogbookTestCase):
         subscriber = ExecnetChannelSubscriber(channel)
         record = subscriber.recv()
         self.assertEqual(record.msg, 'Execnet works')
+
+    # execnet is broken on os x
+    if sys.platform == 'darwin':
+        del test_execnet_handler
 
     def test_subscriber_group(self):
         from logbook.queues import ZeroMQHandler, ZeroMQSubscriber, SubscriberGroup
