@@ -18,9 +18,12 @@ from datetime import datetime, timedelta
 from random import randrange
 from itertools import izip
 from contextlib import contextmanager
+from functools import wraps
 from cStringIO import StringIO
 from logbook.helpers import json
 
+
+_missing = object()
 
 @contextmanager
 def capture_stderr():
@@ -30,16 +33,6 @@ def capture_stderr():
         yield sys.stderr
     finally:
         sys.stderr = old
-
-
-@contextmanager
-def unimport_module(name):
-    old = sys.modules[name]
-    sys.modules[name] = type(sys)(name)
-    try:
-        yield
-    finally:
-        sys.modules[name] = old
 
 
 def require(name):
@@ -54,6 +47,23 @@ def require(name):
         return f
     return decorate
 _skipped_modules = []
+
+
+def missing(name):
+    def decorate(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            old = sys.modules.get(name)
+            sys.modules[name] = None
+            try:
+                f(*args, **kwargs)
+            finally:
+                if old is _missing:
+                    del sys.modules[name]
+                else:
+                    sys.modules[name] = old
+        return wrapper
+    return decorate
 
 
 def make_fake_mail_handler(**kwargs):
@@ -796,24 +806,21 @@ class MoreTestCase(LogbookTestCase):
         self.assert_('all message' in stringio)
         self.assert_('cmd message' in stringio)
 
+    @require('jinja2')
     def test_jinja_formatter(self):
         from logbook.more import JinjaFormatter
-        try:
-            import jinja2
-        except ImportError:
-            # at least check the RuntimeError is raised
-            self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
-        else:
-            # also check RuntimeError is raised
-            with unimport_module('jinja2'):
-                self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
-            fmter = JinjaFormatter('{{ record.channel }}/'
-                                   '{{ record.level_name }}')
-            handler = logbook.TestHandler()
-            handler.formatter = fmter
-            with handler:
-                self.log.info('info')
-            self.assert_('testlogger/INFO' in handler.formatted_records)
+        fmter = JinjaFormatter('{{ record.channel }}/{{ record.level_name }}')
+        handler = logbook.TestHandler()
+        handler.formatter = fmter
+        with handler:
+            self.log.info('info')
+        self.assert_('testlogger/INFO' in handler.formatted_records)
+
+    @missing('jinja2')
+    def test_missing_jinja2(self):
+        from logbook.more import JinjaFormatter
+        # check the RuntimeError is raised
+        self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
 
 
 class QueuesTestCase(LogbookTestCase):
@@ -858,15 +865,13 @@ class QueuesTestCase(LogbookTestCase):
         self.assert_(test_handler.has_warning('This is a warning'))
         self.assert_(test_handler.has_error('This is an error'))
 
+    @missing('zmq')
     def test_missing_zeromq(self):
         from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
-        try:
-            import zmq
-        except ImportError:
-            self.assertRaises(RuntimeError, ZeroMQHandler,
-                              'tcp://127.0.0.1:42000')
-            self.assertRaises(RuntimeError, ZeroMQSubscriber,
-                              'tcp://127.0.0.1:42000')
+        self.assertRaises(RuntimeError, ZeroMQHandler,
+                          'tcp://127.0.0.1:42000')
+        self.assertRaises(RuntimeError, ZeroMQSubscriber,
+                          'tcp://127.0.0.1:42000')
 
     def test_multi_processing_handler(self):
         from multiprocessing import Process, Queue
@@ -939,7 +944,7 @@ class QueuesTestCase(LogbookTestCase):
                 with MultiProcessingHandler(queue):
                     logbook.warn(message)
             return send_back
-        
+
         p1 = Process(target=make_send_back('foo', a_queue))
         p2 = Process(target=make_send_back('bar', b_queue))
         p1.start()
