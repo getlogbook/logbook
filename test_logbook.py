@@ -467,6 +467,11 @@ Message:
         finally:
             logbook.LogRecord.heavy_init = heavy_init
 
+        null_handler.bubble = True
+        with capture_stderr() as captured:
+            logbook.warning('Not a blockhole')
+            self.assertNotEqual(captured.getvalue(), '')
+
     def test_calling_frame(self):
         handler = logbook.TestHandler()
         with handler:

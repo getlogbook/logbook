@@ -803,7 +803,14 @@ class RecordDispatcher(object):
                 continue
 
             # if this is a blackhole handler, don't even try to
-            # do further processing, stop right away
+            # do further processing, stop right away.  Technically
+            # speaking this is not 100% correct because if the handler
+            # is bubbling we shouldn't apply this logic, but then we
+            # won't enter this branch anyways.  The result is that a
+            # bubbling blackhole handler will never have this shortcut
+            # applied and do the heavy init at one point.  This is fine
+            # however because a bubbling blackhole handler is not very
+            # useful in general.
             if handler.blackhole:
                 break
 
