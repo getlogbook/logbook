@@ -860,7 +860,7 @@ class QueuesTestCase(LogbookTestCase):
 
     def test_missing_zeromq(self):
         try:
-            import jinja2
+            import zmq
         except ImportError:
             self.assertRaises(RuntimeError, ZeroMQHandler,
                               'tcp://127.0.0.1:42000')
