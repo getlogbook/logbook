@@ -945,14 +945,15 @@ class QueuesTestCase(LogbookTestCase):
                     logbook.warn(message)
             return send_back
 
-        p1 = Process(target=make_send_back('foo', a_queue))
-        p2 = Process(target=make_send_back('bar', b_queue))
-        p1.start()
-        p2.start()
-        p1.join()
-        p2.join()
-        self.assertEqual(subscriber.recv().message, 'foo')
-        self.assertEqual(subscriber.recv().message, 'bar')
+        for _ in range(10):
+            p1 = Process(target=make_send_back('foo', a_queue))
+            p2 = Process(target=make_send_back('bar', b_queue))
+            p1.start()
+            p2.start()
+            p1.join()
+            p2.join()
+            messages = [subscriber.recv().message for i in 1, 2]
+            self.assertEqual(sorted(messages), ['bar', 'foo'])
 
 
 class TicketingTestCase(LogbookTestCase):
