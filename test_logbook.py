@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-from __future__ import with_statement
+from __future__ import division, with_statement
 
 import logbook
 
 import os
 import re
-import new
 import sys
 import time
 import thread
@@ -32,10 +31,11 @@ def capture_stderr():
     finally:
         sys.stderr = old
 
+
 @contextmanager
 def unimport_module(name):
     old = sys.modules[name]
-    sys.modules[name] = new.module('jinja2')
+    sys.modules[name] = type(sys)(name)
     try:
         yield
     finally:
@@ -45,10 +45,13 @@ def unimport_module(name):
 def make_fake_mail_handler(**kwargs):
     class FakeMailHandler(logbook.MailHandler):
         mails = []
+
         def get_connection(self):
             return self
+
         def close_connection(self, con):
             pass
+
         def sendmail(self, fromaddr, recipients, mail):
             self.mails.append((fromaddr, recipients, mail))
 
@@ -91,6 +94,7 @@ class BasicAPITestCase(LogbookTestCase):
 
     def test_custom_logger(self):
         client_ip = '127.0.0.1'
+
         class CustomLogger(logbook.Logger):
             def process_record(self, record):
                 record.extra['ip'] = client_ip
@@ -152,18 +156,18 @@ class BasicAPITestCase(LogbookTestCase):
                 pass
             self.assertFalse(handler.has_error())
             with logger.catch_exceptions():
-                1/0
+                1 / 0
             with logger.catch_exceptions('Awesome'):
-                1/0
+                1 / 0
             self.assert_(handler.has_error('Uncaught exception occurred'))
             self.assert_(handler.has_error('Awesome'))
         self.assert_(handler.records[0].exc_info is not None)
-        self.assert_('1/0' in handler.records[0].formatted_exception)
+        self.assert_('1 / 0' in handler.records[0].formatted_exception)
 
     def test_exporting(self):
         with logbook.TestHandler() as handler:
             with self.log.catch_exceptions():
-                1/0
+                1 / 0
             record = handler.records[0]
 
         exported = record.to_dict()
@@ -177,7 +181,7 @@ class BasicAPITestCase(LogbookTestCase):
     def test_pickle(self):
         with logbook.TestHandler() as handler:
             with self.log.catch_exceptions():
-                1/0
+                1 / 0
             record = handler.records[0]
         record.pull_information()
         record.close()
@@ -203,9 +207,9 @@ class HandlerTestCase(LogbookTestCase):
         LogbookTestCase.tearDown(self)
 
     def test_file_handler(self):
-        handler = logbook.FileHandler(self.filename, format_string=
-            '{record.level_name}:{record.channel}:{record.message}',
-            )
+        handler = logbook.FileHandler(self.filename,
+            format_string='{record.level_name}:{record.channel}:'
+            '{record.message}',)
         with handler.threadbound():
             self.log.warn('warning message')
         handler.close()
@@ -214,9 +218,9 @@ class HandlerTestCase(LogbookTestCase):
                              'WARNING:testlogger:warning message\n')
 
     def test_file_handler_delay(self):
-        handler = logbook.FileHandler(self.filename, format_string=
-            '{record.level_name}:{record.channel}:{record.message}',
-            delay=True)
+        handler = logbook.FileHandler(self.filename,
+            format_string='{record.level_name}:{record.channel}:'
+            '{record.message}', delay=True)
         self.assertFalse(os.path.isfile(self.filename))
         with handler.threadbound():
             self.log.warn('warning message')
@@ -226,9 +230,9 @@ class HandlerTestCase(LogbookTestCase):
                              'WARNING:testlogger:warning message\n')
 
     def test_monitoring_file_handler(self):
-        handler = logbook.MonitoringFileHandler(self.filename, format_string=
-            '{record.level_name}:{record.channel}:{record.message}',
-            delay=True)
+        handler = logbook.MonitoringFileHandler(self.filename,
+            format_string='{record.level_name}:{record.channel}:'
+            '{record.message}', delay=True)
         with handler.threadbound():
             self.log.warn('warning message')
             os.rename(self.filename, self.filename + '.old')
@@ -312,7 +316,7 @@ class HandlerTestCase(LogbookTestCase):
             with handler:
                 self.log.warn('This is not mailed')
                 try:
-                    1/0
+                    1 / 0
                 except Exception:
                     self.log.exception('This is unfortunate')
 
@@ -326,7 +330,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assert_(re.search('Function:\s+test_mail_handler', mail))
             self.assert_('Message:\r\n\r\nThis is unfortunate' in mail)
             self.assert_('\r\n\r\nTraceback' in mail)
-            self.assert_('1/0' in mail)
+            self.assert_('1 / 0' in mail)
             self.assert_('This is not mailed' in fallback.getvalue())
 
     def test_mail_handler_record_limits(self):
@@ -401,15 +405,16 @@ Message:
             with logbook.Processor(inject_extra):
                 with handler:
                     try:
-                        1/0
+                        1 / 0
                     except Exception:
                         self.log.exception('Exception happened during request')
 
         handle_request(Request())
         self.assertEqual(len(handler.mails), 1)
         mail = handler.mails[0][2]
-        self.assert_('Subject: Application Error for /index.html [GET]' in mail)
-        self.assert_('1/0' in mail)
+        self.assert_('Subject: Application Error '
+                     'for /index.html [GET]' in mail)
+        self.assert_('1 / 0' in mail)
 
     def test_custom_handling_test(self):
         class MyTestHandler(logbook.TestHandler):
@@ -417,6 +422,7 @@ Message:
                 if record.extra.get('flag') != 'testing':
                     return False
                 return logbook.TestHandler.handle(self, record)
+
         class MyLogger(logbook.Logger):
             def process_record(self, record):
                 logbook.Logger.process_record(self, record)
@@ -432,6 +438,7 @@ Message:
 
     def test_custom_handling_tester(self):
         flag = True
+
         class MyTestHandler(logbook.TestHandler):
             def should_handle(self, record):
                 return flag
@@ -494,14 +501,14 @@ Message:
                 logger.warn('This is a warning')
                 logger.error('This is also a mail')
                 with logger.catch_exceptions():
-                    1/0
+                    1 / 0
             logger.warn('And here we go straight back to stderr')
 
             self.assert_(test_handler.has_warning('This is a warning'))
             self.assert_(test_handler.has_error('This is also a mail'))
             self.assertEqual(len(mail_handler.mails), 2)
             self.assert_('This is also a mail' in mail_handler.mails[0][2])
-            self.assert_('1/0' in mail_handler.mails[1][2])
+            self.assert_('1 / 0' in mail_handler.mails[1][2])
             self.assert_('And here we go straight back to stderr'
                          in captured.getvalue())
 
@@ -697,6 +704,7 @@ class MoreTestCase(LogbookTestCase):
         from logbook.more import FingersCrossedHandler
 
         handlers = []
+
         def handler_factory(record, fch):
             handler = logbook.TestHandler()
             handlers.append(handler)
@@ -750,9 +758,9 @@ class MoreTestCase(LogbookTestCase):
 
         logger = TaggingLogger('name', ['cmd'])
         handler = TaggingHandler(dict(
-            info = logbook.default_handler,
-            cmd = second_handler,
-            both = [logbook.default_handler, second_handler],
+            info=logbook.default_handler,
+            cmd=second_handler,
+            both=[logbook.default_handler, second_handler],
         ))
         handler.bubble = False
 
@@ -888,7 +896,8 @@ class QueuesTestCase(LogbookTestCase):
         gw.exit()
 
     def test_subscriber_group(self):
-        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber, SubscriberGroup
+        from logbook.queues import (ZeroMQHandler, ZeroMQSubscriber,
+                                    SubscriberGroup)
         uri_a = 'tcp://127.0.0.1:43000'
         uri_b = 'tcp://127.0.0.1:44000'
         handler_a = ZeroMQHandler(uri_a)
@@ -915,7 +924,7 @@ class TicketingTestCase(LogbookTestCase):
                 self.log.info('An error')
                 if x < 2:
                     with self.log.catch_exceptions():
-                        1/0
+                        1 / 0
 
         self.assertEqual(handler.db.count_tickets(), 3)
         tickets = handler.db.get_tickets()
@@ -945,16 +954,18 @@ class TicketingTestCase(LogbookTestCase):
         self.assertEqual(record.thread, thread.get_ident())
         self.assertEqual(record.process, os.getpid())
         self.assertEqual(record.channel, 'testlogger')
-        self.assert_('1/0' in record.formatted_exception)
+        self.assert_('1 / 0' in record.formatted_exception)
 
 
 class HelperTestCase(unittest.TestCase):
 
     def test_jsonhelper(self):
         from logbook.helpers import to_safe_json
+
         class Bogus(object):
             def __str__(self):
                 return 'bogus'
+
         rv = to_safe_json([
             None,
             'foo',
@@ -982,7 +993,6 @@ class HelperTestCase(unittest.TestCase):
         self.assertEqual(v.hour, 11)
         v = parse_iso8601('2000-01-01T12:00:00-01:00')
         self.assertEqual(v.hour, 13)
-
 
 
 if __name__ == '__main__':
