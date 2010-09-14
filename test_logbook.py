@@ -667,9 +667,9 @@ class WarningsCompatTestCase(LogbookTestCase):
         with handler:
             with redirected_warnings():
                 from warnings import warn
-                warn(DeprecationWarning('Testing'))
+                warn(RuntimeWarning('Testing'))
         self.assertEqual(len(handler.records), 1)
-        self.assertEqual('[WARNING] DeprecationWarning: Testing',
+        self.assertEqual('[WARNING] RuntimeWarning: Testing',
                          handler.formatted_records[0])
         self.assert_('test_logbook.py' in handler.records[0].filename)
 
