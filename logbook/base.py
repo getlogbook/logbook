@@ -481,9 +481,8 @@ class LogRecord(object):
         self.heavy_initialized = True
         self.process = os.getpid()
         self.time = Flags.get_current_time()
-        if self.frame is None:
-            if Flags.get_flag('introspection', True):
-                self.frame = sys._getframe(1)
+        if self.frame is None and Flags.get_flag('introspection', True):
+            self.frame = sys._getframe(1)
 
     def pull_information(self):
         """A helper function that pulls all frame-related information into
