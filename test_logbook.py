@@ -637,6 +637,14 @@ class FlagsTestCase(LogbookTestCase):
                 self.log.warn('Testing')
                 self.assert_(h.records[0].time is d)
 
+    def test_disable_introspection(self):
+        with logbook.Flags(introspection=False):
+            with logbook.TestHandler() as h:
+                self.log.warn('Testing')
+                self.assert_(h.records[0].frame is None)
+                self.assert_(h.records[0].calling_frame is None)
+                self.assert_(h.records[0].module is None)
+
 
 class LoggerGroupTestCase(LogbookTestCase):
 
