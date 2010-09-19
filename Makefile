@@ -6,7 +6,7 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 test:
-	python setup.py test
+	@python test_logbook.py --verbose
 
 upload-docs:
 	make -C docs html SPHINXOPTS=-Aonline=1

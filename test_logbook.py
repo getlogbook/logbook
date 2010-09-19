@@ -226,10 +226,6 @@ class HandlerTestCase(LogbookTestCase):
                              'WARNING:testlogger:warning message\n')
 
     def test_monitoring_file_handler(self):
-        if os.name == 'nt':
-            # skipped on windows
-            return
-
         handler = logbook.MonitoringFileHandler(self.filename, format_string=
             '{record.level_name}:{record.channel}:{record.message}',
             delay=True)
@@ -241,6 +237,10 @@ class HandlerTestCase(LogbookTestCase):
         with open(self.filename) as f:
             self.assertEqual(f.read().strip(),
                              'WARNING:testlogger:another warning message')
+
+    # unsupported on windows due to different IO (also unneeded)
+    if os.name == 'nt':
+        del test_monitoring_file_handler
 
     def test_custom_formatter(self):
         def custom_format(record, handler):
@@ -466,6 +466,11 @@ Message:
                 logbook.warn('Awesome')
         finally:
             logbook.LogRecord.heavy_init = heavy_init
+
+        null_handler.bubble = True
+        with capture_stderr() as captured:
+            logbook.warning('Not a blockhole')
+            self.assertNotEqual(captured.getvalue(), '')
 
     def test_calling_frame(self):
         handler = logbook.TestHandler()
@@ -901,8 +906,8 @@ class QueuesTestCase(LogbookTestCase):
             from logbook.queues import ExecnetChannelHandler
             handler = ExecnetChannelHandler(channel)
             log = logbook.Logger("Execnet")
-            with handler:
-                log.info('Execnet works')
+            handler.push_application()
+            log.info('Execnet works')
 
         import execnet
         gw = execnet.makegateway()
@@ -911,6 +916,7 @@ class QueuesTestCase(LogbookTestCase):
         subscriber = ExecnetChannelSubscriber(channel)
         record = subscriber.recv()
         self.assertEqual(record.msg, 'Execnet works')
+        gw.exit()
 
     def test_subscriber_group(self):
         from logbook.queues import ZeroMQHandler, ZeroMQSubscriber, SubscriberGroup
