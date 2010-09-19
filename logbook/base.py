@@ -330,7 +330,7 @@ Inherit = _InheritedType()
 
 
 class Flags(ContextObject):
-    """Allows flags to be pushed on a flag stack.  Currently two flags
+    """Allows flags to be pushed on a flag stack.  Currently three flags
     are available:
 
     `current_time`
@@ -350,6 +350,15 @@ class Flags(ContextObject):
         ``'raise'``         raise a catchable exception
         ``'print'``         print the stacktrace to stderr (default)
         =================== ==========================================
+
+    `introspection`
+        Can be used to disable frame introspection.  This can give a
+        speedup on production systems if you are using a JIT compiled
+        Python interpreter such as pypy.  The default is `True`.
+
+        Note that the default setup of some of the handler (mail for
+        instance) includes frame dependent information which will
+        not be available when introspection is disabled.
 
     Example usage::
 
@@ -473,7 +482,8 @@ class LogRecord(object):
         self.process = os.getpid()
         self.time = Flags.get_current_time()
         if self.frame is None:
-            self.frame = sys._getframe(1)
+            if Flags.get_flag('introspection', True):
+                self.frame = sys._getframe(1)
 
     def pull_information(self):
         """A helper function that pulls all frame-related information into
