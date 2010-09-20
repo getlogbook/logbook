@@ -1,12 +1,14 @@
 Why you should use Logbook
 ==========================
 
-Although the Python standard library provides a logging system, you should use
-Logbook.  Currently logbook is an alpha version and should be considered a
-developer preview.  Because it was prototyped in a couple of days, it leverages
+Although the Python standard library provides a logging system, you should
+consider having a look at Logbook for your applications.  Currently
+logbook is an alpha version and should be considered a developer preview.
+
+Furthermore because it was prototyped in a couple of days, it leverages
 some features of Python that are not available in older Python releases.
-Logbook requires Python 2.5 or higher and does not yet support Python 3
-but support is upcoming.
+Logbook current requires Python 2.5 or higher and does not yet support
+Python 3 but support is upcoming.
 
 Core Features
 -------------
@@ -56,18 +58,36 @@ Advantages over Logging
 
 If properly configured, Logbook's logging calls will be very cheap and
 provide a great performance improvement over the standard library's
-logging module.  While we are not there yet, there will be some
-performance improvements in the upcoming versions when we implement
-certain critical code paths in C.
+logging module.  While we are not quite there yet, there will be some
+further performance improvements in the upcoming versions.
 
 It also supports the ability to inject additional information for all
-logging calls happening in a specific thread.  For example, this makes it
-possible for a web application to add request-specific information to each
-log record such as remote address, request URL, HTTP method and more.
+logging calls happening in a specific thread or for the whole application.
+For example, this makes it possible for a web application to add
+request-specific information to each log record such as remote address,
+request URL, HTTP method and more.
 
-The logging system is (besides the stack) stateless and unit testing it is
-very simple.  If context managers are used, it is impossible to corrupt
+The logging system is (besides the stack) stateless and makes unit testing
+it very simple.  If context managers are used, it is impossible to corrupt
 the stack, so each test can easily hook in custom log handlers.
+
+Cooperation
+-----------
+
+Logbook is an addon library to Python and working in an area where there
+are already a couple of contestants.  First of all there is the standard
+library's :mod:`logging` module, secondly there is also the
+:mod:`warnings` module which is used internally in Python to warn about
+invalid uses of APIs and more.  We know that there are many situations
+where you want to use either of them.  Be it that they are integrated into
+a legacy system, part of a library outside of your control or just because
+they are a better choice.
+
+Because of that, Logbook is two-way compatible with :mod:`logging` and
+one-way compatible with :mod:`warnings`.  If you want, you can let all
+logging calls redirect to the logbook handlers or the other way round,
+depending on what your desired setup looks like.  That way you can enjoy
+the best of both worlds.
 
 It should be Fun
 ----------------
