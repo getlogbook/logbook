@@ -50,6 +50,9 @@ def _strformat(value, format_spec=""):
     if is_numeric and conversion == 'n':
         # Default to 'd' for ints and 'g' for floats
         conversion = 'd' if is_integer else 'g'
+    if conversion == 'c':
+        conversion = 's'
+        value = chr(value % 256)
     rv = ('%' + prefix + precision + (conversion or 's')) % (value,)
     if sign not in '-' and value >= 0:
         # sign in (' ', '+')
@@ -155,7 +158,6 @@ class FormattableString(object):
             if name.isdigit() and self._index is not None:
                 # Manual specification
                 self._index = None
-        empty_attribute = False
         if '{' in format_spec:
             format_spec = _format_sub_re.sub(self._prepare, format_spec)
             rv = (name_parts, conversion, format_spec)

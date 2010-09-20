@@ -44,3 +44,17 @@ loggers if you want:
 No handlers could be found for logger "Other Log"
 >>> mylog.warn('but logbook is awesome')
 [2010-07-25 00:29] WARNING: My Log: but logbook is awesome
+
+Reverse Redirects
+-----------------
+
+You can also redirect logbook records to logging, so the other way round.
+For this you just have to activate the
+:class:`~logbook.compat.LoggingHandler` for the thread or application::
+
+    from logbook import Logger
+    from logbook.compat import LoggingHandler
+
+    log = Logger('My app')
+    with LoggingHandler():
+        log.warn('Going to logging')
