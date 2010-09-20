@@ -55,6 +55,8 @@ Release date to be announced.
 - Added support for Python 2.5
 - Added a :class:`logbook.queues.SubscriberGroup` to deal with multiple
   subscribers.
+- Added a :class:`logbook.compat.LoggingHandler` for redirecting logbook
+  log calls to the standard library's :mod:`logging` module.
 
 Version 0.1
 -----------

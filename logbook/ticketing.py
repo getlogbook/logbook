@@ -45,6 +45,9 @@ class Ticket(object):
         """Deletes the ticket from the database."""
         self.db.delete_ticket(self.ticket_id)
 
+    # Silence DeprecationWarning
+    __hash__ = None
+
     def __eq__(self, other):
         equal = True
         for key in self.__dict__.keys():

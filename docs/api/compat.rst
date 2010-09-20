@@ -16,6 +16,9 @@ Logging Compatibility
 .. autoclass:: RedirectLoggingHandler
    :members:
 
+.. autoclass:: LoggingHandler
+   :members:
+
 
 Warnings Compatibility
 ----------------------
