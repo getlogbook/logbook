@@ -3,10 +3,15 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.3
+-----------
+
+Release date to be announced.  Codename to be selected.
+
 Version 0.2
 -----------
 
-Release date to be announced.
+Released on September 21st.  Codename "Walls of Text"
 
 - Implemented default with statement for handlers which is an
   alias for `threadbound`.
