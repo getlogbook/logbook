@@ -301,6 +301,7 @@ class Flags(ContextObject):
         with Flags(errors='silent'):
             ...
     """
+    stack_manager = ContextStackManager()
 
     def __init__(self, **flags):
         self.__dict__.update(flags)
@@ -308,7 +309,7 @@ class Flags(ContextObject):
     @staticmethod
     def get_flag(flag, default=None):
         """Looks up the current value of a specific flag."""
-        for flags in Flags.iter_context_objects():
+        for flags in Flags.stack_manager.iter_context_objects():
             val = getattr(flags, flag, Inherit)
             if val is not Inherit:
                 return val
