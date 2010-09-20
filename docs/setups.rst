@@ -175,3 +175,44 @@ same way as the ZeroMQ equivalents but are connected through a
     queue = Queue(-1)
     handler = MultiProcessingHandler(queue)
     subscriber = MultiProcessingSubscriber(queue)
+
+
+Redirecting Single Loggers
+--------------------------
+
+If you want to have a single logger go to another logfile you have two
+options.  First of all you can attach a handler to a specific record
+dispatcher.  So just import the logger and attach something::
+
+    from yourapplication.yourmodule import logger
+    logger.handlers.append(MyHandler(...))
+
+Handlers attached directly to a record dispatcher will always take
+precedence over the stack based handlers.  The bubble flag works as
+expected, so if you have a non-bubbling handler on your logger and it
+always handles, it will never be passed to other handlers.
+
+Secondly you can write a handler that looks at the logging channel and
+only accepts loggers of a specific kind.  You can also do that with a
+filter function::
+
+    handler = MyHandler(filter=lambda r: r.channel == 'app.database')
+
+Keep in mind that the channel is intended to be a human readable string
+and is not necessarily unique.  If you really need to keep loggers apart
+on a central point you might want to introduce some more meta information
+into the extra dictionary.
+
+You can also compare the dispatcher on the log record::
+
+    from yourapplication.yourmodule import logger
+    handler = MyHandler(filter=lambda r: r.dispatcher is logger)
+
+This however has the disadvantage that the dispatcher entry on the log
+record is a weak reference and might go away unexpectedly and will not be
+there if log records are sent to a different process.
+
+Last but not least you can check if you can modify the stack around the
+execution of the code that triggers that logger  For instance if the
+logger you are interested in is used by a specific subsystem, you can
+modify the stacks before calling into the system.
