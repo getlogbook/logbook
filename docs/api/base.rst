@@ -15,6 +15,9 @@ This implements the core interface.
 .. autoclass:: LogRecord
    :members:
 
+.. autoclass:: Flags
+   :members:
+
 .. autofunction:: get_level_name
 
 .. autofunction:: lookup_level

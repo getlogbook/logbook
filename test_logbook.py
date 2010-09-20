@@ -638,6 +638,38 @@ class AttributeTestCase(LogbookTestCase):
         self.assertEqual(self.log.group, None)
 
 
+class FlagsTestCase(LogbookTestCase):
+
+    def test_error_flag(self):
+        with capture_stderr() as captured:
+            with logbook.Flags(errors='print'):
+                with logbook.Flags(errors='silent'):
+                    self.log.warn('Foo {42}', 'aha')
+            self.assertEqual(captured.getvalue(), '')
+
+            with logbook.Flags(errors='silent'):
+                with logbook.Flags(errors='print'):
+                    self.log.warn('Foo {42}', 'aha')
+            self.assertNotEqual(captured.getvalue(), '')
+
+            try:
+                with logbook.Flags(errors='raise'):
+                    self.log.warn('Foo {42}', 'aha')
+            except Exception, e:
+                self.assert_('Could not format message with provided '
+                             'arguments' in str(e))
+            else:
+                self.fail('expected exception')
+
+    def test_disable_introspection(self):
+        with logbook.Flags(introspection=False):
+            with logbook.TestHandler() as h:
+                self.log.warn('Testing')
+                self.assert_(h.records[0].frame is None)
+                self.assert_(h.records[0].calling_frame is None)
+                self.assert_(h.records[0].module is None)
+
+
 class LoggerGroupTestCase(LogbookTestCase):
 
     def test_groups(self):

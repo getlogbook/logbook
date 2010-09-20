@@ -263,6 +263,58 @@ class Processor(ContextObject):
             self.callback(record)
 
 
+class _InheritedType(object):
+    __slots__ = ()
+    def __repr__(self):
+        return 'Inherit'
+    def __reduce__(self):
+        return 'Inherit'
+Inherit = _InheritedType()
+
+
+class Flags(ContextObject):
+    """Allows flags to be pushed on a flag stack.  Currently two flags
+    are available:
+
+    `errors`
+        Can be set to override the current error behaviour.  This value is
+        used when logging calls fail.  The default behaviour is spitting
+        out the stacktrace to stderr but this can be overridden:
+
+        =================== ==========================================
+        ``'silent'``        fail silently
+        ``'raise'``         raise a catchable exception
+        ``'print'``         print the stacktrace to stderr (default)
+        =================== ==========================================
+
+    `introspection`
+        Can be used to disable frame introspection.  This can give a
+        speedup on production systems if you are using a JIT compiled
+        Python interpreter such as pypy.  The default is `True`.
+
+        Note that the default setup of some of the handler (mail for
+        instance) includes frame dependent information which will
+        not be available when introspection is disabled.
+
+    Example usage::
+
+        with Flags(errors='silent'):
+            ...
+    """
+
+    def __init__(self, **flags):
+        self.__dict__.update(flags)
+
+    @staticmethod
+    def get_flag(flag, default=None):
+        """Looks up the current value of a specific flag."""
+        for flags in Flags.iter_context_objects():
+            val = getattr(flags, flag, Inherit)
+            if val is not Inherit:
+                return val
+        return default
+
+
 def _create_log_record(cls, dict):
     """Extra function for reduce because on Python 3 unbound methods
     can no longer be pickled.
@@ -354,7 +406,7 @@ class LogRecord(object):
         self.heavy_initialized = True
         self.process = os.getpid()
         self.time = datetime.utcnow()
-        if self.frame is None:
+        if self.frame is None and Flags.get_flag('introspection', True):
             self.frame = sys._getframe(1)
 
     def pull_information(self):
