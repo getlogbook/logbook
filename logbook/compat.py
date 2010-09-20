@@ -119,18 +119,35 @@ class RedirectLoggingHandler(logging.Handler):
         logbook.dispatch_record(self.convert_record(record))
 
 
-class ReverseRedirectHandler(logbook.Handler):
+class LoggingHandler(logbook.Handler):
     """Does the opposite of the :class:`RedirectLoggingHandler`, it sends
     messages from logbook to logging.  Because of that, it's a very bad
     idea to configure both.
 
     This handler is for logbook and will pass stuff over to a logger
     from the standard library.
+
+    Example usage::
+
+        from logbook.compat import LoggingHandler, warn
+        with LoggingHandler():
+            warn('This goes to logging')
     """
 
-    def __init__(self, level=logbook.NOTSET, filter=None, bubble=False):
+    def __init__(self, logger=None, level=logbook.NOTSET, filter=None,
+                 bubble=False):
         logbook.Handler.__init__(self, level, filter, bubble)
-        self.logger = logging.getLogger()
+        if logger is None:
+            logger = logging.getLogger()
+        elif isinstance(logger, basestring):
+            logger = logging.getLogger(logger)
+        self.logger = logger
+
+    def get_logger(self, record):
+        """Returns the logger to use for this record.  This implementation
+        always return :attr:`logger`.
+        """
+        return self.logger
 
     def convert_level(self, level):
         """Converts a logbook level into a logging level."""
@@ -167,7 +184,7 @@ class ReverseRedirectHandler(logbook.Handler):
         return record
 
     def emit(self, record):
-        self.logger.handle(self.convert_record(record))
+        self.get_logger(record).handle(self.convert_record(record))
 
 
 def redirect_warnings():

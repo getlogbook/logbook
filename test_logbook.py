@@ -653,7 +653,7 @@ class LoggingCompatTestCase(LogbookTestCase):
 
     def test_redirect_logbook(self):
         import logging
-        from logbook.compat import ReverseRedirectHandler
+        from logbook.compat import LoggingHandler
         out = StringIO()
         logger = logging.getLogger()
         old_handlers = logger.handlers[:]
@@ -662,7 +662,7 @@ class LoggingCompatTestCase(LogbookTestCase):
             '%(name)s:%(levelname)s:%(message)s'))
         logger.handlers[:] = [handler]
         try:
-            with ReverseRedirectHandler():
+            with LoggingHandler():
                 self.log.warn("This goes to logging")
                 pieces = out.getvalue().strip().split(':')
                 self.assertEqual(pieces, [
