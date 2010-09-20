@@ -343,11 +343,11 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(len(handler.mails), 3)
 
             # first mail is always delivered
-            assert not suppression_test(handler.mails[0][2])
+            self.assert_(not suppression_test(handler.mails[0][2]))
 
             # the next two have a supression count
-            assert suppression_test(handler.mails[1][2])
-            assert suppression_test(handler.mails[2][2])
+            self.assert_(suppression_test(handler.mails[1][2]))
+            self.assert_(suppression_test(handler.mails[2][2]))
 
     def test_syslog_handler(self):
         to_test = [
@@ -630,7 +630,7 @@ class DefaultConfigurationTestCase(LogbookTestCase):
         with capture_stderr() as stream:
             self.log.warn('Aha!')
             captured = stream.getvalue()
-        assert 'WARNING: testlogger: Aha!' in captured
+        self.assert_('WARNING: testlogger: Aha!' in captured)
 
 
 class LoggingCompatTestCase(LogbookTestCase):
@@ -650,6 +650,28 @@ class LoggingCompatTestCase(LogbookTestCase):
                 logger.critical('This is from the old system')
             self.assert_(('WARNING: %s: This is from the old system' % name)
                          in captured.getvalue())
+
+    def test_redirect_logbook(self):
+        import logging
+        from logbook.compat import ReverseRedirectHandler
+        out = StringIO()
+        logger = logging.getLogger()
+        old_handlers = logger.handlers[:]
+        handler = logging.StreamHandler(out)
+        handler.setFormatter(logging.Formatter(
+            '%(name)s:%(levelname)s:%(message)s'))
+        logger.handlers[:] = [handler]
+        try:
+            with ReverseRedirectHandler():
+                self.log.warn("This goes to logging")
+                pieces = out.getvalue().strip().split(':')
+                self.assertEqual(pieces, [
+                    'testlogger',
+                    'WARNING',
+                    'This goes to logging'
+                ])
+        finally:
+            logger.handlers[:] = old_handlers
 
 
 class WarningsCompatTestCase(LogbookTestCase):
