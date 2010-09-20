@@ -57,6 +57,9 @@ Core Handlers
 .. autoclass:: NullHandler
    :members:
 
+.. autoclass:: WrapperHandler
+   :members:
+
 .. autofunction:: create_syshandler
 
 Mixin Classes

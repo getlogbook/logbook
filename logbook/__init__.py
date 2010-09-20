@@ -17,7 +17,8 @@ from logbook.handlers import Handler, StreamHandler, FileHandler, \
      MonitoringFileHandler, StderrHandler, RotatingFileHandler, \
      TimedRotatingFileHandler, TestHandler, MailHandler, SyslogHandler, \
      NullHandler, NTEventLogHandler, create_syshandler, StringFormatter, \
-     StringFormatterHandlerMixin, HashingHandlerMixin, LimitingHandlerMixin
+     StringFormatterHandlerMixin, HashingHandlerMixin, \
+     LimitingHandlerMixin, WrapperHandler
 
 
 # create an anonymous default logger and provide all important

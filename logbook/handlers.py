@@ -243,6 +243,32 @@ class NullHandler(Handler):
     blackhole = True
 
 
+class WrapperHandler(Handler):
+    """A class that can wrap another handler and redirect all calls to the
+    wrapped handler::
+
+        handler = WrapperHandler(other_handler)
+
+    Subclasses should override the :attr:`_direct_attrs` attribute as
+    necessary.
+    """
+
+    #: a set of direct attributes that are not forwarded to the inner
+    #: handler.  This has to be extended as necessary.
+    _direct_attrs = frozenset(['handler'])
+
+    def __init__(self, handler):
+        self.handler = handler
+
+    def __getattr__(self, name):
+        return getattr(self.handler, name)
+
+    def __setattr__(self, name, value):
+        if name in self._direct_attrs:
+            return Handler.__setattr__(self, name, value)
+        setattr(self.handler, name, value)
+
+
 class StringFormatter(object):
     """Many handlers format the log entries to text format.  This is done
     by a callable that is passed a log record and returns an unicode

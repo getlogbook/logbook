@@ -12,7 +12,7 @@ from threading import Thread
 from Queue import Empty, Queue as ThreadQueue
 from itertools import cycle
 from logbook.base import NOTSET, LogRecord, dispatch_record
-from logbook.handlers import Handler
+from logbook.handlers import Handler, WrapperHandler
 from logbook.helpers import json
 
 
@@ -363,7 +363,7 @@ class TWHThreadController(object):
             self.wrapper_handler.handler.emit(record)
 
 
-class ThreadedWrapperHandler(Handler):
+class ThreadedWrapperHandler(WrapperHandler):
     """This handled uses a single background thread to dispatch log records
     to a specific other handler using an internal queue.  The idea is that if
     you are using a handler that requires some time to hand off the log records
@@ -382,18 +382,10 @@ class ThreadedWrapperHandler(Handler):
     _direct_attrs = frozenset(['handler', 'queue', 'controller'])
 
     def __init__(self, handler):
-        self.handler = handler
+        WrapperHandler.__init__(self, handler)
         self.queue = ThreadQueue(-1)
         self.controller = TWHThreadController(self)
         self.controller.start()
-
-    def __getattr__(self, name):
-        return getattr(self.handler, name)
-
-    def __setattr__(self, name, value):
-        if name in self._direct_attrs:
-            return Handler.__setattr__(self, name, value)
-        setattr(self.handler, name, value)
 
     def close(self):
         self.controller.stop()
