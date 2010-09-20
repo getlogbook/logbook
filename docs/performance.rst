@@ -50,3 +50,24 @@ first logging call after a push or pop will have a higher impact on the
 performance than following calls.  That means you should not attempt to
 push or pop from a stack for each logging call.  Make sure to do the
 pushing and popping only as needed.  (start/end of application/request)
+
+Disable Introspection
+---------------------
+
+By default Logbook will try to pull in the interpreter frame of the caller
+that invoked a logging function.  While this is a fast operation that
+usually does not slow down the execution of your script it also means that
+for certain Python implementations it invalidates assumptions a JIT
+compiler might have made of the function body.  Currently this for example
+is the case for applications running on pypy.  If you would be using a
+stock logbook setup on pypy, the JIT wouldn't be able to work properly.
+
+In case you don't need the frame based information (name of module,
+calling function, filename, line number) you can disable the introspection
+feature::
+
+    from logbook import Flags
+
+    with Flags(introspection=False):
+        # all logging calls here will not use introspection
+        ...
