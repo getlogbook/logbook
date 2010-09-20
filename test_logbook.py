@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-from __future__ import with_statement
+from __future__ import division, with_statement
 
 import logbook
 
 import os
 import re
-import new
 import sys
 import time
 import thread
@@ -19,9 +18,12 @@ from datetime import datetime, timedelta
 from random import randrange
 from itertools import izip
 from contextlib import contextmanager
+from functools import wraps
 from cStringIO import StringIO
 from logbook.helpers import json
 
+
+_missing = object()
 
 @contextmanager
 def capture_stderr():
@@ -32,23 +34,48 @@ def capture_stderr():
     finally:
         sys.stderr = old
 
-@contextmanager
-def unimport_module(name):
-    old = sys.modules[name]
-    sys.modules[name] = new.module('jinja2')
-    try:
-        yield
-    finally:
-        sys.modules[name] = old
+
+def require(name):
+    def decorate(f):
+        if name in _skipped_modules:
+            return None
+        try:
+            __import__(name)
+        except ImportError:
+            _skipped_modules.append(name)
+            return None
+        return f
+    return decorate
+_skipped_modules = []
+
+
+def missing(name):
+    def decorate(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            old = sys.modules.get(name, _missing)
+            sys.modules[name] = None
+            try:
+                f(*args, **kwargs)
+            finally:
+                if old is _missing:
+                    del sys.modules[name]
+                else:
+                    sys.modules[name] = old
+        return wrapper
+    return decorate
 
 
 def make_fake_mail_handler(**kwargs):
     class FakeMailHandler(logbook.MailHandler):
         mails = []
+
         def get_connection(self):
             return self
+
         def close_connection(self, con):
             pass
+
         def sendmail(self, fromaddr, recipients, mail):
             self.mails.append((fromaddr, recipients, mail))
 
@@ -91,6 +118,7 @@ class BasicAPITestCase(LogbookTestCase):
 
     def test_custom_logger(self):
         client_ip = '127.0.0.1'
+
         class CustomLogger(logbook.Logger):
             def process_record(self, record):
                 record.extra['ip'] = client_ip
@@ -152,18 +180,18 @@ class BasicAPITestCase(LogbookTestCase):
                 pass
             self.assertFalse(handler.has_error())
             with logger.catch_exceptions():
-                1/0
+                1 / 0
             with logger.catch_exceptions('Awesome'):
-                1/0
+                1 / 0
             self.assert_(handler.has_error('Uncaught exception occurred'))
             self.assert_(handler.has_error('Awesome'))
         self.assert_(handler.records[0].exc_info is not None)
-        self.assert_('1/0' in handler.records[0].formatted_exception)
+        self.assert_('1 / 0' in handler.records[0].formatted_exception)
 
     def test_exporting(self):
         with logbook.TestHandler() as handler:
             with self.log.catch_exceptions():
-                1/0
+                1 / 0
             record = handler.records[0]
 
         exported = record.to_dict()
@@ -177,7 +205,7 @@ class BasicAPITestCase(LogbookTestCase):
     def test_pickle(self):
         with logbook.TestHandler() as handler:
             with self.log.catch_exceptions():
-                1/0
+                1 / 0
             record = handler.records[0]
         record.pull_information()
         record.close()
@@ -203,9 +231,9 @@ class HandlerTestCase(LogbookTestCase):
         LogbookTestCase.tearDown(self)
 
     def test_file_handler(self):
-        handler = logbook.FileHandler(self.filename, format_string=
-            '{record.level_name}:{record.channel}:{record.message}',
-            )
+        handler = logbook.FileHandler(self.filename,
+            format_string='{record.level_name}:{record.channel}:'
+            '{record.message}',)
         with handler.threadbound():
             self.log.warn('warning message')
         handler.close()
@@ -214,9 +242,9 @@ class HandlerTestCase(LogbookTestCase):
                              'WARNING:testlogger:warning message\n')
 
     def test_file_handler_delay(self):
-        handler = logbook.FileHandler(self.filename, format_string=
-            '{record.level_name}:{record.channel}:{record.message}',
-            delay=True)
+        handler = logbook.FileHandler(self.filename,
+            format_string='{record.level_name}:{record.channel}:'
+            '{record.message}', delay=True)
         self.assertFalse(os.path.isfile(self.filename))
         with handler.threadbound():
             self.log.warn('warning message')
@@ -226,9 +254,9 @@ class HandlerTestCase(LogbookTestCase):
                              'WARNING:testlogger:warning message\n')
 
     def test_monitoring_file_handler(self):
-        handler = logbook.MonitoringFileHandler(self.filename, format_string=
-            '{record.level_name}:{record.channel}:{record.message}',
-            delay=True)
+        handler = logbook.MonitoringFileHandler(self.filename,
+            format_string='{record.level_name}:{record.channel}:'
+            '{record.message}', delay=True)
         with handler.threadbound():
             self.log.warn('warning message')
             os.rename(self.filename, self.filename + '.old')
@@ -312,7 +340,7 @@ class HandlerTestCase(LogbookTestCase):
             with handler:
                 self.log.warn('This is not mailed')
                 try:
-                    1/0
+                    1 / 0
                 except Exception:
                     self.log.exception('This is unfortunate')
 
@@ -326,7 +354,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assert_(re.search('Function:\s+test_mail_handler', mail))
             self.assert_('Message:\r\n\r\nThis is unfortunate' in mail)
             self.assert_('\r\n\r\nTraceback' in mail)
-            self.assert_('1/0' in mail)
+            self.assert_('1 / 0' in mail)
             self.assert_('This is not mailed' in fallback.getvalue())
 
     def test_mail_handler_record_limits(self):
@@ -401,15 +429,16 @@ Message:
             with logbook.Processor(inject_extra):
                 with handler:
                     try:
-                        1/0
+                        1 / 0
                     except Exception:
                         self.log.exception('Exception happened during request')
 
         handle_request(Request())
         self.assertEqual(len(handler.mails), 1)
         mail = handler.mails[0][2]
-        self.assert_('Subject: Application Error for /index.html [GET]' in mail)
-        self.assert_('1/0' in mail)
+        self.assert_('Subject: Application Error '
+                     'for /index.html [GET]' in mail)
+        self.assert_('1 / 0' in mail)
 
     def test_custom_handling_test(self):
         class MyTestHandler(logbook.TestHandler):
@@ -417,6 +446,7 @@ Message:
                 if record.extra.get('flag') != 'testing':
                     return False
                 return logbook.TestHandler.handle(self, record)
+
         class MyLogger(logbook.Logger):
             def process_record(self, record):
                 logbook.Logger.process_record(self, record)
@@ -432,6 +462,7 @@ Message:
 
     def test_custom_handling_tester(self):
         flag = True
+
         class MyTestHandler(logbook.TestHandler):
             def should_handle(self, record):
                 return flag
@@ -494,14 +525,14 @@ Message:
                 logger.warn('This is a warning')
                 logger.error('This is also a mail')
                 with logger.catch_exceptions():
-                    1/0
+                    1 / 0
             logger.warn('And here we go straight back to stderr')
 
             self.assert_(test_handler.has_warning('This is a warning'))
             self.assert_(test_handler.has_error('This is also a mail'))
             self.assertEqual(len(mail_handler.mails), 2)
             self.assert_('This is also a mail' in mail_handler.mails[0][2])
-            self.assert_('1/0' in mail_handler.mails[1][2])
+            self.assert_('1 / 0' in mail_handler.mails[1][2])
             self.assert_('And here we go straight back to stderr'
                          in captured.getvalue())
 
@@ -682,9 +713,9 @@ class WarningsCompatTestCase(LogbookTestCase):
         with handler:
             with redirected_warnings():
                 from warnings import warn
-                warn(DeprecationWarning('Testing'))
+                warn(RuntimeWarning('Testing'))
         self.assertEqual(len(handler.records), 1)
-        self.assertEqual('[WARNING] DeprecationWarning: Testing',
+        self.assertEqual('[WARNING] RuntimeWarning: Testing',
                          handler.formatted_records[0])
         self.assert_('test_logbook.py' in handler.records[0].filename)
 
@@ -719,6 +750,7 @@ class MoreTestCase(LogbookTestCase):
         from logbook.more import FingersCrossedHandler
 
         handlers = []
+
         def handler_factory(record, fch):
             handler = logbook.TestHandler()
             handlers.append(handler)
@@ -772,9 +804,9 @@ class MoreTestCase(LogbookTestCase):
 
         logger = TaggingLogger('name', ['cmd'])
         handler = TaggingHandler(dict(
-            info = logbook.default_handler,
-            cmd = second_handler,
-            both = [logbook.default_handler, second_handler],
+            info=logbook.default_handler,
+            cmd=second_handler,
+            both=[logbook.default_handler, second_handler],
         ))
         handler.bubble = False
 
@@ -796,28 +828,26 @@ class MoreTestCase(LogbookTestCase):
         self.assert_('all message' in stringio)
         self.assert_('cmd message' in stringio)
 
+    @require('jinja2')
     def test_jinja_formatter(self):
         from logbook.more import JinjaFormatter
-        try:
-            import jinja2
-        except ImportError:
-            # at least check the RuntimeError is raised
-            self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
-        else:
-            # also check RuntimeError is raised
-            with unimport_module('jinja2'):
-                self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
-            fmter = JinjaFormatter('{{ record.channel }}/'
-                                   '{{ record.level_name }}')
-            handler = logbook.TestHandler()
-            handler.formatter = fmter
-            with handler:
-                self.log.info('info')
-            self.assert_('testlogger/INFO' in handler.formatted_records)
+        fmter = JinjaFormatter('{{ record.channel }}/{{ record.level_name }}')
+        handler = logbook.TestHandler()
+        handler.formatter = fmter
+        with handler:
+            self.log.info('info')
+        self.assert_('testlogger/INFO' in handler.formatted_records)
+
+    @missing('jinja2')
+    def test_missing_jinja2(self):
+        from logbook.more import JinjaFormatter
+        # check the RuntimeError is raised
+        self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
 
 
 class QueuesTestCase(LogbookTestCase):
 
+    @require('zmq')
     def test_zeromq_handler(self):
         from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
         tests = [
@@ -835,6 +865,7 @@ class QueuesTestCase(LogbookTestCase):
                 self.assertEqual(record.message, test)
                 self.assertEqual(record.channel, self.log.name)
 
+    @require('zmq')
     def test_zeromq_background_thread(self):
         from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
         uri = 'tcp://127.0.0.1:42001'
@@ -855,6 +886,14 @@ class QueuesTestCase(LogbookTestCase):
 
         self.assert_(test_handler.has_warning('This is a warning'))
         self.assert_(test_handler.has_error('This is an error'))
+
+    @missing('zmq')
+    def test_missing_zeromq(self):
+        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
+        self.assertRaises(RuntimeError, ZeroMQHandler,
+                          'tcp://127.0.0.1:42000')
+        self.assertRaises(RuntimeError, ZeroMQSubscriber,
+                          'tcp://127.0.0.1:42000')
 
     def test_multi_processing_handler(self):
         from multiprocessing import Process, Queue
@@ -891,6 +930,7 @@ class QueuesTestCase(LogbookTestCase):
         self.assert_(test_handler.has_warning('Just testing'))
         self.assert_(test_handler.has_error('More testing'))
 
+    @require('execnet')
     def test_execnet_handler(self):
         def run_on_remote(channel):
             import logbook
@@ -910,24 +950,37 @@ class QueuesTestCase(LogbookTestCase):
         gw.exit()
 
     def test_subscriber_group(self):
-        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber, SubscriberGroup
-        uri_a = 'tcp://127.0.0.1:43000'
-        uri_b = 'tcp://127.0.0.1:44000'
-        handler_a = ZeroMQHandler(uri_a)
-        handler_b = ZeroMQHandler(uri_b)
-        subscribers = SubscriberGroup([
-            ZeroMQSubscriber(uri_a),
-            ZeroMQSubscriber(uri_b)
+        from multiprocessing import Process, Queue
+        from logbook.queues import MultiProcessingHandler, \
+                                   MultiProcessingSubscriber, SubscriberGroup
+        a_queue = Queue(-1)
+        b_queue = Queue(-1)
+        test_handler = logbook.TestHandler()
+        subscriber = SubscriberGroup([
+            MultiProcessingSubscriber(a_queue),
+            MultiProcessingSubscriber(b_queue)
         ])
-        for handler, test in [(handler_a, 'foo'), (handler_b, 'bar')]:
-            with handler:
-                self.log.warn(test)
-                record = subscribers.recv()
-                self.assertEqual(record.message, test)
+
+        def make_send_back(message, queue):
+            def send_back():
+                with MultiProcessingHandler(queue):
+                    logbook.warn(message)
+            return send_back
+
+        for _ in range(10):
+            p1 = Process(target=make_send_back('foo', a_queue))
+            p2 = Process(target=make_send_back('bar', b_queue))
+            p1.start()
+            p2.start()
+            p1.join()
+            p2.join()
+            messages = [subscriber.recv().message for i in 1, 2]
+            self.assertEqual(sorted(messages), ['bar', 'foo'])
 
 
 class TicketingTestCase(LogbookTestCase):
 
+    @require('sqlalchemy')
     def test_basic_ticketing(self):
         from logbook.ticketing import TicketingHandler
         handler = TicketingHandler('sqlite:///')
@@ -937,7 +990,7 @@ class TicketingTestCase(LogbookTestCase):
                 self.log.info('An error')
                 if x < 2:
                     with self.log.catch_exceptions():
-                        1/0
+                        1 / 0
 
         self.assertEqual(handler.db.count_tickets(), 3)
         tickets = handler.db.get_tickets()
@@ -967,16 +1020,18 @@ class TicketingTestCase(LogbookTestCase):
         self.assertEqual(record.thread, thread.get_ident())
         self.assertEqual(record.process, os.getpid())
         self.assertEqual(record.channel, 'testlogger')
-        self.assert_('1/0' in record.formatted_exception)
+        self.assert_('1 / 0' in record.formatted_exception)
 
 
 class HelperTestCase(unittest.TestCase):
 
     def test_jsonhelper(self):
         from logbook.helpers import to_safe_json
+
         class Bogus(object):
             def __str__(self):
                 return 'bogus'
+
         rv = to_safe_json([
             None,
             'foo',
@@ -1006,6 +1061,10 @@ class HelperTestCase(unittest.TestCase):
         self.assertEqual(v.hour, 13)
 
 
-
 if __name__ == '__main__':
-    unittest.main()
+    try:
+        unittest.main()
+    finally:
+        for modname in _skipped_modules:
+            msg = '*** Failed to import %s, tests skipped.\n' % modname
+            sys.stderr.write(msg)
