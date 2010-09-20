@@ -16,17 +16,15 @@ body {
     font-family: {{ theme_bodyfont }};
     margin: 0;
     padding: 0;
-    background: white;
+    background: #d5dde2;
 }
 
 .book {
-    padding: 15px 20px 25px 85px;
-    border-right: 1px solid #ccc;
-    outline-right: 1px solid #aaa;
+    padding: 15px 25px 25px 85px;
     margin: 0 auto;
-    width: 700px;
+    width: 695px;
     text-align: left;
-    background: url("background.png") repeat-y;
+    background: white url("background.png") repeat-y;
 }
 
 a {
