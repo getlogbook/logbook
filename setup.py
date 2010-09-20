@@ -98,7 +98,7 @@ def run_setup(with_binary):
         features['speedups'] = speedups
     setup(
         name='Logbook',
-        version='0.2',
+        version='0.3',
         license='BSD',
         url='http://logbook.pocoo.org/',
         author='Armin Ronacher, Georg Brandl',
@@ -110,7 +110,6 @@ def run_setup(with_binary):
         platforms='any',
         tests_require='''
             SQLAlchemy>=0.6
-
         ''',
         test_suite='test_logbook',
         cmdclass=cmdclass,
