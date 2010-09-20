@@ -20,7 +20,7 @@ from itertools import chain
 from weakref import ref as weakref
 from datetime import datetime
 
-from logbook.helpers import to_safe_json, parse_iso8601, F
+from logbook.helpers import to_safe_json, parse_iso8601, cached_property, F
 
 
 # make sure to sync these up with _speedups.pyx
@@ -43,25 +43,6 @@ _level_names = {
 }
 _reverse_level_names = dict((v, k) for (k, v) in _level_names.iteritems())
 _missing = object()
-
-
-class cached_property(object):
-    """A property that is lazily calculated and then cached."""
-
-    def __init__(self, func, name=None, doc=None):
-        self.__name__ = name or func.__name__
-        self.__module__ = func.__module__
-        self.__doc__ = doc or func.__doc__
-        self.func = func
-
-    def __get__(self, obj, type=None):
-        if obj is None:
-            return self
-        value = obj.__dict__.get(self.__name__, _missing)
-        if value is _missing:
-            value = self.func(obj)
-            obj.__dict__[self.__name__] = value
-        return value
 
 
 def level_name_property():

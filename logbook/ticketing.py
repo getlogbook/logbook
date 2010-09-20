@@ -10,10 +10,9 @@
     :license: BSD, see LICENSE for more details.
 """
 from time import time
-from logbook.base import NOTSET, cached_property, level_name_property, \
-     LogRecord
+from logbook.base import NOTSET, level_name_property, LogRecord
 from logbook.handlers import Handler, HashingHandlerMixin
-from logbook.helpers import json
+from logbook.helpers import json, cached_property
 
 
 class Ticket(object):
