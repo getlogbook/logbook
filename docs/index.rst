@@ -24,6 +24,7 @@ Documentation
    features
    quickstart
    setups
+   performance
    libraries
    unittesting
    ticketing
