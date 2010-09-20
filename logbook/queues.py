@@ -180,7 +180,11 @@ class ZeroMQSubscriber(SubscriberBase):
         self.socket.setsockopt(zmq.SUBSCRIBE, '')
 
     def __del__(self):
-        self.close()
+        try:
+            self.close()
+        except AttributeError:
+            # subscriber partially created
+            pass
 
     def close(self):
         """Closes the zero mq socket."""

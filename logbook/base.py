@@ -273,7 +273,7 @@ Inherit = _InheritedType()
 
 
 class Flags(ContextObject):
-    """Allows flags to be pushed on a flag stack.  Currently two flags
+    """Allows flags to be pushed on a flag stack.  Currently three flags
     are available:
 
     `current_time`
@@ -293,6 +293,15 @@ class Flags(ContextObject):
         ``'raise'``         raise a catchable exception
         ``'print'``         print the stacktrace to stderr (default)
         =================== ==========================================
+
+    `introspection`
+        Can be used to disable frame introspection.  This can give a
+        speedup on production systems if you are using a JIT compiled
+        Python interpreter such as pypy.  The default is `True`.
+
+        Note that the default setup of some of the handler (mail for
+        instance) includes frame dependent information which will
+        not be available when introspection is disabled.
 
     Example usage::
 
@@ -315,6 +324,10 @@ class Flags(ContextObject):
 
     @staticmethod
     def get_current_time():
+        """Returns the current time from either the flags or if nothing
+        pushed the current time to the stack, the
+        :meth:`datetime.datetime.utcnow` method is called.
+        """
         rv = Flags.get_flag('current_time')
         if rv is None:
             rv = datetime.utcnow()
@@ -412,7 +425,7 @@ class LogRecord(object):
         self.heavy_initialized = True
         self.process = os.getpid()
         self.time = Flags.get_current_time()
-        if self.frame is None:
+        if self.frame is None and Flags.get_flag('introspection', True):
             self.frame = sys._getframe(1)
 
     def pull_information(self):
@@ -766,11 +779,25 @@ class RecordDispatcher(object):
         """Creates a record from some given arguments and heads it
         over to the handling system.
         """
+        # The channel information can be useful for some use cases which is
+        # why we keep it on there.  The log record however internally will
+        # only store a weak reference to the channel, so it might disappear
+        # from one instruction to the other.  It will also disappear when
+        # a log record is transmitted to another process etc.
         channel = None
         if not self.suppress_dispatcher:
             channel = self
+
         record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
                            extra, None, channel)
+
+        # after handling the log record is closed which will remove some
+        # referenes that would require a GC run on cpython.  This includes
+        # the current stack frame, exception information.  However there are
+        # some use cases in keeping the records open for a little longer.
+        # For example the test handler keeps log records open until the
+        # test handler is closed to allow assertions based on stack frames
+        # and exception information.
         try:
             self.handle(record)
         finally:
@@ -798,12 +825,21 @@ class RecordDispatcher(object):
         # handlers are handled one after another.  The latter also
         # include global handlers.
         for handler in chain(self.handlers, Handler.stack_manager.iter_context_objects()):
-            # skip records that this handler is not interested in
+            # skip records that this handler is not interested in based
+            # on the record and handler level or in case this method was
+            # overridden on some custom logic.
             if not handler.should_handle(record):
                 continue
 
             # if this is a blackhole handler, don't even try to
-            # do further processing, stop right away
+            # do further processing, stop right away.  Technically
+            # speaking this is not 100% correct because if the handler
+            # is bubbling we shouldn't apply this logic, but then we
+            # won't enter this branch anyways.  The result is that a
+            # bubbling blackhole handler will never have this shortcut
+            # applied and do the heavy init at one point.  This is fine
+            # however because a bubbling blackhole handler is not very
+            # useful in general.
             if handler.blackhole:
                 break
 
@@ -816,7 +852,11 @@ class RecordDispatcher(object):
                 self.process_record(record)
                 record_initialized = True
 
-            # a filter can still veto the handling of the record.
+            # a filter can still veto the handling of the record.  This
+            # however is already operating on an initialized and processed
+            # record.  The impact is that filters are slower than the
+            # handler's should_handle function in case there is no default
+            # handler that would handle the record (delayed init).
             if handler.filter is not None \
                and not handler.filter(record, handler):
                 continue

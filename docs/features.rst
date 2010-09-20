@@ -69,6 +69,16 @@ The logging system is (besides the stack) stateless and unit testing it is
 very simple.  If context managers are used, it is impossible to corrupt
 the stack, so each test can easily hook in custom log handlers.
 
+It should be Fun
+----------------
+
+Logging should be fun.  A good log setup makes debugging easier when
+things go rough.  For good results you really have to start using logging
+before things actually break.  Logbook comes with a couple of unusual log
+handlers to bring the fun back to logging.  You can log to your personal
+twitter feed, you can log to mobile devices, your desktop notification
+system and more.
+
 Logbook in a Nutshell
 ---------------------
 

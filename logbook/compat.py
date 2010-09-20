@@ -11,10 +11,15 @@
 """
 
 import sys
+import time
 import logging
 import warnings
 import logbook
+from datetime import date, datetime
 from contextlib import contextmanager
+
+
+_epoch_ord = date(1970, 1, 1).toordinal()
 
 
 def redirect_logging():
@@ -93,17 +98,93 @@ class RedirectLoggingHandler(logging.Handler):
             else:
                 return frm
 
+    def convert_time(self, timestamp):
+        """Converts the UNIX timestamp of the old record into a
+        datetime object as used by logbook.
+        """
+        return datetime.utcfromtimestamp(timestamp)
+
     def convert_record(self, old_record):
         """Converts an old logging record into a logbook log record."""
-        return logbook.LogRecord(old_record.name,
-                                 self.convert_level(old_record.levelno),
-                                 old_record.getMessage(),
-                                 None, None, old_record.exc_info,
-                                 self.find_extra(old_record),
-                                 self.find_caller(old_record))
+        record = logbook.LogRecord(old_record.name,
+                                   self.convert_level(old_record.levelno),
+                                   old_record.getMessage(),
+                                   None, None, old_record.exc_info,
+                                   self.find_extra(old_record),
+                                   self.find_caller(old_record))
+        record.time = self.convert_time(old_record.created)
+        return record
 
     def emit(self, record):
         logbook.dispatch_record(self.convert_record(record))
+
+
+class LoggingHandler(logbook.Handler):
+    """Does the opposite of the :class:`RedirectLoggingHandler`, it sends
+    messages from logbook to logging.  Because of that, it's a very bad
+    idea to configure both.
+
+    This handler is for logbook and will pass stuff over to a logger
+    from the standard library.
+
+    Example usage::
+
+        from logbook.compat import LoggingHandler, warn
+        with LoggingHandler():
+            warn('This goes to logging')
+    """
+
+    def __init__(self, logger=None, level=logbook.NOTSET, filter=None,
+                 bubble=False):
+        logbook.Handler.__init__(self, level, filter, bubble)
+        if logger is None:
+            logger = logging.getLogger()
+        elif isinstance(logger, basestring):
+            logger = logging.getLogger(logger)
+        self.logger = logger
+
+    def get_logger(self, record):
+        """Returns the logger to use for this record.  This implementation
+        always return :attr:`logger`.
+        """
+        return self.logger
+
+    def convert_level(self, level):
+        """Converts a logbook level into a logging level."""
+        if level >= logbook.CRITICAL:
+            return logging.CRITICAL
+        if level >= logbook.ERROR:
+            return logging.ERROR
+        if level >= logbook.WARNING:
+            return logging.WARNING
+        if level >= logbook.INFO:
+            return logging.INFO
+        return logging.DEBUG
+
+    def convert_time(self, dt):
+        """Converts a datetime object into a timestamp."""
+        year, month, day, hour, minute, second = dt.utctimetuple()[:6]
+        days = date(year, month, 1).toordinal() - _epoch_ord + day - 1
+        hours = days * 24 + hour
+        minutes = hours * 60 + minute
+        seconds = minutes * 60 + second
+        return seconds
+
+    def convert_record(self, old_record):
+        """Converts a record from logbook to logging."""
+        record = logging.LogRecord(old_record.channel,
+                                   self.convert_level(old_record.level),
+                                   old_record.filename,
+                                   old_record.lineno,
+                                   old_record.message,
+                                   (), old_record.exc_info, old_record.func_name)
+        for key, value in old_record.extra.iteritems():
+            record.__dict__.setdefault(key, value)
+        record.created = self.convert_time(old_record.time)
+        return record
+
+    def emit(self, record):
+        self.get_logger(record).handle(self.convert_record(record))
 
 
 def redirect_warnings():

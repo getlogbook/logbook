@@ -230,6 +230,11 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
     """A handler that logs to twitter.  Requires that you sign up an
     application on twitter and request xauth support.  Furthermore the
     oauth2 library has to be installed.
+
+    If you don't want to register your own application and request xauth
+    credentials, there are a couple of leaked consumer key and secret
+    pairs from application explicitly whitelisted at Twitter
+    (`leaked secrets <http://bit.ly/leaked-secrets>`_).
     """
     default_format_string = TWITTER_FORMAT_STRING
     formatter_class = TwitterFormatter
