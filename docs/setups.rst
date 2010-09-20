@@ -122,7 +122,8 @@ explained using an example::
         # while we're at it we can push a processor on its own stack to
         # record additional information.  Because processors and handlers
         # go to different stacks it does not matter if the processor is
-        # added here at the bottom or at the very beginning.
+        # added here at the bottom or at the very beginning.  Same would
+        # be true for flags.
         Processor(inject_information)
     ])
 

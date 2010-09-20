@@ -17,6 +17,11 @@ This implements the core interface.
 
 .. autoclass:: Flags
    :members:
+   :inherited-members:
+
+.. autoclass:: Processor
+   :members:
+   :inherited-members:
 
 .. autofunction:: get_level_name
 

@@ -7,7 +7,6 @@ provided by Logbook.
 .. toctree::
 
    base
-   processor
    handlers
    utilities
    queues
