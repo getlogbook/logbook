@@ -23,7 +23,9 @@ from cStringIO import StringIO
 from logbook.helpers import json
 
 
+_skipped_modules = []
 _missing = object()
+
 
 @contextmanager
 def capture_stderr():
@@ -46,7 +48,6 @@ def require(name):
             return None
         return f
     return decorate
-_skipped_modules = []
 
 
 def missing(name):
