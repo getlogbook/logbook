@@ -1,9 +1,11 @@
-Why you should use Logbook
-==========================
+What does it do?
+================
 
 Although the Python standard library provides a logging system, you should
 consider having a look at Logbook for your applications.  Currently
 logbook is an alpha version and should be considered a developer preview.
+
+But give it a try, we think it will work out for you and be fun to use :)
 
 Furthermore because it was prototyped in a couple of days, it leverages
 some features of Python that are not available in older Python releases.
@@ -52,14 +54,16 @@ Core Features
     levels are not supported, instead we strongly recommend using logging
     subclasses or log processors that inject tagged information into the log
     record for this purpose.
+-   :pep:`8` naming and code style.
 
 Advantages over Logging
 -----------------------
 
 If properly configured, Logbook's logging calls will be very cheap and
-provide a great performance improvement over the standard library's
-logging module.  While we are not quite there yet, there will be some
-further performance improvements in the upcoming versions.
+provide a great performance improvement over an equivalent configuration
+of the standard library's logging module.  While for some parts we are not
+quite at performance we desire, there will be some further performance
+improvements in the upcoming versions.
 
 It also supports the ability to inject additional information for all
 logging calls happening in a specific thread or for the whole application.

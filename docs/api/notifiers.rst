@@ -1,3 +1,5 @@
+.. _notifiers:
+
 The Notifiers Module
 ====================
 

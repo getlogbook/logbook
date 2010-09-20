@@ -51,3 +51,22 @@ Best Practices
     handler for a call to a noisy function is fine, changing the global
     stack in a function and not reverting it at the end of the function is
     bad.
+
+Debug Loggers
+-------------
+
+Sometimes you want to have loggers in place that are only really good for
+debugging.  For example you might have a library that does a lot of
+server/client communication and for debugging purposes it would be nice if
+you can enable/disable that log output as necessary.
+
+In that case it makes sense to create a logger and disable that by default
+and give people a way to get hold of the logger to flip the flag.
+Additionally you can override the :attr:`~logbook.Logger.disabled` flag to
+automatically set it based on another value::
+
+    class MyLogger(Logger):
+        @property
+        def disabled(self):
+            return not database_connection.debug
+    database_connection.logger = MyLogger('mylibrary.dbconnection')
