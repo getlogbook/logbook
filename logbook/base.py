@@ -330,15 +330,8 @@ Inherit = _InheritedType()
 
 
 class Flags(ContextObject):
-    """Allows flags to be pushed on a flag stack.  Currently three flags
+    """Allows flags to be pushed on a flag stack.  Currently two flags
     are available:
-
-    `current_time`
-        Used instead of :meth:`datetime.datetime.utcnow` when the current
-        time is needed as datetime object.  This is for example useful if
-        you know the logging code finishes in under a second and this is
-        good enough for you as resolution.  In that case it will save a
-        couple of syscalls which are usually quite slow.
 
     `errors`
         Can be set to override the current error behaviour.  This value is
@@ -377,17 +370,6 @@ class Flags(ContextObject):
             if val is not Inherit:
                 return val
         return default
-
-    @staticmethod
-    def get_current_time():
-        """Returns the current time from either the flags or if nothing
-        pushed the current time to the stack, the
-        :meth:`datetime.datetime.utcnow` method is called.
-        """
-        rv = Flags.get_flag('current_time')
-        if rv is None:
-            rv = datetime.utcnow()
-        return rv
 
 
 def _create_log_record(cls, dict):
@@ -480,7 +462,7 @@ class LogRecord(object):
         assert not self.late, 'heavy init is no longer possible'
         self.heavy_initialized = True
         self.process = os.getpid()
-        self.time = Flags.get_current_time()
+        self.time = datetime.utcnow()
         if self.frame is None and Flags.get_flag('introspection', True):
             self.frame = sys._getframe(1)
 

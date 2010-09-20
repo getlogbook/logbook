@@ -661,13 +661,6 @@ class FlagsTestCase(LogbookTestCase):
             else:
                 self.fail('expected exception')
 
-    def test_datetime_flag(self):
-        d = datetime.utcnow()
-        with logbook.Flags(current_time=d):
-            with logbook.TestHandler() as h:
-                self.log.warn('Testing')
-                self.assert_(h.records[0].time is d)
-
     def test_disable_introspection(self):
         with logbook.Flags(introspection=False):
             with logbook.TestHandler() as h:
