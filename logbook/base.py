@@ -8,15 +8,14 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-from __future__ import with_statement
 
 import os
 import sys
 import thread
 import threading
 import traceback
-from contextlib import contextmanager
-from itertools import chain
+from thread import get_ident as current_thread
+from itertools import count, chain
 from weakref import ref as weakref
 from datetime import datetime
 
@@ -86,8 +85,17 @@ def get_level_name(level):
 class ExtraDict(dict):
     """A dictionary which returns ``u''`` on missing keys."""
 
+    def __getitem__(self, key):
+        try:
+            return dict.__getitem__(self, key)
+        except KeyError:
+            return u''
+
     def __missing__(self, key):
         return u''
+
+    def copy(self):
+        return self.__class__(self)
 
     def __repr__(self):
         return '%s(%s)' % (
@@ -136,27 +144,27 @@ class StackedObject(object):
         """Pops the stacked object from the application stack."""
         raise NotImplementedError()
 
-    @contextmanager
-    def threadbound(self):
-        """Can be used in combination with the `with` statement to
-        execute code while the object is bound to the thread.
-        """
-        self.push_thread()
-        try:
-            yield self
-        finally:
-            self.pop_thread()
+    # @contextmanager
+    # def threadbound(self):
+        # """Can be used in combination with the `with` statement to
+        # execute code while the object is bound to the thread.
+        # """
+        # self.push_thread()
+        # try:
+            # yield self
+        # finally:
+            # self.pop_thread()
 
-    @contextmanager
-    def applicationbound(self):
-        """Can be used in combination with the `with` statement to
-        execute code while the object is bound to the application.
-        """
-        self.push_application()
-        try:
-            yield self
-        finally:
-            self.pop_application()
+    # @contextmanager
+    # def applicationbound(self):
+        # """Can be used in combination with the `with` statement to
+        # execute code while the object is bound to the application.
+        # """
+        # self.push_application()
+        # try:
+            # yield self
+        # finally:
+            # self.pop_application()
 
     def __enter__(self):
         self.push_thread()
@@ -663,6 +671,8 @@ class LoggerMixin(object):
         """Works exactly like :meth:`error` just that the message
         is optional and exception information is recorded.
         """
+        if not args:
+            args = ('Uncaught exception occurred', )
         if 'exc_info' not in kwargs:
             exc_info = sys.exc_info()
             assert exc_info[0] is not None, 'no exception occurred'

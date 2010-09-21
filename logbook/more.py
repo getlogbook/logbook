@@ -8,7 +8,7 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-from __future__ import with_statement
+# from __future__ import with_statement
 
 import re
 from collections import deque
@@ -190,7 +190,8 @@ class FingersCrossedHandler(Handler):
         return self._action_triggered
 
     def emit(self, record):
-        with self.lock:
+        self.lock.acquire()
+        try:
             if self._action_triggered:
                 self._handler.emit(record)
             elif record.level >= self._level:
@@ -198,6 +199,8 @@ class FingersCrossedHandler(Handler):
                 self._handler.emit(record)
             else:
                 self.enqueue(record)
+        finally:
+            self.lock.release()
 
 
 class TwitterFormatter(StringFormatter):

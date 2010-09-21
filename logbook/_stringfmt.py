@@ -14,6 +14,8 @@
 import re
 import datetime
 
+from logbook.pycompat import partition
+
 
 _date_classes = (datetime.datetime, datetime.date, datetime.time)
 _format_str_re = re.compile(
@@ -49,7 +51,7 @@ def _strformat(value, format_spec=""):
     is_integer = is_numeric and hasattr(value, '__index__')
     if is_numeric and conversion == 'n':
         # Default to 'd' for ints and 'g' for floats
-        conversion = 'd' if is_integer else 'g'
+        conversion = is_integer and 'd' or 'g'
     if conversion == 'c':
         conversion = 's'
         value = chr(value % 256)
@@ -68,7 +70,7 @@ def _strformat(value, format_spec=""):
         return rv
     fill, align = align[:-1], align[-1:]
     if not fill:
-        fill = '0' if zero else ' '
+        fill = zero and '0' or ' '
     if align == '^':
         padding = width - len(rv)
         # tweak the formatting if the padding is odd
@@ -99,7 +101,7 @@ def _format_field(value, parts, conv, spec):
         else:
             value = getattr(value, part)
     if conv:
-        value = ('%r' if (conv == 'r') else '%s') % (value,)
+        value = ((conv == 'r') and '%r' or '%s') % (value, )
     if hasattr(value, '__format__'):
         value = value.__format__(spec)
     elif isinstance(value, _date_classes) and spec:
@@ -144,8 +146,8 @@ class FormattableString(object):
             assert part == part[0] * len(part)
             return part[:len(part) // 2]
         repl = part[1:-1]
-        field, _, format_spec = repl.partition(':')
-        literal, sep, conversion = field.partition('!')
+        field, _, format_spec = partition(repl, ':')
+        literal, sep, conversion = partition(field, '!')
         name_parts = _field_part_re.findall(literal)
         if literal[:1] in '.[':
             # Auto-numbering

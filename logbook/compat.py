@@ -15,7 +15,6 @@ import logging
 import warnings
 import logbook
 from datetime import date, datetime
-from contextlib import contextmanager
 
 
 _epoch_ord = date(1970, 1, 1).toordinal()
@@ -30,8 +29,7 @@ def redirect_logging():
     logging.root.addHandler(RedirectLoggingHandler())
 
 
-@contextmanager
-def redirected_logging():
+class redirected_logging(object):
     """Temporarily redirects logging for all threads and reverts
     it later to the old handlers.  Mainly used by the internal
     unittests::
@@ -40,12 +38,20 @@ def redirected_logging():
         with redirected_logging():
             ...
     """
-    old_handlers = logging.root.handlers[:]
-    redirect_logging()
-    try:
-        yield
-    finally:
-        logging.root.handlers[:] = old_handlers
+    def __init__(self):
+        self.old_handlers = logging.root.handlers[:]
+
+    def start(self):
+        redirect_logging()
+
+    def end(self):
+        logging.root.handlers[:] = self.old_handlers
+
+    def __enter__(self):
+        self.start()
+
+    def __exit__(self, etype, evalue, tb):
+        self.end()
 
 
 class RedirectLoggingHandler(logging.Handler):
@@ -232,7 +238,7 @@ class redirected_warnings(object):
         rv.lineno = lineno
         return rv
 
-    def __enter__(self):
+    def start(self):
         if self._entered:  # pragma: no cover
             raise RuntimeError("Cannot enter %r twice" % self)
         self._entered = True
@@ -246,8 +252,14 @@ class redirected_warnings(object):
             logbook.dispatch_record(record)
         warnings.showwarning = showwarning
 
-    def __exit__(self, exc_type, exc_value, tb):
+    def end(self):
         if not self._entered:  # pragma: no cover
             raise RuntimeError("Cannot exit %r without entering first" % self)
         warnings.filters = self._filters
         warnings.showwarning = self._showwarning
+
+    def __enter__(self):
+        self.start()
+
+    def __exit__(self, etype, evalue, tb):
+        self.end()

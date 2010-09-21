@@ -8,7 +8,7 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-from __future__ import with_statement
+# from __future__ import with_statement
 
 import os
 import sys
@@ -16,7 +16,10 @@ import stat
 import errno
 import codecs
 import socket
-import hashlib
+try:
+    from hashlib import sha1
+except ImportError:
+    from sha import new as sha1
 import threading
 import traceback
 from datetime import datetime, timedelta
@@ -27,6 +30,7 @@ from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
 from logbook.helpers import rename, F
+from logbook.pycompat import any
 
 
 DEFAULT_FORMAT_STRING = (
@@ -340,7 +344,7 @@ class HashingHandlerMixin(object):
 
     def hash_record_raw(self, record):
         """Returns a hashlib object with the hash of the record."""
-        hash = hashlib.sha1()
+        hash = sha1()
         hash.update('%d\x00' % record.level)
         hash.update((record.channel or u'').encode('utf-8') + '\x00')
         hash.update(record.filename.encode('utf-8') + '\x00')
@@ -389,8 +393,8 @@ class LimitingHandlerMixin(HashingHandlerMixin):
         if self.record_limit is None:
             return 0, True
         hash = self.hash_record(record)
-        with self._limit_lock:
-
+        self._limit_lock.acquire()
+        try:
             allow_delivery = None
             suppression_count = old_count = 0
             first_count = now = datetime.utcnow()
@@ -416,6 +420,8 @@ class LimitingHandlerMixin(HashingHandlerMixin):
             if allow_delivery is None:
                 allow_delivery = old_count < self.record_limit
             return suppression_count, allow_delivery
+        finally:
+            self._limit_lock.release()
 
 
 class StreamHandler(Handler, StringFormatterHandlerMixin):
@@ -466,9 +472,12 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         self.stream.write(item)
 
     def emit(self, record):
-        with self.lock:
+        self.lock.acquire()
+        try:
             self.write(self.format_and_encode(record))
             self.flush()
+        finally:
+            self.lock.release()
 
 
 class FileHandler(StreamHandler):
@@ -576,12 +585,15 @@ class RotatingFileHandlerBase(FileHandler):
     """Baseclass for rotating file handlers."""
 
     def emit(self, record):
-        with self.lock:
+        self.lock.acquire()
+        try:
             msg = self.format_and_encode(record)
             if self.should_rollover(record, len(msg)):
                 self.perform_rollover()
             self.write(msg)
             self.flush()
+        finally:
+            self.lock.release()
 
     def should_rollover(self, record, bytes):
         """Called with the log record and the number of bytes that
@@ -940,7 +952,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         from smtplib import SMTP, SMTP_PORT, SMTP_SSL_PORT
         if self.server_addr is None:
             host = ''
-            port = SMTP_SSL_PORT if self.secure else SMTP_PORT
+            port = self.secure and SMTP_SSL_PORT or SMTP_PORT
         else:
             host, port = self.server_addr
         con = SMTP()

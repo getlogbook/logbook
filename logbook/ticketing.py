@@ -305,7 +305,7 @@ class MongoDBBackend(BackendBase):
 
     def _order(self, q, order_by):
         from pymongo import ASCENDING, DESCENDING
-        col = '%s' % (order_by[1:] if order_by[0] == '-' else order_by)
+        col = '%s' (order_by[0] == '-' and order_by[1:] or order_by)
         if order_by[0] == '-':
             return q.sort(col, DESCENDING)
         return q.sort(col, ASCENDING)
