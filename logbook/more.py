@@ -11,15 +11,16 @@
 from __future__ import with_statement
 
 import re
+import os
 from collections import deque
 from threading import Lock
 from cgi import parse_qsl
 from urllib import urlencode
 
-
-from logbook.base import RecordDispatcher, NOTSET, ERROR
+from logbook.base import RecordDispatcher, NOTSET, ERROR, NOTICE
 from logbook.handlers import Handler, StringFormatter, \
-     StringFormatterHandlerMixin
+     StringFormatterHandlerMixin, StderrHandler
+from logbook._termcolors import colorize
 
 
 _ws_re = re.compile(r'(\s+)(?u)')
@@ -311,3 +312,46 @@ class JinjaFormatter(object):
 
     def __call__(self, record, handler):
         return self.template.render(record=record, handler=handler)
+
+
+class ColorizingStreamHandlerMixin(object):
+    """A mixin class that does colorizing.
+
+    .. versionadded:: 0.3
+    """
+
+    def should_colorize(self, record):
+        """Returns `True` if colorizing should be applied to this
+        record.  The default implementation returns `True` if the
+        stream is a tty and we are not executing on windows.
+        """
+        if os.name == 'nt':
+            return False
+        isatty = getattr(self.stream, 'isatty', None)
+        return isatty and isatty()
+
+    def get_color(self, record):
+        """Returns the color for this record."""
+        if record.level >= ERROR:
+            return 'red'
+        elif record.level >= NOTICE:
+            return 'yellow'
+        return 'lightgray'
+
+    def format_and_encode(self, record):
+        rv = super(ColorizingStreamHandlerMixin, self) \
+                .format_and_encode(record)
+        if self.should_colorize(record):
+            color = self.get_color(record)
+            if color:
+                rv = colorize(color, rv.rstrip('\n')) + '\n'
+        return rv
+
+
+class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
+    """A colorizing stream handler that writes to stderr.  It will only
+    colorize if a terminal was detected.  Note that this handler does
+    not colorize on Windows systems.
+
+    .. versionadded:: 0.3
+    """

@@ -877,6 +877,24 @@ class MoreTestCase(LogbookTestCase):
         # check the RuntimeError is raised
         self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
 
+    def test_colorizing_support(self):
+        from logbook.more import ColorizedStderrHandler
+
+        class TestColorizingHandler(ColorizedStderrHandler):
+            def should_colorize(self, record):
+                return True
+            stream = StringIO()
+        with TestColorizingHandler(format_string='{record.message}') as handler:
+            self.log.error('An error')
+            self.log.warn('A warning')
+            self.log.debug('A debug message')
+            lines = handler.stream.getvalue().rstrip('\n').splitlines()
+            self.assertEqual(lines, [
+                '\x1b[31;01mAn error\x1b[39;49;00m',
+                '\x1b[33;01mA warning\x1b[39;49;00m',
+                '\x1b[37mA debug message\x1b[39;49;00m'
+            ])
+
 
 class QueuesTestCase(LogbookTestCase):
 
