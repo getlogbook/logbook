@@ -8,6 +8,13 @@ Version 0.3
 
 Release date to be announced.  Codename to be selected.
 
+Version 0.2.1
+-------------
+
+Bugfix release, Released on September 22nd.
+
+- Fixes Python 2.5 compatibility.
+
 Version 0.2
 -----------
 
