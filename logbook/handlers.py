@@ -14,7 +14,6 @@ import os
 import sys
 import stat
 import errno
-import codecs
 import socket
 import hashlib
 import threading
@@ -430,10 +429,11 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
             pass
     """
 
-    def __init__(self, stream, level=NOTSET, format_string=None, filter=None,
-                 bubble=False):
+    def __init__(self, stream, level=NOTSET, format_string=None,
+                 encoding=None, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
+        self.encoding = encoding
         self.lock = threading.Lock()
         if stream is not _missing:
             self.stream = stream
@@ -458,7 +458,9 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
 
     def format_and_encode(self, record):
         """Formats the record and encodes it to the stream encoding."""
-        enc = getattr(self.stream, 'encoding', None) or 'utf-8'
+        enc = self.encoding
+        if enc is None:
+            enc = getattr(self.stream, 'encoding', None) or 'utf-8'
         return (self.format(record) + u'\n').encode(enc, 'replace')
 
     def write(self, item):
@@ -480,13 +482,14 @@ class FileHandler(StreamHandler):
     :class:`~logbook.more.FingersCrossedHandler` or something similar.
     """
 
-    def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
+    def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
                  format_string=None, delay=False, filter=None, bubble=False):
+        if encoding is None:
+            encoding = 'utf-8'
         StreamHandler.__init__(self, None, level, format_string,
-                               filter, bubble)
+                               encoding, filter, bubble)
         self._filename = filename
         self._mode = mode
-        self._encoding = encoding
         if delay:
             self.stream = None
         else:
@@ -495,7 +498,7 @@ class FileHandler(StreamHandler):
     def _open(self, mode=None):
         if mode is None:
             mode = self._mode
-        self.stream = codecs.open(self._filename, mode, self._encoding)
+        self.stream = open(self._filename, mode)
 
     def write(self, item):
         if self.stream is None:
@@ -565,7 +568,7 @@ class StderrHandler(StreamHandler):
     def __init__(self, level=NOTSET, format_string=None, filter=None,
                  bubble=False):
         StreamHandler.__init__(self, _missing, level, format_string,
-                               filter, bubble)
+                               None, filter, bubble)
 
     @property
     def stream(self):
