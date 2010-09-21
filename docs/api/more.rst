@@ -27,10 +27,18 @@ Special Handlers
 .. autoclass:: TwitterHandler
    :members:
 
+Colorized Handlers
+------------------
+
+.. versionadded:: 0.3
+
+.. autoclass:: ColorizedStderrHandler
+
+.. autoclass:: ColorizingStreamHandlerMixin
+   :members:
+
 Other
 -----
-
-.. currentmodule:: logbook.more
 
 .. autoclass:: JinjaFormatter
    :members:
