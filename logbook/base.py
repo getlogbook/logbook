@@ -20,6 +20,7 @@ from weakref import ref as weakref
 from datetime import datetime
 
 from logbook.helpers import to_safe_json, parse_iso8601, cached_property, F
+from logbook.pycompat import StackedObjectBase
 
 
 # make sure to sync these up with _speedups.pyx
@@ -123,7 +124,7 @@ class _ExceptionCatcher(object):
         return True
 
 
-class StackedObject(object):
+class StackedObject(StackedObjectBase):
     """Baseclass for all objects that provide stack manipulation
     operations.
     """
@@ -143,28 +144,6 @@ class StackedObject(object):
     def pop_application(self):
         """Pops the stacked object from the application stack."""
         raise NotImplementedError()
-
-    # @contextmanager
-    # def threadbound(self):
-        # """Can be used in combination with the `with` statement to
-        # execute code while the object is bound to the thread.
-        # """
-        # self.push_thread()
-        # try:
-            # yield self
-        # finally:
-            # self.pop_thread()
-
-    # @contextmanager
-    # def applicationbound(self):
-        # """Can be used in combination with the `with` statement to
-        # execute code while the object is bound to the application.
-        # """
-        # self.push_application()
-        # try:
-            # yield self
-        # finally:
-            # self.pop_application()
 
     def __enter__(self):
         self.push_thread()
