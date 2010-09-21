@@ -11,18 +11,15 @@
 from __future__ import with_statement
 
 import re
-import os
-import sys
-import time
 from collections import deque
 from threading import Lock
 from cgi import parse_qsl
 from urllib import urlencode
 
 
-from logbook.base import LogRecord, RecordDispatcher, NOTSET, ERROR, WARNING
-from logbook.handlers import Handler, StringFormatter, StringFormatterHandlerMixin
-from logbook.helpers import json, get_application_name
+from logbook.base import RecordDispatcher, NOTSET, ERROR
+from logbook.handlers import Handler, StringFormatter, \
+     StringFormatterHandlerMixin
 
 
 _ws_re = re.compile(r'(\s+)(?u)')
@@ -64,7 +61,8 @@ class TaggingLogger(RecordDispatcher):
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', {})
         extra['tags'] = list(tags)
-        return self.make_record_and_handle(NOTSET, msg, args, kwargs, exc_info, extra)
+        return self.make_record_and_handle(NOTSET, msg, args, kwargs,
+                                           exc_info, extra)
 
 
 class TaggingHandler(Handler):

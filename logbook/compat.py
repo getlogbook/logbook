@@ -11,7 +11,6 @@
 """
 
 import sys
-import time
 import logging
 import warnings
 import logbook

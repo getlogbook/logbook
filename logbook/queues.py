@@ -10,7 +10,6 @@
 """
 from threading import Thread
 from Queue import Empty, Queue as ThreadQueue
-from itertools import cycle
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler, WrapperHandler
 from logbook.helpers import json

@@ -382,9 +382,9 @@ class LimitingHandlerMixin(HashingHandlerMixin):
 
     def check_delivery(self, record):
         """Helper function to check if data should be delivered by this
-        handler.  It returns a tuple in the form ``(suppression_count, allow)``.
-        The first one is the number of items that were not delivered so far,
-        the second is a boolean flag if a delivery should happen now.
+        handler.  It returns a tuple in the form ``(suppression_count,
+        allow)``.  The first one is the number of items that were not delivered
+        so far, the second is a boolean flag if a delivery should happen now.
         """
         if self.record_limit is None:
             return 0, True
@@ -407,7 +407,8 @@ class LimitingHandlerMixin(HashingHandlerMixin):
                len(self._record_limits) >= self.max_record_cache:
                 cache_items = self._record_limits.items()
                 cache_items.sort()
-                del cache_items[:int(self._record_limits) * self.record_cache_prune]
+                del cache_items[:int(self._record_limits) \
+                    * self.record_cache_prune]
                 self._record_limits = dict(cache_items)
 
             self._record_limits[hash] = (first_count, old_count + 1)
@@ -481,7 +482,8 @@ class FileHandler(StreamHandler):
 
     def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
                  format_string=None, delay=False, filter=None, bubble=False):
-        StreamHandler.__init__(self, None, level, format_string, filter, bubble)
+        StreamHandler.__init__(self, None, level, format_string,
+                               filter, bubble)
         self._filename = filename
         self._mode = mode
         self._encoding = encoding
@@ -714,7 +716,8 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
     """
     default_format_string = TEST_FORMAT_STRING
 
-    def __init__(self, level=NOTSET, format_string=None, filter=None, bubble=False):
+    def __init__(self, level=NOTSET, format_string=None, filter=None,
+                 bubble=False):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         #: captures the :class:`LogRecord`\s as instances

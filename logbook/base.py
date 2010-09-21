@@ -787,7 +787,8 @@ class RecordDispatcher(object):
         # Both logger attached handlers as well as context specific
         # handlers are handled one after another.  The latter also
         # include global handlers.
-        for handler in chain(self.handlers, Handler.stack_manager.iter_context_objects()):
+        for handler in chain(self.handlers,
+                             Handler.stack_manager.iter_context_objects()):
             # skip records that this handler is not interested in based
             # on the record and handler level or in case this method was
             # overridden on some custom logic.
