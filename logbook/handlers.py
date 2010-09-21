@@ -919,7 +919,10 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         (:class:`email.message.Message`).  `suppressed` is the number
         of mails not sent if the `record_limit` feature is active.
         """
-        from email.message import Message
+        try:
+            from email.message import Message
+        except ImportError:
+            from email.Message import Message
         msg = Message()
         lineiter = iter(self.format(record).splitlines())
         for line in lineiter:
@@ -939,7 +942,10 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         with headers and date.  `suppressed` is the number of mails
         that were not send if the `record_limit` feature is active.
         """
-        from email.utils import formatdate
+        try:
+            from email.utils import formatdate
+        except ImportError:
+            from email.Utils import formatdate
         msg = self.message_from_record(record, suppressed)
         msg['From'] = self.from_addr
         msg['Date'] = formatdate()
