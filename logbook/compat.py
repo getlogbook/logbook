@@ -177,12 +177,16 @@ class LoggingHandler(logbook.Handler):
 
     def convert_record(self, old_record):
         """Converts a record from logbook to logging."""
+        if sys.version_info >= (2, 5):
+            optional_kwargs = {'func': old_record.func_name}
+        else:
+            optional_kwargs = {}
         record = logging.LogRecord(old_record.channel,
                                    self.convert_level(old_record.level),
                                    old_record.filename,
                                    old_record.lineno,
                                    old_record.message,
-                                   (), old_record.exc_info, old_record.func_name)
+                                   (), old_record.exc_info, **optional_kwargs)
         for key, value in old_record.extra.iteritems():
             record.__dict__.setdefault(key, value)
         record.created = self.convert_time(old_record.time)
