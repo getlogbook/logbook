@@ -20,7 +20,6 @@ from itertools import izip
 from contextlib import contextmanager
 from functools import wraps
 from cStringIO import StringIO
-from logbook.helpers import json
 
 
 _skipped_modules = []
