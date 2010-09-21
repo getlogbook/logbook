@@ -176,7 +176,8 @@ class LoggingHandler(logbook.Handler):
                                    old_record.filename,
                                    old_record.lineno,
                                    old_record.message,
-                                   (), old_record.exc_info, old_record.func_name)
+                                   (), old_record.exc_info,
+                                   old_record.func_name)
         for key, value in old_record.extra.iteritems():
             record.__dict__.setdefault(key, value)
         record.created = self.convert_time(old_record.time)
