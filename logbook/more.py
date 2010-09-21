@@ -8,8 +8,6 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-# from __future__ import with_statement
-
 import re
 from collections import deque
 from threading import Lock
