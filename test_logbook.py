@@ -400,8 +400,8 @@ class HandlerTestCase(LogbookTestCase):
                     rv = inc.recvfrom(1024)[0]
                 except socket.error:
                     self.fail('got timeout on socket')
-                    self.assertEqual(rv, '<12>testlogger: Syslog is weird\x00'
-                                     % (app_name and app_name + ':' or ''))
+                self.assertEqual(rv, '<12>%stestlogger: Syslog is weird\x00' %
+                                     (app_name and app_name + ':' or ''))
 
     def test_handler_processors(self):
         handler = make_fake_mail_handler(format_string='''\
