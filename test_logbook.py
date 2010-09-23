@@ -26,27 +26,6 @@ _func_none = lambda f: None
 test_file = __file__.rstrip('co')
 
 
-class capture_stderr(object):
-    def __init__(self):
-        self.old = sys.stderr
-        self.new = StringIO()
-        self.current = self.old
-
-    def start(self):
-        sys.stderr = self.current = self.new = StringIO()
-
-    def end(self):
-        sys.stderr = self.current = self.old
-
-    def __enter__(self):
-        self.start()
-        return sys.stderr
-
-    def __exit__(self, etype, evalue, tb):
-        self.end()
-capture_stderr = capture_stderr()
-
-
 def skip_if(condition):
     if condition:
         return _func_ident
@@ -81,6 +60,21 @@ def missing(name):
     return decorate
 
 
+class capture_stderr(object):
+
+    def __init__(self):
+        self.original = sys.stderr
+
+    def start(self):
+        sys.stderr = StringIO()
+        return sys.stderr
+
+    def end(self):
+        sys.stderr = self.original
+
+capture_stderr = capture_stderr()
+
+
 def make_fake_mail_handler(**kwargs):
     class FakeMailHandler(logbook.MailHandler):
         mails = []
@@ -108,11 +102,11 @@ class BasicAPITestCase(LogbookTestCase):
 
     def test_basic_logging(self):
         handler = logbook.TestHandler()
-        handler.push_application()
+        handler.push_thread()
         try:
             self.log.warn('This is a warning.  Nice hah?')
         finally:
-            handler.pop_application()
+            handler.pop_thread()
 
         self.assert_(handler.has_warning('This is a warning.  Nice hah?'))
         self.assertEqual(handler.formatted_records, [
@@ -121,11 +115,11 @@ class BasicAPITestCase(LogbookTestCase):
 
     def test_extradict(self):
         handler = logbook.TestHandler()
-        handler.push_application()
+        handler.push_thread()
         try:
             self.log.warn('Test warning')
         finally:
-            handler.pop_application()
+            handler.pop_thread()
         record = handler.records[0]
         record.extra['existing'] = 'foo'
         self.assertEqual(record.extra['nonexisting'], '')
@@ -168,14 +162,13 @@ class BasicAPITestCase(LogbookTestCase):
                 raise RuntimeError('something bad happened')
 
         handler = ErroringHandler()
-        capture_stderr.start()
-        stderr = capture_stderr.current
+        stderr = capture_stderr.start()
         try:
-            handler.push_application()
+            handler.push_thread()
             try:
                 self.log.warn('I warn you.')
             finally:
-                handler.pop_application()
+                handler.pop_thread()
             self.assert_('something bad happened' in stderr.getvalue())
             self.assert_('I warn you' not in stderr.getvalue())
         finally:
@@ -226,7 +219,7 @@ class BasicAPITestCase(LogbookTestCase):
 
     def test_exporting(self):
         handler = logbook.TestHandler()
-        handler.push_application()
+        handler.push_thread()
         try:
             try:
                 1 / 0
@@ -234,7 +227,7 @@ class BasicAPITestCase(LogbookTestCase):
                 self.log.exception()
             record = handler.records[0]
         finally:
-            handler.pop_application()
+            handler.pop_thread()
 
         exported = record.to_dict()
         record.close()
@@ -246,7 +239,7 @@ class BasicAPITestCase(LogbookTestCase):
 
     def test_pickle(self):
         handler = logbook.TestHandler()
-        handler.push_application()
+        handler.push_thread()
         try:
             try:
                 1 / 0
@@ -254,7 +247,7 @@ class BasicAPITestCase(LogbookTestCase):
                 self.log.exception()
             record = handler.records[0]
         finally:
-            handler.pop_application()
+            handler.pop_thread()
         record.pull_information()
         record.close()
 
@@ -338,12 +331,12 @@ class HandlerTestCase(LogbookTestCase):
         def custom_format(record, handler):
             return record.level_name + ':' + record.message
         handler = logbook.FileHandler(self.filename)
-        handler.push_application()
+        handler.push_thread()
         try:
             handler.formatter = custom_format
             self.log.warn('Custom formatters are awesome')
         finally:
-            handler.pop_application()
+            handler.pop_thread()
         f = open(self.filename)
         try:
             self.assertEqual(f.readline(),
@@ -357,12 +350,12 @@ class HandlerTestCase(LogbookTestCase):
                                               backup_count=3,
                                               )
         handler.format_string = '{record.message}'
-        handler.push_application()
+        handler.push_thread()
         try:
             for c, x in izip(string.letters, xrange(32)):
                 self.log.warn(c * 256)
         finally:
-            handler.pop_application()
+            handler.pop_thread()
         files = [x for x in os.listdir(self.dirname)
                  if x.startswith('rot.log')]
         files.sort()
@@ -390,7 +383,7 @@ class HandlerTestCase(LogbookTestCase):
             lr.time = datetime(year, month, day, hour, minute, second)
             return lr
 
-        handler.push_application()
+        handler.push_thread()
         try:
             for x in xrange(10):
                 handler.handle(fake_record('First One', 2010, 1, 5, x + 1))
@@ -401,7 +394,7 @@ class HandlerTestCase(LogbookTestCase):
             for x in xrange(20):
                 handler.handle(fake_record('Last One', 2010, 1, 8, x + 1))
         finally:
-            handler.pop_application()
+            handler.pop_thread()
 
         files = [x for x in os.listdir(self.dirname) if x.startswith('trot')]
         files.sort()
@@ -422,10 +415,9 @@ class HandlerTestCase(LogbookTestCase):
 
     def test_mail_handler(self):
         handler = make_fake_mail_handler(subject=u'\xf8nicode')
-        capture_stderr.start()
-        fallback = capture_stderr.current
+        fallback = capture_stderr.start()
         try:
-            handler.push_application()
+            handler.push_thread()
             try:
                 self.log.warn('This is not mailed')
                 try:
@@ -433,7 +425,7 @@ class HandlerTestCase(LogbookTestCase):
                 except Exception:
                     self.log.exception('This is unfortunate')
             finally:
-                handler.pop_application()
+                handler.pop_thread()
 
             self.assertEqual(len(handler.mails), 1)
             sender, receivers, mail = handler.mails[0]
@@ -455,11 +447,12 @@ class HandlerTestCase(LogbookTestCase):
                                       'time\(s\) and was suppressed').search
         handler = make_fake_mail_handler(record_limit=1,
                                          record_delta=timedelta(seconds=0.5))
-        handler.push_application()
+        handler.push_thread()
         try:
             later = datetime.utcnow() + timedelta(seconds=1.1)
             while datetime.utcnow() < later:
                 self.log.error('Over and over...')
+
             # first mail that is always delivered + 0.5 seconds * 2
             # and 0.1 seconds of room for rounding errors makes 3 mails
             self.assertEqual(len(handler.mails), 3)
@@ -471,7 +464,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assert_(suppression_test(handler.mails[1][2]))
             self.assert_(suppression_test(handler.mails[2][2]))
         finally:
-            handler.pop_application()
+            handler.pop_thread()
 
     def test_syslog_handler(self):
         to_test = [
@@ -485,11 +478,11 @@ class HandlerTestCase(LogbookTestCase):
             inc.settimeout(1)
             for app_name in [None, 'Testing']:
                 handler = logbook.SyslogHandler(app_name, inc.getsockname())
-                handler.push_application()
+                handler.push_thread()
                 try:
                     self.log.warn('Syslog is weird')
                 finally:
-                    handler.pop_application()
+                    handler.pop_thread()
                 try:
                     rv = inc.recvfrom(1024)[0]
                 except socket.error:
@@ -526,18 +519,18 @@ Message:
                 record.extra['path'] = request.path
 
             processor = logbook.Processor(inject_extra)
-            processor.push_application()
+            processor.push_thread()
             try:
-                handler.push_application()
+                handler.push_thread()
                 try:
                     try:
                         1 / 0
                     except Exception:
                         self.log.exception('Exception happened during request')
                 finally:
-                    handler.pop_application()
+                    handler.pop_thread()
             finally:
-                processor.pop_application()
+                processor.pop_thread()
 
         handle_request(Request())
         self.assertEqual(len(handler.mails), 1)
@@ -559,15 +552,14 @@ Message:
                 record.extra['flag'] = 'testing'
         log = MyLogger()
         handler = MyTestHandler()
-        capture_stderr.start()
-        captured = capture_stderr.current
+        captured = capture_stderr.start()
         try:
-            handler.push_application()
+            handler.push_thread()
             try:
                 log.warn('From my logger')
                 self.log.warn('From another logger')
             finally:
-                handler.pop_application()
+                handler.pop_thread()
             self.assert_(handler.has_warning('From my logger'))
             self.assert_('From another logger' in captured.getvalue())
         finally:
@@ -580,10 +572,10 @@ Message:
             def should_handle(self, record):
                 return flag
         null_handler = logbook.NullHandler()
-        null_handler.push_application()
+        null_handler.push_thread()
         try:
             test_handler = MyTestHandler()
-            test_handler.push_application()
+            test_handler.push_thread()
             try:
                 self.log.warn('1')
                 flag = False
@@ -591,26 +583,25 @@ Message:
                 self.assert_(test_handler.has_warning('1'))
                 self.assert_(not test_handler.has_warning('2'))
             finally:
-                test_handler.pop_application()
+                test_handler.pop_thread()
         finally:
-            null_handler.pop_application()
+            null_handler.pop_thread()
 
     def test_null_handler(self):
         null_handler = logbook.NullHandler()
         handler = logbook.TestHandler(level='ERROR')
-        capture_stderr.start()
-        captured = capture_stderr.current
+        captured = capture_stderr.start()
         try:
-            null_handler.push_application()
+            null_handler.push_thread()
             try:
-                handler.push_application()
+                handler.push_thread()
                 try:
                     self.log.error('An error')
                     self.log.warn('A warning')
                 finally:
-                    handler.pop_application()
+                    handler.pop_thread()
             finally:
-                null_handler.pop_application()
+                null_handler.pop_thread()
             self.assertEqual(captured.getvalue(), '')
             self.assertFalse(handler.has_warning('A warning'))
             self.assert_(handler.has_error('An error'))
@@ -624,17 +615,16 @@ Message:
             def new_heavy_init(self):
                 raise RuntimeError('should not be triggered')
             logbook.LogRecord.heavy_init = new_heavy_init
-            null_handler.push_application()
+            null_handler.push_thread()
             try:
                 logbook.warn('Awesome')
             finally:
-                null_handler.pop_application()
+                null_handler.pop_thread()
         finally:
             logbook.LogRecord.heavy_init = heavy_init
 
         null_handler.bubble = True
-        capture_stderr.start()
-        captured = capture_stderr.current
+        captured = capture_stderr.start()
         try:
             logbook.warning('Not a blockhole')
             self.assertNotEqual(captured.getvalue(), '')
@@ -643,16 +633,15 @@ Message:
 
     def test_calling_frame(self):
         handler = logbook.TestHandler()
-        handler.push_application()
+        handler.push_thread()
         try:
             logbook.warn('test')
         finally:
-            handler.pop_application()
+            handler.pop_thread()
         self.assertEqual(handler.records[0].calling_frame, sys._getframe())
 
     def test_nested_setups(self):
-        capture_stderr.start()
-        captured = capture_stderr.current
+        captured = capture_stderr.start()
         try:
             logger = logbook.Logger('App')
             test_handler = logbook.TestHandler(level='WARNING')
@@ -664,7 +653,7 @@ Message:
                 mail_handler
             ])
 
-            handlers.push_application()
+            handlers.push_thread()
             try:
                 logger.warn('This is a warning')
                 logger.error('This is also a mail')
@@ -673,7 +662,7 @@ Message:
                 except Exception:
                     logger.exception()
             finally:
-                handlers.pop_application()
+                handlers.pop_thread()
             logger.warn('And here we go straight back to stderr')
 
             self.assert_(test_handler.has_warning('This is a warning'))
@@ -690,23 +679,23 @@ Message:
             finally:
                 handlers.pop_thread()
 
-            handlers.push_thread()
+            handlers.push_application()
             try:
                 logger.warn('applicationbound warning')
             finally:
-                handlers.pop_thread()
+                handlers.pop_application()
         finally:
             capture_stderr.end()
 
     def test_dispatcher(self):
         logger = logbook.Logger('App')
         test_handler = logbook.TestHandler()
-        test_handler.push_application()
+        test_handler.push_thread()
         try:
             logger.warn('Logbook is too awesome for stdlib')
             self.assertEqual(test_handler.records[0].dispatcher, logger)
         finally:
-            test_handler.pop_application()
+            test_handler.pop_thread()
 
     def test_filtering(self):
         logger1 = logbook.Logger('Logger1')
@@ -718,16 +707,16 @@ Message:
             return record.dispatcher is logger1
         handler.filter = only_1
 
-        outer_handler.push_application()
+        outer_handler.push_thread()
         try:
-            handler.push_application()
+            handler.push_thread()
             try:
                 logger1.warn('foo')
                 logger2.warn('bar')
             finally:
-                handler.pop_application()
+                handler.pop_thread()
         finally:
-            outer_handler.pop_application()
+            outer_handler.pop_thread()
 
         self.assert_(handler.has_warning('foo', channel='Logger1'))
         self.assert_(not handler.has_warning('bar', channel='Logger2'))
@@ -764,7 +753,7 @@ Message:
 
     def test_global_functions(self):
         handler = logbook.TestHandler()
-        handler.push_application()
+        handler.push_thread()
         try:
             logbook.debug('a debug message')
             logbook.info('an info message')
@@ -775,7 +764,7 @@ Message:
             logbook.critical('pretty critical')
             logbook.log(logbook.CRITICAL, 'critical too')
         finally:
-            handler.pop_application()
+            handler.pop_thread()
         self.assert_(handler.has_debug('a debug message'))
         self.assert_(handler.has_info('an info message'))
         self.assert_(handler.has_warning('warning part 1'))
@@ -819,42 +808,41 @@ class AttributeTestCase(LogbookTestCase):
 class FlagsTestCase(LogbookTestCase):
 
     def test_error_flag(self):
-        capture_stderr.start()
-        captured = capture_stderr.current
+        captured = capture_stderr.start()
         try:
             print_flag = logbook.Flags(errors='print')
-            print_flag.push_application()
+            print_flag.push_thread()
             try:
                 silent_flag = logbook.Flags(errors='silent')
-                silent_flag.push_application()
+                silent_flag.push_thread()
                 try:
                     self.log.warn('Foo {42}', 'aha')
                 finally:
-                    silent_flag.pop_application()
+                    silent_flag.pop_thread()
             finally:
-                print_flag.pop_application()
+                print_flag.pop_thread()
             self.assertEqual(captured.getvalue(), '')
 
             silent_flag = logbook.Flags(errors='silent')
-            silent_flag.push_application()
+            silent_flag.push_thread()
             try:
                 print_flag = logbook.Flags(errors='print')
-                print_flag.push_application()
+                print_flag.push_thread()
                 try:
                     self.log.warn('Foo {42}', 'aha')
                 finally:
-                    print_flag.pop_application()
+                    print_flag.pop_thread()
             finally:
-                silent_flag.pop_application()
+                silent_flag.pop_thread()
             self.assertNotEqual(captured.getvalue(), '')
 
             try:
                 raise_flag = logbook.Flags(errors='raise')
-                raise_flag.push_application()
+                raise_flag.push_thread()
                 try:
                     self.log.warn('Foo {42}', 'aha')
                 finally:
-                    raise_flag.pop_application()
+                    raise_flag.pop_thread()
             except Exception, e:
                 self.assert_('Could not format message with provided '
                              'arguments' in str(e))
@@ -865,19 +853,19 @@ class FlagsTestCase(LogbookTestCase):
 
     def test_disable_introspection(self):
         introspection_flag = logbook.Flags(introspection=False)
-        introspection_flag.push_application()
+        introspection_flag.push_thread()
         try:
             h = logbook.TestHandler()
-            h.push_application()
+            h.push_thread()
             try:
                 self.log.warn('Testing')
                 self.assert_(h.records[0].frame is None)
                 self.assert_(h.records[0].calling_frame is None)
                 self.assert_(h.records[0].module is None)
             finally:
-                h.pop_application()
+                h.pop_thread()
         finally:
-            introspection_flag.pop_application()
+            introspection_flag.pop_thread()
 
 
 class LoggerGroupTestCase(LogbookTestCase):
@@ -889,28 +877,27 @@ class LoggerGroupTestCase(LogbookTestCase):
         group.level = logbook.ERROR
         group.add_logger(self.log)
         handler = logbook.TestHandler()
-        handler.push_application()
+        handler.push_thread()
         try:
             self.log.warn('A warning')
             self.log.error('An error')
-            self.assert_(not handler.has_warning('A warning'))
-            self.assert_(handler.has_error('An error'))
-            self.assertEqual(handler.records[0].extra['foo'], 'bar')
         finally:
-            handler.pop_application()
+            handler.pop_thread()
+        self.assert_(not handler.has_warning('A warning'))
+        self.assert_(handler.has_error('An error'))
+        self.assertEqual(handler.records[0].extra['foo'], 'bar')
 
 
 class DefaultConfigurationTestCase(LogbookTestCase):
 
     def test_default_handlers(self):
-        capture_stderr.start()
-        stream = capture_stderr.current
+        stream = capture_stderr.start()
         try:
             self.log.warn('Aha!')
             captured = stream.getvalue()
-            self.assert_('WARNING: testlogger: Aha!' in captured)
         finally:
             capture_stderr.end()
+        self.assert_('WARNING: testlogger: Aha!' in captured)
 
 
 class LoggingCompatTestCase(LogbookTestCase):
@@ -921,8 +908,7 @@ class LoggingCompatTestCase(LogbookTestCase):
 
         name = 'test_logbook-%d' % randrange(1 << 32)
         logger = getLogger(name)
-        capture_stderr.start()
-        captured = capture_stderr.current
+        captured = capture_stderr.start()
         try:
             redirector = redirected_logging()
             redirector.start()
@@ -951,7 +937,7 @@ class LoggingCompatTestCase(LogbookTestCase):
         logger.handlers[:] = [handler]
         try:
             logging_handler = LoggingHandler()
-            logging_handler.push_application()
+            logging_handler.push_thread()
             try:
                 self.log.warn("This goes to logging")
                 pieces = out.getvalue().strip().split(':')
@@ -961,7 +947,7 @@ class LoggingCompatTestCase(LogbookTestCase):
                     'This goes to logging'
                 ])
             finally:
-                logging_handler.pop_application()
+                logging_handler.pop_thread()
         finally:
             logger.handlers[:] = old_handlers
 
@@ -971,7 +957,7 @@ class WarningsCompatTestCase(LogbookTestCase):
     def test_warning_redirections(self):
         from logbook.compat import redirected_warnings
         handler = logbook.TestHandler()
-        handler.push_application()
+        handler.push_thread()
         try:
             redirector = redirected_warnings()
             redirector.start()
@@ -981,7 +967,7 @@ class WarningsCompatTestCase(LogbookTestCase):
             finally:
                 redirector.end()
         finally:
-            handler.pop_application()
+            handler.pop_thread()
         self.assertEqual(len(handler.records), 1)
         self.assertEqual('[WARNING] RuntimeWarning: Testing',
                          handler.formatted_records[0])
@@ -996,10 +982,9 @@ class MoreTestCase(LogbookTestCase):
                                         logbook.WARNING)
 
         # if no warning occurs, the infos are not logged
-        handler.push_application()
+        handler.push_thread()
         try:
-            capture_stderr.start()
-            captured = capture_stderr.current
+            captured = capture_stderr.start()
             try:
                 self.log.info('some info')
             finally:
@@ -1007,13 +992,12 @@ class MoreTestCase(LogbookTestCase):
             self.assertEqual(captured.getvalue(), '')
             self.assert_(not handler.triggered)
         finally:
-            handler.pop_application()
+            handler.pop_thread()
 
         # but if it does, all log messages are output
-        handler.push_application()
+        handler.push_thread()
         try:
-            capture_stderr.start()
-            captured = capture_stderr.current
+            captured = capture_stderr.start()
             try:
                 self.log.info('some info')
                 self.log.warning('something happened')
@@ -1026,7 +1010,7 @@ class MoreTestCase(LogbookTestCase):
             self.assert_('something else happened' in logs)
             self.assert_(handler.triggered)
         finally:
-            handler.pop_application()
+            handler.pop_thread()
 
     def test_fingerscrossed_factory(self):
         from logbook.more import FingersCrossedHandler
@@ -1039,11 +1023,10 @@ class MoreTestCase(LogbookTestCase):
             return handler
 
         def make_fch():
-            return FingersCrossedHandler(handler_factory, logbook.WARNING,
-                                         )
+            return FingersCrossedHandler(handler_factory, logbook.WARNING)
 
         fch = make_fch()
-        fch.push_application()
+        fch.push_thread()
         try:
             self.log.info('some info')
             self.assertEqual(len(handlers), 0)
@@ -1058,16 +1041,16 @@ class MoreTestCase(LogbookTestCase):
             self.assert_(not handlers[0].has_criticals)
             self.assert_(not handlers[0].has_debugs)
         finally:
-            fch.pop_application()
+            fch.pop_thread()
 
         fch = make_fch()
-        fch.push_application()
+        fch.push_thread()
         try:
             self.log.info('some info')
             self.log.warning('a warning')
             self.assertEqual(len(handlers), 2)
         finally:
-            fch.pop_application()
+            fch.pop_thread()
 
     def test_fingerscrossed_buffer_size(self):
         from logbook.more import FingersCrossedHandler
@@ -1075,14 +1058,14 @@ class MoreTestCase(LogbookTestCase):
         test_handler = logbook.TestHandler()
         handler = FingersCrossedHandler(test_handler, buffer_size=3)
 
-        handler.push_application()
+        handler.push_thread()
         try:
             logger.info('Never gonna give you up')
             logger.warn('Aha!')
             logger.warn('Moar!')
             logger.error('Pure hate!')
         finally:
-            handler.pop_application()
+            handler.pop_thread()
 
         self.assertEqual(test_handler.formatted_records, [
             '[WARNING] Test: Aha!',
@@ -1103,10 +1086,9 @@ class MoreTestCase(LogbookTestCase):
         ))
         handler.bubble = False
 
-        handler.push_application()
+        handler.push_thread()
         try:
-            capture_stderr.start()
-            captured = capture_stderr.current
+            captured = capture_stderr.start()
             try:
                 logger.log('info', 'info message')
                 logger.log('both', 'all message')
@@ -1114,7 +1096,7 @@ class MoreTestCase(LogbookTestCase):
             finally:
                 capture_stderr.end()
         finally:
-            handler.pop_application()
+            handler.pop_thread()
 
         stderr = captured.getvalue()
 
@@ -1134,11 +1116,11 @@ class MoreTestCase(LogbookTestCase):
         fmter = JinjaFormatter('{{ record.channel }}/{{ record.level_name }}')
         handler = logbook.TestHandler()
         handler.formatter = fmter
-        handler.push_application()
+        handler.push_thread()
         try:
             self.log.info('info')
         finally:
-            handler.pop_application()
+            handler.pop_thread()
         self.assert_('testlogger/INFO' in handler.formatted_records)
 
     @missing('jinja2')
@@ -1154,7 +1136,9 @@ class MoreTestCase(LogbookTestCase):
             def should_colorize(self, record):
                 return True
             stream = StringIO()
-        with TestColorizingHandler(format_string='{record.message}') as handler:
+        handler = TestColorizingHandler(format_string='{record.message}')
+        handler.push_thread()
+        try:
             self.log.error('An error')
             self.log.warn('A warning')
             self.log.debug('A debug message')
@@ -1164,6 +1148,8 @@ class MoreTestCase(LogbookTestCase):
                 '\x1b[33;01mA warning\x1b[39;49;00m',
                 '\x1b[37mA debug message\x1b[39;49;00m'
             ])
+        finally:
+            handler.pop_thread()
 
 
 class QueuesTestCase(LogbookTestCase):
@@ -1194,14 +1180,14 @@ class QueuesTestCase(LogbookTestCase):
         ]
         handler, subscriber = self._get_zeromq()
         for test in tests:
-            handler.push_application()
+            handler.push_thread()
             try:
                 self.log.warn(test)
                 record = subscriber.recv()
                 self.assertEqual(record.message, test)
                 self.assertEqual(record.channel, self.log.name)
             finally:
-                handler.pop_application()
+                handler.pop_thread()
 
     @require('zmq')
     def test_zeromq_background_thread(self):
@@ -1209,12 +1195,12 @@ class QueuesTestCase(LogbookTestCase):
         test_handler = logbook.TestHandler()
         controller = subscriber.dispatch_in_background(test_handler)
 
-        handler.push_application()
+        handler.push_thread()
         try:
             self.log.warn('This is a warning')
             self.log.error('This is an error')
         finally:
-            handler.pop_application()
+            handler.pop_thread()
 
         # stop the controller.  This will also stop the loop and join the
         # background process.  Before that we give it a fraction of a second
@@ -1244,33 +1230,33 @@ class QueuesTestCase(LogbookTestCase):
 
         def send_back():
             handler = MultiProcessingHandler(queue)
-            handler.push_application()
+            handler.push_thread()
             try:
                 logbook.warn('Hello World')
             finally:
-                handler.pop_application()
+                handler.pop_thread()
 
         p = Process(target=send_back)
         p.start()
         p.join()
 
-        test_handler.push_application()
+        test_handler.push_thread()
         try:
             subscriber.dispatch_once()
             self.assert_(test_handler.has_warning('Hello World'))
         finally:
-            test_handler.pop_application()
+            test_handler.pop_thread()
 
     def test_threaded_wrapper_handler(self):
         from logbook.queues import ThreadedWrapperHandler
         test_handler = logbook.TestHandler()
         handler = ThreadedWrapperHandler(test_handler)
-        handler.push_application()
+        handler.push_thread()
         try:
             self.log.warn('Just testing')
             self.log.error('More testing')
         finally:
-            handler.pop_application()
+            handler.pop_thread()
 
         # give it some time to sync up
         handler.close()
@@ -1314,11 +1300,11 @@ class QueuesTestCase(LogbookTestCase):
         def make_send_back(message, queue):
             def send_back():
                 handler = MultiProcessingHandler(queue)
-                handler.push_application()
+                handler.push_thread()
                 try:
                     logbook.warn(message)
                 finally:
-                    handler.pop_application()
+                    handler.pop_thread()
             return send_back
 
         for _ in range(10):
@@ -1338,7 +1324,7 @@ class TicketingTestCase(LogbookTestCase):
     def test_basic_ticketing(self):
         from logbook.ticketing import TicketingHandler
         handler = TicketingHandler('sqlite:///')
-        handler.push_application()
+        handler.push_thread()
         try:
             for x in xrange(5):
                 self.log.warn('A warning')
@@ -1349,7 +1335,7 @@ class TicketingTestCase(LogbookTestCase):
                     except Exception:
                         self.log.exception()
         finally:
-            handler.pop_application()
+            handler.pop_thread()
 
         self.assertEqual(handler.db.count_tickets(), 3)
         tickets = handler.db.get_tickets()
