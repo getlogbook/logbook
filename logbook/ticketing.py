@@ -12,7 +12,7 @@
 from time import time
 from logbook.base import NOTSET, level_name_property, LogRecord
 from logbook.handlers import Handler, HashingHandlerMixin
-from logbook.helpers import json, cached_property
+from logbook.helpers import json, cached_property, b
 
 
 class Ticket(object):
@@ -401,7 +401,10 @@ class TicketingBaseHandler(Handler, HashingHandlerMixin):
         """Returns the unique hash of a record."""
         hash = HashingHandlerMixin.hash_record_raw(self, record)
         if self.hash_salt is not None:
-            hash.update('\x00' + self.hash_salt)
+            hash_salt = self.hash_salt
+            if isinstance(hash_salt, unicode):
+                hash_salt = hash_salt.encode('utf-8')
+            hash.update(b('\x00') + hash_salt)
         return hash
 
 
@@ -432,7 +435,7 @@ class TicketingHandler(TicketingBaseHandler):
                  filter=None, bubble=False, hash_salt=None, backend=None,
                  **db_options):
         if hash_salt is None:
-            hash_salt = 'apphash-' + app_id.encode('utf-8')
+            hash_salt = u'apphash-' + app_id
         TicketingBaseHandler.__init__(self, hash_salt, level, filter, bubble)
         if backend is None:
             backend = self.default_backend

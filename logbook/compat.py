@@ -225,7 +225,7 @@ class redirected_warnings(object):
 
     def make_record(self, message, exception, filename, lineno):
         category = exception.__name__
-        if exception.__module__ != 'exceptions':
+        if exception.__module__ not in ('exceptions', 'builtins'):
             category = exception.__module__ + '.' + category
         rv = logbook.LogRecord(category, logbook.WARNING, message)
         # we don't know the caller, but we get that information from the

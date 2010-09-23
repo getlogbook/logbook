@@ -483,14 +483,17 @@ class LogRecord(object):
             # information was not pulled and the log record no longer has
             # access to the frame.  But there is not much we can do about
             # that.
-            raise TypeError(F('Could not format message with provided '
-                              'arguments: {err}\n  msg=\'{msg}\'\n  '
-                              'args={args} \n  kwargs={kwargs}.\n'
-                              'Happened in file {file}, line {lineno}').format(
-                err=e, msg=self.msg.encode('utf-8'), args=self.args,
-                kwargs=self.kwargs, file=self.filename.encode('utf-8'),
+            errormsg = F('Could not format message with provided '
+                         'arguments: {err}\n  msg=\'{msg}\'\n  '
+                         'args={args} \n  kwargs={kwargs}.\n'
+                         'Happened in file {file}, line {lineno}').format(
+                err=e, msg=self.msg, args=self.args,
+                kwargs=self.kwargs, file=self.filename,
                 lineno=self.lineno
-            ))
+            )
+            if not _py3:
+                errormsg = errormsg.encode('utf-8')
+            raise TypeError(errormsg)
 
     level_name = level_name_property()
 

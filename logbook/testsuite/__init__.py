@@ -362,7 +362,14 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline().rstrip(), '[02:00] Third One')
 
     def test_mail_handler(self):
-        handler = make_fake_mail_handler(subject=u'\xf8nicode')
+        # broken in stdlib for 3.1 as far as I can see
+        if sys.version_info >= (3, 0) and sys.version_info < (3, 2):
+            ascii_subject = True
+            subject = u'ascii only'
+        else:
+            ascii_subject = False
+            subject = u'\xf8nicode'
+        handler = make_fake_mail_handler(subject=subject)
         with capture_stderr() as fallback:
             with handler:
                 self.log.warn('This is not mailed')
@@ -374,7 +381,8 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(len(handler.mails), 1)
             sender, receivers, mail = handler.mails[0]
             self.assertEqual(sender, handler.from_addr)
-            self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
+            if not ascii_subject:
+                self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
             self.assert_(re.search('Message type:\s+ERROR', mail))
             self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
@@ -422,8 +430,9 @@ class HandlerTestCase(LogbookTestCase):
                     rv = inc.recvfrom(1024)[0]
                 except socket.error:
                     self.fail('got timeout on socket')
-                self.assertEqual(rv, '<12>%stestlogger: Syslog is weird\x00' %
-                                     (app_name and app_name + ':' or ''))
+                self.assertEqual(rv, (
+                    u'<12>%stestlogger: Syslog is weird\x00' %
+                    (app_name and app_name + u':' or u'')).encode('utf-8'))
 
     def test_handler_processors(self):
         handler = make_fake_mail_handler(format_string='''\
@@ -1106,7 +1115,8 @@ class TicketingTestCase(LogbookTestCase):
         self.assertEqual(len(occurrences), 2)
         record = occurrences[0]
         self.assert_(test_file in record.filename)
-        self.assertEqual(record.func_name, 'test_basic_ticketing')
+        # avoid 2to3 destroying our assertion
+        self.assertEqual(getattr(record, 'func_name'), 'test_basic_ticketing')
         self.assertEqual(record.level, logbook.ERROR)
         self.assertEqual(record.thread, thread.get_ident())
         self.assertEqual(record.process, os.getpid())
