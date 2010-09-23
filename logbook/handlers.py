@@ -8,14 +8,15 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-from __future__ import with_statement
-
 import os
 import sys
 import stat
 import errno
 import socket
-import hashlib
+try:
+    from hashlib import sha1
+except ImportError:
+    from sha import new as sha1
 import threading
 import traceback
 from datetime import datetime, timedelta
@@ -25,7 +26,7 @@ from threading import Lock
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
-from logbook.helpers import rename, F, b, _is_text_stream
+from logbook.helpers import any, rename, F, b, _is_text_stream
 
 
 DEFAULT_FORMAT_STRING = (
@@ -283,9 +284,11 @@ class StringFormatter(object):
 
     def _get_format_string(self):
         return self._format_string
+
     def _set_format_string(self, value):
         self._format_string = value
         self._formatter = F(value)
+
     format_string = property(_get_format_string, _set_format_string)
     del _get_format_string, _set_format_string
 
@@ -327,11 +330,13 @@ class StringFormatterHandlerMixin(object):
     def _get_format_string(self):
         if isinstance(self.formatter, StringFormatter):
             return self.formatter.format_string
+
     def _set_format_string(self, value):
         if value is None:
             self.formatter = None
         else:
             self.formatter = self.formatter_class(value)
+
     format_string = property(_get_format_string, _set_format_string)
     del _get_format_string, _set_format_string
 
@@ -341,7 +346,7 @@ class HashingHandlerMixin(object):
 
     def hash_record_raw(self, record):
         """Returns a hashlib object with the hash of the record."""
-        hash = hashlib.sha1()
+        hash = sha1()
         hash.update(('%d\x00' % record.level).encode('ascii'))
         hash.update((record.channel or u'').encode('utf-8') + b('\x00'))
         hash.update(record.filename.encode('utf-8') + b('\x00'))
@@ -390,8 +395,8 @@ class LimitingHandlerMixin(HashingHandlerMixin):
         if self.record_limit is None:
             return 0, True
         hash = self.hash_record(record)
-        with self._limit_lock:
-
+        self._limit_lock.acquire()
+        try:
             allow_delivery = None
             suppression_count = old_count = 0
             first_count = now = datetime.utcnow()
@@ -417,6 +422,8 @@ class LimitingHandlerMixin(HashingHandlerMixin):
             if allow_delivery is None:
                 allow_delivery = old_count < self.record_limit
             return suppression_count, allow_delivery
+        finally:
+            self._limit_lock.release()
 
 
 class StreamHandler(Handler, StringFormatterHandlerMixin):
@@ -479,9 +486,12 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         self.stream.write(item)
 
     def emit(self, record):
-        with self.lock:
+        self.lock.acquire()
+        try:
             self.write(self.format_and_encode(record))
             self.flush()
+        finally:
+            self.lock.release()
 
 
 class FileHandler(StreamHandler):
@@ -552,7 +562,8 @@ class MonitoringFileHandler(FileHandler):
         FileHandler.__init__(self, filename, mode, encoding, level,
                              format_string, delay, filter, bubble)
         if os.name == 'nt':
-            raise RuntimeError('MonitoringFileHandler does not support Windows')
+            raise RuntimeError('MonitoringFileHandler '
+                               'does not support Windows')
         self._query_fd()
 
     def _query_fd(self):
@@ -611,12 +622,15 @@ class RotatingFileHandlerBase(FileHandler):
         FileHandler.__init__(self, *args, **kwargs)
 
     def emit(self, record):
-        with self.lock:
+        self.lock.acquire()
+        try:
             msg = self.format_and_encode(record)
             if self.should_rollover(record, msg):
                 self.perform_rollover()
             self.write(msg)
             self.flush()
+        finally:
+            self.lock.release()
 
     def should_rollover(self, record, formatted_record):
         """Called with the log record and the return value of the
@@ -678,12 +692,15 @@ class RotatingFileHandler(FileHandler):
         self._open('w')
 
     def emit(self, record):
-        with self.lock:
+        self.lock.acquire()
+        try:
             msg = self.format_and_encode(record)
             if self.should_rollover(record, len(msg)):
                 self.perform_rollover()
             self.write(msg)
             self.flush()
+        finally:
+            self.lock.release()
 
 
 class TimedRotatingFileHandler(FileHandler):
@@ -749,11 +766,14 @@ class TimedRotatingFileHandler(FileHandler):
         self._open('w')
 
     def emit(self, record):
-        with self.lock:
+        self.lock.acquire()
+        try:
             if self.should_rollover(record):
                 self.perform_rollover()
             self.write(self.format_and_encode(record))
             self.flush()
+        finally:
+            self.lock.release()
 
 
 class TestHandler(Handler, StringFormatterHandlerMixin):
@@ -961,7 +981,10 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         (:class:`email.message.Message`).  `suppressed` is the number
         of mails not sent if the `record_limit` feature is active.
         """
-        from email.message import Message
+        try:
+            from email.message import Message
+        except ImportError:  # Python 2.4
+            from email.Message import Message
         msg = Message()
         lineiter = iter(self.format(record).splitlines())
         for line in lineiter:
@@ -981,7 +1004,10 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         with headers and date.  `suppressed` is the number of mails
         that were not send if the `record_limit` feature is active.
         """
-        from email.utils import formatdate
+        try:
+            from email.utils import formatdate
+        except ImportError:  # Python 2.4
+            from email.Utils import formatdate
         msg = self.message_from_record(record, suppressed)
         msg['From'] = self.from_addr
         msg['Date'] = formatdate()
@@ -994,7 +1020,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         from smtplib import SMTP, SMTP_PORT, SMTP_SSL_PORT
         if self.server_addr is None:
             host = ''
-            port = SMTP_SSL_PORT if self.secure else SMTP_PORT
+            port = self.secure and SMTP_SSL_PORT or SMTP_PORT
         else:
             host, port = self.server_addr
         con = SMTP()
@@ -1196,7 +1222,8 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
                                'operating system.')
 
         try:
-            import win32evtlogutil, win32evtlog
+            import win32evtlogutil
+            import win32evtlog
         except ImportError:
             raise RuntimeError('The pywin32 library is required '
                                'for the NTEventLogHandler.')

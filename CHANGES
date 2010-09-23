@@ -16,6 +16,7 @@ Release date to be announced.  Codename to be selected.
   API changes that caused minimal changes on Python 2 as well.  The
   deprecation of the :class:`logbook.RotatingFileHandlerBase` was a
   result of this.
+- Added support for Python 2.4
 
 Version 0.2.1
 -------------

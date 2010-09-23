@@ -8,15 +8,13 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-from __future__ import with_statement
-
 import os
 import sys
 import thread
 import threading
 import traceback
-from contextlib import contextmanager
-from itertools import chain
+from thread import get_ident as current_thread
+from itertools import count, chain
 from weakref import ref as weakref
 from datetime import datetime
 
@@ -63,12 +61,14 @@ def level_name_property():
     """Returns a property that reflects the level as name from
     the internal level attribute.
     """
+
     def _get_level_name(self):
         return get_level_name(self.level)
+
     def _set_level_name(self, level):
         self.level = lookup_level(level)
-    return property(_get_level_name, _set_level_name, doc=
-        'The level as unicode string')
+    return property(_get_level_name, _set_level_name,
+                    doc='The level as unicode string')
 
 
 def lookup_level(level):
@@ -100,8 +100,18 @@ def get_level_name(level):
 class ExtraDict(dict):
     """A dictionary which returns ``u''`` on missing keys."""
 
-    def __missing__(self, key):
-        return u''
+    if sys.version_info[:2] < (2, 5):
+        def __getitem__(self, key):
+            try:
+                return dict.__getitem__(self, key)
+            except KeyError:
+                return u''
+    else:
+        def __missing__(self, key):
+            return u''
+
+    def copy(self):
+        return self.__class__(self)
 
     def __repr__(self):
         return '%s(%s)' % (
@@ -150,34 +160,40 @@ class StackedObject(object):
         """Pops the stacked object from the application stack."""
         raise NotImplementedError()
 
-    @contextmanager
-    def threadbound(self):
-        """Can be used in combination with the `with` statement to
-        execute code while the object is bound to the thread.
-        """
-        self.push_thread()
-        try:
-            yield self
-        finally:
-            self.pop_thread()
-
-    @contextmanager
-    def applicationbound(self):
-        """Can be used in combination with the `with` statement to
-        execute code while the object is bound to the application.
-        """
-        self.push_application()
-        try:
-            yield self
-        finally:
-            self.pop_application()
-
     def __enter__(self):
         self.push_thread()
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
         self.pop_thread()
+
+    class Bound(object):
+
+        def __init__(self, obj, push, pop):
+            self.__obj = obj
+            self.__push = push
+            self.__pop = pop
+
+        def __enter__(self):
+            self.__push()
+            return self.__obj
+
+        def __exit__(self, exc_type, exc_value, tb):
+            self.__pop()
+
+    def threadbound(self, _cls=Bound):
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the thread.
+        """
+        return _cls(self, self.push_thread, self.pop_thread)
+
+    def applicationbound(self, _cls=Bound):
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the application.
+        """
+        return _cls(self, self.push_application, self.pop_application)
+
+    del Bound
 
 
 class ContextObject(StackedObject):
@@ -260,8 +276,10 @@ class Processor(ContextObject):
 
 class _InheritedType(object):
     __slots__ = ()
+
     def __repr__(self):
         return 'Inherit'
+
     def __reduce__(self):
         return 'Inherit'
 Inherit = _InheritedType()
@@ -682,6 +700,8 @@ class LoggerMixin(object):
         """
         if self.disabled or ERROR < self.level:
             return
+        if not args:
+            args = ('Uncaught exception occurred',)
         if 'exc_info' not in kwargs:
             exc_info = sys.exc_info()
             assert exc_info[0] is not None, 'no exception occurred'
@@ -757,7 +777,8 @@ class RecordDispatcher(object):
         if not self.disabled and record.level >= self.level:
             self.call_handlers(record)
 
-    def make_record_and_handle(self, level, msg, args, kwargs, exc_info, extra):
+    def make_record_and_handle(self, level, msg, args, kwargs, exc_info,
+                               extra):
         """Creates a record from some given arguments and heads it
         over to the handling system.
         """

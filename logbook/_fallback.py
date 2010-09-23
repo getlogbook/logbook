@@ -8,8 +8,6 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-from __future__ import with_statement
-
 import threading
 from itertools import count
 from thread import get_ident as current_thread
@@ -67,7 +65,8 @@ class ContextStackManager(object):
         return iter(objects)
 
     def push_thread(self, obj):
-        with self._context_lock:
+        self._context_lock.acquire()
+        try:
             self._cache.pop(current_thread(), None)
             item = (self._stackop(), obj)
             stack = getattr(self._context, 'stack', None)
@@ -75,13 +74,18 @@ class ContextStackManager(object):
                 self._context.stack = [item]
             else:
                 stack.append(item)
+        finally:
+            self._context_lock.release()
 
     def pop_thread(self):
-        with self._context_lock:
+        self._context_lock.acquire()
+        try:
             self._cache.pop(current_thread(), None)
             stack = getattr(self._context, 'stack', None)
             assert stack, 'no objects on stack'
             return stack.pop()[1]
+        finally:
+            self._context_lock.release()
 
     def push_application(self, obj):
         self._global.append((self._stackop(), obj))
