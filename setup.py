@@ -52,6 +52,7 @@ Works for web apps too
                 # request.
 """
 
+import os
 import sys
 from setuptools import setup, Extension, Feature
 from distutils.command.build_ext import build_ext
@@ -93,14 +94,17 @@ class ve_build_ext(build_ext):
             raise BuildFailed()
 
 cmdclass['build_ext'] = ve_build_ext
-speedups = Feature('optional C speed-enhancement module', standard=True,
-                   ext_modules=[Extension('logbook._speedups',
-                                          ['logbook/_speedups.c'])])
+if os.path.isfile('logbook/_speedups.c'):
+    speedups = Feature('optional C speed-enhancement module', standard=True,
+                       ext_modules=[Extension('logbook._speedups',
+                                              ['logbook/_speedups.c'])])
+else:
+    speedups = None
 
 
 def run_setup(with_binary):
     features = {}
-    if with_binary:
+    if with_binary and speedups is not None:
         features['speedups'] = speedups
     setup(
         name='Logbook',

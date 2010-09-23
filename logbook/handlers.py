@@ -25,7 +25,7 @@ from threading import Lock
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
-from logbook.helpers import rename, F
+from logbook.helpers import rename, F, b
 
 
 DEFAULT_FORMAT_STRING = (
@@ -61,6 +61,8 @@ Message:
 '''
 
 SYSLOG_PORT = 514
+
+_py3 = sys.version_info >= (3, 0)
 
 
 def create_syshandler(application_name, level=NOTSET):
@@ -340,10 +342,10 @@ class HashingHandlerMixin(object):
     def hash_record_raw(self, record):
         """Returns a hashlib object with the hash of the record."""
         hash = hashlib.sha1()
-        hash.update('%d\x00' % record.level)
-        hash.update((record.channel or u'').encode('utf-8') + '\x00')
-        hash.update(record.filename.encode('utf-8') + '\x00')
-        hash.update(str(record.lineno))
+        hash.update(('%d\x00' % record.level).encode('ascii'))
+        hash.update((record.channel or u'').encode('utf-8') + b('\x00'))
+        hash.update(record.filename.encode('utf-8') + b('\x00'))
+        hash.update(b(str(record.lineno)))
         return hash
 
     def hash_record(self, record):
@@ -427,6 +429,11 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
 
         with StreamHandler(my_stream):
             pass
+
+    .. admonition:: Notes on the encoding
+
+       On Python 3, the encoding parameter is only used if a stream was
+       passed that was opened in binary mode.
     """
 
     def __init__(self, stream, level=NOTSET, format_string=None,
@@ -458,10 +465,14 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
 
     def format_and_encode(self, record):
         """Formats the record and encodes it to the stream encoding."""
-        enc = self.encoding
-        if enc is None:
-            enc = getattr(self.stream, 'encoding', None) or 'utf-8'
-        return (self.format(record) + u'\n').encode(enc, 'replace')
+        stream = self.stream
+        rv = self.format(record) + '\n'
+        if not _py3 or 'b' in stream.mode:
+            enc = self.encoding
+            if enc is None:
+                enc = getattr(stream, 'encoding', None) or 'utf-8'
+            rv = rv.encode(enc, 'replace')
+        return rv
 
     def write(self, item):
         """Writes a bytestring to the stream."""

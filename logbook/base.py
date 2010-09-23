@@ -20,7 +20,8 @@ from itertools import chain
 from weakref import ref as weakref
 from datetime import datetime
 
-from logbook.helpers import to_safe_json, parse_iso8601, cached_property, F
+from logbook.helpers import to_safe_json, parse_iso8601, cached_property, \
+     F, _py3
 
 
 # make sure to sync these up with _speedups.pyx
@@ -47,7 +48,7 @@ _missing = object()
 
 # on python 3 we can savely assume that frame filenames will be in
 # unicode, on Python 2 we have to apply a trick.
-if sys.version_info >= (3, 0):
+if _py3:
     def _convert_frame_filename(fn):
         return fn
 else:
@@ -581,8 +582,9 @@ class LogRecord(object):
         in case there was any.
         """
         if self.exc_info is not None:
-            lines = traceback.format_exception(*self.exc_info)
-            rv = ''.join(lines).decode('utf-8', 'replace')
+            rv = ''.join(traceback.format_exception(*self.exc_info))
+            if not _py3:
+                rv = rv.decode('utf-8', 'replace')
             return rv.rstrip()
 
     @cached_property

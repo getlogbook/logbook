@@ -39,6 +39,11 @@ _iso8601_re = re.compile(
     r'(?:T(\d{2}):(\d{2})(?::(\d{2}(?:\.\d+)?))?(Z|[+-]\d{2}:\d{2})?)?$'
 )
 _missing = object()
+_py3 = sys.version_info >= (3, 0)
+if _py3:
+    def b(x): return x.encode('ascii')
+else:
+    def b(x): return x
 
 
 can_rename_open_file = False
@@ -126,10 +131,10 @@ def to_safe_json(data):
     """Makes a data structure safe for JSON silently discarding invalid
     objects from nested structures.  This also converts dates.
     """
-    def _convert(obj, _py2=sys.version_info < (3, 0)):
+    def _convert(obj):
         if obj is None:
             return None
-        elif _py2 and isinstance(obj, str):
+        elif not _py3 and isinstance(obj, str):
             return obj.decode('utf-8', 'replace')
         elif isinstance(obj, (bool, int, long, float, unicode)):
             return obj
@@ -142,7 +147,7 @@ def to_safe_json(data):
         elif isinstance(obj, dict):
             rv = {}
             for key, value in obj.iteritems():
-                if _py2 and isinstance(key, str):
+                if not _py3 and isinstance(key, str):
                     key = key.decode('utf-8', 'replace')
                 else:
                     key = unicode(key)
