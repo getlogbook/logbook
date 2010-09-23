@@ -961,6 +961,7 @@ class QueuesTestCase(LogbookTestCase):
         self.assertRaises(RuntimeError, ZeroMQSubscriber,
                           'tcp://127.0.0.1:42000')
 
+    @require('multiprocessing')
     def test_multi_processing_handler(self):
         from multiprocessing import Process, Queue
         from logbook.queues import MultiProcessingHandler, \
@@ -1015,6 +1016,7 @@ class QueuesTestCase(LogbookTestCase):
         self.assertEqual(record.msg, 'Execnet works')
         gw.exit()
 
+    @require('multiprocessing')
     def test_subscriber_group(self):
         from multiprocessing import Process, Queue
         from logbook.queues import MultiProcessingHandler, \
