@@ -6,7 +6,7 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 test:
-	@python setup.py test
+	@python -c "import unittest as x; x.main('logbook.testsuite', 'suite')"
 
 toxtest:
 	@tox
