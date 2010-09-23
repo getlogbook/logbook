@@ -45,6 +45,19 @@ _reverse_level_names = dict((v, k) for (k, v) in _level_names.iteritems())
 _missing = object()
 
 
+# on python 3 we can savely assume that frame filenames will be in
+# unicode, on Python 2 we have to apply a trick.
+if sys.version_info >= (3, 0):
+    def _convert_frame_filename(fn):
+        return fn
+else:
+    def _convert_frame_filename(fn):
+        if isinstance(fn, unicode):
+            fn = fn.decode(sys.getfilesystemencoding() or 'utf-8',
+                           'replace')
+        return fn
+
+
 def level_name_property():
     """Returns a property that reflects the level as name from
     the internal level attribute.
@@ -521,8 +534,7 @@ class LogRecord(object):
             fn = cf.f_code.co_filename
             if fn[:1] == '<' and fn[-1:] == '>':
                 return fn
-            return os.path.abspath(fn).decode(sys.getfilesystemencoding()
-                                              or 'utf-8', 'replace')
+            return _convert_frame_filename(os.path.abspath(fn))
 
     @cached_property
     def lineno(self):

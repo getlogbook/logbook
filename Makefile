@@ -8,6 +8,9 @@ clean-pyc:
 test:
 	@python setup.py test
 
+toxtest:
+	@tox
+
 bench:
 	@python benchmark/run.py
 

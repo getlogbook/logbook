@@ -112,11 +112,9 @@ def run_setup(with_binary):
         description='A logging replacement for Python',
         long_description=__doc__,
         packages=['logbook', 'logbook.testsuite'],
+        test_suite='logbook.testsuite.suite',
         zip_safe=False,
         platforms='any',
-        tests_require='''
-            SQLAlchemy>=0.6
-        ''',
         cmdclass=cmdclass,
         features=features,
         **extra
