@@ -902,17 +902,31 @@ class MoreTestCase(LogbookTestCase):
 
 class QueuesTestCase(LogbookTestCase):
 
+    def _get_zeromq(self):
+        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
+
+        # Get an unused port
+        tempsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tempsock.bind(('localhost', 0))
+        host, unused_port = tempsock.getsockname()
+        tempsock.close()
+
+        # Retrieve the ZeroMQ handler and subscriber
+        uri = 'tcp://%s:%d' % (host, unused_port)
+        handler = ZeroMQHandler(uri)
+        subscriber = ZeroMQSubscriber(uri)
+        # Enough time to start
+        time.sleep(0.1)
+        return handler, subscriber
+
     @require('zmq')
     def test_zeromq_handler(self):
-        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
         tests = [
             u'Logging something',
             u'Something with umlauts äöü',
             u'Something else for good measure',
         ]
-        uri = 'tcp://127.0.0.1:42000'
-        handler = ZeroMQHandler(uri)
-        subscriber = ZeroMQSubscriber(uri)
+        handler, subscriber = self._get_zeromq()
         for test in tests:
             with handler:
                 self.log.warn(test)
@@ -922,10 +936,7 @@ class QueuesTestCase(LogbookTestCase):
 
     @require('zmq')
     def test_zeromq_background_thread(self):
-        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
-        uri = 'tcp://127.0.0.1:42001'
-        handler = ZeroMQHandler(uri)
-        subscriber = ZeroMQSubscriber(uri)
+        handler, subscriber = self._get_zeromq()
         test_handler = logbook.TestHandler()
         controller = subscriber.dispatch_in_background(test_handler)
 
