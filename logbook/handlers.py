@@ -522,6 +522,13 @@ class FileHandler(StreamHandler):
             self.stream.close()
             self.stream = None
 
+    def format_and_encode(self, record):
+        # encodes based on the stream settings, so the stream has to be
+        # open at the time this function is called.
+        if self.stream is None:
+            self._open()
+        return StreamHandler.format_and_encode(self, record)
+
     def emit(self, record):
         if self.stream is None:
             self._open()
@@ -587,23 +594,36 @@ class StderrHandler(StreamHandler):
 
 
 class RotatingFileHandlerBase(FileHandler):
-    """Baseclass for rotating file handlers."""
+    """Baseclass for rotating file handlers.
+
+    .. versionchanged:: 0.3
+       This class was deprecated because the interface is not flexible
+       enough to implement proper file rotations.  The former builtin
+       subclasses no longer use this baseclass.
+    """
+
+    def __init__(self, *args, **kwargs):
+        from warnings import warn
+        warn(DeprecationWarning('This class is deprecated'))
+        FileHandler.__init__(self, *args, **kwargs)
 
     def emit(self, record):
         with self.lock:
-            if self.stream is None:
-                self._open()
             msg = self.format_and_encode(record)
-            if self.should_rollover(record, len(msg)):
+            if self.should_rollover(record, msg):
                 self.perform_rollover()
             self.write(msg)
             self.flush()
 
-    def should_rollover(self, record, bytes):
-        """Called with the log record and the number of bytes that
-        would be written into the file.  The method has then to
+    def should_rollover(self, record, formatted_record):
+        """Called with the log record and the return value of the
+        :meth:`format_and_encode` method.  The method has then to
         return `True` if a rollover should happen or `False`
         otherwise.
+
+        .. versionchanged:: 0.3
+           Previously this method was called with the number of bytes
+           returned by :meth:`format_and_encode`
         """
         return False
 
@@ -613,7 +633,7 @@ class RotatingFileHandlerBase(FileHandler):
         """
 
 
-class RotatingFileHandler(RotatingFileHandlerBase):
+class RotatingFileHandler(FileHandler):
     """This handler rotates based on file size.  Once the maximum size
     is reached it will reopen the file and start with an empty file
     again.  The old file is moved into a backup copy (named like the
@@ -630,12 +650,26 @@ class RotatingFileHandler(RotatingFileHandlerBase):
     def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
                  format_string=None, delay=False, max_size=1024 * 1024,
                  backup_count=5, filter=None, bubble=False):
-        RotatingFileHandlerBase.__init__(self, filename, mode, encoding, level,
-                                         format_string, delay, filter, bubble)
+        # on python3 we have to make sure we open the file in binary mode
+        # so that format_and_encode returns it already encoded and we are
+        # ready to to write it.  This is necessary so that rotating file
+        # handlers are able to decide on the correct filesize.
+        if _py3 and 'b' not in mode:
+            mode += 'b'
+        FileHandler.__init__(self, filename, mode, encoding, level,
+                             format_string, delay, filter, bubble)
         self.max_size = max_size
         self.backup_count = backup_count
         assert backup_count > 0, 'at least one backup file has to be ' \
                                  'specified'
+
+    # if a file is reopened, we also have to make sure that the file
+    # is opened in binary mode.  This is unnecessary on python 2
+    if _py3:
+        def _open(self, mode=None):
+            if mode is not None and 'b' not in mode:
+                mode += 'b'
+            return FileHandler._open(self, mode)
 
     def should_rollover(self, record, bytes):
         self.stream.seek(0, 2)
@@ -654,8 +688,16 @@ class RotatingFileHandler(RotatingFileHandlerBase):
         rename(self._filename, self._filename + '.1')
         self._open('w')
 
+    def emit(self, record):
+        with self.lock:
+            msg = self.format_and_encode(record)
+            if self.should_rollover(record, len(msg)):
+                self.perform_rollover()
+            self.write(msg)
+            self.flush()
 
-class TimedRotatingFileHandler(RotatingFileHandlerBase):
+
+class TimedRotatingFileHandler(FileHandler):
     """This handler rotates based on dates.  It will name the file
     after the filename you specify and the `date_format` pattern.
 
@@ -677,8 +719,8 @@ class TimedRotatingFileHandler(RotatingFileHandlerBase):
     def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
                  format_string=None, date_format='%Y-%m-%d',
                  backup_count=0, filter=None, bubble=False):
-        RotatingFileHandlerBase.__init__(self, filename, mode, encoding, level,
-                                         format_string, True, filter, bubble)
+        FileHandler.__init__(self, filename, mode, encoding, level,
+                             format_string, True, filter, bubble)
         self.date_format = date_format
         self.backup_count = backup_count
         self._fn_parts = os.path.splitext(os.path.abspath(filename))
@@ -688,7 +730,7 @@ class TimedRotatingFileHandler(RotatingFileHandlerBase):
         return datetime.strftime('-' + self.date_format) \
                        .join(self._fn_parts)
 
-    def should_rollover(self, record, bytes):
+    def should_rollover(self, record):
         fn = self._get_timed_filename(record.time)
         rv = self._filename is not None and self._filename != fn
         # remember the current filename.  In case rv is True, the rollover
@@ -716,6 +758,13 @@ class TimedRotatingFileHandler(RotatingFileHandlerBase):
             for time, filename in self.files_to_delete():
                 os.remove(filename)
         self._open('w')
+
+    def emit(self, record):
+        with self.lock:
+            if self.should_rollover(record):
+                self.perform_rollover()
+            self.write(self.format_and_encode(record))
+            self.flush()
 
 
 class TestHandler(Handler, StringFormatterHandlerMixin):

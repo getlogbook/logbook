@@ -10,6 +10,8 @@ Release date to be announced.  Codename to be selected.
 
 - Added :class:`logbook.more.ColorizingStreamHandlerMixin` and
   :class:`logbook.more.ColorizedStderrHandler`
+- Deprecated :class:`logbook.RotatingFileHandlerBase` because the
+  interface was not flexible enough.
 
 Version 0.2.1
 -------------
