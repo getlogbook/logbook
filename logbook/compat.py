@@ -9,13 +9,11 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-
 import sys
 import logging
 import warnings
 import logbook
 from datetime import date, datetime
-from contextlib import contextmanager
 
 
 _epoch_ord = date(1970, 1, 1).toordinal()
@@ -30,8 +28,7 @@ def redirect_logging():
     logging.root.addHandler(RedirectLoggingHandler())
 
 
-@contextmanager
-def redirected_logging():
+class redirected_logging(object):
     """Temporarily redirects logging for all threads and reverts
     it later to the old handlers.  Mainly used by the internal
     unittests::
@@ -40,12 +37,17 @@ def redirected_logging():
         with redirected_logging():
             ...
     """
-    old_handlers = logging.root.handlers[:]
-    redirect_logging()
-    try:
-        yield
-    finally:
-        logging.root.handlers[:] = old_handlers
+    def __init__(self):
+        self.old_handlers = logging.root.handlers[:]
+
+    def start(self):
+        redirect_logging()
+
+    def end(self, etype=None, evalue=None, tb=None):
+        logging.root.handlers[:] = self.old_handlers
+
+    __enter__ = start
+    __exit__ = end
 
 
 class RedirectLoggingHandler(logging.Handler):
@@ -171,14 +173,18 @@ class LoggingHandler(logbook.Handler):
 
     def convert_record(self, old_record):
         """Converts a record from logbook to logging."""
+        if sys.version_info >= (2, 5):
+            # make sure 2to3 does not screw this up
+            optional_kwargs = {'func': getattr(old_record, 'func_name')}
+        else:
+            optional_kwargs = {}
         record = logging.LogRecord(old_record.channel,
                                    self.convert_level(old_record.level),
                                    old_record.filename,
                                    old_record.lineno,
                                    old_record.message,
                                    (), old_record.exc_info,
-                                   # make sure 2to3 does not screw this up
-                                   getattr(old_record, 'func_name'))
+                                   **optional_kwargs)
         for key, value in old_record.extra.iteritems():
             record.__dict__.setdefault(key, value)
         record.created = self.convert_time(old_record.time)
@@ -234,13 +240,14 @@ class redirected_warnings(object):
         rv.lineno = lineno
         return rv
 
-    def __enter__(self):
+    def start(self):
         if self._entered:  # pragma: no cover
             raise RuntimeError("Cannot enter %r twice" % self)
         self._entered = True
         self._filters = warnings.filters
         warnings.filters = self._filters[:]
         self._showwarning = warnings.showwarning
+
         def showwarning(message, category, filename, lineno,
                         file=None, line=None):
             message = self.message_to_unicode(message)
@@ -248,8 +255,11 @@ class redirected_warnings(object):
             logbook.dispatch_record(record)
         warnings.showwarning = showwarning
 
-    def __exit__(self, exc_type, exc_value, tb):
+    def end(self, etype=None, evalue=None, tb=None):
         if not self._entered:  # pragma: no cover
             raise RuntimeError("Cannot exit %r without entering first" % self)
         warnings.filters = self._filters
         warnings.showwarning = self._showwarning
+
+    __enter__ = start
+    __exit__ = end
