@@ -580,6 +580,8 @@ class RotatingFileHandlerBase(FileHandler):
 
     def emit(self, record):
         with self.lock:
+            if self.stream is None:
+                self._open()
             msg = self.format_and_encode(record)
             if self.should_rollover(record, len(msg)):
                 self.perform_rollover()
