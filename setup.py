@@ -59,6 +59,10 @@ from distutils.errors import CCompilerError, DistutilsExecError, \
     DistutilsPlatformError
 
 
+extra = {}
+cmdclass = {}
+
+
 class BuildFailed(Exception):
     pass
 
@@ -69,8 +73,10 @@ if sys.platform == 'win32' and sys.version_info > (2, 6):
    # find the compiler
    ext_errors += (IOError,)
 
+if sys.version_info >= (3, 0):
+    extra['use_2to3'] = True
 
-cmdclass = {}
+
 class ve_build_ext(build_ext):
     """This class allows C extension building to fail."""
 
@@ -113,7 +119,8 @@ def run_setup(with_binary):
         ''',
         test_suite='test_logbook',
         cmdclass=cmdclass,
-        features=features
+        features=features,
+        **extra
     )
 
 
