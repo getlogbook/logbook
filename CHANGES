@@ -12,6 +12,10 @@ Release date to be announced.  Codename to be selected.
   :class:`logbook.more.ColorizedStderrHandler`
 - Deprecated :class:`logbook.RotatingFileHandlerBase` because the
   interface was not flexible enough.
+- Provided basic Python 3 compatibility.  This did cause a few smaller
+  API changes that caused minimal changes on Python 2 as well.  The
+  deprecation of the :class:`logbook.RotatingFileHandlerBase` was a
+  result of this.
 
 Version 0.2.1
 -------------

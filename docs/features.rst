@@ -9,8 +9,8 @@ But give it a try, we think it will work out for you and be fun to use :)
 
 Furthermore because it was prototyped in a couple of days, it leverages
 some features of Python that are not available in older Python releases.
-Logbook current requires Python 2.5 or higher and does not yet support
-Python 3 but support is upcoming.
+Logbook current requires Python 2.5 or higher including Python 3 (3.1 or
+higher, 3.0 is not supported).
 
 Core Features
 -------------
