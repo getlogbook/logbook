@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-import logbook
-
 import os
 import re
 import sys
@@ -18,11 +16,14 @@ from datetime import datetime, timedelta
 from random import randrange
 from itertools import izip
 from cStringIO import StringIO
-from logbook.helpers import json
 
+import logbook
 
 _skipped_modules = []
 _missing = object()
+_func_ident = lambda f: f
+_func_none = lambda f: None
+test_file = __file__.rstrip('co')
 
 
 class capture_stderr(object):
@@ -46,17 +47,22 @@ class capture_stderr(object):
 capture_stderr = capture_stderr()
 
 
+def skip_if(condition):
+    if condition:
+        return _func_ident
+    else:
+        return _func_none
+
+
 def require(name):
-    def decorate(f):
-        if name in _skipped_modules:
-            return None
-        try:
-            __import__(name)
-        except ImportError:
-            _skipped_modules.append(name)
-            return None
-        return f
-    return decorate
+    if name in _skipped_modules:
+        return _func_none
+    try:
+        __import__(name)
+    except ImportError:
+        _skipped_modules.append(name)
+        return _func_none
+    return _func_ident
 
 
 def missing(name):
@@ -194,8 +200,8 @@ class BasicAPITestCase(LogbookTestCase):
         self.assert_("msg='Hello {foo:invalid}'" in errormsg)
         self.assert_('args=()' in errormsg)
         self.assert_("kwargs={'foo': 42}" in errormsg)
-        self.assert_(re.search('Happened in file .*test_logbook.py, '
-                               'line \d+', errormsg))
+        self.assert_(re.search('Happened in file .*%s, line \d+' % test_file,
+                               errormsg))
 
     def test_exception_catching(self):
         logger = logbook.Logger('Test')
@@ -307,6 +313,8 @@ class HandlerTestCase(LogbookTestCase):
         finally:
             f.close()
 
+    # unsupported on windows due to different IO (also unneeded)
+    @skip_if(os.name == 'nt')
     def test_monitoring_file_handler(self):
         handler = logbook.MonitoringFileHandler(self.filename,
             format_string='{record.level_name}:{record.channel}:'
@@ -325,10 +333,6 @@ class HandlerTestCase(LogbookTestCase):
                              'WARNING:testlogger:another warning message')
         finally:
             f.close()
-
-    # unsupported on windows due to different IO (also unneeded)
-    if os.name == 'nt':
-        del test_monitoring_file_handler
 
     def test_custom_formatter(self):
         def custom_format(record, handler):
@@ -436,7 +440,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(sender, handler.from_addr)
             self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
             self.assert_(re.search('Message type:\s+ERROR', mail))
-            self.assert_(re.search('Location:.*test_logbook.py', mail))
+            self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
             self.assert_(re.search('Function:\s+test_mail_handler', mail))
             self.assert_('Message:\r\n\r\nThis is unfortunate' in mail)
@@ -490,8 +494,8 @@ class HandlerTestCase(LogbookTestCase):
                     rv = inc.recvfrom(1024)[0]
                 except socket.error:
                     self.fail('got timeout on socket')
-                    self.assertEqual(rv, '<12>testlogger: Syslog is weird\x00'
-                                     % (app_name and app_name + ':' or ''))
+                self.assertEqual(rv, '<12>%stestlogger: Syslog is weird\x00' %
+                                     (app_name and app_name + ':' or ''))
 
     def test_handler_processors(self):
         handler = make_fake_mail_handler(format_string='''\
@@ -981,7 +985,7 @@ class WarningsCompatTestCase(LogbookTestCase):
         self.assertEqual(len(handler.records), 1)
         self.assertEqual('[WARNING] RuntimeWarning: Testing',
                          handler.formatted_records[0])
-        self.assert_('test_logbook.py' in handler.records[0].filename)
+        self.assert_(test_file in handler.records[0].filename)
 
 
 class MoreTestCase(LogbookTestCase):
@@ -1143,20 +1147,52 @@ class MoreTestCase(LogbookTestCase):
         # check the RuntimeError is raised
         self.assertRaises(RuntimeError, JinjaFormatter, 'dummy')
 
+    def test_colorizing_support(self):
+        from logbook.more import ColorizedStderrHandler
+
+        class TestColorizingHandler(ColorizedStderrHandler):
+            def should_colorize(self, record):
+                return True
+            stream = StringIO()
+        with TestColorizingHandler(format_string='{record.message}') as handler:
+            self.log.error('An error')
+            self.log.warn('A warning')
+            self.log.debug('A debug message')
+            lines = handler.stream.getvalue().rstrip('\n').splitlines()
+            self.assertEqual(lines, [
+                '\x1b[31;01mAn error\x1b[39;49;00m',
+                '\x1b[33;01mA warning\x1b[39;49;00m',
+                '\x1b[37mA debug message\x1b[39;49;00m'
+            ])
+
 
 class QueuesTestCase(LogbookTestCase):
 
+    def _get_zeromq(self):
+        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
+
+        # Get an unused port
+        tempsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tempsock.bind(('localhost', 0))
+        host, unused_port = tempsock.getsockname()
+        tempsock.close()
+
+        # Retrieve the ZeroMQ handler and subscriber
+        uri = 'tcp://%s:%d' % (host, unused_port)
+        handler = ZeroMQHandler(uri)
+        subscriber = ZeroMQSubscriber(uri)
+        # Enough time to start
+        time.sleep(0.1)
+        return handler, subscriber
+
     @require('zmq')
     def test_zeromq_handler(self):
-        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
         tests = [
             u'Logging something',
             u'Something with umlauts äöü',
             u'Something else for good measure',
         ]
-        uri = 'tcp://127.0.0.1:42000'
-        handler = ZeroMQHandler(uri)
-        subscriber = ZeroMQSubscriber(uri)
+        handler, subscriber = self._get_zeromq()
         for test in tests:
             handler.push_application()
             try:
@@ -1169,10 +1205,7 @@ class QueuesTestCase(LogbookTestCase):
 
     @require('zmq')
     def test_zeromq_background_thread(self):
-        from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
-        uri = 'tcp://127.0.0.1:42001'
-        handler = ZeroMQHandler(uri)
-        subscriber = ZeroMQSubscriber(uri)
+        handler, subscriber = self._get_zeromq()
         test_handler = logbook.TestHandler()
         controller = subscriber.dispatch_in_background(test_handler)
 
@@ -1340,7 +1373,7 @@ class TicketingTestCase(LogbookTestCase):
                                                  order_by='time')
         self.assertEqual(len(occurrences), 2)
         record = occurrences[0]
-        self.assert_('test_logbook.py' in record.filename)
+        self.assert_(test_file in record.filename)
         self.assertEqual(record.func_name, 'test_basic_ticketing')
         self.assertEqual(record.level, logbook.ERROR)
         self.assertEqual(record.thread, thread.get_ident())

@@ -8,6 +8,9 @@ clean-pyc:
 test:
 	@python test_logbook.py --verbose
 
+bench:
+	@python benchmark/run.py
+
 upload-docs:
 	make -C docs html SPHINXOPTS=-Aonline=1
 	python setup.py upload_docs
@@ -19,4 +22,4 @@ logbook/_speedups.so: logbook/_speedups.pyx
 
 cybuild: logbook/_speedups.so
 
-.PHONY: test upload-docs clean-pyc cybuild all
+.PHONY: test upload-docs clean-pyc cybuild bench all

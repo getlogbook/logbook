@@ -8,6 +8,9 @@ Version 0.3
 
 Release date to be announced.  Codename to be selected.
 
+- Added :class:`logbook.more.ColorizingStreamHandlerMixin` and
+  :class:`logbook.more.ColorizedStderrHandler`
+
 Version 0.2.1
 -------------
 
