@@ -24,7 +24,7 @@ def list_benchmarks():
         match = _filename_re.match(name)
         if match is not None:
             result.append(match.group(1))
-    result.sort(key=lambda x: x.lower())
+    result.sort(key=lambda x: (x.startswith('logging_'), x.lower()))
     return result
 
 
