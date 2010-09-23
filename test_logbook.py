@@ -23,7 +23,27 @@ import logbook
 
 _skipped_modules = []
 _missing = object()
+_func_ident = lambda f: f
+_func_none = lambda f: None
 test_file = __file__.rstrip('co')
+
+
+def skip_if(condition):
+    if condition:
+        return _func_ident
+    else:
+        return _func_none
+
+
+def require(name):
+    if name in _skipped_modules:
+        return _func_none
+    try:
+        __import__(name)
+    except ImportError:
+        _skipped_modules.append(name)
+        return _func_none
+    return _func_ident
 
 
 @contextmanager
@@ -34,19 +54,6 @@ def capture_stderr():
         yield sys.stderr
     finally:
         sys.stderr = old
-
-
-def require(name):
-    def decorate(f):
-        if name in _skipped_modules:
-            return None
-        try:
-            __import__(name)
-        except ImportError:
-            _skipped_modules.append(name)
-            return None
-        return f
-    return decorate
 
 
 def missing(name):
@@ -253,6 +260,8 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline(),
                              'WARNING:testlogger:warning message\n')
 
+    # unsupported on windows due to different IO (also unneeded)
+    @skip_if(os.name == 'nt')
     def test_monitoring_file_handler(self):
         handler = logbook.MonitoringFileHandler(self.filename,
             format_string='{record.level_name}:{record.channel}:'
@@ -265,10 +274,6 @@ class HandlerTestCase(LogbookTestCase):
         with open(self.filename) as f:
             self.assertEqual(f.read().strip(),
                              'WARNING:testlogger:another warning message')
-
-    # unsupported on windows due to different IO (also unneeded)
-    if os.name == 'nt':
-        del test_monitoring_file_handler
 
     def test_custom_formatter(self):
         def custom_format(record, handler):
