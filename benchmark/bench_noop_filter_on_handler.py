@@ -1,3 +1,4 @@
+"""Like the filter test, but with the should_handle implemented"""
 from logbook import Logger, StreamHandler, NullHandler
 from cStringIO import StringIO
 

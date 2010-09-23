@@ -1,3 +1,4 @@
+"""Benchmarks too low logger levels"""
 from logbook import Logger, ERROR
 
 

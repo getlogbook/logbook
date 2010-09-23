@@ -1,3 +1,4 @@
+"""Tests with stack frame introspection enabled"""
 from logbook import Logger, NullHandler, Flags
 
 

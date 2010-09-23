@@ -1,3 +1,4 @@
+"""Tests logging file handler in comparison"""
 from logging import getLogger, FileHandler
 from tempfile import NamedTemporaryFile
 

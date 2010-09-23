@@ -1,3 +1,4 @@
+"""Tests with a filter disabling a handler for comparsion in logging"""
 from logging import getLogger, StreamHandler, Filter
 from cStringIO import StringIO
 

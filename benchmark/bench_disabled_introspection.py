@@ -1,3 +1,4 @@
+"""Tests with frame introspection disabled"""
 from logbook import Logger, NullHandler, Flags
 
 
