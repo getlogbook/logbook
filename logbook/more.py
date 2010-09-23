@@ -344,7 +344,7 @@ class ColorizingStreamHandlerMixin(object):
         if self.should_colorize(record):
             color = self.get_color(record)
             if color:
-                rv = colorize(color, rv.rstrip('\n')) + '\n'
+                rv = colorize(color, rv)
         return rv
 
 

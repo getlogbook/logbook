@@ -914,9 +914,10 @@ class MoreTestCase(LogbookTestCase):
             self.log.debug('A debug message')
             lines = handler.stream.getvalue().rstrip('\n').splitlines()
             self.assertEqual(lines, [
-                '\x1b[31;01mAn error\x1b[39;49;00m',
-                '\x1b[33;01mA warning\x1b[39;49;00m',
-                '\x1b[37mA debug message\x1b[39;49;00m'
+                '\x1b[31;01mAn error',
+                '\x1b[39;49;00m\x1b[33;01mA warning',
+                '\x1b[39;49;00m\x1b[37mA debug message',
+                '\x1b[39;49;00m'
             ])
 
 
