@@ -178,7 +178,7 @@ class StackedObject(object):
             self.__push()
             return self.__obj
 
-        def __exit__(self, etype, evalue, tb):
+        def __exit__(self, exc_type, exc_value, tb):
             self.__pop()
 
     def threadbound(self, _cls=Bound):
@@ -276,8 +276,10 @@ class Processor(ContextObject):
 
 class _InheritedType(object):
     __slots__ = ()
+
     def __repr__(self):
         return 'Inherit'
+
     def __reduce__(self):
         return 'Inherit'
 Inherit = _InheritedType()
@@ -699,7 +701,7 @@ class LoggerMixin(object):
         if self.disabled or ERROR < self.level:
             return
         if not args:
-            args = ('Uncaught exception occurred', )
+            args = ('Uncaught exception occurred',)
         if 'exc_info' not in kwargs:
             exc_info = sys.exc_info()
             assert exc_info[0] is not None, 'no exception occurred'
@@ -775,7 +777,8 @@ class RecordDispatcher(object):
         if not self.disabled and record.level >= self.level:
             self.call_handlers(record)
 
-    def make_record_and_handle(self, level, msg, args, kwargs, exc_info, extra):
+    def make_record_and_handle(self, level, msg, args, kwargs, exc_info,
+                               extra):
         """Creates a record from some given arguments and heads it
         over to the handling system.
         """

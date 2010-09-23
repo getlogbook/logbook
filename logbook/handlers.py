@@ -284,9 +284,11 @@ class StringFormatter(object):
 
     def _get_format_string(self):
         return self._format_string
+
     def _set_format_string(self, value):
         self._format_string = value
         self._formatter = F(value)
+
     format_string = property(_get_format_string, _set_format_string)
     del _get_format_string, _set_format_string
 
@@ -328,11 +330,13 @@ class StringFormatterHandlerMixin(object):
     def _get_format_string(self):
         if isinstance(self.formatter, StringFormatter):
             return self.formatter.format_string
+
     def _set_format_string(self, value):
         if value is None:
             self.formatter = None
         else:
             self.formatter = self.formatter_class(value)
+
     format_string = property(_get_format_string, _set_format_string)
     del _get_format_string, _set_format_string
 
@@ -558,7 +562,8 @@ class MonitoringFileHandler(FileHandler):
         FileHandler.__init__(self, filename, mode, encoding, level,
                              format_string, delay, filter, bubble)
         if os.name == 'nt':
-            raise RuntimeError('MonitoringFileHandler does not support Windows')
+            raise RuntimeError('MonitoringFileHandler '
+                               'does not support Windows')
         self._query_fd()
 
     def _query_fd(self):
@@ -687,12 +692,15 @@ class RotatingFileHandler(FileHandler):
         self._open('w')
 
     def emit(self, record):
-        with self.lock:
+        self.lock.acquire()
+        try:
             msg = self.format_and_encode(record)
             if self.should_rollover(record, len(msg)):
                 self.perform_rollover()
             self.write(msg)
             self.flush()
+        finally:
+            self.lock.release()
 
 
 class TimedRotatingFileHandler(FileHandler):
@@ -758,11 +766,14 @@ class TimedRotatingFileHandler(FileHandler):
         self._open('w')
 
     def emit(self, record):
-        with self.lock:
+        self.lock.acquire()
+        try:
             if self.should_rollover(record):
                 self.perform_rollover()
             self.write(self.format_and_encode(record))
             self.flush()
+        finally:
+            self.lock.release()
 
 
 class TestHandler(Handler, StringFormatterHandlerMixin):
@@ -970,7 +981,10 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         (:class:`email.message.Message`).  `suppressed` is the number
         of mails not sent if the `record_limit` feature is active.
         """
-        from email.Message import Message
+        try:
+            from email.message import Message
+        except ImportError:  # Python 2.4
+            from email.Message import Message
         msg = Message()
         lineiter = iter(self.format(record).splitlines())
         for line in lineiter:
@@ -990,7 +1004,10 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         with headers and date.  `suppressed` is the number of mails
         that were not send if the `record_limit` feature is active.
         """
-        from email.Utils import formatdate
+        try:
+            from email.utils import formatdate
+        except ImportError:  # Python 2.4
+            from email.Utils import formatdate
         msg = self.message_from_record(record, suppressed)
         msg['From'] = self.from_addr
         msg['Date'] = formatdate()
@@ -1205,7 +1222,8 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
                                'operating system.')
 
         try:
-            import win32evtlogutil, win32evtlog
+            import win32evtlogutil
+            import win32evtlog
         except ImportError:
             raise RuntimeError('The pywin32 library is required '
                                'for the NTEventLogHandler.')
