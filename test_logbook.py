@@ -46,16 +46,6 @@ def require(name):
     return _func_ident
 
 
-@contextmanager
-def capture_stderr():
-    old = sys.stderr
-    sys.stderr = StringIO()
-    try:
-        yield sys.stderr
-    finally:
-        sys.stderr = old
-
-
 def missing(name):
     def decorate(f):
         @wraps(f)
@@ -71,6 +61,16 @@ def missing(name):
                     sys.modules[name] = old
         return wrapper
     return decorate
+
+
+@contextmanager
+def capture_stderr():
+    old = sys.stderr
+    sys.stderr = StringIO()
+    try:
+        yield sys.stderr
+    finally:
+        sys.stderr = old
 
 
 def make_fake_mail_handler(**kwargs):
