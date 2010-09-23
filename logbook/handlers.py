@@ -467,7 +467,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         """Formats the record and encodes it to the stream encoding."""
         stream = self.stream
         rv = self.format(record) + '\n'
-        if not _py3 or 'b' in stream.mode:
+        if not _py3 or stream.encoding is None:
             enc = self.encoding
             if enc is None:
                 enc = getattr(stream, 'encoding', None) or 'utf-8'
@@ -1164,12 +1164,14 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         return (facility << 3) | priority
 
     def emit(self, record):
-        prefix = ''
+        prefix = u''
         if self.application_name is not None:
-            prefix = self.application_name.encode('utf-8') + ':'
-        message = self.format(record).encode('utf-8')
-        self.send_to_socket('<%d>%s%s\x00' % (self.encode_priority(record),
-                                              prefix, message))
+            prefix = self.application_name + u':'
+        self.send_to_socket((u'<%d>%s%s\x00' % (
+            self.encode_priority(record),
+            prefix,
+            self.format(record)
+        )).encode('utf-8'))
 
     def send_to_socket(self, data):
         if self.unixsocket:
@@ -1179,7 +1181,8 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
                 self._connect_unixsocket()
                 self.socket.send(data)
         elif self.socktype == socket.SOCK_DGRAM:
-            self.socket.sendto(data, self.address)
+            # the flags are no longer optional on Python 3
+            self.socket.sendto(data, 0, self.address)
         else:
             self.socket.sendall(data)
 
