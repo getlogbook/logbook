@@ -25,7 +25,7 @@ from threading import Lock
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
-from logbook.helpers import rename, F, b
+from logbook.helpers import rename, F, b, _is_text_stream
 
 
 DEFAULT_FORMAT_STRING = (
@@ -467,7 +467,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         """Formats the record and encodes it to the stream encoding."""
         stream = self.stream
         rv = self.format(record) + '\n'
-        if not _py3 or stream.encoding is None:
+        if not _py3 or not _is_text_stream(stream):
             enc = self.encoding
             if enc is None:
                 enc = getattr(stream, 'encoding', None) or 'utf-8'
@@ -500,7 +500,7 @@ class FileHandler(StreamHandler):
         StreamHandler.__init__(self, None, level, format_string,
                                encoding, filter, bubble)
         self._filename = filename
-        self._mode = self._validate_mode(mode)
+        self._mode = mode
         if delay:
             self.stream = None
         else:
@@ -509,15 +509,15 @@ class FileHandler(StreamHandler):
     def _open(self, mode=None):
         if mode is None:
             mode = self._mode
-        self.stream = open(self._filename, self._validate_mode(mode))
-
-    def _validate_mode(self, mode):
-        return mode
+        self.stream = open(self._filename, mode)
 
     def write(self, item):
         if self.stream is None:
             self._open()
-        StreamHandler.write(self, item)
+        if _py3 and isinstance(item, bytes):
+            self.stream.buffer.write(item)
+        else:
+            self.stream.write(item)
 
     def close(self):
         if self.stream is not None:
@@ -659,16 +659,6 @@ class RotatingFileHandler(FileHandler):
         self.backup_count = backup_count
         assert backup_count > 0, 'at least one backup file has to be ' \
                                  'specified'
-
-    # on python3 we have to make sure we open the file in binary mode
-    # so that format_and_encode returns it already encoded and we are
-    # ready to to write it.  This is necessary so that rotating file
-    # handlers are able to decide on the correct filesize.
-    if _py3:
-        def _validate_mode(self, mode):
-            if 'b' not in mode:
-                mode += 'b'
-            return mode
 
     def should_rollover(self, record, bytes):
         self.stream.seek(0, 2)

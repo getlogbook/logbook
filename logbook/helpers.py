@@ -41,9 +41,12 @@ _iso8601_re = re.compile(
 _missing = object()
 _py3 = sys.version_info >= (3, 0)
 if _py3:
+    import io
     def b(x): return x.encode('ascii')
+    def _is_text_stream(stream): return isinstance(stream, io.TextIOBase)
 else:
     def b(x): return x
+    def _is_text_stream(x): return True
 
 
 can_rename_open_file = False

@@ -19,7 +19,6 @@ import pickle
 import shutil
 import unittest
 import tempfile
-import string
 import socket
 from datetime import datetime, timedelta
 from random import randrange
@@ -35,6 +34,9 @@ _missing = object()
 _func_ident = lambda f: f
 _func_none = lambda f: None
 test_file = __file__.rstrip('co')
+
+
+LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 def skip_if(condition):
@@ -312,7 +314,7 @@ class HandlerTestCase(LogbookTestCase):
                                               )
         handler.format_string = '{record.message}'
         with handler:
-            for c, x in izip(string.letters, xrange(32)):
+            for c, x in izip(LETTERS, xrange(32)):
                 self.log.warn(c * 256)
         files = [x for x in os.listdir(self.dirname)
                  if x.startswith('rot.log')]
