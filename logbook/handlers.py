@@ -500,7 +500,7 @@ class FileHandler(StreamHandler):
         StreamHandler.__init__(self, None, level, format_string,
                                encoding, filter, bubble)
         self._filename = filename
-        self._mode = mode
+        self._mode = self._validate_mode(mode)
         if delay:
             self.stream = None
         else:
@@ -509,7 +509,10 @@ class FileHandler(StreamHandler):
     def _open(self, mode=None):
         if mode is None:
             mode = self._mode
-        self.stream = open(self._filename, mode)
+        self.stream = open(self._filename, self._validate_mode(mode))
+
+    def _validate_mode(self, mode):
+        return mode
 
     def write(self, item):
         if self.stream is None:
@@ -650,12 +653,6 @@ class RotatingFileHandler(FileHandler):
     def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
                  format_string=None, delay=False, max_size=1024 * 1024,
                  backup_count=5, filter=None, bubble=False):
-        # on python3 we have to make sure we open the file in binary mode
-        # so that format_and_encode returns it already encoded and we are
-        # ready to to write it.  This is necessary so that rotating file
-        # handlers are able to decide on the correct filesize.
-        if _py3 and 'b' not in mode:
-            mode += 'b'
         FileHandler.__init__(self, filename, mode, encoding, level,
                              format_string, delay, filter, bubble)
         self.max_size = max_size
@@ -663,13 +660,15 @@ class RotatingFileHandler(FileHandler):
         assert backup_count > 0, 'at least one backup file has to be ' \
                                  'specified'
 
-    # if a file is reopened, we also have to make sure that the file
-    # is opened in binary mode.  This is unnecessary on python 2
+    # on python3 we have to make sure we open the file in binary mode
+    # so that format_and_encode returns it already encoded and we are
+    # ready to to write it.  This is necessary so that rotating file
+    # handlers are able to decide on the correct filesize.
     if _py3:
-        def _open(self, mode=None):
-            if mode is not None and 'b' not in mode:
+        def _validate_mode(self, mode):
+            if 'b' not in mode:
                 mode += 'b'
-            return FileHandler._open(self, mode)
+            return mode
 
     def should_rollover(self, record, bytes):
         self.stream.seek(0, 2)
