@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, with_statement
 
-import logbook
-
 import os
 import re
 import sys
@@ -21,9 +19,11 @@ from contextlib import contextmanager
 from functools import wraps
 from cStringIO import StringIO
 
+import logbook
 
 _skipped_modules = []
 _missing = object()
+test_file = __file__.rstrip('co')
 
 
 @contextmanager
@@ -169,8 +169,8 @@ class BasicAPITestCase(LogbookTestCase):
         self.assert_("msg='Hello {foo:invalid}'" in errormsg)
         self.assert_('args=()' in errormsg)
         self.assert_("kwargs={'foo': 42}" in errormsg)
-        self.assert_(re.search('Happened in file .*test_logbook.py, '
-                               'line \d+', errormsg))
+        self.assert_(re.search('Happened in file .*%s, line \d+' % test_file,
+                               errormsg))
 
     def test_exception_catching(self):
         logger = logbook.Logger('Test')
@@ -349,7 +349,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(sender, handler.from_addr)
             self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
             self.assert_(re.search('Message type:\s+ERROR', mail))
-            self.assert_(re.search('Location:.*test_logbook.py', mail))
+            self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
             self.assert_(re.search('Function:\s+test_mail_handler', mail))
             self.assert_('Message:\r\n\r\nThis is unfortunate' in mail)
@@ -749,7 +749,7 @@ class WarningsCompatTestCase(LogbookTestCase):
         self.assertEqual(len(handler.records), 1)
         self.assertEqual('[WARNING] RuntimeWarning: Testing',
                          handler.formatted_records[0])
-        self.assert_('test_logbook.py' in handler.records[0].filename)
+        self.assert_(test_file in handler.records[0].filename)
 
 
 class MoreTestCase(LogbookTestCase):
@@ -1064,7 +1064,7 @@ class TicketingTestCase(LogbookTestCase):
                                                  order_by='time')
         self.assertEqual(len(occurrences), 2)
         record = occurrences[0]
-        self.assert_('test_logbook.py' in record.filename)
+        self.assert_(test_file in record.filename)
         self.assertEqual(record.func_name, 'test_basic_ticketing')
         self.assertEqual(record.level, logbook.ERROR)
         self.assertEqual(record.thread, thread.get_ident())
