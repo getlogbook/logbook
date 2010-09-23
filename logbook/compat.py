@@ -9,7 +9,6 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-
 import sys
 import logging
 import warnings
@@ -44,14 +43,11 @@ class redirected_logging(object):
     def start(self):
         redirect_logging()
 
-    def end(self):
+    def end(self, etype=None, evalue=None, tb=None):
         logging.root.handlers[:] = self.old_handlers
 
-    def __enter__(self):
-        self.start()
-
-    def __exit__(self, etype, evalue, tb):
-        self.end()
+    __enter__ = start
+    __exit__ = end
 
 
 class RedirectLoggingHandler(logging.Handler):
@@ -186,7 +182,8 @@ class LoggingHandler(logbook.Handler):
                                    old_record.filename,
                                    old_record.lineno,
                                    old_record.message,
-                                   (), old_record.exc_info, **optional_kwargs)
+                                   (), old_record.exc_info,
+                                   **optional_kwargs)
         for key, value in old_record.extra.iteritems():
             record.__dict__.setdefault(key, value)
         record.created = self.convert_time(old_record.time)
@@ -249,6 +246,7 @@ class redirected_warnings(object):
         self._filters = warnings.filters
         warnings.filters = self._filters[:]
         self._showwarning = warnings.showwarning
+
         def showwarning(message, category, filename, lineno,
                         file=None, line=None):
             message = self.message_to_unicode(message)
@@ -256,14 +254,11 @@ class redirected_warnings(object):
             logbook.dispatch_record(record)
         warnings.showwarning = showwarning
 
-    def end(self):
+    def end(self, etype=None, evalue=None, tb=None):
         if not self._entered:  # pragma: no cover
             raise RuntimeError("Cannot exit %r without entering first" % self)
         warnings.filters = self._filters
         warnings.showwarning = self._showwarning
 
-    def __enter__(self):
-        self.start()
-
-    def __exit__(self, etype, evalue, tb):
-        self.end()
+    __enter__ = start
+    __exit__ = end

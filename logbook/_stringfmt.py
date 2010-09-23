@@ -13,8 +13,16 @@
 import re
 import datetime
 
-from logbook.pycompat import partition
-
+if hasattr(str, 'partition'):
+    def partition(s, sep):
+        return s.partition(sep)
+else:   # Python 2.4
+    def partition(s, sep):
+        try:
+            left, right = s.split(sep, 1)
+        except ValueError:
+            return s, '', ''
+        return left, sep, right
 
 _integer_classes = (int, long)
 _date_classes = (datetime.datetime, datetime.date, datetime.time)

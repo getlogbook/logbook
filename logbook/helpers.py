@@ -17,6 +17,17 @@ import random
 from datetime import datetime, timedelta
 
 
+# Python 2.4 compatibility
+
+try:
+    any = any
+except NameError:
+    def any(iterable):
+        for item in iterable:
+            if item:
+                return True
+
+
 # Python 2.5 compatibility
 
 try:

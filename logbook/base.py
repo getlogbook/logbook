@@ -8,7 +8,6 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-
 import os
 import sys
 import thread
@@ -20,7 +19,6 @@ from weakref import ref as weakref
 from datetime import datetime
 
 from logbook.helpers import to_safe_json, parse_iso8601, cached_property, F
-from logbook.pycompat import StackedObjectBase
 
 
 # make sure to sync these up with _speedups.pyx
@@ -49,12 +47,14 @@ def level_name_property():
     """Returns a property that reflects the level as name from
     the internal level attribute.
     """
+
     def _get_level_name(self):
         return get_level_name(self.level)
+
     def _set_level_name(self, level):
         self.level = lookup_level(level)
-    return property(_get_level_name, _set_level_name, doc=
-        'The level as unicode string')
+    return property(_get_level_name, _set_level_name,
+                    doc='The level as unicode string')
 
 
 def lookup_level(level):
@@ -86,14 +86,15 @@ def get_level_name(level):
 class ExtraDict(dict):
     """A dictionary which returns ``u''`` on missing keys."""
 
-    def __getitem__(self, key):
-        try:
-            return dict.__getitem__(self, key)
-        except KeyError:
+    if sys.version_info[:2] < (2, 5):
+        def __getitem__(self, key):
+            try:
+                return dict.__getitem__(self, key)
+            except KeyError:
+                return u''
+    else:
+        def __missing__(self, key):
             return u''
-
-    def __missing__(self, key):
-        return u''
 
     def copy(self):
         return self.__class__(self)
@@ -124,7 +125,7 @@ class _ExceptionCatcher(object):
         return True
 
 
-class StackedObject(StackedObjectBase):
+class StackedObject(object):
     """Baseclass for all objects that provide stack manipulation
     operations.
     """
@@ -151,6 +152,34 @@ class StackedObject(StackedObjectBase):
 
     def __exit__(self, exc_type, exc_value, tb):
         self.pop_thread()
+
+    class Bound(object):
+
+        def __init__(self, obj, push, pop):
+            self.__obj = obj
+            self.__push = push
+            self.__pop = pop
+
+        def __enter__(self):
+            self.__push()
+            return self.__obj
+
+        def __exit__(self, etype, evalue, tb):
+            self.__pop()
+
+    def threadbound(self, _cls=Bound):
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the thread.
+        """
+        return _cls(self, self.push_thread, self.pop_thread)
+
+    def applicationbound(self, _cls=Bound):
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the application.
+        """
+        return _cls(self, self.push_application, self.pop_application)
+
+    del Bound
 
 
 class ContextObject(StackedObject):

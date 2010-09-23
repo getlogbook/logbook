@@ -8,8 +8,6 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-# from __future__ import with_statement
-
 import os
 import sys
 import stat
@@ -28,8 +26,7 @@ from threading import Lock
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
-from logbook.helpers import rename, F
-from logbook.pycompat import any
+from logbook.helpers import any, rename, F
 
 
 DEFAULT_FORMAT_STRING = (
