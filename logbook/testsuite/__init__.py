@@ -107,6 +107,7 @@ class LogbookTestSuite(unittest.TestSuite):
         try:
             return unittest.TestSuite.run(self, result)
         finally:
+            sys.stderr.write('\n')
             for mod in _skipped_modules:
                 msg = '*** Failed to import %s, tests skipped.\n' % mod
                 sys.stderr.write(msg)
