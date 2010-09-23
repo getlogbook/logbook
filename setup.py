@@ -111,13 +111,12 @@ def run_setup(with_binary):
         author_email='armin.ronacher@active-4.com',
         description='A logging replacement for Python',
         long_description=__doc__,
-        packages=['logbook'],
+        packages=['logbook', 'logbook.testsuite'],
         zip_safe=False,
         platforms='any',
         tests_require='''
             SQLAlchemy>=0.6
         ''',
-        test_suite='test_logbook',
         cmdclass=cmdclass,
         features=features,
         **extra

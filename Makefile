@@ -6,7 +6,7 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 test:
-	@python test_logbook.py --verbose
+	@python setup.py test
 
 bench:
 	@python benchmark/run.py
