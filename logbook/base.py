@@ -623,14 +623,14 @@ class LoggerMixin(object):
         """Logs a :class:`~logbook.LogRecord` with the level set
         to :data:`~logbook.DEBUG`.
         """
-        if DEBUG >= self.level:
+        if not self.disabled and DEBUG >= self.level:
             self._log(DEBUG, args, kwargs)
 
     def info(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
         to :data:`~logbook.INFO`.
         """
-        if INFO >= self.level:
+        if not self.disabled and INFO >= self.level:
             self._log(INFO, args, kwargs)
 
     def warn(self, *args, **kwargs):
@@ -638,7 +638,7 @@ class LoggerMixin(object):
         to :data:`~logbook.WARNING`.  This function has an alias
         named :meth:`warning`.
         """
-        if WARNING >= self.level:
+        if not self.disabled and WARNING >= self.level:
             self._log(WARNING, args, kwargs)
 
     def warning(self, *args, **kwargs):
@@ -649,20 +649,22 @@ class LoggerMixin(object):
         """Logs a :class:`~logbook.LogRecord` with the level set
         to :data:`~logbook.NOTICE`.
         """
-        if NOTICE >= self.level:
+        if not self.disabled and NOTICE >= self.level:
             self._log(NOTICE, args, kwargs)
 
     def error(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
         to :data:`~logbook.ERROR`.
         """
-        if ERROR >= self.level:
+        if not self.disabled and ERROR >= self.level:
             self._log(ERROR, args, kwargs)
 
     def exception(self, *args, **kwargs):
         """Works exactly like :meth:`error` just that the message
         is optional and exception information is recorded.
         """
+        if self.disabled or ERROR < self.level:
+            return
         if 'exc_info' not in kwargs:
             exc_info = sys.exc_info()
             assert exc_info[0] is not None, 'no exception occurred'
@@ -673,7 +675,7 @@ class LoggerMixin(object):
         """Logs a :class:`~logbook.LogRecord` with the level set
         to :data:`~logbook.CRITICAL`.
         """
-        if CRITICAL >= self.level:
+        if not self.disabled and CRITICAL >= self.level:
             self._log(CRITICAL, args, kwargs)
 
     def log(self, level, *args, **kwargs):
