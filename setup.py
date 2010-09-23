@@ -70,9 +70,9 @@ class BuildFailed(Exception):
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
 if sys.platform == 'win32' and sys.version_info > (2, 6):
-   # 2.6's distutils.msvc9compiler can raise an IOError when failing to
-   # find the compiler
-   ext_errors += (IOError,)
+    # 2.6's distutils.msvc9compiler can raise an IOError when failing to
+    # find the compiler
+    ext_errors += (IOError,)
 
 if sys.version_info >= (3, 0):
     extra['use_2to3'] = True
@@ -133,7 +133,8 @@ try:
     run_setup(True)
 except BuildFailed:
     LINE = '=' * 74
-    BUILD_EXT_WARNING = 'WARNING: The C extension could not be compiled, speedups are not enabled.'
+    BUILD_EXT_WARNING = ('WARNING: The C extension could not be compiled, '
+                         'speedups are not enabled.')
 
     echo(LINE)
     echo(BUILD_EXT_WARNING)
