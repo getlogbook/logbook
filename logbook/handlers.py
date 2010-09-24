@@ -240,7 +240,7 @@ class Handler(ContextObject):
         against internal breakage.
 
         `reason` is a string that specifies the rason why :meth:`emit_batch`
-        was called, and not :meth:`emit`.  The following are valid values::
+        was called, and not :meth:`emit`.  The following are valid values:
 
         ``'buffer'``
             Records were buffered for performance reasons or because the
