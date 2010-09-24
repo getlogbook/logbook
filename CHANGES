@@ -22,6 +22,8 @@ Release date to be announced.  Codename to be selected.
   :class:`logbook.MailHandler`.
 - Moved the :class:`~logbook.FingersCrossedHandler` handler into the
   base package.  The old location stays importable for a few releases.
+- Added :class:`logbook.GroupHandler` that buffers records until the
+  handler is popped.
 
 Version 0.2.1
 -------------

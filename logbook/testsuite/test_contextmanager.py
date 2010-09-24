@@ -608,6 +608,51 @@ Message:
             self.log.warning('a warning')
             self.assertEqual(len(handlers), 2)
 
+    def test_fingerscrossed_buffer_size(self):
+        logger = logbook.Logger('Test')
+        test_handler = logbook.TestHandler()
+        handler = logbook.FingersCrossedHandler(test_handler, buffer_size=3)
+
+        with handler:
+            logger.info('Never gonna give you up')
+            logger.warn('Aha!')
+            logger.warn('Moar!')
+            logger.error('Pure hate!')
+
+        self.assertEqual(test_handler.formatted_records, [
+            '[WARNING] Test: Aha!',
+            '[WARNING] Test: Moar!',
+            '[ERROR] Test: Pure hate!'
+        ])
+
+    def test_group_handler_mail_combo(self):
+        mail_handler = make_fake_mail_handler(level=logbook.DEBUG)
+        handler = logbook.GroupHandler(mail_handler)
+        with handler:
+            self.log.error('The other way round')
+            self.log.warn('Testing')
+            self.log.debug('Even more')
+            self.assertEqual(mail_handler.mails, [])
+
+        self.assertEqual(len(mail_handler.mails), 1)
+        mail = mail_handler.mails[0][2]
+
+        pieces = mail.split('Other log records in the same group:')
+        self.assertEqual(len(pieces), 2)
+        body, rest = pieces
+
+        self.assert_(re.search('Message type:\s+ERROR', body))
+        self.assert_(re.search('Module:\s+logbook.testsuite.test_contextmanager',
+                     body))
+        self.assert_(re.search('Function:\s+test_group_handler_mail_combo',
+                     body))
+
+        related = rest.strip().split('\r\n\r\n')
+        self.assertEqual(len(related), 2)
+        self.assert_(re.search('Message type:\s+WARNING', related[0]))
+        self.assert_(re.search('Message type:\s+DEBUG', related[1]))
+
+
 class AttributeTestCase(LogbookTestCase):
 
     def test_level_properties(self):

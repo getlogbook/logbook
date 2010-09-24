@@ -68,6 +68,9 @@ Special Handlers
 .. autoclass:: FingersCrossedHandler
    :members:
 
+.. autoclass:: GroupHandler
+   :members:
+
 Mixin Classes
 -------------
 

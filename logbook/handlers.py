@@ -1533,3 +1533,50 @@ class FingersCrossedHandler(Handler):
                 self.rollover(record)
         finally:
             self.lock.release()
+
+
+class GroupHandler(WrapperHandler):
+    """A handler that buffers all messages until it is popped again and then
+    forwards all messages to another handler.  This is useful if you for
+    example have an application that does computations and only a result
+    mail is required.  A group handler makes sure that only one mail is sent
+    and not multiple.  Some other handles might support this as well, though
+    currently none of the builtins do.
+
+    Example::
+
+        with GroupHandler(MailHandler(...)):
+            # everything here ends up in the mail
+
+    The :class:`GroupHandler` is implemented as a :class:`WrapperHandler`
+    thus forwarding all attributes of the wrapper handler.
+
+    Notice that this handler really only emit the records when the handler
+    is popped from the stack.
+
+    .. versionadded:: 0.3
+    """
+    _direct_attrs = frozenset(['handler', 'pull_information',
+                               'buffered_records'])
+
+    def __init__(self, handler, pull_information=True):
+        WrapperHandler.__init__(self, handler)
+        self.pull_information = pull_information
+        self.buffered_records = []
+
+    def rollover(self):
+        self.handler.emit_batch(self.buffered_records, 'group')
+        self.buffered_records = []
+
+    def pop_application(self):
+        Handler.pop_application(self)
+        self.rollover()
+
+    def pop_thread(self):
+        Handler.pop_thread(self)
+        self.rollover()
+
+    def emit(self, record):
+        if self.pull_information:
+            record.pull_information()
+        self.buffered_records.append(record)

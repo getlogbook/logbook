@@ -458,6 +458,36 @@ class HandlerTestCase(LogbookTestCase):
 
         self.assert_('And this triggers it again' in mail_handler.mails[1][2])
 
+    def test_group_handler_mail_combo(self):
+        mail_handler = make_fake_mail_handler(level=logbook.DEBUG)
+        handler = logbook.GroupHandler(mail_handler)
+        handler.push_thread()
+        try:
+            self.log.error('The other way round')
+            self.log.warn('Testing')
+            self.log.debug('Even more')
+            self.assertEqual(mail_handler.mails, [])
+        finally:
+            handler.pop_thread()
+
+        self.assertEqual(len(mail_handler.mails), 1)
+        mail = mail_handler.mails[0][2]
+
+        pieces = mail.split('Other log records in the same group:')
+        self.assertEqual(len(pieces), 2)
+        body, rest = pieces
+
+        self.assert_(re.search('Message type:\s+ERROR', body))
+        self.assert_(re.search('Module:\s+logbook.testsuite.test_regular',
+                     body))
+        self.assert_(re.search('Function:\s+test_group_handler_mail_combo',
+                     body))
+
+        related = rest.strip().split('\r\n\r\n')
+        self.assertEqual(len(related), 2)
+        self.assert_(re.search('Message type:\s+WARNING', related[0]))
+        self.assert_(re.search('Message type:\s+DEBUG', related[1]))
+
     def test_syslog_handler(self):
         to_test = [
             (socket.AF_INET, ('127.0.0.1', 0)),
