@@ -13,8 +13,7 @@ import sys
 import thread
 import threading
 import traceback
-from thread import get_ident as current_thread
-from itertools import count, chain
+from itertools import chain
 from weakref import ref as weakref
 from datetime import datetime
 
