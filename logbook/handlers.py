@@ -214,6 +214,58 @@ class Handler(ContextObject):
         log records.
         """
 
+    def emit_batch(self, records, reason):
+        """Some handlers may internally queue up records and want to forward
+        them at once to another handler.  For example the
+        :class:`~logbook.more.FingersCrossedHandler` internally buffers
+        records until a level threshold is reached in which case the buffer
+        is sent to this method and not :meth:`emit` for each record.
+
+        The default behaviour is to call :meth:`emit` for each record in
+        the buffer, but handlers can use this to optimize log handling.  For
+        instance the mail handler will try to batch up items into one mail
+        and not to emit mails for each record in the buffer.
+
+        Note that unlike :meth:`emit` there is no wrapper method like
+        :meth:`handle` that does error handling.  The reason is that this
+        is intended to be used by other handlers which are already protected
+        against internal breakage.
+
+        `reason` is a string that specifies the rason why :meth:`emit_batch`
+        was called, and not :meth:`emit`.  The following are valid values::
+
+        ``'buffer'``
+            Records were buffered for performance reasons or because the
+            records were sent to another process and buffering was the only
+            possible way.
+
+        ``'escalation'``
+            Escalation means that records were buffered in case the threshold
+            was exceeded.  In this case, the last record in the list is the
+            record that triggered the call.
+
+        ``'group'``
+            All the records in the list belong to the same logical component
+            and happened in the same process.  For example there was a long
+            running computation and the handler is invoked with a bunch of
+            records that happened there.  This is similar to the escalation
+            reason, just that the first one is the significant one, not the
+            last.
+
+        If a subclass overrides this and does not want to handle a specific
+        reason it must call into the superclass because more reasons might
+        appear in future releases.
+
+        Example implementation::
+
+            def emit_batch(self, records, reason):
+                if reason not in ('escalation', 'group'):
+                    Handler.emit_batch(self, records, reason)
+                ...
+        """
+        for record in records:
+            self.emit(record)
+
     def close(self):
         """Tidy up any resources used by the handler.  This is automatically
         called by the destructor of the class as well, but explicit calls are
