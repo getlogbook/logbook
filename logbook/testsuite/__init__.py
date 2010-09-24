@@ -37,6 +37,23 @@ class LogbookTestCase(unittest.TestCase):
         self.log = logbook.Logger('testlogger')
 
 
+def make_fake_mail_handler(**kwargs):
+    class FakeMailHandler(logbook.MailHandler):
+        mails = []
+
+        def get_connection(self):
+            return self
+
+        def close_connection(self, con):
+            pass
+
+        def sendmail(self, fromaddr, recipients, mail):
+            self.mails.append((fromaddr, recipients, mail))
+
+    return FakeMailHandler('foo@example.com', ['bar@example.com'],
+                           level=logbook.ERROR, **kwargs)
+
+
 def skip_if(condition):
     if condition:
         return _func_ident

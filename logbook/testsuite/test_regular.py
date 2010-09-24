@@ -26,7 +26,8 @@ from itertools import izip
 from cStringIO import StringIO
 
 import logbook
-from logbook.testsuite import LogbookTestCase, skip_if, require, missing
+from logbook.testsuite import LogbookTestCase, skip_if, require, missing, \
+     make_fake_mail_handler
 
 
 test_file = __file__.rstrip('co')
@@ -46,23 +47,6 @@ class capture_stderr(object):
         sys.stderr = self.original
 
 capture_stderr = capture_stderr()
-
-
-def make_fake_mail_handler(**kwargs):
-    class FakeMailHandler(logbook.MailHandler):
-        mails = []
-
-        def get_connection(self):
-            return self
-
-        def close_connection(self, con):
-            pass
-
-        def sendmail(self, fromaddr, recipients, mail):
-            self.mails.append((fromaddr, recipients, mail))
-
-    return FakeMailHandler('foo@example.com', ['bar@example.com'],
-                           level=logbook.ERROR, **kwargs)
 
 
 class BasicAPITestCase(LogbookTestCase):

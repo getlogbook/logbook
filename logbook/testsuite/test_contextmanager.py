@@ -25,6 +25,7 @@ from contextlib import contextmanager
 from cStringIO import StringIO
 
 import logbook
+from logbook.testsuite import LogbookTestCase, make_fake_mail_handler
 
 
 test_file = __file__.rstrip('co')
@@ -39,29 +40,6 @@ def capture_stderr():
         yield sys.stderr
     finally:
         sys.stderr = old
-
-
-def make_fake_mail_handler(**kwargs):
-    class FakeMailHandler(logbook.MailHandler):
-        mails = []
-
-        def get_connection(self):
-            return self
-
-        def close_connection(self, con):
-            pass
-
-        def sendmail(self, fromaddr, recipients, mail):
-            self.mails.append((fromaddr, recipients, mail))
-
-    return FakeMailHandler('foo@example.com', ['bar@example.com'],
-                           level=logbook.ERROR, **kwargs)
-
-
-class LogbookTestCase(unittest.TestCase):
-
-    def setUp(self):
-        self.log = logbook.Logger('testlogger')
 
 
 class BasicAPITestCase(LogbookTestCase):
