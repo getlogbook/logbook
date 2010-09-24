@@ -188,21 +188,24 @@ class FingersCrossedHandler(Handler):
             self._handler.close()
 
     def enqueue(self, record):
-        assert not self.triggered, 'rollover occurred'
         if self._pull_information:
             record.pull_information()
-        self.buffered_records.append(record)
-        if self._buffer_full:
-            self.buffered_records.popleft()
-        elif self.buffer_size and \
-             len(self.buffered_records) >= self.buffer_size:
-            self._buffer_full = True
+        if self._action_triggered:
+            self._handler.emit(record)
+        else:
+            self.buffered_records.append(record)
+            if self._buffer_full:
+                self.buffered_records.popleft()
+            elif self.buffer_size and \
+                 len(self.buffered_records) >= self.buffer_size:
+                self._buffer_full = True
+            return record.level >= self._level
+        return False
 
     def rollover(self, record):
-        assert not self.triggered, 'rollover occurred'
         if self._handler is None:
             self._handler = self._handler_factory(record, self)
-        self._handler.emit_batch(list(self.buffered_records), 'escalation')
+        self._handler.emit_batch(iter(self.buffered_records), 'escalation')
         self.buffered_records.clear()
         self._action_triggered = not self._reset
 
@@ -210,20 +213,16 @@ class FingersCrossedHandler(Handler):
     def triggered(self):
         """This attribute is `True` when the action was triggered.  From
         this point onwards the finger crossed handler transparently
-        forwards all log records to the inner handler.
+        forwards all log records to the inner handler.  If the handler resets
+        itself this will always be `False`.
         """
         return self._action_triggered
 
     def emit(self, record):
         self.lock.acquire()
         try:
-            if self._action_triggered:
-                self._handler.emit(record)
-            elif record.level >= self._level:
-                self.enqueue(record)
+            if self.enqueue(record):
                 self.rollover(record)
-            else:
-                self.enqueue(record)
         finally:
             self.lock.release()
 
