@@ -1417,7 +1417,7 @@ class FingersCrossedHandler(Handler):
     Here a setup that enables this for a web application::
 
         from logbook import FileHandler
-        from logbook.more import FingersCrossedHandler
+        from logbook import FingersCrossedHandler
 
         def issue_logging():
             def factory(record, handler):

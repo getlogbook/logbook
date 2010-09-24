@@ -128,7 +128,7 @@ separate window until the task succeeded.
 Here such a setup in pseudocode::
 
     from logbook import FileHandler, WARNING
-    from logbook.more import FingersCrossedHandler
+    from logbook import FingersCrossedHandler
 
     def main():
         # first we set up a handler that logs everything (including debug
