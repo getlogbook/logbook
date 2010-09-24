@@ -20,6 +20,8 @@ Release date to be announced.  Codename to be selected.
 - Added batch emitting support for handlers which now makes it possible
   to use the :class:`logbook.more.FingersCrossedHandler` with the
   :class:`logbook.MailHandler`.
+- Moved the :class:`~logbook.FingersCrossedHandler` handler into the
+  base package.  The old location stays importable for a few releases.
 
 Version 0.2.1
 -------------

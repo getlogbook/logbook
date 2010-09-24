@@ -106,7 +106,7 @@ When you are in full control of the context of execution with a stack based
 system like Logbook has, there is a lot more you can do.
 
 For example you could immediately after your application boots up
-instanciate a :class:`~logbook.more.FingersCrossedHandler`.  This handler
+instanciate a :class:`~logbook.FingersCrossedHandler`.  This handler
 buffers *all* log records in memory and does not emit them at all.  What's
 the point?  That handler activates when a certain threshold is reached.
 For example, when the first warning occurs you can write the buffered

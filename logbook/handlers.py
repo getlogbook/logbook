@@ -22,6 +22,7 @@ import traceback
 from datetime import datetime, timedelta
 from itertools import izip
 from threading import Lock
+from collections import deque
 
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
@@ -224,7 +225,7 @@ class Handler(ContextObject):
     def emit_batch(self, records, reason):
         """Some handlers may internally queue up records and want to forward
         them at once to another handler.  For example the
-        :class:`~logbook.more.FingersCrossedHandler` internally buffers
+        :class:`~logbook.FingersCrossedHandler` internally buffers
         records until a level threshold is reached in which case the buffer
         is sent to this method and not :meth:`emit` for each record.
 
@@ -560,7 +561,7 @@ class FileHandler(StreamHandler):
     the open to the point where the first message is written.
 
     This is useful when the handler is used with a
-    :class:`~logbook.more.FingersCrossedHandler` or something similar.
+    :class:`~logbook.FingersCrossedHandler` or something similar.
     """
 
     def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
@@ -1393,3 +1394,142 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
         type = self.get_event_type(record)
         self._welu.ReportEvent(self.application_name, id, cat, type,
                                [self.format(record)])
+
+
+class FingersCrossedHandler(Handler):
+    """This handler wraps another handler and will log everything in
+    memory until a certain level (`action_level`, defaults to `ERROR`)
+    is exceeded.  When that happens the fingers crossed handler will
+    activate forever and log all buffered records as well as records
+    yet to come into another handled which was passed to the constructor.
+
+    Alternatively it's also possible to pass a factory function to the
+    constructor instead of a handler.  That factory is then called with
+    the triggering log entry and the finger crossed handler to create
+    a handler which is then cached.
+
+    The idea of this handler is to enable debugging of live systems.  For
+    example it might happen that code works perfectly fine 99% of the time,
+    but then some exception happens.  But the error that caused the
+    exception alone might not be the interesting bit, the interesting
+    information were the warnings that lead to the error.
+
+    Here a setup that enables this for a web application::
+
+        from logbook import FileHandler
+        from logbook.more import FingersCrossedHandler
+
+        def issue_logging():
+            def factory(record, handler):
+                return FileHandler('/var/log/app/issue-%s.log' % record.time)
+            return FingersCrossedHandler(factory)
+
+        def application(environ, start_response):
+            with issue_logging():
+                return the_actual_wsgi_application(environ, start_response)
+
+    Whenever an error occours, a new file in ``/var/log/app`` is created
+    with all the logging calls that lead up to the error up to the point
+    where the `with` block is exited.
+
+    Please keep in mind that the :class:`~logbook.FingersCrossedHandler`
+    handler is a one-time handler.  Once triggered, it will not reset.  Because
+    of that you will have to re-create it whenever you bind it.  In this case
+    the handler is created when it's bound to the thread.
+
+    Due to how the handler is implemented, the filter, bubble and level
+    flags of the wrapped handler are ignored.
+
+    .. versionchanged:: 0.3
+
+    The default behaviour is to buffer up records and then invoke another
+    handler when a severity theshold was reached with the buffer emitting.
+    This now enables this logger to be properly used with the
+    :class:`~logbook.MailHandler`.  You will now only get one mail for
+    each bfufered record.  However once the threshold was reached you would
+    still get a mail for each record which is why the `reset` flag was added.
+
+    When set to `True`, the handler will instantly reset to the untriggered
+    state and start buffering again::
+
+        handler = FingersCrossedHandler(MailHandler(...),
+                                        buffer_size=10,
+                                        reset=True)
+
+    .. versionadded:: 0.3
+       The `reset` flag was added.
+    """
+
+    #: the reason to be used for the batch emit.  The default is
+    #: ``'escalation'``.
+    #:
+    #: .. versionadded:: 0.3
+    batch_emit_reason = 'escalation'
+
+    def __init__(self, handler, action_level=ERROR, buffer_size=0,
+                 pull_information=True, reset=False, filter=None,
+                 bubble=False):
+        Handler.__init__(self, NOTSET, filter, bubble)
+        self.lock = Lock()
+        self._level = action_level
+        if isinstance(handler, Handler):
+            self._handler = handler
+            self._handler_factory = None
+        else:
+            self._handler = None
+            self._handler_factory = handler
+        #: the buffered records of the handler.  Once the action is triggered
+        #: (:attr:`triggered`) this list will be None.  This attribute can
+        #: be helpful for the handler factory function to select a proper
+        #: filename (for example time of first log record)
+        self.buffered_records = deque()
+        #: the maximum number of entries in the buffer.  If this is exhausted
+        #: the oldest entries will be discarded to make place for new ones
+        self.buffer_size = buffer_size
+        self._buffer_full = False
+        self._pull_information = pull_information
+        self._action_triggered = False
+        self._reset = reset
+
+    def close(self):
+        if self._handler is not None:
+            self._handler.close()
+
+    def enqueue(self, record):
+        if self._pull_information:
+            record.pull_information()
+        if self._action_triggered:
+            self._handler.emit(record)
+        else:
+            self.buffered_records.append(record)
+            if self._buffer_full:
+                self.buffered_records.popleft()
+            elif self.buffer_size and \
+                 len(self.buffered_records) >= self.buffer_size:
+                self._buffer_full = True
+            return record.level >= self._level
+        return False
+
+    def rollover(self, record):
+        if self._handler is None:
+            self._handler = self._handler_factory(record, self)
+        self._handler.emit_batch(iter(self.buffered_records), 'escalation')
+        self.buffered_records.clear()
+        self._action_triggered = not self._reset
+
+    @property
+    def triggered(self):
+        """This attribute is `True` when the action was triggered.  From
+        this point onwards the finger crossed handler transparently
+        forwards all log records to the inner handler.  If the handler resets
+        itself this will always be `False`.
+        """
+        return self._action_triggered
+
+    def emit(self, record):
+        self.lock.acquire()
+        try:
+            if self.enqueue(record):
+                self.rollover(record)
+        finally:
+            self.lock.release()

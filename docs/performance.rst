@@ -37,8 +37,8 @@ Keep the Fingers Crossed
 
 Do you really need the debug info?  In case you find yourself only looking
 at the logfiles when errors occurred it would be an option to put in the
-:class:`~logbook.more.FingersCrossedHandler`.  Logging into memory is
-always cheaper than logging on a filesystem.
+:class:`~logbook.FingersCrossedHandler`.  Logging into memory is always
+cheaper than logging on a filesystem.
 
 Keep the Stack Static
 ---------------------

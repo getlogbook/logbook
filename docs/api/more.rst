@@ -21,9 +21,6 @@ Tagged Logging
 Special Handlers
 ----------------
 
-.. autoclass:: FingersCrossedHandler
-   :members:
-
 .. autoclass:: TwitterHandler
    :members:
 

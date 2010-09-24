@@ -50,8 +50,8 @@ def make_fake_mail_handler(**kwargs):
         def sendmail(self, fromaddr, recipients, mail):
             self.mails.append((fromaddr, recipients, mail))
 
-    return FakeMailHandler('foo@example.com', ['bar@example.com'],
-                           level=logbook.ERROR, **kwargs)
+    kwargs.setdefault('level', logbook.ERROR)
+    return FakeMailHandler('foo@example.com', ['bar@example.com'], **kwargs)
 
 
 def skip_if(condition):

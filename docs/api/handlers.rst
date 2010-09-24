@@ -62,6 +62,12 @@ Core Handlers
 
 .. autofunction:: create_syshandler
 
+Special Handlers
+----------------
+
+.. autoclass:: FingersCrossedHandler
+   :members:
+
 Mixin Classes
 -------------
 

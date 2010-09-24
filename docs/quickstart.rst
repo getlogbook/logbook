@@ -52,7 +52,7 @@ multitude of available handlers, and of course you can also create your own:
 
 On top of those there are a couple of handlers for special use cases:
 
-* :class:`logbook.more.FingersCrossedHandler` for logging into memory and
+* :class:`logbook.FingersCrossedHandler` for logging into memory and
   delegating information to another handler when a certain level was
   exceeded, otherwise discarding all buffered records.
 * :class:`logbook.more.TaggingHandler` for dispatching log records that

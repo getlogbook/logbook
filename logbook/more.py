@@ -10,7 +10,6 @@
 """
 import re
 import os
-from collections import deque
 from threading import Lock
 from cgi import parse_qsl
 from urllib import urlencode
@@ -26,6 +25,30 @@ TWITTER_FORMAT_STRING = \
 u'[{record.channel}] {record.level_name}: {record.message}'
 TWITTER_ACCESS_TOKEN_URL = 'https://twitter.com/oauth/access_token'
 NEW_TWEET_URL = 'https://api.twitter.com/1/statuses/update.json'
+
+
+class TwitterFormatter(StringFormatter):
+    """Works like the standard string formatter and is used by the
+    :class:`TwitterHandler` unless changed.
+    """
+    max_length = 140
+
+    def format_exception(self, record):
+        return u'%s: %s' % (record.exception_shortname,
+                            record.exception_message)
+
+    def __call__(self, record, handler):
+        formatted = StringFormatter.__call__(self, record, handler)
+        rv = []
+        length = 0
+        for piece in _ws_re.split(formatted):
+            length += len(piece)
+            if length > self.max_length:
+                if length - len(piece) < self.max_length:
+                    rv.append(u'…')
+                break
+            rv.append(piece)
+        return u''.join(rv)
 
 
 class TaggingLogger(RecordDispatcher):
@@ -89,166 +112,6 @@ class TaggingHandler(Handler):
         for tag in record.extra.get('tags', ()):
             for handler in self._handlers.get(tag, ()):
                 handler.handle(record)
-
-
-class FingersCrossedHandler(Handler):
-    """This handler wraps another handler and will log everything in
-    memory until a certain level (`action_level`, defaults to `ERROR`)
-    is exceeded.  When that happens the fingers crossed handler will
-    activate forever and log all buffered records as well as records
-    yet to come into another handled which was passed to the constructor.
-
-    Alternatively it's also possible to pass a factory function to the
-    constructor instead of a handler.  That factory is then called with
-    the triggering log entry and the finger crossed handler to create
-    a handler which is then cached.
-
-    The idea of this handler is to enable debugging of live systems.  For
-    example it might happen that code works perfectly fine 99% of the time,
-    but then some exception happens.  But the error that caused the
-    exception alone might not be the interesting bit, the interesting
-    information were the warnings that lead to the error.
-
-    Here a setup that enables this for a web application::
-
-        from logbook import FileHandler
-        from logbook.more import FingersCrossedHandler
-
-        def issue_logging():
-            def factory(record, handler):
-                return FileHandler('/var/log/app/issue-%s.log' % record.time)
-            return FingersCrossedHandler(factory)
-
-        def application(environ, start_response):
-            with issue_logging():
-                return the_actual_wsgi_application(environ, start_response)
-
-    Whenever an error occours, a new file in ``/var/log/app`` is created
-    with all the logging calls that lead up to the error up to the point
-    where the `with` block is exited.
-
-    Please keep in mind that the :class:`~logbook.more.FingersCrossedHandler`
-    handler is a one-time handler.  Once triggered, it will not reset.  Because
-    of that you will have to re-create it whenever you bind it.  In this case
-    the handler is created when it's bound to the thread.
-
-    .. versionchanged:: 0.3
-
-    The default behaviour is to buffer up records and then invoke another
-    handler when a severity theshold was reached with the buffer emitting.
-    This now enables this logger to be properly used with the
-    :class:`~logbook.MailHandler`.  You will now only get one mail for
-    each bfufered record.  However once the threshold was reached you would
-    still get a mail for each record which is why the `reset` flag was added.
-
-    When set to `True`, the handler will instantly reset to the untriggered
-    state and start buffering again::
-
-        handler = FingersCrossedHandler(MailHandler(...),
-                                        buffer_size=10,
-                                        reset=True)
-
-    .. versionadded:: 0.3
-       The `reset` flag was added.
-    """
-
-    #: the reason to be used for the batch emit.  The default is
-    #: ``'escalation'``.
-    #:
-    #: .. versionadded:: 0.3
-    batch_emit_reason = 'escalation'
-
-    def __init__(self, handler, action_level=ERROR, buffer_size=0,
-                 pull_information=True, reset=False, filter=None,
-                 bubble=False):
-        Handler.__init__(self, NOTSET, filter, bubble)
-        self.lock = Lock()
-        self._level = action_level
-        if isinstance(handler, Handler):
-            self._handler = handler
-            self._handler_factory = None
-        else:
-            self._handler = None
-            self._handler_factory = handler
-        #: the buffered records of the handler.  Once the action is triggered
-        #: (:attr:`triggered`) this list will be None.  This attribute can
-        #: be helpful for the handler factory function to select a proper
-        #: filename (for example time of first log record)
-        self.buffered_records = deque()
-        #: the maximum number of entries in the buffer.  If this is exhausted
-        #: the oldest entries will be discarded to make place for new ones
-        self.buffer_size = buffer_size
-        self._buffer_full = False
-        self._pull_information = pull_information
-        self._action_triggered = False
-        self._reset = reset
-
-    def close(self):
-        if self._handler is not None:
-            self._handler.close()
-
-    def enqueue(self, record):
-        if self._pull_information:
-            record.pull_information()
-        if self._action_triggered:
-            self._handler.emit(record)
-        else:
-            self.buffered_records.append(record)
-            if self._buffer_full:
-                self.buffered_records.popleft()
-            elif self.buffer_size and \
-                 len(self.buffered_records) >= self.buffer_size:
-                self._buffer_full = True
-            return record.level >= self._level
-        return False
-
-    def rollover(self, record):
-        if self._handler is None:
-            self._handler = self._handler_factory(record, self)
-        self._handler.emit_batch(iter(self.buffered_records), 'escalation')
-        self.buffered_records.clear()
-        self._action_triggered = not self._reset
-
-    @property
-    def triggered(self):
-        """This attribute is `True` when the action was triggered.  From
-        this point onwards the finger crossed handler transparently
-        forwards all log records to the inner handler.  If the handler resets
-        itself this will always be `False`.
-        """
-        return self._action_triggered
-
-    def emit(self, record):
-        self.lock.acquire()
-        try:
-            if self.enqueue(record):
-                self.rollover(record)
-        finally:
-            self.lock.release()
-
-
-class TwitterFormatter(StringFormatter):
-    """Works like the standard string formatter and is used by the
-    :class:`TwitterHandler` unless changed.
-    """
-    max_length = 140
-
-    def format_exception(self, record):
-        return u'%s: %s' % (record.exception_shortname,
-                            record.exception_message)
-
-    def __call__(self, record, handler):
-        formatted = StringFormatter.__call__(self, record, handler)
-        rv = []
-        length = 0
-        for piece in _ws_re.split(formatted):
-            length += len(piece)
-            if length > self.max_length:
-                if length - len(piece) < self.max_length:
-                    rv.append(u'…')
-                break
-            rv.append(piece)
-        return u''.join(rv)
 
 
 class TwitterHandler(Handler, StringFormatterHandlerMixin):
@@ -381,3 +244,14 @@ class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
 
     .. versionadded:: 0.3
     """
+
+
+# backwards compat.  Should go away in some future releases
+from logbook.handlers import FingersCrossedHandler as \
+     FingersCrossedHandlerBase
+class FingersCrossedHandler(FingersCrossedHandlerBase):
+    def __init__(self, *args, **kwargs):
+        FingersCrossedHandlerBase.__init__(self, *args, **kwargs)
+        from warnings import warn
+        warn(PendingDeprecationWarning('fingers crossed handler changed '
+            'location.  It\'s now a core component of Logbook.'))

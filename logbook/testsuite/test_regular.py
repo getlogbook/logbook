@@ -426,9 +426,8 @@ class HandlerTestCase(LogbookTestCase):
             handler.pop_thread()
 
     def test_mail_handler_batching(self):
-        from logbook.more import FingersCrossedHandler
         mail_handler = make_fake_mail_handler()
-        handler = FingersCrossedHandler(mail_handler, reset=True)
+        handler = logbook.FingersCrossedHandler(mail_handler, reset=True)
         handler.push_thread()
         try:
             self.log.warn('Testing')
@@ -770,6 +769,100 @@ Message:
         self.assertEqual(handler.records[0].channel, 'Generic')
         self.assertEqual(handler.records[0].dispatcher, None)
 
+    def test_fingerscrossed(self):
+        handler = logbook.FingersCrossedHandler(logbook.default_handler,
+                                                logbook.WARNING)
+
+        # if no warning occurs, the infos are not logged
+        handler.push_thread()
+        try:
+            captured = capture_stderr.start()
+            try:
+                self.log.info('some info')
+            finally:
+                capture_stderr.end()
+            self.assertEqual(captured.getvalue(), '')
+            self.assert_(not handler.triggered)
+        finally:
+            handler.pop_thread()
+
+        # but if it does, all log messages are output
+        handler.push_thread()
+        try:
+            captured = capture_stderr.start()
+            try:
+                self.log.info('some info')
+                self.log.warning('something happened')
+                self.log.info('something else happened')
+            finally:
+                capture_stderr.end()
+            logs = captured.getvalue()
+            self.assert_('some info' in logs)
+            self.assert_('something happened' in logs)
+            self.assert_('something else happened' in logs)
+            self.assert_(handler.triggered)
+        finally:
+            handler.pop_thread()
+
+    def test_fingerscrossed_factory(self):
+        handlers = []
+
+        def handler_factory(record, fch):
+            handler = logbook.TestHandler()
+            handlers.append(handler)
+            return handler
+
+        def make_fch():
+            return logbook.FingersCrossedHandler(handler_factory,
+                                                 logbook.WARNING)
+
+        fch = make_fch()
+        fch.push_thread()
+        try:
+            self.log.info('some info')
+            self.assertEqual(len(handlers), 0)
+            self.log.warning('a warning')
+            self.assertEqual(len(handlers), 1)
+            self.log.error('an error')
+            self.assertEqual(len(handlers), 1)
+            self.assert_(handlers[0].has_infos)
+            self.assert_(handlers[0].has_warnings)
+            self.assert_(handlers[0].has_errors)
+            self.assert_(not handlers[0].has_notices)
+            self.assert_(not handlers[0].has_criticals)
+            self.assert_(not handlers[0].has_debugs)
+        finally:
+            fch.pop_thread()
+
+        fch = make_fch()
+        fch.push_thread()
+        try:
+            self.log.info('some info')
+            self.log.warning('a warning')
+            self.assertEqual(len(handlers), 2)
+        finally:
+            fch.pop_thread()
+
+    def test_fingerscrossed_buffer_size(self):
+        logger = logbook.Logger('Test')
+        test_handler = logbook.TestHandler()
+        handler = logbook.FingersCrossedHandler(test_handler, buffer_size=3)
+
+        handler.push_thread()
+        try:
+            logger.info('Never gonna give you up')
+            logger.warn('Aha!')
+            logger.warn('Moar!')
+            logger.error('Pure hate!')
+        finally:
+            handler.pop_thread()
+
+        self.assertEqual(test_handler.formatted_records, [
+            '[WARNING] Test: Aha!',
+            '[WARNING] Test: Moar!',
+            '[ERROR] Test: Pure hate!'
+        ])
+
 
 class AttributeTestCase(LogbookTestCase):
 
@@ -970,140 +1063,6 @@ class WarningsCompatTestCase(LogbookTestCase):
 
 class MoreTestCase(LogbookTestCase):
 
-    def test_fingerscrossed(self):
-        from logbook.more import FingersCrossedHandler
-        handler = FingersCrossedHandler(logbook.default_handler,
-                                        logbook.WARNING)
-
-        # if no warning occurs, the infos are not logged
-        handler.push_thread()
-        try:
-            captured = capture_stderr.start()
-            try:
-                self.log.info('some info')
-            finally:
-                capture_stderr.end()
-            self.assertEqual(captured.getvalue(), '')
-            self.assert_(not handler.triggered)
-        finally:
-            handler.pop_thread()
-
-        # but if it does, all log messages are output
-        handler.push_thread()
-        try:
-            captured = capture_stderr.start()
-            try:
-                self.log.info('some info')
-                self.log.warning('something happened')
-                self.log.info('something else happened')
-            finally:
-                capture_stderr.end()
-            logs = captured.getvalue()
-            self.assert_('some info' in logs)
-            self.assert_('something happened' in logs)
-            self.assert_('something else happened' in logs)
-            self.assert_(handler.triggered)
-        finally:
-            handler.pop_thread()
-
-    def test_fingerscrossed_factory(self):
-        from logbook.more import FingersCrossedHandler
-
-        handlers = []
-
-        def handler_factory(record, fch):
-            handler = logbook.TestHandler()
-            handlers.append(handler)
-            return handler
-
-        def make_fch():
-            return FingersCrossedHandler(handler_factory, logbook.WARNING)
-
-        fch = make_fch()
-        fch.push_thread()
-        try:
-            self.log.info('some info')
-            self.assertEqual(len(handlers), 0)
-            self.log.warning('a warning')
-            self.assertEqual(len(handlers), 1)
-            self.log.error('an error')
-            self.assertEqual(len(handlers), 1)
-            self.assert_(handlers[0].has_infos)
-            self.assert_(handlers[0].has_warnings)
-            self.assert_(handlers[0].has_errors)
-            self.assert_(not handlers[0].has_notices)
-            self.assert_(not handlers[0].has_criticals)
-            self.assert_(not handlers[0].has_debugs)
-        finally:
-            fch.pop_thread()
-
-        fch = make_fch()
-        fch.push_thread()
-        try:
-            self.log.info('some info')
-            self.log.warning('a warning')
-            self.assertEqual(len(handlers), 2)
-        finally:
-            fch.pop_thread()
-
-    def test_fingerscrossed_buffer_size(self):
-        from logbook.more import FingersCrossedHandler
-        logger = logbook.Logger('Test')
-        test_handler = logbook.TestHandler()
-        handler = FingersCrossedHandler(test_handler, buffer_size=3)
-
-        handler.push_thread()
-        try:
-            logger.info('Never gonna give you up')
-            logger.warn('Aha!')
-            logger.warn('Moar!')
-            logger.error('Pure hate!')
-        finally:
-            handler.pop_thread()
-
-        self.assertEqual(test_handler.formatted_records, [
-            '[WARNING] Test: Aha!',
-            '[WARNING] Test: Moar!',
-            '[ERROR] Test: Pure hate!'
-        ])
-
-    def test_tagged(self):
-        from logbook.more import TaggingLogger, TaggingHandler
-        stream = StringIO()
-        second_handler = logbook.StreamHandler(stream)
-
-        logger = TaggingLogger('name', ['cmd'])
-        handler = TaggingHandler(dict(
-            info=logbook.default_handler,
-            cmd=second_handler,
-            both=[logbook.default_handler, second_handler],
-        ))
-        handler.bubble = False
-
-        handler.push_thread()
-        try:
-            captured = capture_stderr.start()
-            try:
-                logger.log('info', 'info message')
-                logger.log('both', 'all message')
-                logger.cmd('cmd message')
-            finally:
-                capture_stderr.end()
-        finally:
-            handler.pop_thread()
-
-        stderr = captured.getvalue()
-
-        self.assert_('info message' in stderr)
-        self.assert_('all message' in stderr)
-        self.assert_('cmd message' not in stderr)
-
-        stringio = stream.getvalue()
-
-        self.assert_('info message' not in stringio)
-        self.assert_('all message' in stringio)
-        self.assert_('cmd message' in stringio)
-
     @require('jinja2')
     def test_jinja_formatter(self):
         from logbook.more import JinjaFormatter
@@ -1145,6 +1104,43 @@ class MoreTestCase(LogbookTestCase):
             ])
         finally:
             handler.pop_thread()
+
+    def test_tagged(self):
+        from logbook.more import TaggingLogger, TaggingHandler
+        stream = StringIO()
+        second_handler = logbook.StreamHandler(stream)
+
+        logger = TaggingLogger('name', ['cmd'])
+        handler = TaggingHandler(dict(
+            info=logbook.default_handler,
+            cmd=second_handler,
+            both=[logbook.default_handler, second_handler],
+        ))
+        handler.bubble = False
+
+        handler.push_thread()
+        try:
+            captured = capture_stderr.start()
+            try:
+                logger.log('info', 'info message')
+                logger.log('both', 'all message')
+                logger.cmd('cmd message')
+            finally:
+                capture_stderr.end()
+        finally:
+            handler.pop_thread()
+
+        stderr = captured.getvalue()
+
+        self.assert_('info message' in stderr)
+        self.assert_('all message' in stderr)
+        self.assert_('cmd message' not in stderr)
+
+        stringio = stream.getvalue()
+
+        self.assert_('info message' not in stringio)
+        self.assert_('all message' in stringio)
+        self.assert_('cmd message' in stringio)
 
 
 class QueuesTestCase(LogbookTestCase):
