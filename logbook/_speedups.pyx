@@ -68,6 +68,65 @@ cdef class _StackItem:
         return cmp(other.id, self.id)
 
 
+cdef class _StackBound:
+    cdef object obj
+    cdef object push_func
+    cdef object pop_func
+
+    def __init__(self, obj, push, pop):
+        self.obj = obj
+        self.push_func = push
+        self.pop_func = pop
+
+    def __enter__(self):
+        self.push_func()
+        return self.obj
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.pop_func()
+
+
+cdef class StackedObject:
+    """Baseclass for all objects that provide stack manipulation
+    operations.
+    """
+
+    cpdef push_thread(self):
+        """Pushes the stacked object to the thread stack."""
+        raise NotImplementedError()
+
+    cpdef pop_thread(self):
+        """Pops the stacked object from the thread stack."""
+        raise NotImplementedError()
+
+    cpdef push_application(self):
+        """Pushes the stacked object to the application stack."""
+        raise NotImplementedError()
+
+    cpdef pop_application(self):
+        """Pops the stacked object from the application stack."""
+        raise NotImplementedError()
+
+    def __enter__(self):
+        self.push_thread()
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.pop_thread()
+
+    cpdef threadbound(self):
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the thread.
+        """
+        return _StackBound(self, self.push_thread, self.pop_thread)
+
+    cpdef applicationbound(self):
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the application.
+        """
+        return _StackBound(self, self.push_application, self.pop_application)
+
+
 cdef class ContextStackManager:
     cdef list _global
     cdef PyThread_type_lock _context_lock

@@ -82,10 +82,10 @@ def lookup_level(level):
 
 try:
     from logbook._speedups import group_reflected_property, \
-         ContextStackManager
+         ContextStackManager, StackedObject
 except ImportError:
     from logbook._fallback import group_reflected_property, \
-         ContextStackManager
+         ContextStackManager, StackedObject
 
 
 def get_level_name(level):
@@ -136,63 +136,6 @@ class _ExceptionCatcher(object):
             kwargs['exc_info'] = (exc_type, exc_value, tb)
             self.logger.exception(*self.args, **kwargs)
         return True
-
-
-class StackedObject(object):
-    """Baseclass for all objects that provide stack manipulation
-    operations.
-    """
-
-    def push_thread(self):
-        """Pushes the stacked object to the thread stack."""
-        raise NotImplementedError()
-
-    def pop_thread(self):
-        """Pops the stacked object from the thread stack."""
-        raise NotImplementedError()
-
-    def push_application(self):
-        """Pushes the stacked object to the application stack."""
-        raise NotImplementedError()
-
-    def pop_application(self):
-        """Pops the stacked object from the application stack."""
-        raise NotImplementedError()
-
-    def __enter__(self):
-        self.push_thread()
-        return self
-
-    def __exit__(self, exc_type, exc_value, tb):
-        self.pop_thread()
-
-    class Bound(object):
-
-        def __init__(self, obj, push, pop):
-            self.__obj = obj
-            self.__push = push
-            self.__pop = pop
-
-        def __enter__(self):
-            self.__push()
-            return self.__obj
-
-        def __exit__(self, exc_type, exc_value, tb):
-            self.__pop()
-
-    def threadbound(self, _cls=Bound):
-        """Can be used in combination with the `with` statement to
-        execute code while the object is bound to the thread.
-        """
-        return _cls(self, self.push_thread, self.pop_thread)
-
-    def applicationbound(self, _cls=Bound):
-        """Can be used in combination with the `with` statement to
-        execute code while the object is bound to the application.
-        """
-        return _cls(self, self.push_application, self.pop_application)
-
-    del Bound
 
 
 class ContextObject(StackedObject):
