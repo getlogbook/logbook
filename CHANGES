@@ -17,6 +17,9 @@ Release date to be announced.  Codename to be selected.
   deprecation of the :class:`logbook.RotatingFileHandlerBase` was a
   result of this.
 - Added support for Python 2.4
+- Added batch emitting support for handlers which now makes it possible
+  to use the :class:`logbook.more.FingersCrossedHandler` with the
+  :class:`logbook.MailHandler`.
 
 Version 0.2.1
 -------------

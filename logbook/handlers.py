@@ -60,6 +60,13 @@ Message:
 
 {record.message}
 '''
+MAIL_RELATED_FORMAT_STRING = u'''\
+Message type:       {record.level_name}
+Location:           {record.filename}:{record.lineno}
+Module:             {record.module}
+Function:           {record.func_name}
+{record.message}
+'''
 
 SYSLOG_PORT = 514
 
@@ -242,14 +249,14 @@ class Handler(ContextObject):
 
         ``'escalation'``
             Escalation means that records were buffered in case the threshold
-            was exceeded.  In this case, the last record in the list is the
+            was exceeded.  In this case, the last record in the iterable is the
             record that triggered the call.
 
         ``'group'``
-            All the records in the list belong to the same logical component
-            and happened in the same process.  For example there was a long
-            running computation and the handler is invoked with a bunch of
-            records that happened there.  This is similar to the escalation
+            All the records in the iterable belong to the same logical
+            component and happened in the same process.  For example there was
+            a long running computation and the handler is invoked with a bunch
+            of records that happened there.  This is similar to the escalation
             reason, just that the first one is the significant one, not the
             last.
 
@@ -995,8 +1002,12 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
     of ZeroMQ or others) and the logging system slows you down you can
     wrap the handler in a :class:`logbook.queues.ThreadedWrapperHandler`
     that will then send the mails in a background thread.
+
+    .. versionchanged:: 0.3
+       The handler supports the batching system now.
     """
     default_format_string = MAIL_FORMAT_STRING
+    default_related_format_string = MAIL_RELATED_FORMAT_STRING
     default_subject = u'Server Error in Application'
 
     #: the maximum number of record hashes in the cache for the limiting
@@ -1010,7 +1021,8 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
     def __init__(self, from_addr, recipients, subject=None,
                  server_addr=None, credentials=None, secure=None,
                  record_limit=None, record_delta=None, level=NOTSET,
-                 format_string=None, filter=None, bubble=False):
+                 format_string=None, related_format_string=None,
+                 filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         LimitingHandlerMixin.__init__(self, record_limit, record_delta)
@@ -1022,6 +1034,21 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         self.server_addr = server_addr
         self.credentials = credentials
         self.secure = secure
+        if related_format_string is None:
+            related_format_string = self.default_related_format_string
+        self.related_format_string = related_format_string
+
+    def _get_related_format_string(self):
+        if isinstance(self.related_formatter, StringFormatter):
+            return self.related_formatter.format_string
+    def _set_related_format_string(self, value):
+        if value is None:
+            self.related_formatter = None
+        else:
+            self.related_formatter = self.formatter_class(value)
+    related_format_string = property(_get_related_format_string,
+                                    _set_related_format_string)
+    del _get_related_format_string, _set_related_format_string
 
     def get_recipients(self, record):
         """Returns the recipients for a record.  By default the
@@ -1052,6 +1079,12 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         msg.set_payload(body)
         return msg
 
+    def format_related_record(self, record):
+        """Used for format the records that led up to another record or
+        records that are related into strings.  Used by the batch formatter.
+        """
+        return self.related_formatter(record, self)
+
     def generate_mail(self, record, suppressed=0):
         """Generates the final email (:class:`email.message.Message`)
         with headers and date.  `suppressed` is the number of mails
@@ -1065,6 +1098,21 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         msg['From'] = self.from_addr
         msg['Date'] = formatdate()
         return msg
+
+    def collapse_mails(self, mail, related, reason):
+        """When escaling or grouped mails are """
+        if not related:
+            return mail
+        if reason == 'group':
+            title = 'Other log records in the same group'
+        else:
+            title = 'Log records that led up to this one'
+        mail.set_payload('%s\r\n\r\n\r\n%s:\r\n\r\n%s' % (
+            mail.get_payload(),
+            title,
+            '\r\n\r\n'.join(body.rstrip() for body in related)
+        ))
+        return mail
 
     def get_connection(self):
         """Returns an SMTP connection.  By default it reconnects for
@@ -1112,6 +1160,27 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
                 return
         self.deliver(self.generate_mail(record, suppressed),
                      self.get_recipients(record))
+
+    def emit_batch(self, records, reason):
+        if reason not in ('escalation', 'group'):
+            return MailHandler.emit_batch(self, records, reason)
+        records = list(records)
+        if not records:
+            return
+
+        trigger = records.pop(reason == 'escalation' and -1 or 0)
+        suppressed = 0
+        if self.record_limit is not None:
+            suppressed, allow_delivery = self.check_delivery(trigger)
+            if not allow_delivery:
+                return
+
+        trigger_mail = self.generate_mail(trigger, suppressed)
+        related = [self.format_related_record(record)
+                   for record in records]
+
+        self.deliver(self.collapse_mails(trigger_mail, related, reason),
+                     self.get_recipients(trigger))
 
 
 class SyslogHandler(Handler, StringFormatterHandlerMixin):
