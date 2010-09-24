@@ -1,0 +1,1 @@
+include MANIFEST.in Makefile CHANGES logbook/_speedups.c logbook/_speedups.pyx
