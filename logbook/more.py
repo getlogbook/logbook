@@ -131,10 +131,36 @@ class FingersCrossedHandler(Handler):
     handler is a one-time handler.  Once triggered, it will not reset.  Because
     of that you will have to re-create it whenever you bind it.  In this case
     the handler is created when it's bound to the thread.
+
+    .. versionchanged:: 0.3
+
+    The default behaviour is to buffer up records and then invoke another
+    handler when a severity theshold was reached with the buffer emitting.
+    This now enables this logger to be properly used with the
+    :class:`~logbook.MailHandler`.  You will now only get one mail for
+    each bfufered record.  However once the threshold was reached you would
+    still get a mail for each record which is why the `reset` flag was added.
+
+    When set to `True`, the handler will instantly reset to the untriggered
+    state and start buffering again::
+
+        handler = FingersCrossedHandler(MailHandler(...),
+                                        buffer_size=10,
+                                        reset=True)
+
+    .. versionadded:: 0.3
+       The `reset` flag was added.
     """
 
+    #: the reason to be used for the batch emit.  The default is
+    #: ``'escalation'``.
+    #:
+    #: .. versionadded:: 0.3
+    batch_emit_reason = 'escalation'
+
     def __init__(self, handler, action_level=ERROR, buffer_size=0,
-                 pull_information=True, filter=None, bubble=False):
+                 pull_information=True, reset=False, filter=None,
+                 bubble=False):
         Handler.__init__(self, NOTSET, filter, bubble)
         self.lock = Lock()
         self._level = action_level
@@ -155,30 +181,30 @@ class FingersCrossedHandler(Handler):
         self._buffer_full = False
         self._pull_information = pull_information
         self._action_triggered = False
+        self._reset = reset
 
     def close(self):
         if self._handler is not None:
             self._handler.close()
 
     def enqueue(self, record):
-        assert self.buffered_records is not None, 'rollover occurred'
+        assert not self.triggered, 'rollover occurred'
         if self._pull_information:
             record.pull_information()
         self.buffered_records.append(record)
         if self._buffer_full:
             self.buffered_records.popleft()
         elif self.buffer_size and \
-             len(self.buffered_records) >= self.buffer_size - 1:
+             len(self.buffered_records) >= self.buffer_size:
             self._buffer_full = True
 
     def rollover(self, record):
-        assert self.buffered_records is not None, 'rollover occurred'
+        assert not self.triggered, 'rollover occurred'
         if self._handler is None:
             self._handler = self._handler_factory(record, self)
-        for old_record in self.buffered_records:
-            self._handler.emit(old_record)
-        self.buffered_records = None
-        self._action_triggered = True
+        self._handler.emit_batch(list(self.buffered_records), 'escalation')
+        self.buffered_records.clear()
+        self._action_triggered = not self._reset
 
     @property
     def triggered(self):
@@ -194,8 +220,8 @@ class FingersCrossedHandler(Handler):
             if self._action_triggered:
                 self._handler.emit(record)
             elif record.level >= self._level:
+                self.enqueue(record)
                 self.rollover(record)
-                self._handler.emit(record)
             else:
                 self.enqueue(record)
         finally:

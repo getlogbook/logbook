@@ -237,7 +237,8 @@ class Handler(ContextObject):
         ``'buffer'``
             Records were buffered for performance reasons or because the
             records were sent to another process and buffering was the only
-            possible way.
+            possible way.  For most handlers this should be equivalent to
+            calling :meth:`emit` for each record.
 
         ``'escalation'``
             Escalation means that records were buffered in case the threshold
