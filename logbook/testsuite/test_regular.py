@@ -434,10 +434,12 @@ class HandlerTestCase(LogbookTestCase):
             self.log.warn('Testing')
             self.log.debug('Even more')
             self.log.error('And this triggers it')
+            self.log.info('Aha')
+            self.log.error('And this triggers it again!')
         finally:
             handler.pop_thread()
 
-        self.assertEqual(len(mail_handler.mails), 1)
+        self.assertEqual(len(mail_handler.mails), 2)
         mail = mail_handler.mails[0][2]
 
         pieces = mail.split('Log records that led up to this one:')
@@ -454,6 +456,8 @@ class HandlerTestCase(LogbookTestCase):
         self.assertEqual(len(related), 2)
         self.assert_(re.search('Message type:\s+WARNING', related[0]))
         self.assert_(re.search('Message type:\s+DEBUG', related[1]))
+
+        self.assert_('And this triggers it again' in mail_handler.mails[1][2])
 
     def test_syslog_handler(self):
         to_test = [
