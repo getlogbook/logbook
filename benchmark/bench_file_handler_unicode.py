@@ -1,4 +1,4 @@
-"""Benchmarks the file handler"""
+"""Benchmarks the file handler with unicode"""
 from logbook import Logger, FileHandler
 from tempfile import NamedTemporaryFile
 
@@ -10,4 +10,4 @@ def run():
     f = NamedTemporaryFile()
     with FileHandler(f.name) as handler:
         for x in xrange(500):
-            log.warning('this is handled')
+            log.warning(u'this is handled \x6f')

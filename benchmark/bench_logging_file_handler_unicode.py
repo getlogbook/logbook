@@ -11,4 +11,4 @@ def run():
     handler = FileHandler(f.name)
     log.addHandler(handler)
     for x in xrange(500):
-        log.warning('this is handled')
+        log.warning(u'this is handled \x6f')
