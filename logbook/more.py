@@ -10,7 +10,6 @@
 """
 import re
 import os
-from threading import Lock
 from cgi import parse_qsl
 from urllib import urlencode
 
