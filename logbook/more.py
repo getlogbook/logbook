@@ -18,6 +18,7 @@ from logbook.base import RecordDispatcher, NOTSET, ERROR, NOTICE
 from logbook.handlers import Handler, StringFormatter, \
      StringFormatterHandlerMixin, StderrHandler
 from logbook._termcolors import colorize
+from logbook.helpers import F
 
 
 _ws_re = re.compile(r'(\s+)(?u)')
@@ -201,6 +202,53 @@ class JinjaFormatter(object):
 
     def __call__(self, record, handler):
         return self.template.render(record=record, handler=handler)
+
+
+class ExternalApplicationHandler(Handler):
+    """This handler invokes an external application to send parts of
+    the log record to.  The constructor takes a list of arguments that
+    are passed to another application where each of the arguments is a
+    format string, and optionally a format string for data that is
+    passed to stdin.
+
+    For example it can be used to invoke the ``say`` command on OS X::
+
+        from logbook.more import ExternalApplicationHandler
+        say_handler = ExternalApplicationHandler(['say', '{record.message}'])
+
+    Note that the above example is blocking until ``say`` finished, so it's
+    recommended to combine this handler with the
+    :class:`logbook.ThreadedWrapperHandler` to move the execution into
+    a background thread.
+
+    .. versionadded:: 0.3
+    """
+
+    def __init__(self, arguments, stdin_format=None,
+                 encoding='utf-8', level=NOTSET, filter=None,
+                 bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+        self.encoding = encoding
+        self._arguments = [F(arg) for arg in arguments]
+        if stdin_format is not None:
+            stdin_format = F(stdin_format)
+        self._stdin_format = stdin_format
+        import subprocess
+        self._subprocess = subprocess
+
+    def emit(self, record):
+        args = [arg.format(record=record).encode(self.encoding)
+                for arg in self._arguments]
+        if self._stdin_format is not None:
+            stdin_data = self._stdin_format.format(record=record) \
+                                           .encode(self.encoding)
+            stdin = self._subprocess.PIPE
+        else:
+            stdin = None
+        c = self._subprocess.Popen(args, stdin=stdin)
+        if stdin is not None:
+            c.communicate(stdin_data)
+        c.wait()
 
 
 class ColorizingStreamHandlerMixin(object):

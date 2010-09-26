@@ -1172,6 +1172,63 @@ class MoreTestCase(LogbookTestCase):
         self.assert_('all message' in stringio)
         self.assert_('cmd message' in stringio)
 
+    def test_external_application_handler(self):
+        from logbook.more import ExternalApplicationHandler as Handler
+        fn = tempfile.mktemp()
+        try:
+            handler = Handler([sys.executable, '-c', r'''if 1:
+                f = open(%(tempfile)s, 'w')
+                try:
+                    f.write('{record.message}\n')
+                finally:
+                    f.close()
+            ''' % {'tempfile': repr(fn)}])
+            handler.push_application()
+            try:
+                self.log.error('this is a really bad idea')
+            finally:
+                handler.pop_application()
+            rf = open(fn, 'r')
+            try:
+                contents = rf.read().strip()
+            finally:
+                rf.close()
+            self.assertEqual(contents, 'this is a really bad idea')
+        finally:
+            try:
+                os.remove(fn)
+            except OSError:
+                pass
+
+    def test_external_application_handler_stdin(self):
+        from logbook.more import ExternalApplicationHandler as Handler
+        fn = tempfile.mktemp()
+        try:
+            handler = Handler([sys.executable, '-c', r'''if 1:
+                import sys
+                f = open(%(tempfile)s, 'w')
+                try:
+                    f.write(sys.stdin.read())
+                finally:
+                    f.close()
+            ''' % {'tempfile': repr(fn)}], '{record.message}\n')
+            handler.push_application()
+            try:
+                self.log.error('this is a really bad idea')
+            finally:
+                handler.pop_application()
+            rf = open(fn, 'r')
+            try:
+                contents = rf.read().strip()
+            finally:
+                rf.close()
+            self.assertEqual(contents, 'this is a really bad idea')
+        finally:
+            try:
+                os.remove(fn)
+            except OSError:
+                pass
+
 
 class QueuesTestCase(LogbookTestCase):
 

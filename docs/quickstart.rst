@@ -69,6 +69,8 @@ On top of those there are a couple of handlers for special use cases:
   or the linux notification daemon.
 * :class:`logbook.notifiers.BoxcarHandler` for logging to `boxcar`_.
 * :class:`logbook.more.TwitterHandler` for logging to twitter.
+* :class:`logbook.more.ExternalApplicationHandler` for logging to an
+  external application such as the OS X ``say`` command.
 * :class:`logbook.ticketing.TicketingHandler` for creating tickets from
   log records in a database or other data store.
 

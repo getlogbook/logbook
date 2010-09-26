@@ -24,6 +24,8 @@ Release date to be announced.  Codename to be selected.
   base package.  The old location stays importable for a few releases.
 - Added :class:`logbook.GroupHandler` that buffers records until the
   handler is popped.
+- Added :class:`logbook.more.ExternalApplicationHandler` that executes
+  an external application for each log record emitted.
 
 Version 0.2.1
 -------------

@@ -24,6 +24,9 @@ Special Handlers
 .. autoclass:: TwitterHandler
    :members:
 
+.. autoclass:: ExternalApplicationHandler
+   :members:
+
 Colorized Handlers
 ------------------
 
