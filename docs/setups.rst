@@ -62,7 +62,7 @@ errors happened during a WSGI application::
     mail_handler = MailHandler('errors@example.com',
                                ['admin@example.com'],
                                format_string=u'''\
-    Subject: Application Error at {request.extra[url]}
+    Subject: Application Error at {record.extra[url]}
 
     Message type:       {record.level_name}
     Location:           {record.filename}:{record.lineno}
@@ -70,7 +70,7 @@ errors happened during a WSGI application::
     Function:           {record.func_name}
     Time:               {record.time:%Y-%m-%d %H:%M:%S}
     Remote IP:          {record.extra[ip]}
-    Request:            {record.extra[url]} [{request.extra[method]}]
+    Request:            {record.extra[url]} [{record.extra[method]}]
 
     Message:
 
@@ -78,7 +78,7 @@ errors happened during a WSGI application::
     ''', bubble=True)
 
     def application(environ, start_response):
-        req = Request(environ)
+        request = Request(environ)
 
         def inject_info(record, handler):
             record.extra.update(
