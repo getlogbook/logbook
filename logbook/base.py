@@ -19,6 +19,12 @@ from datetime import datetime
 
 from logbook.helpers import to_safe_json, parse_iso8601, cached_property, \
      F, _py3
+try:
+    from logbook._speedups import group_reflected_property, \
+         ContextStackManager, StackedObject
+except ImportError:
+    from logbook._fallback import group_reflected_property, \
+         ContextStackManager, StackedObject
 
 
 # make sure to sync these up with _speedups.pyx
@@ -78,14 +84,6 @@ def lookup_level(level):
         return _reverse_level_names[level]
     except KeyError:
         raise LookupError('unknown level name %s' % level)
-
-
-try:
-    from logbook._speedups import group_reflected_property, \
-         ContextStackManager, StackedObject
-except ImportError:
-    from logbook._fallback import group_reflected_property, \
-         ContextStackManager, StackedObject
 
 
 def get_level_name(level):
