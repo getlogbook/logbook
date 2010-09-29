@@ -617,7 +617,7 @@ class LoggerMixin(object):
             self._log(WARNING, args, kwargs)
 
     def warning(self, *args, **kwargs):
-        """ALias for :meth:`warn`."""
+        """Alias for :meth:`warn`."""
         return self.warn(*args, **kwargs)
 
     def notice(self, *args, **kwargs):
