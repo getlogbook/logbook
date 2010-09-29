@@ -302,3 +302,29 @@ class FingersCrossedHandler(FingersCrossedHandlerBase):
         from warnings import warn
         warn(PendingDeprecationWarning('fingers crossed handler changed '
             'location.  It\'s now a core component of Logbook.'))
+
+
+class ExceptionHandler(Handler, StringFormatterHandlerMixin):
+    """An exception handler which raises exceptions of the given `exc_type`.
+    This is especially useful if you set a specific error `level` e.g. to treat
+    warnings as exceptions::
+
+        from logbook.more import ExceptionHandler
+
+        class ApplicationWarning(Exception):
+            pass
+
+        exc_handler = ExceptionHandler(ApplicationWarning, level='WARNING')
+
+    .. versionadded:: 0.3
+    """
+    def __init__(self, exc_type, level=NOTSET, format_string=None,
+                 filter=None, bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+        StringFormatterHandlerMixin.__init__(self, format_string)
+        self.exc_type = exc_type
+
+    def handle(self, record):
+        if self.should_handle(record):
+            raise self.exc_type(self.format(record))
+        return False

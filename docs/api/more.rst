@@ -27,6 +27,9 @@ Special Handlers
 .. autoclass:: ExternalApplicationHandler
    :members:
 
+.. autoclass:: ExceptionHandler
+   :members:
+
 Colorized Handlers
 ------------------
 

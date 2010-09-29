@@ -1229,6 +1229,42 @@ class MoreTestCase(LogbookTestCase):
             except OSError:
                 pass
 
+    def test_exception_handler(self):
+        from logbook.more import ExceptionHandler
+        exception_handler = ExceptionHandler(ValueError)
+        try:
+            exception_handler.push_thread()
+            try:
+                self.log.info('here i am')
+            finally:
+                exception_handler.pop_thread()
+        except ValueError as err:
+            self.assert_('INFO: testlogger: here i am' in err.args[0])
+        else:
+            assert False, 'there should have been an exception here'
+
+    def test_exception_handler_specific_level(self):
+        from logbook.more import ExceptionHandler
+        test_handler = logbook.TestHandler()
+        exception_handler = ExceptionHandler(ValueError, level='WARNING')
+        test_handler.push_thread()
+        try:
+            try:
+                exception_handler.push_thread()
+                try:
+                    self.log.info('this is irrelevant')
+                    self.log.warn('here i am')
+                finally:
+                    exception_handler.pop_thread()
+            except ValueError as err:
+                self.assert_('WARNING: testlogger: here i am' in err.args[0])
+            else:
+                assert False, 'there should have been an exception here'
+        finally:
+            test_handler.pop_thread()
+        self.assert_('this is irrelevant' in test_handler.records[0].message)
+
+
 
 class QueuesTestCase(LogbookTestCase):
 
