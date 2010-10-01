@@ -1238,7 +1238,7 @@ class MoreTestCase(LogbookTestCase):
                 self.log.info('here i am')
             finally:
                 exception_handler.pop_thread()
-        except ValueError as err:
+        except ValueError, err:
             self.assert_('INFO: testlogger: here i am' in err.args[0])
         else:
             assert False, 'there should have been an exception here'
@@ -1256,7 +1256,7 @@ class MoreTestCase(LogbookTestCase):
                     self.log.warn('here i am')
                 finally:
                     exception_handler.pop_thread()
-            except ValueError as err:
+            except ValueError, err:
                 self.assert_('WARNING: testlogger: here i am' in err.args[0])
             else:
                 assert False, 'there should have been an exception here'
