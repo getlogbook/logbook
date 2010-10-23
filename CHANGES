@@ -6,7 +6,7 @@ Here you can see the full list of changes between each Logbook release.
 Version 0.3
 -----------
 
-Release date to be announced.  Codename to be selected.
+Released on October 23rd.  Codename "Informant"
 
 - Added :class:`logbook.more.ColorizingStreamHandlerMixin` and
   :class:`logbook.more.ColorizedStderrHandler`
