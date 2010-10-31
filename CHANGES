@@ -8,6 +8,8 @@ Version 0.4
 
 Release date to be announced.  Codename to be selected.
 
+- Added :class:`logbook.notifiers.NotifoHandler`
+
 Version 0.3
 -----------
 
