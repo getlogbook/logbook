@@ -254,5 +254,6 @@ class NotifoHandler(NotificationBaseHandler):
         else:
             _level_name = self.level_name
 
-        self._notifo.send_notification(self.username, self.secret, None, record.message,
-                                       self.application_name, _level_name, None)
+        self._notifo.send_notification(self.username, self.secret, None,
+                                       record.message, self.application_name,
+                                       _level_name, None)
