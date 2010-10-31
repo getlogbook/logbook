@@ -227,7 +227,6 @@ class NotifoHandler(NotificationBaseHandler):
     """Sends notifications to notifo.com.  Can be forwarded to your Desktop,
     iPhone, or other compatible device.
     """
-    api_url = 'https://boxcar.io/notifications/'
 
     def __init__(self, application_name=None, username=None, secret=None,
                  record_limit=None, record_delta=None, level=NOTSET, filter=None,
