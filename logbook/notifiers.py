@@ -221,3 +221,30 @@ class BoxcarHandler(NotificationBaseHandler):
                     (self.email, self.password)).encode('utf-8')).strip(),
         }, body=body)
         con.close()
+
+
+class NotifoHandler(NotificationBaseHandler):
+    """Sends notifications to notifo.com.  Can be forwarded to your iPhone or
+    other compatible device.
+    """
+    api_url = 'https://boxcar.io/notifications/'
+
+    def __init__(self, application_name=None, username=None, secret=None, record_limit=None, record_delta=None,
+                 level=NOTSET, filter=None, bubble=False):
+        try:
+            import notifo
+        except ImportError:
+            raise RuntimeError(
+                'The notifo module is not available.  You have '
+                'to install notifo to use the NotifoHandler.'
+            )
+        NotificationBaseHandler.__init__(self, None, record_limit, record_delta,
+                                         level, filter, bubble)
+        self.application_name = application_name
+        self.username = username
+        self.secret = secret
+        self._notifo = notifo
+
+    def emit(self, record):
+        self._notifo.send_notification(self.username, self.secret, None, record.message,
+                                       self.application_name, record.level_name, None)
