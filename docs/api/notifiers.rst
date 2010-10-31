@@ -30,6 +30,9 @@ Other Services
 .. autoclass:: BoxcarHandler
    :members:
 
+.. autoclass:: NotifoHandler
+  :members:
+
 Base Interface
 --------------
 
