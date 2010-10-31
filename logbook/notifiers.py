@@ -224,13 +224,14 @@ class BoxcarHandler(NotificationBaseHandler):
 
 
 class NotifoHandler(NotificationBaseHandler):
-    """Sends notifications to notifo.com.  Can be forwarded to your iPhone or
-    other compatible device.
+    """Sends notifications to notifo.com.  Can be forwarded to your Desktop,
+    iPhone, or other compatible device.
     """
     api_url = 'https://boxcar.io/notifications/'
 
-    def __init__(self, application_name=None, username=None, secret=None, record_limit=None, record_delta=None,
-                 level=NOTSET, filter=None, bubble=False):
+    def __init__(self, application_name=None, username=None, secret=None,
+                 record_limit=None, record_delta=None, level=NOTSET, filter=None,
+                 bubble=False, hide_level=False):
         try:
             import notifo
         except ImportError:
@@ -240,11 +241,19 @@ class NotifoHandler(NotificationBaseHandler):
             )
         NotificationBaseHandler.__init__(self, None, record_limit, record_delta,
                                          level, filter, bubble)
+        self._notifo = notifo
         self.application_name = application_name
         self.username = username
         self.secret = secret
-        self._notifo = notifo
+        self.hide_level = hide_level
+
 
     def emit(self, record):
+
+        if self.hide_level:
+            _level_name = None
+        else:
+            _level_name = self.level_name
+
         self._notifo.send_notification(self.username, self.secret, None, record.message,
-                                       self.application_name, record.level_name, None)
+                                       self.application_name, _level_name, None)
