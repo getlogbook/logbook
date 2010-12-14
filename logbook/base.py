@@ -848,13 +848,14 @@ class LoggerGroup(object):
     """
 
     def __init__(self, loggers=None, level=NOTSET, processor=None):
-        if loggers is None:
-            loggers = []
         #: a list of all loggers on the logger group.  Use the
         #: :meth:`add_logger` and :meth:`remove_logger` methods to add
-        #: or remove loggers from this list, or make sure to set their
-        #: :attr:`~RecordDispatcher.group` attribute appropriately.
-        self.loggers = loggers
+        #: or remove loggers from this list.   
+        self.loggers = []
+        if loggers is not None:
+            for logger in loggers:
+                self.add_logger(logger)
+
         #: the level of the group.  This is reflected to the loggers
         #: in the group unless they overrode the setting.
         self.level = lookup_level(level)
