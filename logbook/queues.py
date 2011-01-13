@@ -359,7 +359,7 @@ class TWHThreadController(object):
             if record is self._sentinel:
                 self.running = False
                 break
-            self.wrapper_handler.handler.emit(record)
+            self.wrapper_handler.handler.handle(record)
 
 
 class ThreadedWrapperHandler(WrapperHandler):
