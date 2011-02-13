@@ -13,7 +13,8 @@ class, create yourself a logger and you are set:
 
 A logger is a so-called :class:`~logbook.base.RecordDispatcher`, which is
 commonly referred to as a "logging channel".  The name you give such a channel
-is up to you and need not be unique.
+is up to you and need not be unique although it's a good idea to keep it
+unique so that you can filter by it if you want.
 
 The basic interface is similar to what you may already know from the standard
 library's :mod:`logging` module.

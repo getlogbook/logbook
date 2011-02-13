@@ -9,6 +9,9 @@ Version 0.4
 Release date to be announced.  Codename to be selected.
 
 - Added :class:`logbook.notifiers.NotifoHandler`
+- `channel` is now documented to be used for filtering purposes if
+  wanted.  Previously this was an opaque string that was not intended
+  for filtering of any kind.
 
 Version 0.3
 -----------

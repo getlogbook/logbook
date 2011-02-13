@@ -313,10 +313,8 @@ class LogRecord(object):
     def __init__(self, channel, level, msg, args=None, kwargs=None,
                  exc_info=None, extra=None, frame=None, dispatcher=None):
         #: the name of the logger that created it or any other textual
-        #: channel description.  This is a descriptive name and should not
-        #: be used for filtering.  A log record might have a
-        #: :attr:`dispatcher` defined which provides more information for
-        #: filtering if this is absolutely necessary.
+        #: channel description.  This is a descriptive name and can be
+        #: used for filtering.
         self.channel = channel
         #: The message of the log record as new-style format string.
         self.msg = msg
