@@ -1121,7 +1121,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         """
         from smtplib import SMTP, SMTP_PORT, SMTP_SSL_PORT
         if self.server_addr is None:
-            host = ''
+            host = 'localhost'
             port = self.secure and SMTP_SSL_PORT or SMTP_PORT
         else:
             host, port = self.server_addr
