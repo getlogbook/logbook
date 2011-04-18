@@ -982,6 +982,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         Subject: {record.level_name} on My Application
 
         {record.message}
+        {record.extra[a_custom_injected_record]}
         ''')
 
     This handler will always emit text-only mails for maximum portability and
