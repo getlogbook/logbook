@@ -50,8 +50,7 @@ Project Information
 * `Mailing list`_
 * IRC: ``#pocoo`` on freenode
 
-
-.. _testsuite: http://github.com/mitsuhiko/logbook/blob/master/test_logbook.py
+.. _testsuite: https://github.com/mitsuhiko/logbook/tree/master/logbook/testsuite
 .. _Download from PyPI: http://pypi.python.org/pypi/Logbook
-.. _Master repository on GitHub: http://github.com/mitsuhiko/logbook
+.. _Master repository on GitHub: https://github.com/mitsuhiko/logbook
 .. _Mailing list: http://groups.google.com/group/pocoo-libs
