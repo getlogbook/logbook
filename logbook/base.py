@@ -8,6 +8,7 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
+import inspect
 import os
 import sys
 import thread
@@ -473,6 +474,24 @@ class LogRecord(object):
         cf = self.calling_frame
         if cf is not None:
             return cf.f_code.co_name
+
+    @cached_property
+    def class_name(self):
+        """The fully-qualified name of the class that triggered the log call if
+        available.  Requires a frame or that :meth:`pull_information`
+        was called before.
+        """
+        cf = self.calling_frame
+        if cf is not None:
+            args, varargs, varkw, locals = inspect.getargvalues(cf)
+            if args:
+                cls = locals[args[0]]
+                if not isinstance(cls, type):
+                    cls = cls.__class__
+                if hasattr(cls, self.func_name):
+                    for base in inspect.getmro(cls):
+                        if self.func_name in base.__dict__:
+                            return base.__module__ + "." + base.__name__
 
     @cached_property
     def module(self):
