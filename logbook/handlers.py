@@ -8,11 +8,14 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
+import cPickle
 import os
 import sys
 import stat
 import errno
 import socket
+import struct
+import time
 try:
     from hashlib import sha1
 except ImportError:
@@ -1185,7 +1188,141 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
                      self.get_recipients(trigger))
 
 
-class SyslogHandler(Handler, StringFormatterHandlerMixin):
+class SocketHandler(Handler):
+
+
+    def __init__(self, address=None, socktype=socket.SOCK_DGRAM,
+                 level=NOTSET, filter=None, bubble=False):
+        Handler.__init__(self, level, filter, bubble)
+
+        if address is None:
+            if sys.platform == 'darwin':
+                address = '/var/run/syslog'
+            else:
+                address = '/dev/log'
+
+        self.address = address
+        self.socktype = socktype
+
+        self.socket = None
+
+        self.close_on_error = False
+        self.retry_time = None
+        self.retry_start = 1.0
+        self.retry_max = 30.0
+        self.retry_factor = 2.0
+
+    def _connect_unixsocket(self):
+        self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        try:
+            self.socket.connect(self.address)
+        except socket.error:
+            self.socket.close()
+            self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.socket.connect(self.address)
+
+    def _connect_netsocket(self, timeout=1):
+        
+        self.socket = socket.socket(socket.AF_INET, self.socktype)
+        if self.socktype == socket.SOCK_STREAM:
+
+            now = time.time()
+            # Either retry_time is None, in which case this
+            # is the first time back after a disconnect, or
+            # we've waited long enough.
+            if self.retry_time is None:
+                attempt = True
+            else:
+                attempt = (now >= self.retry_time)
+            
+            if attempt:
+                try:
+                    if hasattr(self.socket, "settimeout"):
+                        self.socket.settimeout(timeout)
+                    self.socket.connect(self.address)
+                    self.address = self.socket.getsockname()
+                    self.retry_time = None # next time, no delay before trying
+                except socket.error:
+                    # Creation failed, so set the retry time and return.
+                    if self.retry_time is None:
+                        self.retry_period = self.retry_start
+                    else:
+                        self.retry_period = self.retry_period * self.retry_factor
+                        if self.retry_period > self.retry_max:
+                            self.retry_period = self.retry_max
+                    self.retry_time = now + self.retry_period
+            else:
+                self.socket = None
+
+    def handle_error(self, record, exc_info):
+        """
+        Handle an error during logging.
+
+        An error has occurred during logging. Most likely cause -
+        connection lost. Close the socket so that we can retry on the
+        next event.
+        """
+        if self.close_on_error and self.socket is not None:
+            self.socket.close()
+            self.socket = None        #try to reconnect next time
+        Handler.handle_error(self, record, exc_info)
+
+    def send_to_socket(self, data):
+        if isinstance(self.address, basestring):
+            if self.socket is None:
+                self._connect_unixsocket()
+            try:
+                self.socket.send(data)
+            except socket.error:
+                self._connect_unixsocket()
+                self.socket.send(data)
+        else:
+            if self.socket is None:
+                self._connect_netsocket()
+            #self.socket can be None either because we haven't reached the retry
+            #time yet, or because we have reached the retry time and retried,
+            #but are still unable to connect.
+            if self.socket is not None:
+                try:
+                    if self.socktype == socket.SOCK_DGRAM:
+                        # the flags are no longer optional on Python 3
+                        self.socket.sendto(data, 0, self.address)
+                    if hasattr(self.socket, "sendall"):
+                        self.socket.sendall(data)
+                    else:
+                        sentsofar = 0
+                        left = len(data)
+                        while left > 0:
+                            sent = self.sock.send(data[sentsofar:])
+                            sentsofar = sentsofar + sent
+                            left = left - sent
+                except socket.error:
+                    self.socket.close()
+                    self.socket = None  # so we can call createSocket next time
+
+    def close(self):
+        self.socket.close()
+    
+    def emit(self, record):
+        """
+        Emit a record.
+
+        Pickles the record and writes it to the socket in binary format.
+        If there is an error with the socket, silently drop the packet.
+        If there was a problem with the socket, re-establishes the
+        socket.
+        """
+        ei = record.exc_info
+        if ei:
+            record.exc_info = None  # to avoid Unpickleable error
+        pickled = cPickle.dumps(record.__dict__, True)
+        if ei:
+            record.exc_info = ei  # for next handler
+        pickled = struct.pack(">L", len(pickled)) + pickled
+        self.send_to_socket(pickled)
+
+
+class SyslogHandler(SocketHandler, StringFormatterHandlerMixin):
     """A handler class which sends formatted logging records to a
     syslog server.  By default it will send to it via unix socket.
     """
@@ -1261,41 +1398,11 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
                  facility='user', socktype=socket.SOCK_DGRAM,
                  level=NOTSET, format_string=None, filter=None,
                  bubble=False):
-        Handler.__init__(self, level, filter, bubble)
+        SocketHandler.__init__(self, address, socktype, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
+
         self.application_name = application_name
-
-        if address is None:
-            if sys.platform == 'darwin':
-                address = '/var/run/syslog'
-            else:
-                address = '/dev/log'
-
-        self.address = address
         self.facility = facility
-        self.socktype = socktype
-
-        if isinstance(address, basestring):
-            self._connect_unixsocket()
-        else:
-            self._connect_netsocket()
-
-    def _connect_unixsocket(self):
-        self.unixsocket = True
-        self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-        try:
-            self.socket.connect(self.address)
-        except socket.error:
-            self.socket.close()
-            self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.socket.connect(self.address)
-
-    def _connect_netsocket(self):
-        self.unixsocket = False
-        self.socket = socket.socket(socket.AF_INET, self.socktype)
-        if self.socktype == socket.SOCK_STREAM:
-            self.socket.connect(self.address)
-            self.address = self.socket.getsockname()
 
     def encode_priority(self, record):
         facility = self.facility_names[self.facility]
@@ -1312,22 +1419,6 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
             prefix,
             self.format(record)
         )).encode('utf-8'))
-
-    def send_to_socket(self, data):
-        if self.unixsocket:
-            try:
-                self.socket.send(data)
-            except socket.error:
-                self._connect_unixsocket()
-                self.socket.send(data)
-        elif self.socktype == socket.SOCK_DGRAM:
-            # the flags are no longer optional on Python 3
-            self.socket.sendto(data, 0, self.address)
-        else:
-            self.socket.sendall(data)
-
-    def close(self):
-        self.socket.close()
 
 
 class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
