@@ -10,14 +10,25 @@
 """
 import re
 import os
-from cgi import parse_qsl
+from cgi import parse_qsl, escape
+import pprint
+import socket
+import time
 from urllib import urlencode
 
 from logbook.base import RecordDispatcher, NOTSET, ERROR, NOTICE
 from logbook.handlers import Handler, StringFormatter, \
-     StringFormatterHandlerMixin, StderrHandler
+     StringFormatterHandlerMixin, StderrHandler, SocketHandler
 from logbook._termcolors import colorize
 from logbook.helpers import F
+
+try:
+    from lxml import etree
+except ImportError:
+    try:
+        import xml.etree.cElementTree as etree
+    except ImportError:
+        import xml.etree.ElementTree as etree
 
 
 _ws_re = re.compile(r'(\s+)(?u)')
@@ -328,3 +339,98 @@ class ExceptionHandler(Handler, StringFormatterHandlerMixin):
         if self.should_handle(record):
             raise self.exc_type(self.format(record))
         return False
+
+
+class XMLLayoutFormatter(object):
+    """
+    Formats log Records as XML according to the `log4j XMLLayout
+    <http://logging.apache.org/log4j/docs/api/org/apache/log4j/xml/XMLLayout.html>_`
+    
+    Based on http://pypi.python.org/pypi/XMLLayout
+    """
+
+    log4j_ns = "http://logging.apache.org/log4j/"
+
+    # map level names
+    level_map = dict(CRITICAL="FATAL",
+                     WARNING="WARN",
+                     NOTICE="INFO")
+
+    def __call__(self, record, handler):
+
+        # event
+        timestamp = "%d" % time.mktime(record.time.timetuple())
+        level_name = self.level_map.get(record.level_name,
+                                        record.level_name)
+        event = etree.Element("{%s}event" % self.log4j_ns,
+                              dict(logger=record.channel,
+                                   timestamp=timestamp,
+                                   level=level_name,
+                                   thread=record.thread_name),
+                              nsmap=dict(log4j=self.log4j_ns),
+                              )
+
+        # message
+        message = etree.SubElement(event, "{%s}message" % self.log4j_ns)
+        message.text = record.message
+
+        # location info
+        etree.SubElement(event,
+                         "{%s}locationInfo" % self.log4j_ns,
+                         {"class" : record.class_name or "",
+                          "method" : record.func_name,
+                          "file" : record.filename,
+                          "line" : str(record.lineno)})
+
+        # ndc
+        if record.extra:
+            ndc = etree.SubElement(event, "{%s}ndc" % self.log4j_ns)
+            ndc.text = pprint.pformat(record.extra)
+            event.append(ndc)
+
+        # exception
+        if record.formatted_exception is not None:
+            throwable = etree.SubElement(event, "{%s}throwable" % self.log4j_ns)
+            throwable.text = escape(record.formatted_exception)
+
+        return etree.tostring(event)
+
+
+class XMLSocketHandler(SocketHandler):
+    """
+    A handler that logs to a log4j XMLSocketReceiver.
+    
+    An log4j configuration file for chainsaw is below:
+    
+        <?xml version="1.0" encoding="UTF-8" ?>
+        <configuration>
+        
+            <plugin name="XMLSocketReceiver" class="org.apache.log4j.net.XMLSocketReceiver">
+                <param name="decoder" value="org.apache.log4j.xml.XMLDecoder" />
+                <param name="port" value="4448" />
+            </plugin>
+        
+            <logger name="org.apache.log4j">
+                <level value="warn" />
+            </logger>
+        
+            <root>
+                <level value="debug" />
+            </root>
+        
+        </configuration>
+
+    """
+
+    def __init__(self, host, port=4448, level=NOTSET, filter=None,
+                 bubble=False):
+        SocketHandler.__init__(self,
+                               address=(host, port),
+                               socktype=socket.SOCK_STREAM,
+                               level=level,
+                               filter=filter,
+                               bubble=bubble)
+        self.formatter = XMLLayoutFormatter()
+
+    def emit(self, record):
+        self.send_to_socket(self.format(record).encode('utf-8'))
