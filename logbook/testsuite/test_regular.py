@@ -1119,19 +1119,20 @@ class MoreTestCase(LogbookTestCase):
             def should_colorize(self, record):
                 return True
             stream = StringIO()
-        handler = TestColorizingHandler(format_string='{record.message}')
+        handler = TestColorizingHandler(format_string='{record.time:%x} {record.level_name} {record.channel} {record.message}')
         handler.push_thread()
         try:
+            timestring = datetime.now().strftime("%x")
             self.log.error('An error')
             self.log.warn('A warning')
             self.log.debug('A debug message')
             lines = handler.stream.getvalue().rstrip('\n').splitlines()
-            self.assertEqual(lines, [
-                '\x1b[31;01mAn error',
-                '\x1b[39;49;00m\x1b[33;01mA warning',
-                '\x1b[39;49;00m\x1b[37mA debug message',
-                '\x1b[39;49;00m'
-            ])
+            good_lines = [
+                '\x1b[36m%s\x1b[39;49;00m \x1b[31;01mERROR\x1b[39;49;00m \x1b[34;01mtestlogger\x1b[39;49;00m An error' % timestring,
+                '\x1b[36m%s\x1b[39;49;00m \x1b[33;01mWARNING\x1b[39;49;00m \x1b[34;01mtestlogger\x1b[39;49;00m A warning' % timestring,
+                '\x1b[36m%s\x1b[39;49;00m \x1b[30;01mDEBUG\x1b[39;49;00m \x1b[34;01mtestlogger\x1b[39;49;00m A debug message' % timestring,
+                ]
+            self.assertEqual(lines, good_lines)
         finally:
             handler.pop_thread()
 

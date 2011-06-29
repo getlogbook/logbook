@@ -354,7 +354,6 @@ class StringFormatter(object):
         self._formatter = F(value)
 
     format_string = property(_get_format_string, _set_format_string)
-    del _get_format_string, _set_format_string
 
     def format_record(self, record, handler):
         return self._formatter.format(record=record, handler=handler)
