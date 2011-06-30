@@ -16,16 +16,11 @@ import socket
 import time
 from urllib import urlencode
 
-from logbook.base import RecordDispatcher, NOTSET, ERROR, WARNING, INFO
+from logbook.base import RecordDispatcher, NOTSET, ERROR, NOTICE
 from logbook.handlers import Handler, StringFormatter, \
      StringFormatterHandlerMixin, StderrHandler, SocketHandler
 from logbook._termcolors import colorize
-from logbook.helpers import F, cached_property
-
-try:
-    import pygments
-except ImportError:
-    pygments = None
+from logbook.helpers import F
 
 from lxml import etree
 
@@ -259,92 +254,11 @@ class ExternalApplicationHandler(Handler):
         c.wait()
 
 
-class ColorLogRecord(object):
-
-    LEVEL_COLORS = (
-        (ERROR, "red"),
-        (WARNING, "yellow"),
-        (INFO, "green"),
-        )
-
-    DEFAULT_COLOR = "darkgray"
-
-    def __init__(self, formatter, record):
-        self.formatter = formatter
-        self.record = record
-
-    def __getattr__(self, key):
-        return getattr(self.record, key)
-
-    @property
-    def level_name(self):
-        for level, color in self.LEVEL_COLORS:
-            if self.record.level >= level:
-                break
-        else:
-            color = self.DEFAULT_COLOR
-        return colorize(color, self.record.level_name)
-
-#    @property
-#    def message(self):
-#        message = self.record.message
-#        if message and pygments is not None:
-#            message = pygments.highlight(message, self.formatter.tb_lexer, self.formatter.tb_formatter).strip()
-#        return message
-
-
-class ColorStringFormatter(StringFormatter):
-
-    TIME_COLOR = "teal"
-    TIME_PATTERN = re.compile("(\{record\.time:[^}]+\})")
-    CHANNEL_COLOR = "blue"
-
-    def __init__(self, format_string):
-        self.format_string = format_string
-
-    def _get_format_string(self):
-        return self._format_string
-
-    def _set_format_string(self, value):
-        colored_time = colorize(self.TIME_COLOR, r"\1")
-        value = self.TIME_PATTERN.sub(colored_time, value)
-        value = value.replace("{record.channel}",
-                              colorize(self.CHANNEL_COLOR, "{record.channel}"))
-        StringFormatter._set_format_string(self, value)
-
-    format_string = property(StringFormatter._get_format_string, _set_format_string)
-    del _set_format_string
-
-    @cached_property
-    def tb_lexer(self):
-        from pygments.lexers.agile import PythonTracebackLexer
-        return PythonTracebackLexer()
-
-    @cached_property
-    def tb_formatter(self):
-        from pygments.formatters.terminal import TerminalFormatter
-        return TerminalFormatter()
-
-    def format_record(self, record, handler):
-        record = ColorLogRecord(self, record)
-        return StringFormatter.format_record(self, record, handler)
-
-    def format_exception(self, record):
-        exc_str = StringFormatter.format_exception(self, record)
-        if exc_str is not None and pygments is not None:
-            exc_str = pygments.highlight(exc_str, self.tb_lexer, self.tb_formatter)
-        return exc_str
-
-
 class ColorizingStreamHandlerMixin(object):
     """A mixin class that does colorizing.
 
     .. versionadded:: 0.3
     """
-
-    @cached_property
-    def formatter_class(self):
-        return ColorStringFormatter if self.should_colorize(None) else StringFormatter
 
     def should_colorize(self, record):
         """Returns `True` if colorizing should be applied to this
@@ -355,6 +269,23 @@ class ColorizingStreamHandlerMixin(object):
             return False
         isatty = getattr(self.stream, 'isatty', None)
         return isatty and isatty()
+
+    def get_color(self, record):
+        """Returns the color for this record."""
+        if record.level >= ERROR:
+            return 'red'
+        elif record.level >= NOTICE:
+            return 'yellow'
+        return 'lightgray'
+
+    def format_and_encode(self, record):
+        rv = super(ColorizingStreamHandlerMixin, self) \
+                .format_and_encode(record)
+        if self.should_colorize(record):
+            color = self.get_color(record)
+            if color:
+                rv = colorize(color, rv)
+        return rv
 
 
 class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
