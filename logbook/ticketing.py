@@ -275,15 +275,29 @@ class MongoDBBackend(BackendBase):
 
     #TODO: Update connection setup once PYTHON-160 is solved.
     def setup_backend(self):
+        import pymongo
         from pymongo import ASCENDING, DESCENDING
-        from pymongo.connection import Connection, _parse_uri
+        from pymongo.connection import Connection
+
+        try:
+                from pymongo.uri_parser import parse_uri
+        except ImportError:
+                from pymongo.connection import _parse_uri as parse_uri
+
         from pymongo.errors import AutoReconnect
 
         _connection = None
         uri = self.options.pop('uri', u'')
         _connection_attempts = 0
 
-        hosts, database, user, password = _parse_uri(uri, Connection.PORT)
+        parsed_uri = parse_uri(uri, Connection.PORT)
+
+        if type(parsed_uri) is tuple:
+                # pymongo < 2.0
+                database = parsed_uri[1]
+        else:
+                # pymongo >= 2.0
+                database = parsed_uri['database']
 
         # Handle auto reconnect signals properly
         while _connection_attempts < 5:
