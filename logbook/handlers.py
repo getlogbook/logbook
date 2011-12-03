@@ -239,7 +239,7 @@ class Handler(ContextObject):
         is intended to be used by other handlers which are already protected
         against internal breakage.
 
-        `reason` is a string that specifies the rason why :meth:`emit_batch`
+        `reason` is a string that specifies the reason why :meth:`emit_batch`
         was called, and not :meth:`emit`.  The following are valid values:
 
         ``'buffer'``
