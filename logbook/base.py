@@ -152,7 +152,11 @@ class ContextObject(StackedObject):
     def pop_thread(self):
         """Pops the context object from the stack."""
         popped = self.stack_manager.pop_thread()
-        assert popped is self, 'popped unexpected object'
+        assert popped is self, \
+            'Popped unexpected object. Expected: %s, got: %s' % (
+                repr(self),
+                repr(popped)
+            )
 
     def push_application(self):
         """Pushes the context object to the application stack."""
@@ -161,7 +165,11 @@ class ContextObject(StackedObject):
     def pop_application(self):
         """Pops the context object from the stack."""
         popped = self.stack_manager.pop_application()
-        assert popped is self, 'popped unexpected object'
+        assert popped is self, \
+            'Popped unexpected object. Expected: %s, got: %s' % (
+                repr(self),
+                repr(popped)
+            )
 
 
 class NestedSetup(StackedObject):
@@ -848,7 +856,7 @@ class LoggerGroup(object):
     def __init__(self, loggers=None, level=NOTSET, processor=None):
         #: a list of all loggers on the logger group.  Use the
         #: :meth:`add_logger` and :meth:`remove_logger` methods to add
-        #: or remove loggers from this list.   
+        #: or remove loggers from this list.
         self.loggers = []
         if loggers is not None:
             for logger in loggers:

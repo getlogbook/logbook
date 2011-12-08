@@ -147,6 +147,35 @@ class BasicAPITestCase(LogbookTestCase):
         self.assert_(re.search('Happened in file .*%s, line \d+' % test_file,
                                errormsg))
 
+    def test_context_exception(self):
+        # NOTE: Since no actual logging is done we only put this
+        # test in test_regular
+
+        # Push a certain handler onto the application stack
+        handler = logbook.TestHandler()
+        handler.push_application()
+
+        # Creating another handler and trying to pop it from that stack
+        # should raise an AssertionError
+        another_handler = logbook.StderrHandler()
+
+        # This is for compatibility reasons, we would rather use
+        # assertRaisesRegexp here.
+        expected_msg = (
+            r"Popped unexpected object. "
+            r"Expected\: \<logbook\.handlers\.StderrHandler object at .*\>, "
+            r"got\: \<logbook\.handlers\.TestHandler object at .*\>"
+        )
+        self.assertRaisesRegexp(expected_msg, another_handler.pop_application)
+
+        handler.pop_application()
+
+        # Now repeat for thread context
+        handler.push_thread()
+        self.assertRaisesRegexp(expected_msg, another_handler.pop_thread)
+        handler.pop_thread()
+
+
     def test_exception_catching(self):
         logger = logbook.Logger('Test')
         handler = logbook.TestHandler()
@@ -1263,7 +1292,6 @@ class MoreTestCase(LogbookTestCase):
         finally:
             test_handler.pop_thread()
         self.assert_('this is irrelevant' in test_handler.records[0].message)
-
 
 
 class QueuesTestCase(LogbookTestCase):
