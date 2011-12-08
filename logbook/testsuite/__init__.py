@@ -9,7 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 import sys
-import unittest
+import unittest2
 import logbook
 
 
@@ -19,11 +19,11 @@ _func_ident = lambda f: f
 _func_none = lambda f: None
 
 
-class LogbookTestSuite(unittest.TestSuite):
+class LogbookTestSuite(unittest2.TestSuite):
 
     def run(self, result):
         try:
-            return unittest.TestSuite.run(self, result)
+            return unittest2.TestSuite.run(self, result)
         finally:
             sys.stderr.write('\n')
             for mod in _skipped_modules:
@@ -31,7 +31,7 @@ class LogbookTestSuite(unittest.TestSuite):
                 sys.stderr.write(msg)
 
 
-class LogbookTestCase(unittest.TestCase):
+class LogbookTestCase(unittest2.TestCase):
 
     def setUp(self):
         self.log = logbook.Logger('testlogger')
@@ -86,17 +86,3 @@ def missing(name):
                     sys.modules[name] = old
         return wrapper
     return decorate
-
-
-def suite():
-    loader = unittest.TestLoader()
-    suite = LogbookTestSuite()
-    suite.addTests(loader.loadTestsFromName('logbook.testsuite.test_regular'))
-    if sys.version_info >= (2, 5):
-        suite.addTests(loader.loadTestsFromName
-                       ('logbook.testsuite.test_contextmanager'))
-    return suite
-
-
-if __name__ == '__main__':
-    unittest.main(defaultTest='suite')

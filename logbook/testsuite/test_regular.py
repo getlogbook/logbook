@@ -17,7 +17,7 @@ import time
 import thread
 import pickle
 import shutil
-import unittest
+import unittest2
 import tempfile
 import socket
 from datetime import datetime, timedelta
@@ -1483,7 +1483,7 @@ class TicketingTestCase(LogbookTestCase):
         self.assert_('1 / 0' in record.formatted_exception)
 
 
-class HelperTestCase(unittest.TestCase):
+class HelperTestCase(unittest2.TestCase):
 
     def test_jsonhelper(self):
         from logbook.helpers import to_safe_json
@@ -1519,20 +1519,3 @@ class HelperTestCase(unittest.TestCase):
         self.assertEqual(v.hour, 11)
         v = parse_iso8601('2000-01-01T12:00:00-01:00')
         self.assertEqual(v.hour, 13)
-
-
-def suite():
-    loader = unittest.TestLoader()
-    suite = LogbookTestSuite()
-    suite.addTests(loader.loadTestsFromName(__name__))
-    try:
-        suite.addTests(loader.loadTestsFromName
-                       ('logbook.testsuite.test_contextmanager'))
-    except SyntaxError:
-        # Python 2.4 does not support the 'with' statement
-        pass
-    return suite
-
-
-if __name__ == '__main__':
-    unittest.main(defaultTest='suite')

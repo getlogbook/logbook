@@ -15,7 +15,7 @@ import re
 import sys
 import pickle
 import shutil
-import unittest
+import unittest2
 import tempfile
 import socket
 from datetime import datetime, timedelta
@@ -827,7 +827,3 @@ class MoreTestCase(LogbookTestCase):
         self.assert_('info message' not in stringio)
         self.assert_('all message' in stringio)
         self.assert_('cmd message' in stringio)
-
-
-if __name__ == '__main__':
-    unittest.main()
