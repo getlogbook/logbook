@@ -827,3 +827,15 @@ class MoreTestCase(LogbookTestCase):
         self.assert_('info message' not in stringio)
         self.assert_('all message' in stringio)
         self.assert_('cmd message' in stringio)
+
+
+class PlatformSpecificTestCase(LogbookTestCase):
+    @unittest2.skipUnless(sys.platform.startswith("win"), "Requires Windows")
+    def test_win32_logger(self):
+        from logbook import NTEventLogHandler, Logger
+
+        logger = Logger('MyLogger')
+        handler = NTEventLogHandler('My Application')
+
+        with handler.applicationbound():
+            logger.error('Testing')
