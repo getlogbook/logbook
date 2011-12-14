@@ -674,7 +674,9 @@ class LoggerMixin(object):
 
     def catch_exceptions(self, *args, **kwargs):
         """A context manager that catches exceptions and calls
-        :meth:`exception` for exceptions caught that way.  Example::
+        :meth:`exception` for exceptions caught that way.
+
+        Example::
 
             with logger.catch_exceptions():
                 execute_code_that_might_fail()
