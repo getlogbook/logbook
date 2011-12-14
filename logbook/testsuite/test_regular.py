@@ -401,16 +401,16 @@ class HandlerTestCase(LogbookTestCase):
         else:
             ascii_subject = False
             subject = u'\xf8nicode'
-        handler = make_fake_mail_handler(subject=subject)
+        handler = make_fake_mail_handler(subject=subject, level=logbook.CRITICAL)
         fallback = capture_stderr.start()
         try:
             handler.push_thread()
             try:
-                self.log.warn('This is not mailed')
+                self.log.error('This is not mailed')
                 try:
                     1 / 0
                 except Exception:
-                    self.log.exception('This is unfortunate')
+                    self.log.critical('This is unfortunate', exc_info=sys.exc_info())
             finally:
                 handler.pop_thread()
 
@@ -419,7 +419,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(sender, handler.from_addr)
             if not ascii_subject:
                 self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
-            self.assert_(re.search('Message type:\s+ERROR', mail))
+            self.assert_(re.search('Message type:\s+CRITICAL', mail))
             self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
             self.assert_(re.search('Function:\s+test_mail_handler', mail))
@@ -609,7 +609,7 @@ Message:
             handler.push_thread()
             try:
                 log.warn('From my logger')
-                self.log.warn('From another logger')
+                self.log.error('From another logger')
             finally:
                 handler.pop_thread()
             self.assert_(handler.has_warning('From my logger'))
@@ -678,7 +678,7 @@ Message:
         null_handler.bubble = True
         captured = capture_stderr.start()
         try:
-            logbook.warning('Not a blockhole')
+            logbook.error('Not a blockhole')
             self.assertNotEqual(captured.getvalue(), '')
         finally:
             capture_stderr.end()
@@ -715,7 +715,7 @@ Message:
                     logger.exception()
             finally:
                 handlers.pop_thread()
-            logger.warn('And here we go straight back to stderr')
+            logger.error('And here we go straight back to stderr')
 
             self.assert_(test_handler.has_warning('This is a warning'))
             self.assert_(test_handler.has_error('This is also a mail'))
@@ -975,7 +975,7 @@ class FlagsTestCase(LogbookTestCase):
                 print_flag = logbook.Flags(errors='print')
                 print_flag.push_thread()
                 try:
-                    self.log.warn('Foo {42}', 'aha')
+                    self.log.error('Foo {42}', 'aha')
                 finally:
                     print_flag.pop_thread()
             finally:
@@ -986,7 +986,7 @@ class FlagsTestCase(LogbookTestCase):
                 raise_flag = logbook.Flags(errors='raise')
                 raise_flag.push_thread()
                 try:
-                    self.log.warn('Foo {42}', 'aha')
+                    self.log.error('Foo {42}', 'aha')
                 finally:
                     raise_flag.pop_thread()
             except Exception, e:
@@ -1037,13 +1037,16 @@ class LoggerGroupTestCase(LogbookTestCase):
 class DefaultConfigurationTestCase(LogbookTestCase):
 
     def test_default_handlers(self):
+        # Logbook should log level ERROR and up by default
+        self.assertEqual(logbook.ERROR, logbook.default_handler.level)
+
         stream = capture_stderr.start()
         try:
-            self.log.warn('Aha!')
+            self.log.error('Aha!')
             captured = stream.getvalue()
         finally:
             capture_stderr.end()
-        self.assert_('WARNING: testlogger: Aha!' in captured)
+        self.assert_('ERROR: testlogger: Aha!' in captured)
 
 
 class LoggingCompatTestCase(LogbookTestCase):
@@ -1066,7 +1069,7 @@ class LoggingCompatTestCase(LogbookTestCase):
                 logger.critical('This is from the old system')
             finally:
                 redirector.end()
-            self.assert_(('WARNING: %s: This is from the old system' % name)
+            self.assert_(('ERROR: %s: This is from the old system' % name)
                          in captured.getvalue())
         finally:
             capture_stderr.end()

@@ -42,5 +42,5 @@ del _default_logger
 
 
 # install a default global handler
-default_handler = StderrHandler()
+default_handler = StderrHandler(level=ERROR)
 default_handler.push_application()
