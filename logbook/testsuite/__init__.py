@@ -9,9 +9,13 @@
     :license: BSD, see LICENSE for more details.
 """
 import sys
-import unittest2
-import logbook
 
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
+
+import logbook
 
 _skipped_modules = []
 _missing = object()
@@ -19,11 +23,11 @@ _func_ident = lambda f: f
 _func_none = lambda f: None
 
 
-class LogbookTestSuite(unittest2.TestSuite):
+class LogbookTestSuite(unittest.TestSuite):
 
     def run(self, result):
         try:
-            return unittest2.TestSuite.run(self, result)
+            return unittest.TestSuite.run(self, result)
         finally:
             sys.stderr.write('\n')
             for mod in _skipped_modules:
@@ -31,7 +35,7 @@ class LogbookTestSuite(unittest2.TestSuite):
                 sys.stderr.write(msg)
 
 
-class LogbookTestCase(unittest2.TestCase):
+class LogbookTestCase(unittest.TestCase):
 
     def setUp(self):
         self.log = logbook.Logger('testlogger')

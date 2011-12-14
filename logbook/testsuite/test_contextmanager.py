@@ -15,7 +15,6 @@ import re
 import sys
 import pickle
 import shutil
-import unittest2
 import tempfile
 import socket
 from datetime import datetime, timedelta
@@ -23,6 +22,11 @@ from random import randrange
 from itertools import izip
 from contextlib import contextmanager
 from cStringIO import StringIO
+
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 import logbook
 from logbook.testsuite import LogbookTestCase, make_fake_mail_handler
@@ -833,7 +837,7 @@ class MoreTestCase(LogbookTestCase):
 
 
 class PlatformSpecificTestCase(LogbookTestCase):
-    @unittest2.skipUnless(sys.platform.startswith("win"), "Requires Windows")
+    @unittest.skipUnless(sys.platform.startswith("win"), "Requires Windows")
     def test_win32_logger(self):
         from logbook import NTEventLogHandler, Logger
 

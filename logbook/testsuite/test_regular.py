@@ -17,13 +17,17 @@ import time
 import thread
 import pickle
 import shutil
-import unittest2
 import tempfile
 import socket
 from datetime import datetime, timedelta
 from random import randrange
 from itertools import izip
 from cStringIO import StringIO
+
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 import logbook
 from logbook.testsuite import LogbookTestCase, skip_if, require, missing, \
@@ -1514,7 +1518,7 @@ class TicketingTestCase(LogbookTestCase):
         self.assert_('1 / 0' in record.formatted_exception)
 
 
-class HelperTestCase(unittest2.TestCase):
+class HelperTestCase(unittest.TestCase):
 
     def test_jsonhelper(self):
         from logbook.helpers import to_safe_json
