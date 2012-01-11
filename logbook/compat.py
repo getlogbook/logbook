@@ -260,6 +260,7 @@ class redirected_warnings(object):
             raise RuntimeError("Cannot exit %r without entering first" % self)
         warnings.filters = self._filters
         warnings.showwarning = self._showwarning
+        self._entered = False
 
     __enter__ = start
     __exit__ = end
