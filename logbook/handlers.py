@@ -9,6 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 import os
+import re
 import sys
 import stat
 import errno
@@ -70,6 +71,8 @@ Function:           {record.func_name}
 '''
 
 SYSLOG_PORT = 514
+
+REGTYPE = type(re.compile("I'm a regular expression!"))
 
 _py3 = sys.version_info >= (3, 0)
 
@@ -961,12 +964,19 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         return self._test_for(*args, **kwargs)
 
     def _test_for(self, message=None, channel=None, level=None):
+        def _match(needle, haystack):
+            "Matches both compiled regular expressions and strings"
+            if isinstance(needle, REGTYPE) and needle.search(haystack):
+                return True
+            if needle == haystack:
+                return True
+            return False
         for record in self.records:
             if level is not None and record.level != level:
                 continue
             if channel is not None and record.channel != channel:
                 continue
-            if message is not None and record.message != message:
+            if message is not None and not _match(message, record.message):
                 continue
             return True
         return False
