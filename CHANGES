@@ -3,6 +3,18 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.4.2dev
+----------------
+
+- When converting logging records to logbook records, the msg and args
+  are now left untouched, instead of being interpolated.
+
+Version 0.4.1dev
+----------------
+
+- MultiProcessingSubscriber now blocks on queue.get because it was
+  causing a 100% CPU loop.
+
 Version 0.4
 -----------
 
