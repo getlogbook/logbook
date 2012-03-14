@@ -130,7 +130,7 @@ class Handler(ContextObject):
     setting bubbling to `True`.  This setup for example would not have
     any effect::
 
-        handler = NullHandler(bubble=False)
+        handler = NullHandler(bubble=True)
         handler.push_application()
 
     Whereas this setup disables all logging for the application::
