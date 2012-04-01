@@ -188,6 +188,16 @@ class Handler(ContextObject):
         The combination of a handler and formatter might have the
         formatter return an XML element tree for example.
         """
+        # Decode the message to support non-ascii characters
+        # We must choose the charset manually
+        for record_charset in 'UTF-8', 'US-ASCII', 'ISO-8859-1':
+            try:
+                record.message = record.message.decode(record_charset)
+                self.encoding = record_charset
+            except UnicodeError:
+                pass
+            else:
+                break
         if self.formatter is None:
             return record.message
         return self.formatter(record, self)
@@ -1096,7 +1106,9 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
             from email.utils import formatdate
         except ImportError:  # Python 2.4
             from email.Utils import formatdate
-        msg = self.message_from_record(record, suppressed)
+        
+        from email.MIMEText import MIMEText
+        msg = MIMEText(self.message_from_record(record, suppressed).set_charset(self.encoding))
         msg['From'] = self.from_addr
         msg['Date'] = formatdate()
         return msg
