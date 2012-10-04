@@ -19,7 +19,6 @@ from logbook.handlers import Handler, StringFormatter, \
 from logbook._termcolors import colorize
 from logbook.helpers import F
 
-
 _ws_re = re.compile(r'(\s+)(?u)')
 TWITTER_FORMAT_STRING = \
 u'[{record.channel}] {record.level_name}: {record.message}'
