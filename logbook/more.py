@@ -19,11 +19,37 @@ from logbook.handlers import Handler, StringFormatter, \
 from logbook._termcolors import colorize
 from logbook.helpers import F
 
+from logbook.ticketing import TicketingHandler as DatabaseHandler
+from logbook.ticketing import BackendBase
+
 _ws_re = re.compile(r'(\s+)(?u)')
 TWITTER_FORMAT_STRING = \
 u'[{record.channel}] {record.level_name}: {record.message}'
 TWITTER_ACCESS_TOKEN_URL = 'https://twitter.com/oauth/access_token'
 NEW_TWEET_URL = 'https://api.twitter.com/1/statuses/update.json'
+
+
+class CouchDBBackend(BackendBase):
+    """Implements a backend that writes into a CouchDB database.
+    """
+    def setup_backend(self):
+        from couchdb import Server
+
+        uri = self.options.pop('uri', u'')
+        couch = Server(uri)
+        db_name = self.options.pop('db')
+        self.database = couch[db_name]
+
+    def record_ticket(self, record, data, hash, app_id):
+        """Records a log record as ticket.
+        """
+        db = self.database
+
+        ticket = record.to_dict()
+        ticket["time"] = ticket["time"].isoformat() + "Z"
+        ticket_id, _ = db.save(ticket)
+
+        db.save(ticket)
 
 
 class TwitterFormatter(StringFormatter):

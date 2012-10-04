@@ -386,29 +386,6 @@ class MongoDBBackend(BackendBase):
         return [self._FixedOccurrenceClass(self, obj) for obj in occurrences]
 
 
-class CouchDBBackend(BackendBase):
-    """Implements a backend that writes into a CouchDB database.
-    """
-    def setup_backend(self):
-        from couchdb import Server
-
-        uri = self.options.pop('uri', u'')
-        couch = Server(uri)
-        db_name = self.options.pop('db')
-        self.database = couch[db_name]
-
-    def record_ticket(self, record, data, hash, app_id):
-        """Records a log record as ticket.
-        """
-        db = self.database
-
-        ticket = record.to_dict()
-        ticket["time"] = ticket["time"].isoformat() + "Z"
-        ticket_id, _ = db.save(ticket)
-                
-        db.save(ticket)
-
-
 class TicketingBaseHandler(Handler, HashingHandlerMixin):
     """Baseclass for ticketing handlers.  This can be used to interface
     ticketing systems that do not necessarily provide an interface that
