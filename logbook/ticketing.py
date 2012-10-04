@@ -361,7 +361,6 @@ class MongoDBBackend(BackendBase):
                     .limit(limit).skip(offset)
         return [self._FixedTicketClass(self, obj) for obj in query]
 
-
     def solve_ticket(self, ticket_id):
         """Marks a ticket as solved."""
         self.database.tickets.update({'_id': self._oid(ticket_id)},
