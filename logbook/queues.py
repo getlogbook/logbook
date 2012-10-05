@@ -15,6 +15,50 @@ from logbook.handlers import Handler, WrapperHandler
 from logbook.helpers import json
 
 
+class RabbitMQHandler(Handler):
+    """A handler that acts as a RabbitMQ publisher, which publishes each record
+    as json dump.  Requires the kombu module.
+
+    The queue will be filled with JSON exported log records.  To receive such
+    log records from a queue you can use the :class:`RabbitMQSubscriber`.
+
+
+    Example setup::
+
+        handler = RabbitMQHandler('amqp://127.0.0.1', exchange='logging',
+            queue='my_application')
+    """
+    def __init__(self, uri=None, exchange='logging', queue='log', level=NOTSET,
+                filter=None, bubble=False, context=None):
+        Handler.__init__(self, level, filter, bubble)
+        try:
+            import kombu
+        except ImportError:
+            raise RuntimeError('The kombu library is required for '
+                               'the RabbitMQHandler.')
+
+        self.exchange = kombu.Exchange(exchange, 'direct', durable=True)
+        self.queue = kombu.Queue(queue, exchange=self.exchange, routing_key=queue)
+
+        if uri:
+            self.connection = kombu.Connection(uri)
+
+    def export_record(self, record):
+        """Exports the record into a dictionary ready for JSON dumping.
+        """
+        return record.to_dict(json_safe=True)
+
+    def emit(self, record):
+        with self.connection.Producer(serializer='json') as producer:
+            producer.publish(self.export_record(record), \
+                            exchange=self.exchange, \
+                            routing_key=self.queue.routing_key, \
+                            declare=[self.queue])
+
+    def close(self):
+        self.connection.close()
+
+
 class ZeroMQHandler(Handler):
     """A handler that acts as a ZeroMQ publisher, which publishes each record
     as json dump.  Requires the pyzmq library.
@@ -214,7 +258,8 @@ def _fix_261_mplog():
     module is not imported by logging and as such the test in
     the util fails.
     """
-    import logging, multiprocessing
+    import logging
+    import multiprocessing
     logging.multiprocessing = multiprocessing
 
 
