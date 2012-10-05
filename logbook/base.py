@@ -848,7 +848,7 @@ class LoggerGroup(object):
     def __init__(self, loggers=None, level=NOTSET, processor=None):
         #: a list of all loggers on the logger group.  Use the
         #: :meth:`add_logger` and :meth:`remove_logger` methods to add
-        #: or remove loggers from this list.   
+        #: or remove loggers from this list.
         self.loggers = []
         if loggers is not None:
             for logger in loggers:
