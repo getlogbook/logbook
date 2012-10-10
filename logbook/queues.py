@@ -233,7 +233,10 @@ class RabbitMQSubscriber(SubscriberBase):
         else:
             rv = self.queue.get(timeout=timeout)
 
-        return LogRecord.from_dict(rv.payload)
+        log_record = rv.payload
+        rv.ack()
+
+        return LogRecord.from_dict(log_record)
 
 
 class ZeroMQSubscriber(SubscriberBase):
