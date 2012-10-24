@@ -6,8 +6,9 @@ Here you can see the full list of changes between each Logbook release.
 Version 0.4
 -----------
 
-Release date to be announced.  Codename to be selected.
+Released on October 24th.  Codename "Phoenix"
 
+- Added preliminar RabbitMQ and CouchDB support.
 - Added :class:`logbook.notifiers.NotifoHandler`
 - `channel` is now documented to be used for filtering purposes if
   wanted.  Previously this was an opaque string that was not intended
