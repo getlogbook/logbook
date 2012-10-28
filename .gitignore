@@ -11,3 +11,8 @@ env*
 .coverage
 cover
 build
+.DS_Store
+.Python
+/bin
+/include
+/lib

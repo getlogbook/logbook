@@ -242,7 +242,7 @@ class Handler(ContextObject):
         is intended to be used by other handlers which are already protected
         against internal breakage.
 
-        `reason` is a string that specifies the rason why :meth:`emit_batch`
+        `reason` is a string that specifies the reason why :meth:`emit_batch`
         was called, and not :meth:`emit`.  The following are valid values:
 
         ``'buffer'``
@@ -1031,10 +1031,10 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
     record_cache_prune = 0.333
 
     def __init__(self, from_addr, recipients, subject=None,
-                 server_addr=None, credentials=None, secure=None,
-                 record_limit=None, record_delta=None, level=NOTSET,
-                 format_string=None, related_format_string=None,
-                 filter=None, bubble=False):
+                 server_addr=None, credentials=None, use_tls=False,
+                 keyfile=None, certfile=None,record_limit=None,
+                 record_delta=None, level=NOTSET, format_string=None,
+                 related_format_string=None, filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         LimitingHandlerMixin.__init__(self, record_limit, record_delta)
@@ -1045,7 +1045,9 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         self.subject = subject
         self.server_addr = server_addr
         self.credentials = credentials
-        self.secure = secure
+        self.use_tls = use_tls
+        self.keyfile=keyfile
+        self.certfile=certfile
         if related_format_string is None:
             related_format_string = self.default_related_format_string
         self.related_format_string = related_format_string
@@ -1133,15 +1135,15 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         from smtplib import SMTP, SMTP_PORT, SMTP_SSL_PORT
         if self.server_addr is None:
             host = 'localhost'
-            port = self.secure and SMTP_SSL_PORT or SMTP_PORT
+            port = self.use_tls and SMTP_SSL_PORT or SMTP_PORT
         else:
             host, port = self.server_addr
         con = SMTP()
         con.connect(host, port)
         if self.credentials is not None:
-            if self.secure is not None:
+            if self.use_tls:
                 con.ehlo()
-                con.starttls(*self.secure)
+                con.starttls(self.keyfile, self.certfile)
                 con.ehlo()
             con.login(*self.credentials)
         return con

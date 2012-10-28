@@ -9,9 +9,13 @@
     :license: BSD, see LICENSE for more details.
 """
 import sys
-import unittest
-import logbook
 
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
+
+import logbook
 
 _skipped_modules = []
 _missing = object()
@@ -86,17 +90,3 @@ def missing(name):
                     sys.modules[name] = old
         return wrapper
     return decorate
-
-
-def suite():
-    loader = unittest.TestLoader()
-    suite = LogbookTestSuite()
-    suite.addTests(loader.loadTestsFromName('logbook.testsuite.test_regular'))
-    if sys.version_info >= (2, 5):
-        suite.addTests(loader.loadTestsFromName
-                       ('logbook.testsuite.test_contextmanager'))
-    return suite
-
-
-if __name__ == '__main__':
-    unittest.main(defaultTest='suite')

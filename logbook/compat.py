@@ -196,7 +196,8 @@ class LoggingHandler(logbook.Handler):
 
 def redirect_warnings():
     """Like :func:`redirected_warnings` but will redirect all warnings
-    to the shutdown of the interpreter::
+    to the shutdown of the interpreter
+    ::
 
         from logbook.compat import redirect_warnings
         redirect_warnings()

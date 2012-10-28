@@ -17,13 +17,17 @@ import time
 import thread
 import pickle
 import shutil
-import unittest
 import tempfile
 import socket
 from datetime import datetime, timedelta
 from random import randrange
 from itertools import izip
 from cStringIO import StringIO
+
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 
 import logbook
 from logbook.testsuite import LogbookTestCase, skip_if, require, missing, \
@@ -146,6 +150,35 @@ class BasicAPITestCase(LogbookTestCase):
         self.assert_("kwargs={'foo': 42}" in errormsg)
         self.assert_(re.search('Happened in file .*%s, line \d+' % test_file,
                                errormsg))
+
+    def test_context_exception(self):
+        # NOTE: Since no actual logging is done we only put this
+        # test in test_regular
+
+        # Push a certain handler onto the application stack
+        handler = logbook.TestHandler()
+        handler.push_application()
+
+        # Creating another handler and trying to pop it from that stack
+        # should raise an AssertionError
+        another_handler = logbook.StderrHandler()
+
+        # This is for compatibility reasons, we would rather use
+        # assertRaisesRegexp here.
+        expected_msg = (
+            r"Popped unexpected object. "
+            r"Expected\: \<logbook\.handlers\.StderrHandler object at .*\>, "
+            r"got\: \<logbook\.handlers\.TestHandler object at .*\>"
+        )
+        self.assertRaisesRegexp(expected_msg, another_handler.pop_application)
+
+        handler.pop_application()
+
+        # Now repeat for thread context
+        handler.push_thread()
+        self.assertRaisesRegexp(expected_msg, another_handler.pop_thread)
+        handler.pop_thread()
+
 
     def test_exception_catching(self):
         logger = logbook.Logger('Test')
@@ -372,16 +405,16 @@ class HandlerTestCase(LogbookTestCase):
         else:
             ascii_subject = False
             subject = u'\xf8nicode'
-        handler = make_fake_mail_handler(subject=subject)
+        handler = make_fake_mail_handler(subject=subject, level=logbook.CRITICAL)
         fallback = capture_stderr.start()
         try:
             handler.push_thread()
             try:
-                self.log.warn('This is not mailed')
+                self.log.error('This is not mailed')
                 try:
                     1 / 0
                 except Exception:
-                    self.log.exception('This is unfortunate')
+                    self.log.critical('This is unfortunate', exc_info=sys.exc_info())
             finally:
                 handler.pop_thread()
 
@@ -390,7 +423,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(sender, handler.from_addr)
             if not ascii_subject:
                 self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
-            self.assert_(re.search('Message type:\s+ERROR', mail))
+            self.assert_(re.search('Message type:\s+CRITICAL', mail))
             self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
             self.assert_(re.search('Function:\s+test_mail_handler', mail))
@@ -591,7 +624,7 @@ Message:
             handler.push_thread()
             try:
                 log.warn('From my logger')
-                self.log.warn('From another logger')
+                self.log.error('From another logger')
             finally:
                 handler.pop_thread()
             self.assert_(handler.has_warning('From my logger'))
@@ -660,7 +693,7 @@ Message:
         null_handler.bubble = True
         captured = capture_stderr.start()
         try:
-            logbook.warning('Not a blockhole')
+            logbook.error('Not a blockhole')
             self.assertNotEqual(captured.getvalue(), '')
         finally:
             capture_stderr.end()
@@ -697,7 +730,7 @@ Message:
                     logger.exception()
             finally:
                 handlers.pop_thread()
-            logger.warn('And here we go straight back to stderr')
+            logger.error('And here we go straight back to stderr')
 
             self.assert_(test_handler.has_warning('This is a warning'))
             self.assert_(test_handler.has_error('This is also a mail'))
@@ -957,7 +990,7 @@ class FlagsTestCase(LogbookTestCase):
                 print_flag = logbook.Flags(errors='print')
                 print_flag.push_thread()
                 try:
-                    self.log.warn('Foo {42}', 'aha')
+                    self.log.error('Foo {42}', 'aha')
                 finally:
                     print_flag.pop_thread()
             finally:
@@ -968,7 +1001,7 @@ class FlagsTestCase(LogbookTestCase):
                 raise_flag = logbook.Flags(errors='raise')
                 raise_flag.push_thread()
                 try:
-                    self.log.warn('Foo {42}', 'aha')
+                    self.log.error('Foo {42}', 'aha')
                 finally:
                     raise_flag.pop_thread()
             except Exception, e:
@@ -1019,13 +1052,16 @@ class LoggerGroupTestCase(LogbookTestCase):
 class DefaultConfigurationTestCase(LogbookTestCase):
 
     def test_default_handlers(self):
+        # Logbook should log level ERROR and up by default
+        self.assertEqual(logbook.ERROR, logbook.default_handler.level)
+
         stream = capture_stderr.start()
         try:
-            self.log.warn('Aha!')
+            self.log.error('Aha!')
             captured = stream.getvalue()
         finally:
             capture_stderr.end()
-        self.assert_('WARNING: testlogger: Aha!' in captured)
+        self.assert_('ERROR: testlogger: Aha!' in captured)
 
 
 class LoggingCompatTestCase(LogbookTestCase):
@@ -1048,7 +1084,7 @@ class LoggingCompatTestCase(LogbookTestCase):
                 logger.critical('This is from the old system')
             finally:
                 redirector.end()
-            self.assert_(('WARNING: %s: This is from the old system' % name)
+            self.assert_(('ERROR: %s: This is from the old system' % name)
                          in captured.getvalue())
         finally:
             capture_stderr.end()
@@ -1274,7 +1310,6 @@ class MoreTestCase(LogbookTestCase):
         finally:
             test_handler.pop_thread()
         self.assert_('this is irrelevant' in test_handler.records[0].message)
-
 
 
 class QueuesTestCase(LogbookTestCase):
@@ -1530,20 +1565,3 @@ class HelperTestCase(unittest.TestCase):
         self.assertEqual(v.hour, 11)
         v = parse_iso8601('2000-01-01T12:00:00-01:00')
         self.assertEqual(v.hour, 13)
-
-
-def suite():
-    loader = unittest.TestLoader()
-    suite = LogbookTestSuite()
-    suite.addTests(loader.loadTestsFromName(__name__))
-    try:
-        suite.addTests(loader.loadTestsFromName
-                       ('logbook.testsuite.test_contextmanager'))
-    except SyntaxError:
-        # Python 2.4 does not support the 'with' statement
-        pass
-    return suite
-
-
-if __name__ == '__main__':
-    unittest.main(defaultTest='suite')
