@@ -74,7 +74,8 @@ arguments:
 
 `message`
     If provided and not `None` it will check if there is at least one log
-    record where the message matches.
+    record where the message matches. This can also be a compiled regular
+    expression.
 
 `channel`
     If provided and not `None` it will check if there is at least one log
@@ -84,6 +85,8 @@ Example usage:
 
 >>> handler.has_warning('A different message')
 False
+>>> handler.has_warning(re.compile('^Hello'))
+True
 >>> handler.has_warning('Hello World', channel='Testing')
 True
 >>> handler.has_warning(channel='Testing')
