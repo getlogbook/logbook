@@ -562,6 +562,17 @@ Message:
                      'for /index.html [GET]' in mail)
         self.assert_('1 / 0' in mail)
 
+    def test_regex_matching(self):
+        test_handler = logbook.TestHandler()
+        test_handler.push_thread()
+        try:
+            self.log.warn('Hello World!')
+            self.assert_(test_handler.has_warning(re.compile('^Hello')))
+            self.assert_(not test_handler.has_warning(re.compile('world$')))
+            self.assert_(not test_handler.has_warning('^Hello World'))
+        finally:
+            test_handler.pop_thread()
+
     def test_custom_handling_test(self):
         class MyTestHandler(logbook.TestHandler):
             def handle(self, record):
