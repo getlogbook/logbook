@@ -771,7 +771,7 @@ class TimedRotatingFileHandler(FileHandler):
     So for example if you configure your handler like this::
 
         handler = TimedRotatingFileHandler('/var/log/foo.log',
-                                           date_formnat='%Y-%m-%d')
+                                           date_format='%Y-%m-%d')
 
     The filenames for the logfiles will look like this::
 
