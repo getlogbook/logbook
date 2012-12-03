@@ -397,7 +397,7 @@ class MultiProcessingSubscriber(SubscriberBase):
             rv = self.queue.get()
         else:
             try:
-                rv = self.queue.get(block=False, timeout=timeout)
+                rv = self.queue.get(block=True, timeout=timeout)
             except Empty:
                 return None
         return LogRecord.from_dict(rv)
