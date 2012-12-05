@@ -1532,6 +1532,86 @@ class HelperTestCase(unittest.TestCase):
         self.assertEqual(v.hour, 13)
 
 
+class UnicodeTestCase(LogbookTestCase):
+
+    # in Py3 we can just assume a more uniform unicode environment
+    @skip_if(sys.version_info[0] < 3)
+    def test_default_format_unicode(self):
+        stream = capture_stderr.start()
+        try:
+            self.log.warn(u"\u2603")
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(
+            u'WARNING: testlogger: \u2603'.encode('utf8') in captured,
+            captured)
+
+    @skip_if(sys.version_info[0] < 3)
+    def test_default_format_encoded(self):
+        stream = capture_stderr.start()
+        try:
+            # it's a string but it's in the right encoding so don't barf
+            self.log.warn(u"\u2603".encode('utf8'))
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(
+            u'WARNING: testlogger: \u2603'.encode('utf8') in captured,
+            captured)
+
+    @skip_if(sys.version_info[0] < 3)
+    def test_default_format_bad_encoding(self):
+        stream = capture_stderr.start()
+        try:
+            # it's a string, is wrong, but just dump it in the logger,
+            # don't try to decode/encode it
+            self.log.warn(u"Русский".encode('koi8-r'))
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(
+            'WARNING: testlogger: ' + u"Русский".encode('koi8-r')
+                in captured,
+            captured)
+
+    @skip_if(sys.version_info[0] < 3)
+    def test_custom_unicode_format_unicode(self):
+        format_string = (u'[{record.level_name}] '
+            u'{record.channel}: {record.message}')
+        stream = capture_stderr.start()
+        try:
+            handler = logbook.StderrHandler(format_string=format_string)
+            handler.push_thread()
+            try:
+                self.log.warn(u"\u2603")
+            finally:
+                handler.pop_thread()
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(u'[WARNING] testlogger: \u2603'.encode('utf8') in captured,
+            captured)
+
+    @skip_if(sys.version_info[0] < 3)
+    def test_custom_string_format_unicode(self):
+        format_string = ('[{record.level_name}] '
+            '{record.channel}: {record.message}')
+        stream = capture_stderr.start()
+        try:
+            handler = logbook.StderrHandler(format_string=format_string)
+            handler.push_thread()
+            try:
+                self.log.warn(u"\u2603")
+            finally:
+                handler.pop_thread()
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(u'[WARNING] testlogger: \u2603'.encode('utf8') in captured,
+            captured)
+
+
 def suite():
     loader = unittest.TestLoader()
     suite = LogbookTestSuite()
