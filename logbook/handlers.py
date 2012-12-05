@@ -1111,6 +1111,12 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         if suppressed:
             body += '\r\n\r\nThis message occurred additional %d ' \
                     'time(s) and was suppressed' % suppressed
+
+        # inconsistency in Python 2.4 and 2.5
+        # other versions correctly return msg.get_payload() as str
+        if sys.version_info < (2, 6) and isinstance(body, unicode):
+            body = body.encode('utf-8')
+
         msg.set_payload(body, 'UTF-8')
         return msg
 
