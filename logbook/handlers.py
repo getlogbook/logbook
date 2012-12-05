@@ -1092,6 +1092,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
             from email.Message import Message
             from email.Header import Header
         msg = Message()
+        msg.set_charset('utf-8')
         lineiter = iter(self.format(record).splitlines())
         for line in lineiter:
             if not line:
@@ -1110,7 +1111,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         if suppressed:
             body += '\r\n\r\nThis message occurred additional %d ' \
                     'time(s) and was suppressed' % suppressed
-        msg.set_payload(body)
+        msg.set_payload(body, 'UTF-8')
         return msg
 
     def format_related_record(self, record):
