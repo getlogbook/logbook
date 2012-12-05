@@ -329,19 +329,22 @@ class HandlerTestCase(LogbookTestCase):
             to_test.append((socket.AF_UNIX, self.filename))
         for sock_family, address in to_test:
             inc = socket.socket(sock_family, socket.SOCK_DGRAM)
-            inc.bind(address)
-            inc.settimeout(1)
-            for app_name in [None, 'Testing']:
-                handler = logbook.SyslogHandler(app_name, inc.getsockname())
-                with handler:
-                    self.log.warn('Syslog is weird')
-                try:
-                    rv = inc.recvfrom(1024)[0]
-                except socket.error:
-                    self.fail('got timeout on socket')
-                self.assertEqual(rv, (
-                    u'<12>%stestlogger: Syslog is weird\x00' %
-                    (app_name and app_name + u':' or u'')).encode('utf-8'))
+            try:
+                inc.bind(address)
+                inc.settimeout(1)
+                for app_name in [None, 'Testing']:
+                    handler = logbook.SyslogHandler(app_name, inc.getsockname())
+                    with handler:
+                        self.log.warn('Syslog is weird')
+                    try:
+                        rv = inc.recvfrom(1024)[0]
+                    except socket.error:
+                        self.fail('got timeout on socket')
+                    self.assertEqual(rv, (
+                        u'<12>%stestlogger: Syslog is weird\x00' %
+                        (app_name and app_name + u':' or u'')).encode('utf-8'))
+            finally:
+                inc.close()
 
     def test_handler_processors(self):
         handler = make_fake_mail_handler(format_string='''\
