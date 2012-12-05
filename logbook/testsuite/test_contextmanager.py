@@ -279,7 +279,7 @@ class HandlerTestCase(LogbookTestCase):
                 try:
                     1 / 0
                 except Exception:
-                    self.log.exception('This is unfortunate')
+                    self.log.exception(u'Viva la Espa\xf1a')
 
             self.assertEqual(len(handler.mails), 1)
             sender, receivers, mail = handler.mails[0]
@@ -289,7 +289,10 @@ class HandlerTestCase(LogbookTestCase):
             self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
             self.assert_(re.search('Function:\s+test_mail_handler', mail))
-            self.assert_('Message:\r\n\r\nThis is unfortunate' in mail)
+            body = u'Message:\r\n\r\nViva la Espa\xf1a'
+            if sys.version_info < (3, 0):
+                body = body.encode('utf-8')
+            self.assert_(body in mail)
             self.assert_('\r\n\r\nTraceback' in mail)
             self.assert_('1 / 0' in mail)
             self.assert_('This is not mailed' in fallback.getvalue())

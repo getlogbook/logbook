@@ -375,40 +375,6 @@ class HandlerTestCase(LogbookTestCase):
                 try:
                     1 / 0
                 except Exception:
-                    self.log.exception('This is unfortunate')
-            finally:
-                handler.pop_thread()
-
-            if not handler.mails:
-                # if sending the mail failed, the reason should be on stderr
-                self.fail(fallback.getvalue())
-
-            self.assertEqual(len(handler.mails), 1)
-            sender, receivers, mail = handler.mails[0]
-            self.assertEqual(sender, handler.from_addr)
-            self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
-            self.assert_(re.search('Message type:\s+ERROR', mail))
-            self.assert_(re.search('Location:.*%s' % test_file, mail))
-            self.assert_(re.search('Module:\s+%s' % __name__, mail))
-            self.assert_(re.search('Function:\s+test_mail_handler', mail))
-            self.assert_('Message:\r\n\r\nThis is unfortunate' in mail)
-            self.assert_('\r\n\r\nTraceback' in mail)
-            self.assert_('1 / 0' in mail)
-            self.assert_('This is not mailed' in fallback.getvalue())
-        finally:
-            capture_stderr.end()
-
-    def test_mail_handler_unicode(self):
-        subject = u'\xf8nicode'
-        handler = make_fake_mail_handler(subject=subject)
-        fallback = capture_stderr.start()
-        try:
-            handler.push_thread()
-            try:
-                self.log.warn('This is not mailed')
-                try:
-                    1 / 0
-                except Exception:
                     self.log.exception(u'Viva la Espa\xf1a')
             finally:
                 handler.pop_thread()
@@ -425,7 +391,10 @@ class HandlerTestCase(LogbookTestCase):
             self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
             self.assert_(re.search('Function:\s+test_mail_handler', mail))
-            self.assert_('Message:\r\n\r\nViva la Espa' in mail)
+            body = u'Message:\r\n\r\nViva la Espa\xf1a'
+            if sys.version_info < (3, 0):
+                body = body.encode('utf-8')
+            self.assert_(body in mail)
             self.assert_('\r\n\r\nTraceback' in mail)
             self.assert_('1 / 0' in mail)
             self.assert_('This is not mailed' in fallback.getvalue())
