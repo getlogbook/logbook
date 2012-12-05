@@ -357,7 +357,18 @@ class StringFormatter(object):
     del _get_format_string, _set_format_string
 
     def format_record(self, record, handler):
-        return self._formatter.format(record=record, handler=handler)
+        try:
+            return self._formatter.format(record=record, handler=handler)
+        except UnicodeEncodeError:
+            # self._formatter is a str, but some of the record items
+            # are unicode
+            fmt = self._formatter.decode('ascii', 'replace')
+            return fmt.format(record=record, handler=handler)
+        except UnicodeDecodeError:
+            # self._formatter is unicode, but some of the record items
+            # are non-ascii str
+            fmt = self._formatter.encode('ascii', 'replace')
+            return fmt.format(record=record, handler=handler)
 
     def format_exception(self, record):
         return record.formatted_exception
@@ -538,7 +549,8 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         """Formats the record and encodes it to the stream encoding."""
         stream = self.stream
         rv = self.format(record) + '\n'
-        if not _py3 or not _is_text_stream(stream):
+        if isinstance(rv, unicode) \
+           and (not _py3 or not _is_text_stream(stream)):
             enc = self.encoding
             if enc is None:
                 enc = getattr(stream, 'encoding', None) or 'utf-8'
