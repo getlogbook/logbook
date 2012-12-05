@@ -1611,6 +1611,29 @@ class UnicodeTestCase(LogbookTestCase):
         self.assert_(u'[WARNING] testlogger: \u2603'.encode('utf8') in captured,
             captured)
 
+    @skip_if(sys.version_info[0] < 3)
+    def test_unicode_message_encoded_params(self):
+        stream = capture_stderr.start()
+        try:
+            self.log.warn(u"\u2603 {0}", u"\u2603".encode('utf8'))
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(
+            u'WARNING: testlogger: \u2603 \u2603'.encode('utf8') in captured,
+            captured)
+
+    @skip_if(sys.version_info[0] < 3)
+    def test_encoded_message_unicode_params(self):
+        stream = capture_stderr.start()
+        try:
+            self.log.warn(u"\u2603 {0}".encode('utf8'), u"\u2603")
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(
+            u'WARNING: testlogger: \u2603 \u2603'.encode('utf8') in captured,
+            captured)
 
 def suite():
     loader = unittest.TestLoader()
