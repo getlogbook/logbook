@@ -440,8 +440,8 @@ class LogRecord(object):
             # access to the frame.  But there is not much we can do about
             # that.
             errormsg = F('Could not format message with provided '
-                         'arguments: {err}\n  msg=\'{msg}\'\n  '
-                         'args={args} \n  kwargs={kwargs}.\n'
+                         'arguments: {err}\n  msg={msg!r}\n  '
+                         'args={args!r} \n  kwargs={kwargs!r}.\n'
                          'Happened in file {file}, line {lineno}').format(
                 err=e, msg=self.msg, args=self.args,
                 kwargs=self.kwargs, file=self.filename,
