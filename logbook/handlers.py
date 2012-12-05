@@ -1087,15 +1087,25 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         """
         try:
             from email.message import Message
+            from email.header import Header
         except ImportError:  # Python 2.4
             from email.Message import Message
+            from email.Header import Header
         msg = Message()
         lineiter = iter(self.format(record).splitlines())
         for line in lineiter:
             if not line:
                 break
-            pieces = line.split(':', 1)
-            msg.add_header(*[x.strip() for x in pieces])
+            h, v = line.split(':', 1)
+            # We could probably just encode everything. For the moment encode
+            # only what really needed to avoid breaking a couple of tests.
+            try:
+                v.encode('ascii')
+            except UnicodeEncodeError:
+                msg[h.strip()] = Header(v.strip(), 'utf-8')
+            else:
+                msg[h.strip()] = v.strip()
+
         body = '\r\n'.join(lineiter)
         if suppressed:
             body += '\r\n\r\nThis message occurred additional %d ' \

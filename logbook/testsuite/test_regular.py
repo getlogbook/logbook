@@ -385,6 +385,10 @@ class HandlerTestCase(LogbookTestCase):
             finally:
                 handler.pop_thread()
 
+            if not handler.mails:
+                # if sending the mail failed, the reason should be on stderr
+                self.fail(fallback.getvalue())
+
             self.assertEqual(len(handler.mails), 1)
             sender, receivers, mail = handler.mails[0]
             self.assertEqual(sender, handler.from_addr)
