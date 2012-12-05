@@ -365,13 +365,7 @@ class HandlerTestCase(LogbookTestCase):
             f.close()
 
     def test_mail_handler(self):
-        # broken in stdlib for 3.1 as far as I can see
-        if sys.version_info >= (3, 0) and sys.version_info < (3, 2):
-            ascii_subject = True
-            subject = u'ascii only'
-        else:
-            ascii_subject = False
-            subject = u'\xf8nicode'
+        subject = u'\xf8nicode'
         handler = make_fake_mail_handler(subject=subject)
         fallback = capture_stderr.start()
         try:
@@ -392,8 +386,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(len(handler.mails), 1)
             sender, receivers, mail = handler.mails[0]
             self.assertEqual(sender, handler.from_addr)
-            if not ascii_subject:
-                self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
+            self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
             self.assert_(re.search('Message type:\s+ERROR', mail))
             self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
@@ -406,7 +399,7 @@ class HandlerTestCase(LogbookTestCase):
             capture_stderr.end()
 
     def test_mail_handler_unicode(self):
-        subject = u'ascii only'
+        subject = u'\xf8nicode'
         handler = make_fake_mail_handler(subject=subject)
         fallback = capture_stderr.start()
         try:
@@ -427,6 +420,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(len(handler.mails), 1)
             sender, receivers, mail = handler.mails[0]
             self.assertEqual(sender, handler.from_addr)
+            self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
             self.assert_(re.search('Message type:\s+ERROR', mail))
             self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
