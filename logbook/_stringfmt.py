@@ -224,8 +224,7 @@ class FormattableString(object):
             # '\xe2\x98\x83 {0}'.format(u'\u2603') raises UnicodeEncodeError
             # so convert the exception in a type we can handle consistently
             if isinstance(self._string, str):
-                raise FormatEncodeError("(was %s) %s"
-                    % (e.__class__.__name__, e))
+                raise FormatEncodeError(e)
             else:
                 raise
 
