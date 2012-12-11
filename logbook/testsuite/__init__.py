@@ -36,6 +36,8 @@ class LogbookTestCase(unittest.TestCase):
     def setUp(self):
         self.log = logbook.Logger('testlogger')
 
+# silence deprecation warning displayed on Py 3.2
+LogbookTestCase.assert_ = LogbookTestCase.assertTrue
 
 def make_fake_mail_handler(**kwargs):
     class FakeMailHandler(logbook.MailHandler):
