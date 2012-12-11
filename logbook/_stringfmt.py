@@ -128,6 +128,19 @@ def _format_field(value, parts, conv, spec):
     return value
 
 
+class FormatEncodeError(UnicodeEncodeError):
+    """Convert an UnicodeDecodeError into UnicodeEncodeError.
+
+    This wrapper is kinda required because the UnicodeEncodeError ctor takes
+    an entirely different set of parameters.
+    """
+    def __init__(self, exc):
+        self.exc = exc
+
+    def __str__(self):
+        return "(was %s) %s" % (self.exc.__class__.__name__, self.exc)
+
+
 class FormattableString(object):
     """Class which implements method format().
 
@@ -203,4 +216,17 @@ class FormattableString(object):
                 parts, conv, spec = item
                 spec = spec % params
                 params[str(id(item))] = _format_field(value, parts, conv, spec)
-        return self._string % params
+        try:
+            return self._string % params
+        except UnicodeDecodeError, e:
+            # Amazingly,
+            # '\xe2\x98\x83 %s' % u'\u2603' raises UnicodeDecodeError
+            # '\xe2\x98\x83 {0}'.format(u'\u2603') raises UnicodeEncodeError
+            # so convert the exception in a type we can handle consistently
+            if isinstance(self._string, str):
+                raise FormatEncodeError(e)
+            else:
+                raise
+
+    def encode(self, encoding, errors='strict'):
+        return FormattableString(self.format_string.encode(encoding, errors))

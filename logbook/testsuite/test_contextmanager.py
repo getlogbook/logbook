@@ -271,13 +271,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline().rstrip(), '[02:00] Third One')
 
     def test_mail_handler(self):
-        # broken in stdlib for 3.1 as far as I can see
-        if sys.version_info >= (3, 0) and sys.version_info < (3, 2):
-            ascii_subject = True
-            subject = u'ascii only'
-        else:
-            ascii_subject = False
-            subject = u'\xf8nicode'
+        subject = u'\xf8nicode'
         handler = make_fake_mail_handler(subject=subject)
         with capture_stderr() as fallback:
             with handler:
@@ -285,18 +279,20 @@ class HandlerTestCase(LogbookTestCase):
                 try:
                     1 / 0
                 except Exception:
-                    self.log.exception('This is unfortunate')
+                    self.log.exception(u'Viva la Espa\xf1a')
 
             self.assertEqual(len(handler.mails), 1)
             sender, receivers, mail = handler.mails[0]
             self.assertEqual(sender, handler.from_addr)
-            if not ascii_subject:
-                self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
+            self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
             self.assert_(re.search('Message type:\s+ERROR', mail))
             self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
             self.assert_(re.search('Function:\s+test_mail_handler', mail))
-            self.assert_('Message:\r\n\r\nThis is unfortunate' in mail)
+            body = u'Message:\r\n\r\nViva la Espa\xf1a'
+            if sys.version_info < (3, 0):
+                body = body.encode('utf-8')
+            self.assert_(body in mail)
             self.assert_('\r\n\r\nTraceback' in mail)
             self.assert_('1 / 0' in mail)
             self.assert_('This is not mailed' in fallback.getvalue())

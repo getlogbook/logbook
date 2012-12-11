@@ -365,13 +365,7 @@ class HandlerTestCase(LogbookTestCase):
             f.close()
 
     def test_mail_handler(self):
-        # broken in stdlib for 3.1 as far as I can see
-        if sys.version_info >= (3, 0) and sys.version_info < (3, 2):
-            ascii_subject = True
-            subject = u'ascii only'
-        else:
-            ascii_subject = False
-            subject = u'\xf8nicode'
+        subject = u'\xf8nicode'
         handler = make_fake_mail_handler(subject=subject)
         fallback = capture_stderr.start()
         try:
@@ -381,20 +375,26 @@ class HandlerTestCase(LogbookTestCase):
                 try:
                     1 / 0
                 except Exception:
-                    self.log.exception('This is unfortunate')
+                    self.log.exception(u'Viva la Espa\xf1a')
             finally:
                 handler.pop_thread()
+
+            if not handler.mails:
+                # if sending the mail failed, the reason should be on stderr
+                self.fail(fallback.getvalue())
 
             self.assertEqual(len(handler.mails), 1)
             sender, receivers, mail = handler.mails[0]
             self.assertEqual(sender, handler.from_addr)
-            if not ascii_subject:
-                self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
+            self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
             self.assert_(re.search('Message type:\s+ERROR', mail))
             self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
             self.assert_(re.search('Function:\s+test_mail_handler', mail))
-            self.assert_('Message:\r\n\r\nThis is unfortunate' in mail)
+            body = u'Message:\r\n\r\nViva la Espa\xf1a'
+            if sys.version_info < (3, 0):
+                body = body.encode('utf-8')
+            self.assert_(body in mail)
             self.assert_('\r\n\r\nTraceback' in mail)
             self.assert_('1 / 0' in mail)
             self.assert_('This is not mailed' in fallback.getvalue())
@@ -1531,6 +1531,109 @@ class HelperTestCase(unittest.TestCase):
         v = parse_iso8601('2000-01-01T12:00:00-01:00')
         self.assertEqual(v.hour, 13)
 
+
+class UnicodeTestCase(LogbookTestCase):
+
+    # in Py3 we can just assume a more uniform unicode environment
+    @skip_if(sys.version_info[0] < 3)
+    def test_default_format_unicode(self):
+        stream = capture_stderr.start()
+        try:
+            self.log.warn(u"\u2603")
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(
+            u'WARNING: testlogger: \u2603'.encode('utf8') in captured,
+            captured)
+
+    @skip_if(sys.version_info[0] < 3)
+    def test_default_format_encoded(self):
+        stream = capture_stderr.start()
+        try:
+            # it's a string but it's in the right encoding so don't barf
+            self.log.warn(u"\u2603".encode('utf8'))
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(
+            u'WARNING: testlogger: \u2603'.encode('utf8') in captured,
+            captured)
+
+    @skip_if(sys.version_info[0] < 3)
+    def test_default_format_bad_encoding(self):
+        stream = capture_stderr.start()
+        try:
+            # it's a string, is wrong, but just dump it in the logger,
+            # don't try to decode/encode it
+            self.log.warn(u"Русский".encode('koi8-r'))
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(
+            'WARNING: testlogger: ' + u"Русский".encode('koi8-r')
+                in captured,
+            captured)
+
+    @skip_if(sys.version_info[0] < 3)
+    def test_custom_unicode_format_unicode(self):
+        format_string = (u'[{record.level_name}] '
+            u'{record.channel}: {record.message}')
+        stream = capture_stderr.start()
+        try:
+            handler = logbook.StderrHandler(format_string=format_string)
+            handler.push_thread()
+            try:
+                self.log.warn(u"\u2603")
+            finally:
+                handler.pop_thread()
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(u'[WARNING] testlogger: \u2603'.encode('utf8') in captured,
+            captured)
+
+    @skip_if(sys.version_info[0] < 3)
+    def test_custom_string_format_unicode(self):
+        format_string = ('[{record.level_name}] '
+            '{record.channel}: {record.message}')
+        stream = capture_stderr.start()
+        try:
+            handler = logbook.StderrHandler(format_string=format_string)
+            handler.push_thread()
+            try:
+                self.log.warn(u"\u2603")
+            finally:
+                handler.pop_thread()
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(u'[WARNING] testlogger: \u2603'.encode('utf8') in captured,
+            captured)
+
+    @skip_if(sys.version_info[0] < 3)
+    def test_unicode_message_encoded_params(self):
+        stream = capture_stderr.start()
+        try:
+            self.log.warn(u"\u2603 {0}", u"\u2603".encode('utf8'))
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(
+            u'WARNING: testlogger: \u2603 \u2603'.encode('utf8') in captured,
+            captured)
+
+    @skip_if(sys.version_info[0] < 3)
+    def test_encoded_message_unicode_params(self):
+        stream = capture_stderr.start()
+        try:
+            self.log.warn(u"\u2603 {0}".encode('utf8'), u"\u2603")
+            captured = stream.getvalue()
+        finally:
+            capture_stderr.end()
+        self.assert_(
+            u'WARNING: testlogger: \u2603 \u2603'.encode('utf8') in captured,
+            captured)
 
 def suite():
     loader = unittest.TestLoader()

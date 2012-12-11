@@ -433,15 +433,28 @@ class LogRecord(object):
         if not (self.args or self.kwargs):
             return self.msg
         try:
-            return F(self.msg).format(*self.args, **self.kwargs)
+            try:
+                return F(self.msg).format(*self.args, **self.kwargs)
+            except UnicodeDecodeError:
+                # Assume an unicode message but mixed-up args
+                msg = self.msg.encode('utf-8', 'replace')
+                return F(msg).format(*self.args, **self.kwargs)
+            except UnicodeEncodeError:
+                # Assume encoded message with unicode args.
+                # The assumption of utf8 as input encoding is just a guess,
+                # but this codepath is unlikely (if the message is a constant
+                # string in the caller's source file)
+                msg = self.msg.decode('utf-8', 'replace')
+                return F(msg).format(*self.args, **self.kwargs)
+
         except Exception, e:
             # this obviously will not give a proper error message if the
             # information was not pulled and the log record no longer has
             # access to the frame.  But there is not much we can do about
             # that.
             errormsg = F('Could not format message with provided '
-                         'arguments: {err}\n  msg=\'{msg}\'\n  '
-                         'args={args} \n  kwargs={kwargs}.\n'
+                         'arguments: {err}\n  msg={msg!r}\n  '
+                         'args={args!r} \n  kwargs={kwargs!r}.\n'
                          'Happened in file {file}, line {lineno}').format(
                 err=e, msg=self.msg, args=self.args,
                 kwargs=self.kwargs, file=self.filename,

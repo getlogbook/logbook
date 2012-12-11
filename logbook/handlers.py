@@ -357,7 +357,18 @@ class StringFormatter(object):
     del _get_format_string, _set_format_string
 
     def format_record(self, record, handler):
-        return self._formatter.format(record=record, handler=handler)
+        try:
+            return self._formatter.format(record=record, handler=handler)
+        except UnicodeEncodeError:
+            # self._formatter is a str, but some of the record items
+            # are unicode
+            fmt = self._formatter.decode('ascii', 'replace')
+            return fmt.format(record=record, handler=handler)
+        except UnicodeDecodeError:
+            # self._formatter is unicode, but some of the record items
+            # are non-ascii str
+            fmt = self._formatter.encode('ascii', 'replace')
+            return fmt.format(record=record, handler=handler)
 
     def format_exception(self, record):
         return record.formatted_exception
@@ -538,7 +549,8 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         """Formats the record and encodes it to the stream encoding."""
         stream = self.stream
         rv = self.format(record) + '\n'
-        if not _py3 or not _is_text_stream(stream):
+        if isinstance(rv, unicode) \
+           and (not _py3 or not _is_text_stream(stream)):
             enc = self.encoding
             if enc is None:
                 enc = getattr(stream, 'encoding', None) or 'utf-8'
@@ -1075,20 +1087,37 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         """
         try:
             from email.message import Message
+            from email.header import Header
         except ImportError:  # Python 2.4
             from email.Message import Message
+            from email.Header import Header
         msg = Message()
+        msg.set_charset('utf-8')
         lineiter = iter(self.format(record).splitlines())
         for line in lineiter:
             if not line:
                 break
-            pieces = line.split(':', 1)
-            msg.add_header(*[x.strip() for x in pieces])
+            h, v = line.split(':', 1)
+            # We could probably just encode everything. For the moment encode
+            # only what really needed to avoid breaking a couple of tests.
+            try:
+                v.encode('ascii')
+            except UnicodeEncodeError:
+                msg[h.strip()] = Header(v.strip(), 'utf-8')
+            else:
+                msg[h.strip()] = v.strip()
+
         body = '\r\n'.join(lineiter)
         if suppressed:
             body += '\r\n\r\nThis message occurred additional %d ' \
                     'time(s) and was suppressed' % suppressed
-        msg.set_payload(body)
+
+        # inconsistency in Python 2.4 and 2.5
+        # other versions correctly return msg.get_payload() as str
+        if sys.version_info < (2, 6) and isinstance(body, unicode):
+            body = body.encode('utf-8')
+
+        msg.set_payload(body, 'UTF-8')
         return msg
 
     def format_related_record(self, record):
