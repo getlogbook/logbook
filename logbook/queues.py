@@ -78,7 +78,7 @@ class ZeroMQHandler(Handler):
         #: the zero mq socket.
         self.socket = self.context.socket(zmq.PUB)
         if uri is not None:
-            self.socket.bind(uri)
+            self.socket.connect(uri)
 
     def export_record(self, record):
         """Exports the record into a dictionary ready for JSON dumping."""
@@ -281,7 +281,7 @@ class ZeroMQSubscriber(SubscriberBase):
         #: the zero mq socket.
         self.socket = self.context.socket(zmq.SUB)
         if uri is not None:
-            self.socket.connect(uri)
+            self.socket.bind(uri)
         self.socket.setsockopt(zmq.SUBSCRIBE, '')
 
     def __del__(self):
