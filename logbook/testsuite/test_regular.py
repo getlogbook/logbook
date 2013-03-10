@@ -1282,7 +1282,7 @@ class MoreTestCase(LogbookTestCase):
 
 class QueuesTestCase(LogbookTestCase):
 
-    def _get_zeromq(self):
+    def _get_zeromq(self, no_of_handlers=1):
         from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
 
         # Get an unused port
@@ -1293,11 +1293,11 @@ class QueuesTestCase(LogbookTestCase):
 
         # Retrieve the ZeroMQ handler and subscriber
         uri = 'tcp://%s:%d' % (host, unused_port)
-        handler = ZeroMQHandler(uri)
+        handlers = [ZeroMQHandler(uri) for i in range(no_of_handlers)]
         subscriber = ZeroMQSubscriber(uri)
         # Enough time to start
         time.sleep(0.1)
-        return handler, subscriber
+        return handlers, subscriber
 
     @require('zmq')
     def test_zeromq_handler(self):
@@ -1306,7 +1306,8 @@ class QueuesTestCase(LogbookTestCase):
             u'Something with umlauts äöü',
             u'Something else for good measure',
         ]
-        handler, subscriber = self._get_zeromq()
+        handlers, subscriber = self._get_zeromq()
+        handler = handlers[0]
         for test in tests:
             handler.push_thread()
             try:
@@ -1319,7 +1320,8 @@ class QueuesTestCase(LogbookTestCase):
 
     @require('zmq')
     def test_zeromq_background_thread(self):
-        handler, subscriber = self._get_zeromq()
+        handlers, subscriber = self._get_zeromq()
+        handler = handlers[0]
         test_handler = logbook.TestHandler()
         controller = subscriber.dispatch_in_background(test_handler)
 
@@ -1338,6 +1340,20 @@ class QueuesTestCase(LogbookTestCase):
 
         self.assert_(test_handler.has_warning('This is a warning'))
         self.assert_(test_handler.has_error('This is an error'))
+
+    @require('zmq')
+    def test_zeromq_multiple_handlers(self):
+        message = 'This is a warning'
+        handlers, subscriber = self._get_zeromq(no_of_handlers=2)
+        with handlers[0].threadbound():
+            with handlers[1].threadbound():
+                self.log.warn(message)
+                record = subscriber.recv()
+                self.assertEqual(record.message, message)
+                self.assertEqual(record.channel, self.log.name)
+                record = subscriber.recv(timeout=0.1)
+                self.assertEqual(record.message, message)
+                self.assertEqual(record.channel, self.log.name)
 
     @missing('zmq')
     def test_missing_zeromq(self):
