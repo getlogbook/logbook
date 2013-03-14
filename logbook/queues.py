@@ -74,7 +74,7 @@ class ZeroMQHandler(Handler):
             raise RuntimeError('The pyzmq library is required for '
                                'the ZeroMQHandler.')
         #: the zero mq context
-        self.context = context or zmq.Context()
+        self.context = context or zmq.Context.instance()
         #: the zero mq socket.
         self.socket = self.context.socket(zmq.PUB)
         if uri is not None:
