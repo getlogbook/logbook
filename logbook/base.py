@@ -26,6 +26,16 @@ except ImportError:
     from logbook._fallback import group_reflected_property, \
          ContextStackManager, StackedObject
 
+_datetime_factory = datetime.utcnow
+def set_datetime_factory(factory):
+	"""
+	Set the function used to create datetime objects.  Defaults to
+	datetime.utcnow, but you can change to datetime.now to get local
+	timezone times.
+	"""
+	global _datetime_factory
+	_datetime_factory = factory
+
 
 # make sure to sync these up with _speedups.pyx
 CRITICAL = 6
@@ -357,7 +367,7 @@ class LogRecord(object):
         assert not self.late, 'heavy init is no longer possible'
         self.heavy_initialized = True
         self.process = os.getpid()
-        self.time = datetime.utcnow()
+        self.time = _datetime_factory()
         if self.frame is None and Flags.get_flag('introspection', True):
             self.frame = sys._getframe(1)
 
