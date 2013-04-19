@@ -211,6 +211,28 @@ class BasicAPITestCase(LogbookTestCase):
                 self.assertEqual(value, getattr(imported, key))
 
 
+    def test_timedate_factory(self):
+        """
+        tests the logbook.set_datetime_factory() function
+        """
+        FORMAT_STRING = '{record.time:%H:%M:%S} {record.message}'
+        handler = logbook.TestHandler(format_string=FORMAT_STRING)
+        handler.push_thread()
+
+        def time_factory1():
+	        return datetime.strptime("10:11:12", "%H:%M:%S")
+        logbook.set_datetime_factory(time_factory1)
+        try:
+            self.log.warn('This is a warning.')
+        finally:
+            handler.pop_thread()
+	        # put back the default time factory
+            logbook.set_datetime_factory(datetime.utcnow)
+
+        self.assert_(handler.has_warning('This is a warning.'))
+        self.assertEqual(handler.formatted_records, ['10:11:12 This is a warning.'])
+
+
 class HandlerTestCase(LogbookTestCase):
 
     def setUp(self):
