@@ -29,9 +29,28 @@ except ImportError:
 _datetime_factory = datetime.utcnow
 def set_datetime_factory(factory):
     """
-    Set the function used to create datetime objects.  Defaults to
-    datetime.utcnow, but you can change to datetime.now to get local
-    timezone times.
+    Set the function used to create
+    `datetime <http://docs.python.org3/library/datetime.html#datetime.datetime>`_
+    objects.  This datetime object is used to initialize the :py:attr:`LogRecord.time` attribute.
+
+    This function defaults to
+    `datetime.utcnow() <http://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow>`_,
+    so that logbook logs all times in UTC time by default.  This is
+    recommended in case you have multiple software modules or
+    instances running in different servers in different time zones, as
+    it makes it simple and less error prone to correlate logging
+    across the different servers.
+
+    On the other hand if all your software modules are running in the
+    same time zone and you have to correlate logging with third party
+    modules already logging in local time, it can be more convenient
+    to have logbook logging to local time instead of UTC.  Local time
+    logging can be enabled like this::
+
+       import logbook
+       from datetime import datetime
+       logbook.set_datetime_factory(datetime.now)
+
     """
     global _datetime_factory
     _datetime_factory = factory
