@@ -28,13 +28,13 @@ except ImportError:
 
 _datetime_factory = datetime.utcnow
 def set_datetime_factory(factory):
-	"""
-	Set the function used to create datetime objects.  Defaults to
-	datetime.utcnow, but you can change to datetime.now to get local
-	timezone times.
-	"""
-	global _datetime_factory
-	_datetime_factory = factory
+    """
+    Set the function used to create datetime objects.  Defaults to
+    datetime.utcnow, but you can change to datetime.now to get local
+    timezone times.
+    """
+    global _datetime_factory
+    _datetime_factory = factory
 
 
 # make sure to sync these up with _speedups.pyx
