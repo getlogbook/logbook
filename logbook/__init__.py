@@ -14,7 +14,7 @@
 from logbook.base import LogRecord, Logger, LoggerGroup, NestedSetup, \
      Processor, Flags, get_level_name, lookup_level, dispatch_record, \
      CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET, \
-     set_datetime_factory
+     set_datetime_format
 from logbook.handlers import Handler, StreamHandler, FileHandler, \
      MonitoringFileHandler, StderrHandler, RotatingFileHandler, \
      TimedRotatingFileHandler, TestHandler, MailHandler, SyslogHandler, \

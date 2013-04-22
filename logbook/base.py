@@ -27,14 +27,22 @@ except ImportError:
          ContextStackManager, StackedObject
 
 _datetime_factory = datetime.utcnow
-def set_datetime_factory(factory):
+def set_datetime_format(datetime_format):
     """
-    Set the function used to create
-    `datetime <http://docs.python.org3/library/datetime.html#datetime.datetime>`_
-    objects.  This datetime object is used to initialize the :py:attr:`LogRecord.time` attribute.
+    Set the format for the datetime objects created, which are then
+    made available as the :py:attr:`LogRecord.time` attribute of
+    :py:class:`LogRecord` instances.
 
-    This function defaults to
-    `datetime.utcnow() <http://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow>`_,
+    :param datetime_format: Indicates how to generate datetime objects.  Possible values are:
+
+         "utc"
+             :py:attr:`LogRecord.time` will be a datetime in UTC time zone (but not time zone aware)
+         "local"
+             :py:attr:`LogRecord.time` will be a datetime in local time zone (but not time zone aware)
+
+    This function defaults to creating datetime objects in UTC time,
+    using `datetime.utcnow()
+    <http://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow>`_,
     so that logbook logs all times in UTC time by default.  This is
     recommended in case you have multiple software modules or
     instances running in different servers in different time zones, as
@@ -49,12 +57,16 @@ def set_datetime_factory(factory):
 
        import logbook
        from datetime import datetime
-       logbook.set_datetime_factory(datetime.now)
+       logbook.set_datetime_format("local")
 
     """
     global _datetime_factory
-    _datetime_factory = factory
-
+    if datetime_format == "utc":
+        _datetime_factory = datetime.utcnow
+    elif datetime_format == "local":
+        _datetime_factory = datetime.now
+    else:
+        raise ValueError("Invalid value %r.  Valid values are 'utc' and 'local'." % (datetime_format,))
 
 # make sure to sync these up with _speedups.pyx
 CRITICAL = 6
