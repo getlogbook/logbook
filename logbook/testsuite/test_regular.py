@@ -211,6 +211,42 @@ class BasicAPITestCase(LogbookTestCase):
                 self.assertEqual(value, getattr(imported, key))
 
 
+    def test_timedate_format(self):
+        """
+        tests the logbook.set_datetime_format() function
+        """
+        FORMAT_STRING = '{record.time:%H:%M:%S} {record.message}'
+        handler = logbook.TestHandler(format_string=FORMAT_STRING)
+        handler.push_thread()
+        logbook.set_datetime_format('utc')
+        try:
+            self.log.warn('This is a warning.')
+            time_utc = handler.records[0].time
+            logbook.set_datetime_format('local')
+            self.log.warn('This is a warning.')
+            time_local = handler.records[1].time
+        finally:
+            handler.pop_thread()
+            # put back the default time factory
+            logbook.set_datetime_format('utc')
+
+        # get the expected difference between local and utc time
+        t1 = datetime.now()
+        t2 = datetime.utcnow()
+        minutes_different = round((t1 - t2).total_seconds()/60)
+
+        if minutes_different == 0:
+            self.skipTest("Cannot test utc/localtime differences if they are both the same time zone")
+
+        # get the difference between LogRecord local and utc times
+        logbook_minutes_difference = (time_local - time_utc).total_seconds()/60.0
+
+        ratio = logbook_minutes_difference / minutes_different
+
+        self.assertGreater(ratio, 0.99)
+        self.assertLess(ratio, 1.01)
+
+
 class HandlerTestCase(LogbookTestCase):
 
     def setUp(self):

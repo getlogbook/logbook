@@ -26,6 +26,47 @@ except ImportError:
     from logbook._fallback import group_reflected_property, \
          ContextStackManager, StackedObject
 
+_datetime_factory = datetime.utcnow
+def set_datetime_format(datetime_format):
+    """
+    Set the format for the datetime objects created, which are then
+    made available as the :py:attr:`LogRecord.time` attribute of
+    :py:class:`LogRecord` instances.
+
+    :param datetime_format: Indicates how to generate datetime objects.  Possible values are:
+
+         "utc"
+             :py:attr:`LogRecord.time` will be a datetime in UTC time zone (but not time zone aware)
+         "local"
+             :py:attr:`LogRecord.time` will be a datetime in local time zone (but not time zone aware)
+
+    This function defaults to creating datetime objects in UTC time,
+    using `datetime.utcnow()
+    <http://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow>`_,
+    so that logbook logs all times in UTC time by default.  This is
+    recommended in case you have multiple software modules or
+    instances running in different servers in different time zones, as
+    it makes it simple and less error prone to correlate logging
+    across the different servers.
+
+    On the other hand if all your software modules are running in the
+    same time zone and you have to correlate logging with third party
+    modules already logging in local time, it can be more convenient
+    to have logbook logging to local time instead of UTC.  Local time
+    logging can be enabled like this::
+
+       import logbook
+       from datetime import datetime
+       logbook.set_datetime_format("local")
+
+    """
+    global _datetime_factory
+    if datetime_format == "utc":
+        _datetime_factory = datetime.utcnow
+    elif datetime_format == "local":
+        _datetime_factory = datetime.now
+    else:
+        raise ValueError("Invalid value %r.  Valid values are 'utc' and 'local'." % (datetime_format,))
 
 # make sure to sync these up with _speedups.pyx
 CRITICAL = 6
@@ -357,7 +398,7 @@ class LogRecord(object):
         assert not self.late, 'heavy init is no longer possible'
         self.heavy_initialized = True
         self.process = os.getpid()
-        self.time = datetime.utcnow()
+        self.time = _datetime_factory()
         if self.frame is None and Flags.get_flag('introspection', True):
             self.frame = sys._getframe(1)
 
