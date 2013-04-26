@@ -22,7 +22,7 @@ from logbook.helpers import to_safe_json, parse_iso8601, cached_property, \
 try:
     from logbook._speedups import group_reflected_property, \
          ContextStackManager, StackedObject
-except ImportError:
+except (ImportError, NameError):
     from logbook._fallback import group_reflected_property, \
          ContextStackManager, StackedObject
 
