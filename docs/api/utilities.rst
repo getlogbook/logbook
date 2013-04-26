@@ -24,3 +24,5 @@ This documents general purpose utility functions available in Logbook.
 .. autofunction:: critical
 
 .. autofunction:: log
+
+.. autofunction:: set_datetime_format
