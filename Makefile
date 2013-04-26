@@ -5,8 +5,11 @@ clean-pyc:
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 
+test_setup:
+	@python scripts/test_setup.py
+
 test:
-	@python -c "import unittest as x; x.main('logbook.testsuite', 'suite')"
+	@python scripts/run_tests.py
 
 toxtest:
 	@tox
