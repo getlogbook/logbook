@@ -14,6 +14,10 @@ test:
 toxtest:
 	@tox
 
+vagrant_toxtest:
+	@vagrant up
+	@vagrant ssh --command "rsync -avP --delete --exclude=_build --exclude=.tox /vagrant/ ~/src/ && cd ~/src/ && tox"
+
 bench:
 	@python benchmark/run.py
 
