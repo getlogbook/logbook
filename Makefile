@@ -28,7 +28,7 @@ upload-docs:
 logbook/_speedups.so: logbook/_speedups.pyx
 	cython logbook/_speedups.pyx
 	python setup.py build
-	cp build/*/logbook/_speedups.so logbook
+	cp build/*/logbook/_speedups*.so logbook
 
 cybuild: logbook/_speedups.so
 

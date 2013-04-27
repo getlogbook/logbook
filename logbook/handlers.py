@@ -21,22 +21,23 @@ except ImportError:
 import threading
 import traceback
 from datetime import datetime, timedelta
-from itertools import izip
 from threading import Lock
 from collections import deque
+
+import six
 
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
-from logbook.helpers import any, rename, F, b, _is_text_stream
+from logbook.helpers import any, rename, F, b, _is_text_stream, is_unicode
 
 
 DEFAULT_FORMAT_STRING = (
-    u'[{record.time:%Y-%m-%d %H:%M}] '
-    u'{record.level_name}: {record.channel}: {record.message}'
+    six.u('[{record.time:%Y-%m-%d %H:%M}] '
+      '{record.level_name}: {record.channel}: {record.message}')
 )
-SYSLOG_FORMAT_STRING = u'{record.channel}: {record.message}'
-NTLOG_FORMAT_STRING = u'''\
+SYSLOG_FORMAT_STRING = six.u('{record.channel}: {record.message}')
+NTLOG_FORMAT_STRING = six.u('''\
 Message Level: {record.level_name}
 Location: {record.filename}:{record.lineno}
 Module: {record.module}
@@ -46,10 +47,10 @@ Exact Time: {record.time:%Y-%m-%d %H:%M:%S}
 Event provided Message:
 
 {record.message}
-'''
+''')
 TEST_FORMAT_STRING = \
-u'[{record.level_name}] {record.channel}: {record.message}'
-MAIL_FORMAT_STRING = u'''\
+six.u('[{record.level_name}] {record.channel}: {record.message}')
+MAIL_FORMAT_STRING = six.u('''\
 Subject: {handler.subject}
 
 Message type:       {record.level_name}
@@ -61,21 +62,18 @@ Time:               {record.time:%Y-%m-%d %H:%M:%S}
 Message:
 
 {record.message}
-'''
-MAIL_RELATED_FORMAT_STRING = u'''\
+''')
+MAIL_RELATED_FORMAT_STRING = six.u('''\
 Message type:       {record.level_name}
 Location:           {record.filename}:{record.lineno}
 Module:             {record.module}
 Function:           {record.func_name}
 {record.message}
-'''
+''')
 
 SYSLOG_PORT = 514
 
 REGTYPE = type(re.compile("I'm a regular expression!"))
-
-_py3 = sys.version_info >= (3, 0)
-
 
 def create_syshandler(application_name, level=NOTSET):
     """Creates the handler the operating system provides.  On Unix systems
@@ -293,7 +291,7 @@ class Handler(ContextObject):
         try:
             behaviour = Flags.get_flag('errors', 'print')
             if behaviour == 'raise':
-                raise exc_info[0], exc_info[1], exc_info[2]
+                six.reraise(exc_info[0], exc_info[1], exc_info[2])
             elif behaviour == 'print':
                 traceback.print_exception(*(exc_info + (None, sys.stderr)))
                 sys.stderr.write('Logged from file %s, line %s\n' % (
@@ -377,7 +375,7 @@ class StringFormatter(object):
         line = self.format_record(record, handler)
         exc = self.format_exception(record)
         if exc:
-            line += u'\n' + exc
+            line += six.u('\n') + exc
         return line
 
 
@@ -423,7 +421,7 @@ class HashingHandlerMixin(object):
         """Returns a hashlib object with the hash of the record."""
         hash = sha1()
         hash.update(('%d\x00' % record.level).encode('ascii'))
-        hash.update((record.channel or u'').encode('utf-8') + b('\x00'))
+        hash.update((record.channel or six.u('')).encode('utf-8') + b('\x00'))
         hash.update(record.filename.encode('utf-8') + b('\x00'))
         hash.update(b(str(record.lineno)))
         return hash
@@ -437,6 +435,7 @@ class HashingHandlerMixin(object):
         """
         return self.hash_record_raw(record).hexdigest()
 
+_NUMBER_TYPES = six.integer_types + (float,)
 
 class LimitingHandlerMixin(HashingHandlerMixin):
     """Mixin class for handlers that want to limit emitting records.
@@ -457,7 +456,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
         self._record_limits = {}
         if record_delta is None:
             record_delta = timedelta(seconds=60)
-        elif isinstance(record_delta, (int, long, float)):
+        elif isinstance(record_delta, _NUMBER_TYPES):
             record_delta = timedelta(seconds=record_delta)
         self.record_delta = record_delta
 
@@ -549,8 +548,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         """Formats the record and encodes it to the stream encoding."""
         stream = self.stream
         rv = self.format(record) + '\n'
-        if isinstance(rv, unicode) \
-           and (not _py3 or not _is_text_stream(stream)):
+        if not is_unicode(rv) and (not six.PY3 or not _is_text_stream(stream)):
             enc = self.encoding
             if enc is None:
                 enc = getattr(stream, 'encoding', None) or 'utf-8'
@@ -600,7 +598,7 @@ class FileHandler(StreamHandler):
     def write(self, item):
         if self.stream is None:
             self._open()
-        if _py3 and isinstance(item, bytes):
+        if six.PY3 and isinstance(item, bytes):
             self.stream.buffer.write(item)
         else:
             self.stream.write(item)
@@ -648,7 +646,8 @@ class MonitoringFileHandler(FileHandler):
         else:
             try:
                 st = os.stat(self._filename)
-            except OSError, e:
+            except OSError:
+                e = sys.exc_info()[1]
                 if e.errno != 2:
                     raise
                 self._last_stat = None, None
@@ -756,12 +755,13 @@ class RotatingFileHandler(FileHandler):
 
     def perform_rollover(self):
         self.stream.close()
-        for x in xrange(self.backup_count - 1, 0, -1):
+        for x in six.moves.xrange(self.backup_count - 1, 0, -1):
             src = '%s.%d' % (self._filename, x)
             dst = '%s.%d' % (self._filename, x + 1)
             try:
                 rename(src, dst)
-            except OSError, e:
+            except OSError:
+                e = sys.exc_info()[1]
                 if e.errno != errno.ENOENT:
                     raise
         rename(self._filename, self._filename + '.1')
@@ -892,8 +892,8 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         """Captures the formatted log records as unicode strings."""
         if len(self._formatted_records) != self.records or \
            any(r1 != r2 for r1, (r2, f) in
-               izip(self.records, self._formatted_records)):
-            self._formatted_records = map(self.format, self.records)
+               six.moves.zip(self.records, self._formatted_records)):
+            self._formatted_records = [self.format(r) for r in self.records]
             self._formatted_record_cache = list(self.records)
         return self._formatted_records
 
@@ -1032,7 +1032,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
     """
     default_format_string = MAIL_FORMAT_STRING
     default_related_format_string = MAIL_RELATED_FORMAT_STRING
-    default_subject = u'Server Error in Application'
+    default_subject = six.u('Server Error in Application')
 
     #: the maximum number of record hashes in the cache for the limiting
     #: feature.  Afterwards, record_cache_prune percent of the oldest
@@ -1314,7 +1314,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         self.facility = facility
         self.socktype = socktype
 
-        if isinstance(address, basestring):
+        if isinstance(address, six.string_types):
             self._connect_unixsocket()
         else:
             self._connect_netsocket()
@@ -1343,10 +1343,10 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         return (facility << 3) | priority
 
     def emit(self, record):
-        prefix = u''
+        prefix = six.u('')
         if self.application_name is not None:
-            prefix = self.application_name + u':'
-        self.send_to_socket((u'<%d>%s%s\x00' % (
+            prefix = self.application_name + six.u(':')
+        self.send_to_socket((six.u('<%d>%s%s\x00') % (
             self.encode_priority(record),
             prefix,
             self.format(record)

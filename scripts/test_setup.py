@@ -36,4 +36,7 @@ if __name__ == '__main__':
     else:
         deps.append("sqlalchemy")
         deps.append("pyzmq")
+    if python_version < "2.7":
+        deps.append("unittest2")
+    print("Setting up dependencies...")
     _execute("pip install --use-mirrors %s" % " ".join(deps), shell=True)

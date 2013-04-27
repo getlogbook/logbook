@@ -1,6 +1,6 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
-PYTHON_VERSIONS = ["python2.4", "python2.5", "python2.6", "python2.7", "python3.1", "python3.2"]
+PYTHON_VERSIONS = ["python2.4", "python2.5", "python2.6", "python2.7", "python3.1", "python3.2", "python3.3"]
 
 Vagrant::Config.run do |config|
   config.vm.define :box do |config|

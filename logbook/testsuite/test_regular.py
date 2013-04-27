@@ -14,7 +14,10 @@ import os
 import re
 import sys
 import time
-import thread
+try:
+    import thread
+except ImportError:
+    import _thread as thread
 import pickle
 import shutil
 import unittest
@@ -22,11 +25,12 @@ import tempfile
 import socket
 from datetime import datetime, timedelta
 from random import randrange
-from itertools import izip
-from cStringIO import StringIO
+
+import six
+from six import u
 
 import logbook
-from logbook.testsuite import LogbookTestCase, skip_if, require, missing, \
+from logbook.testsuite import LogbookTestCase, missing, require_module, require_py3, \
      make_fake_mail_handler
 
 
@@ -40,7 +44,7 @@ class capture_stderr(object):
         self.original = sys.stderr
 
     def start(self):
-        sys.stderr = StringIO()
+        sys.stderr = six.moves.StringIO()
         return sys.stderr
 
     def end(self):
@@ -134,16 +138,17 @@ class BasicAPITestCase(LogbookTestCase):
         record = make_record()
         try:
             record.message
-        except TypeError, e:
+        except TypeError:
+            e = sys.exc_info()[1]
             errormsg = str(e)
         else:
             self.assertFalse('Expected exception')
 
-        self.assert_('Could not format message with provided arguments: '
-                     'Invalid conversion specification' in errormsg)
-        self.assert_("msg='Hello {foo:invalid}'" in errormsg)
-        self.assert_('args=()' in errormsg)
-        self.assert_("kwargs={'foo': 42}" in errormsg)
+        self.assertRegexpMatches(errormsg,
+                "Could not format message with provided arguments: Invalid (?:format specifier)|(?:conversion specification)")
+        self.assertIn("msg='Hello {foo:invalid}'", errormsg)
+        self.assertIn('args=()', errormsg)
+        self.assertIn("kwargs={'foo': 42}", errormsg)
         self.assert_(re.search('Happened in file .*%s, line \d+' % test_file,
                                errormsg))
 
@@ -183,7 +188,7 @@ class BasicAPITestCase(LogbookTestCase):
         exported = record.to_dict()
         record.close()
         imported = logbook.LogRecord.from_dict(exported)
-        for key, value in record.__dict__.iteritems():
+        for key, value in six.iteritems(record.__dict__):
             if key[0] == '_':
                 continue
             self.assertEqual(value, getattr(imported, key))
@@ -202,14 +207,19 @@ class BasicAPITestCase(LogbookTestCase):
         record.pull_information()
         record.close()
 
-        for p in xrange(pickle.HIGHEST_PROTOCOL):
+        for p in six.moves.xrange(pickle.HIGHEST_PROTOCOL):
             exported = pickle.dumps(record, p)
             imported = pickle.loads(exported)
-            for key, value in record.__dict__.iteritems():
+            for key, value in six.iteritems(record.__dict__):
                 if key[0] == '_':
                     continue
-                self.assertEqual(value, getattr(imported, key))
-
+                imported_value = getattr(imported, key)
+                if isinstance(value, ZeroDivisionError):
+                    # in Python 3.2, ZeroDivisionError(x) != ZeroDivisionError(x)
+                    self.assert_(type(value) is type(imported_value))
+                    self.assertEqual(value.args, imported_value.args)
+                else:
+                    self.assertEqual(value, imported_value)
 
 class HandlerTestCase(LogbookTestCase):
 
@@ -257,9 +267,9 @@ class HandlerTestCase(LogbookTestCase):
         finally:
             f.close()
 
-    # unsupported on windows due to different IO (also unneeded)
-    @skip_if(os.name == 'nt')
     def test_monitoring_file_handler(self):
+        if os.name == "nt":
+            self.skipTest("unsupported on windows due to different IO (also unneeded)")
         handler = logbook.MonitoringFileHandler(self.filename,
             format_string='{record.level_name}:{record.channel}:'
             '{record.message}', delay=True)
@@ -303,7 +313,7 @@ class HandlerTestCase(LogbookTestCase):
         handler.format_string = '{record.message}'
         handler.push_thread()
         try:
-            for c, x in izip(LETTERS, xrange(32)):
+            for c, x in six.moves.zip(LETTERS, six.moves.xrange(32)):
                 self.log.warn(c * 256)
         finally:
             handler.pop_thread()
@@ -336,13 +346,13 @@ class HandlerTestCase(LogbookTestCase):
 
         handler.push_thread()
         try:
-            for x in xrange(10):
+            for x in six.moves.xrange(10):
                 handler.handle(fake_record('First One', 2010, 1, 5, x + 1))
-            for x in xrange(20):
+            for x in six.moves.xrange(20):
                 handler.handle(fake_record('Second One', 2010, 1, 6, x + 1))
-            for x in xrange(10):
+            for x in six.moves.xrange(10):
                 handler.handle(fake_record('Third One', 2010, 1, 7, x + 1))
-            for x in xrange(20):
+            for x in six.moves.xrange(20):
                 handler.handle(fake_record('Last One', 2010, 1, 8, x + 1))
         finally:
             handler.pop_thread()
@@ -365,7 +375,7 @@ class HandlerTestCase(LogbookTestCase):
             f.close()
 
     def test_mail_handler(self):
-        subject = u'\xf8nicode'
+        subject = u('\xf8nicode')
         handler = make_fake_mail_handler(subject=subject)
         fallback = capture_stderr.start()
         try:
@@ -375,7 +385,7 @@ class HandlerTestCase(LogbookTestCase):
                 try:
                     1 / 0
                 except Exception:
-                    self.log.exception(u'Viva la Espa\xf1a')
+                    self.log.exception(u('Viva la Espa\xf1a'))
             finally:
                 handler.pop_thread()
 
@@ -391,7 +401,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
             self.assert_(re.search('Function:\s+test_mail_handler', mail))
-            body = u'Message:\r\n\r\nViva la Espa\xf1a'
+            body = u('Message:\r\n\r\nViva la Espa\xf1a')
             if sys.version_info < (3, 0):
                 body = body.encode('utf-8')
             self.assert_(body in mail)
@@ -511,8 +521,8 @@ class HandlerTestCase(LogbookTestCase):
                     except socket.error:
                         self.fail('got timeout on socket')
                     self.assertEqual(rv, (
-                        u'<12>%stestlogger: Syslog is weird\x00' %
-                        (app_name and app_name + u':' or u'')).encode('utf-8'))
+                        u('<12>%stestlogger: Syslog is weird\x00') %
+                        (app_name and app_name + u(':') or u(''))).encode('utf-8'))
             finally:
                 inc.close()
 
@@ -974,7 +984,8 @@ class FlagsTestCase(LogbookTestCase):
                     self.log.warn('Foo {42}', 'aha')
                 finally:
                     raise_flag.pop_thread()
-            except Exception, e:
+            except Exception:
+                e = sys.exc_info()[1]
                 self.assert_('Could not format message with provided '
                              'arguments' in str(e))
             else:
@@ -1059,7 +1070,7 @@ class LoggingCompatTestCase(LogbookTestCase):
     def test_redirect_logbook(self):
         import logging
         from logbook.compat import LoggingHandler
-        out = StringIO()
+        out = six.moves.cStringIO()
         logger = logging.getLogger()
         old_handlers = logger.handlers[:]
         handler = logging.StreamHandler(out)
@@ -1107,7 +1118,7 @@ class WarningsCompatTestCase(LogbookTestCase):
 
 class MoreTestCase(LogbookTestCase):
 
-    @require('jinja2')
+    @require_module('jinja2')
     def test_jinja_formatter(self):
         from logbook.more import JinjaFormatter
         fmter = JinjaFormatter('{{ record.channel }}/{{ record.level_name }}')
@@ -1132,7 +1143,7 @@ class MoreTestCase(LogbookTestCase):
         class TestColorizingHandler(ColorizedStderrHandler):
             def should_colorize(self, record):
                 return True
-            stream = StringIO()
+            stream = six.moves.cStringIO()
         handler = TestColorizingHandler(format_string='{record.message}')
         handler.push_thread()
         try:
@@ -1151,7 +1162,7 @@ class MoreTestCase(LogbookTestCase):
 
     def test_tagged(self):
         from logbook.more import TaggingLogger, TaggingHandler
-        stream = StringIO()
+        stream = six.moves.cStringIO()
         second_handler = logbook.StreamHandler(stream)
 
         logger = TaggingLogger('name', ['cmd'])
@@ -1252,7 +1263,8 @@ class MoreTestCase(LogbookTestCase):
                 self.log.info('here i am')
             finally:
                 exception_handler.pop_thread()
-        except ValueError, err:
+        except ValueError:
+            err = sys.exc_info()[1]
             self.assert_('INFO: testlogger: here i am' in err.args[0])
         else:
             assert False, 'there should have been an exception here'
@@ -1270,7 +1282,8 @@ class MoreTestCase(LogbookTestCase):
                     self.log.warn('here i am')
                 finally:
                     exception_handler.pop_thread()
-            except ValueError, err:
+            except ValueError:
+                err = sys.exc_info()[1]
                 self.assert_('WARNING: testlogger: here i am' in err.args[0])
             else:
                 assert False, 'there should have been an exception here'
@@ -1299,12 +1312,12 @@ class QueuesTestCase(LogbookTestCase):
         time.sleep(0.1)
         return handler, subscriber
 
-    @require('zmq')
+    @require_module('zmq')
     def test_zeromq_handler(self):
         tests = [
-            u'Logging something',
-            u'Something with umlauts äöü',
-            u'Something else for good measure',
+            u('Logging something'),
+            u('Something with umlauts äöü'),
+            u('Something else for good measure'),
         ]
         handler, subscriber = self._get_zeromq()
         for test in tests:
@@ -1317,7 +1330,7 @@ class QueuesTestCase(LogbookTestCase):
             finally:
                 handler.pop_thread()
 
-    @require('zmq')
+    @require_module('zmq')
     def test_zeromq_background_thread(self):
         handler, subscriber = self._get_zeromq()
         test_handler = logbook.TestHandler()
@@ -1347,7 +1360,7 @@ class QueuesTestCase(LogbookTestCase):
         self.assertRaises(RuntimeError, ZeroMQSubscriber,
                           'tcp://127.0.0.1:42000')
 
-    @require('multiprocessing')
+    @require_module('multiprocessing')
     def test_multi_processing_handler(self):
         from multiprocessing import Process, Queue
         from logbook.queues import MultiProcessingHandler, \
@@ -1393,7 +1406,7 @@ class QueuesTestCase(LogbookTestCase):
         self.assert_(test_handler.has_warning('Just testing'))
         self.assert_(test_handler.has_error('More testing'))
 
-    @require('execnet')
+    @require_module('execnet')
     def test_execnet_handler(self):
         def run_on_remote(channel):
             import logbook
@@ -1412,7 +1425,7 @@ class QueuesTestCase(LogbookTestCase):
         self.assertEqual(record.msg, 'Execnet works')
         gw.exit()
 
-    @require('multiprocessing')
+    @require_module('multiprocessing')
     def test_subscriber_group(self):
         from multiprocessing import Process, Queue
         from logbook.queues import MultiProcessingHandler, \
@@ -1442,19 +1455,19 @@ class QueuesTestCase(LogbookTestCase):
             p2.start()
             p1.join()
             p2.join()
-            messages = [subscriber.recv().message for i in 1, 2]
+            messages = [subscriber.recv().message for i in (1, 2)]
             self.assertEqual(sorted(messages), ['bar', 'foo'])
 
 
 class TicketingTestCase(LogbookTestCase):
 
-    @require('sqlalchemy')
+    @require_module('sqlalchemy')
     def test_basic_ticketing(self):
         from logbook.ticketing import TicketingHandler
         handler = TicketingHandler('sqlite:///')
         handler.push_thread()
         try:
-            for x in xrange(5):
+            for x in six.moves.xrange(5):
                 self.log.warn('A warning')
                 self.log.info('An error')
                 if x < 2:
@@ -1509,16 +1522,16 @@ class HelperTestCase(unittest.TestCase):
         rv = to_safe_json([
             None,
             'foo',
-            u'jäger',
+            u('jäger'),
             1,
             datetime(2000, 1, 1),
-            {'jäger1': 1, u'jäger2': 2, Bogus(): 3, 'invalid': object()},
+            {'jäger1': 1, u('jäger2'): 2, Bogus(): 3, 'invalid': object()},
             object()  # invalid
         ])
         self.assertEqual(
-            rv, [None, u'foo', u'jäger', 1, '2000-01-01T00:00:00Z',
-                 {u'jäger1': 1, u'jäger2': 2, u'bogus': 3,
-                  'invalid': None}, None])
+            rv, [None, u('foo'), u('jäger'), 1, '2000-01-01T00:00:00Z',
+                 {u('jäger1'): 1, u('jäger2'): 2, u('bogus'): 3,
+                  u('invalid'): None}, None])
 
     def test_datehelpers(self):
         from logbook.helpers import format_iso8601, parse_iso8601
@@ -1538,65 +1551,57 @@ class HelperTestCase(unittest.TestCase):
 class UnicodeTestCase(LogbookTestCase):
 
     # in Py3 we can just assume a more uniform unicode environment
-    @skip_if(sys.version_info[0] < 3)
+    @require_py3
     def test_default_format_unicode(self):
         stream = capture_stderr.start()
         try:
-            self.log.warn(u"\u2603")
+            self.log.warn('\u2603')
             captured = stream.getvalue()
         finally:
             capture_stderr.end()
-        self.assert_(
-            u'WARNING: testlogger: \u2603'.encode('utf8') in captured,
-            captured)
+        self.assertIn('WARNING: testlogger: \u2603', captured)
 
-    @skip_if(sys.version_info[0] < 3)
+    @require_py3
     def test_default_format_encoded(self):
         stream = capture_stderr.start()
         try:
             # it's a string but it's in the right encoding so don't barf
-            self.log.warn(u"\u2603".encode('utf8'))
+            self.log.warn('\u2603')
             captured = stream.getvalue()
         finally:
             capture_stderr.end()
-        self.assert_(
-            u'WARNING: testlogger: \u2603'.encode('utf8') in captured,
-            captured)
+        self.assertIn('WARNING: testlogger: \u2603', captured)
 
-    @skip_if(sys.version_info[0] < 3)
+    @require_py3
     def test_default_format_bad_encoding(self):
         stream = capture_stderr.start()
         try:
             # it's a string, is wrong, but just dump it in the logger,
             # don't try to decode/encode it
-            self.log.warn(u"Русский".encode('koi8-r'))
+            self.log.warn('Русский'.encode('koi8-r'))
             captured = stream.getvalue()
         finally:
             capture_stderr.end()
-        self.assert_(
-            'WARNING: testlogger: ' + u"Русский".encode('koi8-r')
-                in captured,
-            captured)
+        self.assertIn("WARNING: testlogger: b'\\xf2\\xd5\\xd3\\xd3\\xcb\\xc9\\xca'", captured)
 
-    @skip_if(sys.version_info[0] < 3)
+    @require_py3
     def test_custom_unicode_format_unicode(self):
-        format_string = (u'[{record.level_name}] '
-            u'{record.channel}: {record.message}')
+        format_string = ('[{record.level_name}] '
+                         '{record.channel}: {record.message}')
         stream = capture_stderr.start()
         try:
             handler = logbook.StderrHandler(format_string=format_string)
             handler.push_thread()
             try:
-                self.log.warn(u"\u2603")
+                self.log.warn("\u2603")
             finally:
                 handler.pop_thread()
             captured = stream.getvalue()
         finally:
             capture_stderr.end()
-        self.assert_(u'[WARNING] testlogger: \u2603'.encode('utf8') in captured,
-            captured)
+        self.assertIn('[WARNING] testlogger: \u2603', captured)
 
-    @skip_if(sys.version_info[0] < 3)
+    @require_py3
     def test_custom_string_format_unicode(self):
         format_string = ('[{record.level_name}] '
             '{record.channel}: {record.message}')
@@ -1605,38 +1610,33 @@ class UnicodeTestCase(LogbookTestCase):
             handler = logbook.StderrHandler(format_string=format_string)
             handler.push_thread()
             try:
-                self.log.warn(u"\u2603")
+                self.log.warn('\u2603')
             finally:
                 handler.pop_thread()
             captured = stream.getvalue()
         finally:
             capture_stderr.end()
-        self.assert_(u'[WARNING] testlogger: \u2603'.encode('utf8') in captured,
-            captured)
+        self.assertIn('[WARNING] testlogger: \u2603', captured)
 
-    @skip_if(sys.version_info[0] < 3)
+    @require_py3
     def test_unicode_message_encoded_params(self):
         stream = capture_stderr.start()
         try:
-            self.log.warn(u"\u2603 {0}", u"\u2603".encode('utf8'))
+            self.log.warn("\u2603 {0}", "\u2603".encode('utf8'))
             captured = stream.getvalue()
         finally:
             capture_stderr.end()
-        self.assert_(
-            u'WARNING: testlogger: \u2603 \u2603'.encode('utf8') in captured,
-            captured)
+        self.assertIn("WARNING: testlogger: \u2603 b'\\xe2\\x98\\x83'", captured)
 
-    @skip_if(sys.version_info[0] < 3)
+    @require_py3
     def test_encoded_message_unicode_params(self):
         stream = capture_stderr.start()
         try:
-            self.log.warn(u"\u2603 {0}".encode('utf8'), u"\u2603")
+            self.log.warn('\u2603 {0}'.encode('utf8'), '\u2603')
             captured = stream.getvalue()
         finally:
             capture_stderr.end()
-        self.assert_(
-            u'WARNING: testlogger: \u2603 \u2603'.encode('utf8') in captured,
-            captured)
+        self.assertIn('WARNING: testlogger: \u2603 \u2603', captured)
 
 def suite():
     loader = unittest.TestLoader()

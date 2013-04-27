@@ -9,7 +9,13 @@
     :license: BSD, see LICENSE for more details.
 """
 from threading import Thread
-from Queue import Empty, Queue as ThreadQueue
+import platform
+from six import PY3 as _PY3
+from six import u
+if _PY3:
+    from queue import Empty, Queue as ThreadQueue
+else:
+    from Queue import Empty, Queue as ThreadQueue
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler, WrapperHandler
 from logbook.helpers import json
@@ -85,7 +91,7 @@ class ZeroMQHandler(Handler):
         return record.to_dict(json_safe=True)
 
     def emit(self, record):
-        self.socket.send(json.dumps(self.export_record(record)))
+        self.socket.send(json.dumps(self.export_record(record)).encode("utf-8"))
 
     def close(self):
         self.socket.close()
@@ -282,7 +288,7 @@ class ZeroMQSubscriber(SubscriberBase):
         self.socket = self.context.socket(zmq.SUB)
         if uri is not None:
             self.socket.connect(uri)
-        self.socket.setsockopt(zmq.SUBSCRIBE, '')
+        self.socket.setsockopt_unicode(zmq.SUBSCRIBE, u(''))
 
     def __del__(self):
         try:
@@ -310,6 +316,8 @@ class ZeroMQSubscriber(SubscriberBase):
             if not self._zmq.select([self.socket], [], [], timeout)[0]:
                 return
             rv = self.socket.recv(self._zmq.NOBLOCK)
+        if _PY3:
+            rv = rv.decode("utf-8")
         return LogRecord.from_dict(json.loads(rv))
 
 

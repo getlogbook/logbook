@@ -11,6 +11,7 @@
 
 import thread
 import threading
+import platform
 
 from cpython.dict cimport PyDict_Clear, PyDict_SetItem
 from cpython.list cimport PyList_New, PyList_Append, PyList_Sort, \
@@ -24,7 +25,6 @@ cdef enum:
     _MAX_CONTEXT_OBJECT_CACHE = 256
 
 cdef current_thread = thread.get_ident
-
 
 cdef class group_reflected_property:
     cdef char* name
@@ -63,10 +63,21 @@ cdef class _StackItem:
     def __init__(self, int id, object val):
         self.id = id
         self.val = val
-
-    def __cmp__(self, _StackItem other):
-        return cmp(other.id, self.id)
-
+    def __richcmp__(_StackItem self, _StackItem other, int op):
+        cdef int diff = other.id - self.id # preserving older code
+        if op == 0: # <
+            return diff < 0
+        if op == 1: # <=
+            return diff <= 0
+        if op == 2: # ==
+            return diff == 0
+        if op == 3: # !=
+            return diff != 0
+        if op == 4: # >
+            return diff > 0
+        if op == 5: # >=
+            return diff >= 0
+        assert False, "should never get here"
 
 cdef class _StackBound:
     cdef object obj
