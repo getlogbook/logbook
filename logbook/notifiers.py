@@ -12,13 +12,17 @@ import os
 import sys
 import base64
 from time import time
-from urllib import urlencode
-from httplib import HTTPSConnection
 
 from logbook.base import NOTSET, ERROR, WARNING
 from logbook.handlers import Handler, LimitingHandlerMixin
 from logbook.helpers import get_application_name
 
+import six
+from six import u
+if six.PY3:
+    from urllib.parse import urlencode
+else:
+    from urllib import urlencode
 
 def create_notification_handler(application_name=None, level=NOTSET, icon=None):
     """Creates a handler perfectly fit the current platform.  On Linux
@@ -43,7 +47,7 @@ class NotificationBaseHandler(Handler, LimitingHandlerMixin):
 
     def make_title(self, record):
         """Called to get the title from the record."""
-        return u'%s: %s' % (record.channel, record.level_name.title())
+        return u('%s: %s') % (record.channel, record.level_name.title())
 
     def make_text(self, record):
         """Called to get the text of the record."""
@@ -214,10 +218,10 @@ class BoxcarHandler(NotificationBaseHandler):
                 self.make_text(record).encode('utf-8'),
             'notification[from_remote_service_id]': str(int(time() * 100))
         })
-        con = HTTPSConnection('boxcar.io')
+        con = six.moves.http_client.HTTPSConnection('boxcar.io')
         con.request('POST', '/notifications/', headers={
             'Authorization': 'Basic ' +
-                base64.b64encode((u'%s:%s' %
+                base64.b64encode((u('%s:%s') %
                     (self.email, self.password)).encode('utf-8')).strip(),
         }, body=body)
         con.close()

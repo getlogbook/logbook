@@ -10,12 +10,14 @@
 """
 import threading
 from itertools import count
-from thread import get_ident as current_thread
-
+try:
+    from thread import get_ident as current_thread
+except ImportError:
+    from _thread import get_ident as current_thread
+from logbook.helpers import get_iterator_next_method
 
 _missing = object()
 _MAX_CONTEXT_OBJECT_CACHE = 256
-
 
 def group_reflected_property(name, default, fallback=_missing):
     """Returns a property for a given name that falls back to the
@@ -102,7 +104,7 @@ class ContextStackManager(object):
         self._context_lock = threading.Lock()
         self._context = threading.local()
         self._cache = {}
-        self._stackop = count().next
+        self._stackop = get_iterator_next_method(count())
 
     def iter_context_objects(self):
         """Returns an iterator over all objects for the combined

@@ -1,0 +1,19 @@
+language: python
+python:
+  - "2.5"
+  - "2.6"
+  - "2.7"
+  - "3.2"
+  - "3.3"
+install:
+  # this fixes SemLock issues on travis
+  - "sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm" 
+  - "sudo apt-get install libzmq3-dev"
+  - "pip install --use-mirrors --timeout 120 cython"
+  - "make test_setup"
+  - "python setup.py develop"
+env:
+  matrix: 
+    - COMMAND="make test"
+    - COMMAND="make cybuild test""
+script: "$COMMAND"

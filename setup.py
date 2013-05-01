@@ -74,9 +74,6 @@ if sys.platform == 'win32' and sys.version_info > (2, 6):
     # find the compiler
     ext_errors += (IOError,)
 
-if sys.version_info >= (3, 0):
-    extra['use_2to3'] = True
-
 
 class ve_build_ext(build_ext):
     """This class allows C extension building to fail."""
@@ -122,6 +119,9 @@ def run_setup(with_binary):
         platforms='any',
         cmdclass=cmdclass,
         features=features,
+        install_requires=[
+            "six", # required for Python2/Python3 compatibility
+        ],
         **extra
     )
 

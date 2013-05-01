@@ -16,6 +16,9 @@ import time
 import random
 from datetime import datetime, timedelta
 
+import six
+from six import PY3 as _PY3
+from six import next, u
 
 # Python 2.4 compatibility
 
@@ -50,8 +53,7 @@ _iso8601_re = re.compile(
     r'(?:T(\d{2}):(\d{2})(?::(\d{2}(?:\.\d+)?))?(Z|[+-]\d{2}:\d{2})?)?$'
 )
 _missing = object()
-_py3 = sys.version_info >= (3, 0)
-if _py3:
+if _PY3:
     import io
     def b(x): return x.encode('ascii')
     def _is_text_stream(stream): return isinstance(stream, io.TextIOBase)
@@ -73,10 +75,11 @@ if os.name == 'nt': # pragma: no cover
         _MoveFileEx = ctypes.windll.kernel32.MoveFileExW
 
         def _rename(src, dst):
-            if not isinstance(src, unicode):
-                src = unicode(src, sys.getfilesystemencoding())
-            if not isinstance(dst, unicode):
-                dst = unicode(dst, sys.getfilesystemencoding())
+            if not _PY3:
+                if not isinstance(src, unicode):
+                    src = unicode(src, sys.getfilesystemencoding())
+                if not isinstance(dst, unicode):
+                    dst = unicode(dst, sys.getfilesystemencoding())
             if _rename_atomic(src, dst):
                 return True
             retry = 0
@@ -126,7 +129,8 @@ if os.name == 'nt': # pragma: no cover
         # Fall back to "move away and replace"
         try:
             os.rename(src, dst)
-        except OSError, e:
+        except OSError:
+            e = sys.exc_info()[1]
             if e.errno != errno.EEXIST:
                 raise
             old = "%s-%08x" % (dst, random.randint(0, sys.maxint))
@@ -140,6 +144,7 @@ else:
     rename = os.rename
     can_rename_open_file = True
 
+_JSON_SIMPLE_TYPES = (bool, float) + six.integer_types + six.string_types
 
 def to_safe_json(data):
     """Makes a data structure safe for JSON silently discarding invalid
@@ -148,9 +153,9 @@ def to_safe_json(data):
     def _convert(obj):
         if obj is None:
             return None
-        elif not _py3 and isinstance(obj, str):
+        elif not _PY3 and isinstance(obj, str):
             return obj.decode('utf-8', 'replace')
-        elif isinstance(obj, (bool, int, long, float, unicode)):
+        elif isinstance(obj, _JSON_SIMPLE_TYPES):
             return obj
         elif isinstance(obj, datetime):
             return format_iso8601(obj)
@@ -160,11 +165,11 @@ def to_safe_json(data):
             return tuple(_convert(x) for x in obj)
         elif isinstance(obj, dict):
             rv = {}
-            for key, value in obj.iteritems():
-                if not _py3 and isinstance(key, str):
-                    key = key.decode('utf-8', 'replace')
-                else:
-                    key = unicode(key)
+            for key, value in six.iteritems(obj):
+                if not isinstance(key, six.string_types):
+                    key = str(key)
+                if not is_unicode(key):
+                    key = u(key)
                 rv[key] = _convert(value)
             return rv
     return _convert(data)
@@ -206,7 +211,7 @@ def parse_iso8601(value):
     rv = datetime(*args)
     tz = groups[-1]
     if tz and tz != 'Z':
-        args = map(int, tz[1:].split(':'))
+        args = [int(x) for x in tz[1:].split(':')]
         delta = timedelta(hours=args[0], minutes=args[1])
         if tz[0] == '+':
             rv -= delta
@@ -239,3 +244,11 @@ class cached_property(object):
             value = self.func(obj)
             obj.__dict__[self.__name__] = value
         return value
+
+def get_iterator_next_method(it):
+    return lambda: next(it)
+
+def is_unicode(x):
+    if _PY3:
+        return isinstance(x, str)
+    return isinstance(x, unicode)

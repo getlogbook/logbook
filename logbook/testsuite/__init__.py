@@ -9,27 +9,27 @@
     :license: BSD, see LICENSE for more details.
 """
 import sys
-import unittest
+import platform
+
+if platform.python_version() < "2.7":
+    import unittest2 as unittest
+else:
+    import unittest
 import logbook
+import six
 
-
-_skipped_modules = []
 _missing = object()
-_func_ident = lambda f: f
-_func_none = lambda f: None
 
+require_py3 = unittest.skipUnless(six.PY3, "Requires Python 3")
+def require_module(module_name):
+    try:
+        __import__(module_name)
+    except ImportError:
+        return unittest.skip("Requires the %r module" % (module_name,))
+    return lambda func: func
 
 class LogbookTestSuite(unittest.TestSuite):
-
-    def run(self, result):
-        try:
-            return unittest.TestSuite.run(self, result)
-        finally:
-            sys.stderr.write('\n')
-            for mod in _skipped_modules:
-                msg = '*** Failed to import %s, tests skipped.\n' % mod
-                sys.stderr.write(msg)
-
+    pass
 
 class LogbookTestCase(unittest.TestCase):
 
@@ -54,24 +54,6 @@ def make_fake_mail_handler(**kwargs):
 
     kwargs.setdefault('level', logbook.ERROR)
     return FakeMailHandler('foo@example.com', ['bar@example.com'], **kwargs)
-
-
-def skip_if(condition):
-    if condition:
-        return _func_ident
-    else:
-        return _func_none
-
-
-def require(name):
-    if name in _skipped_modules:
-        return _func_none
-    try:
-        __import__(name)
-    except ImportError:
-        _skipped_modules.append(name)
-        return _func_none
-    return _func_ident
 
 
 def missing(name):
