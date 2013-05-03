@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-    logbook.testsuite
-    ~~~~~~~~~~~~~~~~~
-
-    The logbook testsuite.
+    test utils for logbook
+    ~~~~~~~~~~~~~~~~~~~~~~
 
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-import sys
+from contextlib import contextmanager
 import platform
+import sys
 
 if platform.python_version() < "2.7":
     import unittest2 as unittest
@@ -19,6 +18,14 @@ import logbook
 import six
 
 _missing = object()
+
+
+def get_total_delta_seconds(delta):
+    """
+    Replacement for datetime.timedelta.total_seconds() for Python 2.5, 2.6 and 3.1
+    """
+    return (delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6) / 10**6
+
 
 require_py3 = unittest.skipUnless(six.PY3, "Requires Python 3")
 def require_module(module_name):
@@ -32,7 +39,6 @@ class LogbookTestSuite(unittest.TestSuite):
     pass
 
 class LogbookTestCase(unittest.TestCase):
-
     def setUp(self):
         self.log = logbook.Logger('testlogger')
 
@@ -71,16 +77,22 @@ def missing(name):
         return wrapper
     return decorate
 
+def activate_via_with_statement(handler):
+    return handler
 
-def suite():
-    loader = unittest.TestLoader()
-    suite = LogbookTestSuite()
-    suite.addTests(loader.loadTestsFromName('logbook.testsuite.test_regular'))
-    if sys.version_info >= (2, 5):
-        suite.addTests(loader.loadTestsFromName
-                       ('logbook.testsuite.test_contextmanager'))
-    return suite
+@contextmanager
+def activate_via_push_pop(handler):
+    handler.push_thread()
+    try:
+        yield handler
+    finally:
+        handler.pop_thread()
 
-
-if __name__ == '__main__':
-    unittest.main(defaultTest='suite')
+@contextmanager
+def capturing_stderr_context():
+    original = sys.stderr
+    sys.stderr = six.moves.StringIO()
+    try:
+        yield sys.stderr
+    finally:
+        sys.stderr = original

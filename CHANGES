@@ -3,6 +3,13 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.4.2 (under development)
+---------------------------------
+
+- Fixed Python 3.x compatibility, including speedups
+- Dropped Python 2.4 support. Python 2.4 support caused a lot of hacks in the code and introduced duplication to the test code. In addition, it is impossible to cover 2.4-3.x with a single tox installation, which may introduce unwitting code breakage. Travis also does not support Python 2.4 so the chances of accidentally breaking this support were very high as it was...
+
+
 Version 0.4.1
 -------------
 
