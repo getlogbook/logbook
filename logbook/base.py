@@ -10,15 +10,21 @@
 """
 import os
 import sys
-import thread
+try:
+    import thread
+except ImportError:
+    # for python 3.1,3.2
+    import _thread as thread
 import threading
 import traceback
 from itertools import chain
 from weakref import ref as weakref
 from datetime import datetime
 
+import six
+
 from logbook.helpers import to_safe_json, parse_iso8601, cached_property, \
-     F, _py3
+     F
 try:
     from logbook._speedups import group_reflected_property, \
          ContextStackManager, StackedObject
@@ -86,13 +92,13 @@ _level_names = {
     DEBUG:      'DEBUG',
     NOTSET:     'NOTSET'
 }
-_reverse_level_names = dict((v, k) for (k, v) in _level_names.iteritems())
+_reverse_level_names = dict((v, k) for (k, v) in six.iteritems(_level_names))
 _missing = object()
 
 
 # on python 3 we can savely assume that frame filenames will be in
 # unicode, on Python 2 we have to apply a trick.
-if _py3:
+if six.PY3:
     def _convert_frame_filename(fn):
         return fn
 else:
@@ -119,7 +125,7 @@ def level_name_property():
 
 def lookup_level(level):
     """Return the integer representation of a logging level."""
-    if isinstance(level, (int, long)):
+    if isinstance(level, six.integer_types):
         return level
     try:
         return _reverse_level_names[level]
@@ -143,10 +149,10 @@ class ExtraDict(dict):
             try:
                 return dict.__getitem__(self, key)
             except KeyError:
-                return u''
+                return six.u('')
     else:
         def __missing__(self, key):
-            return u''
+            return six.u('')
 
     def copy(self):
         return self.__class__(self)
@@ -437,7 +443,7 @@ class LogRecord(object):
         """
         self.pull_information()
         rv = {}
-        for key, value in self.__dict__.iteritems():
+        for key, value in six.iteritems(self.__dict__):
             if key[:1] != '_' and key not in self._noned_on_close:
                 rv[key] = value
         # the extra dict is exported as regular dict
@@ -464,7 +470,7 @@ class LogRecord(object):
             setattr(self, key, None)
         self._information_pulled = True
         self._channel = None
-        if isinstance(self.time, basestring):
+        if isinstance(self.time, six.string_types):
             self.time = parse_iso8601(self.time)
         return self
 
@@ -480,7 +486,11 @@ class LogRecord(object):
                 # Assume an unicode message but mixed-up args
                 msg = self.msg.encode('utf-8', 'replace')
                 return F(msg).format(*self.args, **self.kwargs)
-            except UnicodeEncodeError:
+            except (UnicodeEncodeError, AttributeError):
+                # we catch AttributeError since if msg is bytes, it won't have the 'format' method
+                if sys.exc_info()[0] is AttributeError and (not six.PY3 or not isinstance(self.msg, bytes)):
+                    # this is not the case we thought it is...
+                    raise
                 # Assume encoded message with unicode args.
                 # The assumption of utf8 as input encoding is just a guess,
                 # but this codepath is unlikely (if the message is a constant
@@ -488,11 +498,12 @@ class LogRecord(object):
                 msg = self.msg.decode('utf-8', 'replace')
                 return F(msg).format(*self.args, **self.kwargs)
 
-        except Exception, e:
+        except Exception:
             # this obviously will not give a proper error message if the
             # information was not pulled and the log record no longer has
             # access to the frame.  But there is not much we can do about
             # that.
+            e = sys.exc_info()[1]
             errormsg = F('Could not format message with provided '
                          'arguments: {err}\n  msg={msg!r}\n  '
                          'args={args!r} \n  kwargs={kwargs!r}.\n'
@@ -501,7 +512,7 @@ class LogRecord(object):
                 kwargs=self.kwargs, file=self.filename,
                 lineno=self.lineno
             )
-            if not _py3:
+            if not six.PY3:
                 errormsg = errormsg.encode('utf-8')
             raise TypeError(errormsg)
 
@@ -596,7 +607,7 @@ class LogRecord(object):
         """
         if self.exc_info is not None:
             rv = ''.join(traceback.format_exception(*self.exc_info))
-            if not _py3:
+            if not six.PY3:
                 rv = rv.decode('utf-8', 'replace')
             return rv.rstrip()
 
@@ -605,7 +616,7 @@ class LogRecord(object):
         """The name of the exception."""
         if self.exc_info is not None:
             cls = self.exc_info[0]
-            return unicode(cls.__module__ + '.' + cls.__name__)
+            return six.u(cls.__module__ + '.' + cls.__name__)
 
     @property
     def exception_shortname(self):
@@ -618,7 +629,7 @@ class LogRecord(object):
         if self.exc_info is not None:
             val = self.exc_info[1]
             try:
-                return unicode(val)
+                return six.u(str(val))
             except UnicodeError:
                 return str(val).decode('utf-8', 'replace')
 

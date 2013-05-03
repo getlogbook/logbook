@@ -9,6 +9,8 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
+from six import PY3 as _PY3
+from six import u
 from time import time
 from logbook.base import NOTSET, level_name_property, LogRecord
 from logbook.handlers import Handler, HashingHandlerMixin
@@ -192,9 +194,9 @@ class SQLAlchemyBackend(BackendBase):
                 row = cnx.execute(self.tickets.insert().values(
                     record_hash=hash,
                     level=record.level,
-                    channel=record.channel or u'',
-                    location=u'%s:%d' % (record.filename, record.lineno),
-                    module=record.module or u'<unknown>',
+                    channel=record.channel or u(''),
+                    location=u('%s:%d') % (record.filename, record.lineno),
+                    module=record.module or u('<unknown>'),
                     occurrence_count=0,
                     solved=False,
                     app_id=app_id
@@ -287,7 +289,7 @@ class MongoDBBackend(BackendBase):
         from pymongo.errors import AutoReconnect
 
         _connection = None
-        uri = self.options.pop('uri', u'')
+        uri = self.options.pop('uri', u(''))
         _connection_attempts = 0
 
         parsed_uri = parse_uri(uri, Connection.PORT)
@@ -336,9 +338,9 @@ class MongoDBBackend(BackendBase):
             doc = {
                 'record_hash':      hash,
                 'level':            record.level,
-                'channel':          record.channel or u'',
-                'location':         u'%s:%d' % (record.filename, record.lineno),
-                'module':           record.module or u'<unknown>',
+                'channel':          record.channel or u(''),
+                'location':         u('%s:%d') % (record.filename, record.lineno),
+                'module':           record.module or u('<unknown>'),
                 'occurrence_count': 0,
                 'solved':           False,
                 'app_id':           app_id,
@@ -415,7 +417,7 @@ class TicketingBaseHandler(Handler, HashingHandlerMixin):
         hash = HashingHandlerMixin.hash_record_raw(self, record)
         if self.hash_salt is not None:
             hash_salt = self.hash_salt
-            if isinstance(hash_salt, unicode):
+            if _PY3 or isinstance(hash_salt, unicode):
                 hash_salt = hash_salt.encode('utf-8')
             hash.update(b('\x00') + hash_salt)
         return hash
@@ -448,7 +450,7 @@ class TicketingHandler(TicketingBaseHandler):
                  filter=None, bubble=False, hash_salt=None, backend=None,
                  **db_options):
         if hash_salt is None:
-            hash_salt = u'apphash-' + app_id
+            hash_salt = u('apphash-') + app_id
         TicketingBaseHandler.__init__(self, hash_salt, level, filter, bubble)
         if backend is None:
             backend = self.default_backend

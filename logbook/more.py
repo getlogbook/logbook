@@ -11,7 +11,6 @@
 import re
 import os
 from cgi import parse_qsl
-from urllib import urlencode
 
 from logbook.base import RecordDispatcher, NOTSET, ERROR, NOTICE
 from logbook.handlers import Handler, StringFormatter, \
@@ -22,9 +21,16 @@ from logbook.helpers import F
 from logbook.ticketing import TicketingHandler as DatabaseHandler
 from logbook.ticketing import BackendBase
 
+import six
+from six import u
+if six.PY3:
+    from urllib.parse import urlencode
+else:
+    from urllib import urlencode
+
 _ws_re = re.compile(r'(\s+)(?u)')
 TWITTER_FORMAT_STRING = \
-u'[{record.channel}] {record.level_name}: {record.message}'
+u('[{record.channel}] {record.level_name}: {record.message}')
 TWITTER_ACCESS_TOKEN_URL = 'https://twitter.com/oauth/access_token'
 NEW_TWEET_URL = 'https://api.twitter.com/1/statuses/update.json'
 
@@ -35,7 +41,7 @@ class CouchDBBackend(BackendBase):
     def setup_backend(self):
         from couchdb import Server
 
-        uri = self.options.pop('uri', u'')
+        uri = self.options.pop('uri', u(''))
         couch = Server(uri)
         db_name = self.options.pop('db')
         self.database = couch[db_name]
@@ -59,7 +65,7 @@ class TwitterFormatter(StringFormatter):
     max_length = 140
 
     def format_exception(self, record):
-        return u'%s: %s' % (record.exception_shortname,
+        return u('%s: %s') % (record.exception_shortname,
                             record.exception_message)
 
     def __call__(self, record, handler):
@@ -70,10 +76,10 @@ class TwitterFormatter(StringFormatter):
             length += len(piece)
             if length > self.max_length:
                 if length - len(piece) < self.max_length:
-                    rv.append(u'…')
+                    rv.append(u('…'))
                 break
             rv.append(piece)
-        return u''.join(rv)
+        return u('').join(rv)
 
 
 class TaggingLogger(RecordDispatcher):
@@ -103,7 +109,7 @@ class TaggingLogger(RecordDispatcher):
             self.log(tag, msg, *args, **kwargs)) for tag in (tags or ()))
 
     def log(self, tags, msg, *args, **kwargs):
-        if isinstance(tags, basestring):
+        if isinstance(tags, six.string_types):
             tags = [tags]
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', {})
@@ -131,7 +137,7 @@ class TaggingHandler(Handler):
         assert isinstance(handlers, dict)
         self._handlers = dict(
             (tag, isinstance(handler, Handler) and [handler] or handler)
-            for (tag, handler) in handlers.iteritems())
+            for (tag, handler) in six.iteritems(handlers))
 
     def emit(self, record):
         for tag in record.extra.get('tags', ()):

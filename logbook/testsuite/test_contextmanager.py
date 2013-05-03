@@ -20,13 +20,13 @@ import tempfile
 import socket
 from datetime import datetime, timedelta
 from random import randrange
-from itertools import izip
 from contextlib import contextmanager
-from cStringIO import StringIO
 
 import logbook
 from logbook.testsuite import LogbookTestCase, make_fake_mail_handler
 
+import six
+from six import u
 
 test_file = __file__.rstrip('co')
 LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -35,7 +35,7 @@ LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 @contextmanager
 def capture_stderr():
     old = sys.stderr
-    sys.stderr = StringIO()
+    sys.stderr = six.moves.cStringIO()
     try:
         yield sys.stderr
     finally:
@@ -112,16 +112,17 @@ class BasicAPITestCase(LogbookTestCase):
         record = make_record()
         try:
             record.message
-        except TypeError, e:
+        except TypeError:
+            e = sys.exc_info()[1]
             errormsg = str(e)
         else:
             self.assertFalse('Expected exception')
 
-        self.assert_('Could not format message with provided arguments: '
-                     'Invalid conversion specification' in errormsg)
-        self.assert_("msg='Hello {foo:invalid}'" in errormsg)
-        self.assert_('args=()' in errormsg)
-        self.assert_("kwargs={'foo': 42}" in errormsg)
+        self.assertRegexpMatches(errormsg,
+                                 "Could not format message with provided arguments: Invalid (?:format specifier)|(?:conversion specification)")
+        self.assertIn("msg='Hello {foo:invalid}'", errormsg)
+        self.assertIn('args=()', errormsg)
+        self.assertIn("kwargs={'foo': 42}", errormsg)
         self.assert_(re.search('Happened in file .*%s, line \d+' % test_file,
                                errormsg))
 
@@ -150,7 +151,7 @@ class BasicAPITestCase(LogbookTestCase):
         exported = record.to_dict()
         record.close()
         imported = logbook.LogRecord.from_dict(exported)
-        for key, value in record.__dict__.iteritems():
+        for key, value in six.iteritems(record.__dict__):
             if key[0] == '_':
                 continue
             self.assertEqual(value, getattr(imported, key))
@@ -163,13 +164,19 @@ class BasicAPITestCase(LogbookTestCase):
         record.pull_information()
         record.close()
 
-        for p in xrange(pickle.HIGHEST_PROTOCOL):
+        for p in six.moves.xrange(pickle.HIGHEST_PROTOCOL):
             exported = pickle.dumps(record, p)
             imported = pickle.loads(exported)
-            for key, value in record.__dict__.iteritems():
+            for key, value in six.iteritems(record.__dict__):
                 if key[0] == '_':
                     continue
-                self.assertEqual(value, getattr(imported, key))
+                imported_value = getattr(imported, key)
+                if isinstance(value, ZeroDivisionError):
+                    # in Python 3.2, ZeroDivisionError(x) != ZeroDivisionError(x)
+                    self.assert_(type(value) is type(imported_value))
+                    self.assertEqual(value.args, imported_value.args)
+                else:
+                    self.assertEqual(value, imported_value)
 
 
 class HandlerTestCase(LogbookTestCase):
@@ -223,7 +230,7 @@ class HandlerTestCase(LogbookTestCase):
                                               )
         handler.format_string = '{record.message}'
         with handler:
-            for c, x in izip(LETTERS, xrange(32)):
+            for c, x in six.moves.zip(LETTERS, six.moves.xrange(32)):
                 self.log.warn(c * 256)
         files = [x for x in os.listdir(self.dirname)
                  if x.startswith('rot.log')]
@@ -250,13 +257,13 @@ class HandlerTestCase(LogbookTestCase):
             return lr
 
         with handler:
-            for x in xrange(10):
+            for x in six.moves.xrange(10):
                 handler.handle(fake_record('First One', 2010, 1, 5, x + 1))
-            for x in xrange(20):
+            for x in six.moves.xrange(20):
                 handler.handle(fake_record('Second One', 2010, 1, 6, x + 1))
-            for x in xrange(10):
+            for x in six.moves.xrange(10):
                 handler.handle(fake_record('Third One', 2010, 1, 7, x + 1))
-            for x in xrange(20):
+            for x in six.moves.xrange(20):
                 handler.handle(fake_record('Last One', 2010, 1, 8, x + 1))
 
         files = [x for x in os.listdir(self.dirname) if x.startswith('trot')]
@@ -271,7 +278,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline().rstrip(), '[02:00] Third One')
 
     def test_mail_handler(self):
-        subject = u'\xf8nicode'
+        subject = u('\xf8nicode')
         handler = make_fake_mail_handler(subject=subject)
         with capture_stderr() as fallback:
             with handler:
@@ -279,7 +286,7 @@ class HandlerTestCase(LogbookTestCase):
                 try:
                     1 / 0
                 except Exception:
-                    self.log.exception(u'Viva la Espa\xf1a')
+                    self.log.exception(u('Viva la Espa\xf1a'))
 
             self.assertEqual(len(handler.mails), 1)
             sender, receivers, mail = handler.mails[0]
@@ -289,7 +296,7 @@ class HandlerTestCase(LogbookTestCase):
             self.assert_(re.search('Location:.*%s' % test_file, mail))
             self.assert_(re.search('Module:\s+%s' % __name__, mail))
             self.assert_(re.search('Function:\s+test_mail_handler', mail))
-            body = u'Message:\r\n\r\nViva la Espa\xf1a'
+            body = u('Message:\r\n\r\nViva la Espa\xf1a')
             if sys.version_info < (3, 0):
                 body = body.encode('utf-8')
             self.assert_(body in mail)
@@ -337,8 +344,8 @@ class HandlerTestCase(LogbookTestCase):
                     except socket.error:
                         self.fail('got timeout on socket')
                     self.assertEqual(rv, (
-                        u'<12>%stestlogger: Syslog is weird\x00' %
-                        (app_name and app_name + u':' or u'')).encode('utf-8'))
+                        u('<12>%stestlogger: Syslog is weird\x00') %
+                        (app_name and app_name + u(':') or u(''))).encode('utf-8'))
             finally:
                 inc.close()
 
@@ -697,7 +704,8 @@ class FlagsTestCase(LogbookTestCase):
             try:
                 with logbook.Flags(errors='raise'):
                     self.log.warn('Foo {42}', 'aha')
-            except Exception, e:
+            except Exception:
+                e = sys.exc_info()[1]
                 self.assert_('Could not format message with provided '
                              'arguments' in str(e))
             else:
@@ -759,7 +767,7 @@ class LoggingCompatTestCase(LogbookTestCase):
     def test_redirect_logbook(self):
         import logging
         from logbook.compat import LoggingHandler
-        out = StringIO()
+        out = six.moves.cStringIO()
         logger = logging.getLogger()
         old_handlers = logger.handlers[:]
         handler = logging.StreamHandler(out)
@@ -798,7 +806,7 @@ class MoreTestCase(LogbookTestCase):
 
     def test_tagged(self):
         from logbook.more import TaggingLogger, TaggingHandler
-        stream = StringIO()
+        stream = six.moves.cStringIO()
         second_handler = logbook.StreamHandler(stream)
 
         logger = TaggingLogger('name', ['cmd'])

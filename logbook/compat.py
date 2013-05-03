@@ -15,6 +15,8 @@ import warnings
 import logbook
 from datetime import date, datetime
 
+import six
+from six import u
 
 _epoch_ord = date(1970, 1, 1).toordinal()
 
@@ -140,7 +142,7 @@ class LoggingHandler(logbook.Handler):
         logbook.Handler.__init__(self, level, filter, bubble)
         if logger is None:
             logger = logging.getLogger()
-        elif isinstance(logger, basestring):
+        elif isinstance(logger, six.string_types):
             logger = logging.getLogger(logger)
         self.logger = logger
 
@@ -185,7 +187,7 @@ class LoggingHandler(logbook.Handler):
                                    old_record.message,
                                    (), old_record.exc_info,
                                    **optional_kwargs)
-        for key, value in old_record.extra.iteritems():
+        for key, value in six.iteritems(old_record.extra):
             record.__dict__.setdefault(key, value)
         record.created = self.convert_time(old_record.time)
         return record
@@ -225,7 +227,7 @@ class redirected_warnings(object):
 
     def message_to_unicode(self, message):
         try:
-            return unicode(message)
+            return u(str(message))
         except UnicodeError:
             return str(message).decode('utf-8', 'replace')
 

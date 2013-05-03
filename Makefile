@@ -5,11 +5,18 @@ clean-pyc:
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 
+test_setup:
+	@python scripts/test_setup.py
+
 test:
-	@python -c "import unittest as x; x.main('logbook.testsuite', 'suite')"
+	@python scripts/run_tests.py
 
 toxtest:
 	@tox
+
+vagrant_toxtest:
+	@vagrant up
+	@vagrant ssh --command "rsync -avP --delete --exclude=_build --exclude=.tox /vagrant/ ~/src/ && cd ~/src/ && tox"
 
 bench:
 	@python benchmark/run.py
@@ -21,7 +28,7 @@ upload-docs:
 logbook/_speedups.so: logbook/_speedups.pyx
 	cython logbook/_speedups.pyx
 	python setup.py build
-	cp build/*/logbook/_speedups.so logbook
+	cp build/*/logbook/_speedups*.so logbook
 
 cybuild: logbook/_speedups.so
 
