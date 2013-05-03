@@ -9,7 +9,8 @@ install:
   # this fixes SemLock issues on travis
   - "sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm" 
   - "sudo apt-get install libzmq3-dev"
-  - "pip install --use-mirrors --timeout 120 cython"
+  - "python scripts/pypi_mirror_setup.py http://a.pypi.python.org/simple"
+  - "pip install cython"
   - "make test_setup"
   - "python setup.py develop"
 env:

@@ -39,4 +39,4 @@ if __name__ == '__main__':
     if python_version < "2.7":
         deps.append("unittest2")
     print("Setting up dependencies...")
-    _execute("pip install --use-mirrors %s" % " ".join(deps), shell=True)
+    _execute("pip install %s" % " ".join(deps), shell=True)
