@@ -33,6 +33,11 @@ import logbook
 from logbook.testsuite import LogbookTestCase, missing, require_module, require_py3, \
      make_fake_mail_handler
 
+def _total_seconds(delta):
+    """
+    Replacement for datetime.timedelta.total_seconds() for Python 2.5, 2.6 and 3.1
+    """
+    return (delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6) / 10**6
 
 test_file = __file__.rstrip('co')
 LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -243,13 +248,13 @@ class BasicAPITestCase(LogbookTestCase):
         # get the expected difference between local and utc time
         t1 = datetime.now()
         t2 = datetime.utcnow()
-        minutes_different = round((t1 - t2).total_seconds()/60)
+        minutes_different = round(_total_seconds(t1 - t2)/60)
 
         if minutes_different == 0:
             self.skipTest("Cannot test utc/localtime differences if they are both the same time zone")
 
         # get the difference between LogRecord local and utc times
-        logbook_minutes_difference = (time_local - time_utc).total_seconds()/60.0
+        logbook_minutes_difference = _total_seconds(time_local - time_utc)/60.0
 
         ratio = logbook_minutes_difference / minutes_different
 
