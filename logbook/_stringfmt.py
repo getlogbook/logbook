@@ -3,7 +3,7 @@
     logbook._stringfmt
     ~~~~~~~~~~~~~~~~~~
 
-    Advanced string formatting for Python >= 2.4.
+    Advanced string formatting for Python >= 2.5.
     This is a stripped version of 'stringformat', available at
      * http://pypi.python.org/pypi/StringFormat
 
@@ -13,16 +13,8 @@
 import re
 import datetime
 
-if hasattr(str, 'partition'):
-    def partition(s, sep):
-        return s.partition(sep)
-else:   # Python 2.4
-    def partition(s, sep):
-        try:
-            left, right = s.split(sep, 1)
-        except ValueError:
-            return s, '', ''
-        return left, sep, right
+def partition(s, sep):
+    return s.partition(sep)
 
 _integer_classes = (int, long)
 _date_classes = (datetime.datetime, datetime.date, datetime.time)
@@ -44,16 +36,6 @@ _field_part_re = re.compile(
     r'((?(1)[^]]*|[^.[]*))'     # part
     r'(?(1)(?:\]|$)([^.[]+)?)'  # ']' and invalid tail
 )
-
-if hasattr(re, '__version__'):
-    _format_str_sub = _format_str_re.sub
-else:
-    # Python 2.4 fails to preserve the Unicode type
-    def _format_str_sub(repl, s):
-        if isinstance(s, unicode):
-            return unicode(_format_str_re.sub(repl, s))
-        return _format_str_re.sub(repl, s)
-
 
 def _strformat(value, format_spec=""):
     """Internal string formatter.
@@ -160,7 +142,7 @@ class FormattableString(object):
         self._nested = {}
 
         self.format_string = format_string
-        self._string = _format_str_sub(self._prepare, format_string)
+        self._string = _format_str_re.sub(self._prepare, format_string)
 
     def __eq__(self, other):
         if isinstance(other, FormattableString):
