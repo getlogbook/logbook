@@ -1,6 +1,6 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
-PYTHON_VERSIONS = ["python2.4", "python2.5", "python2.6", "python2.7", "python3.1", "python3.2", "python3.3"]
+PYTHON_VERSIONS = ["python2.5", "python2.6", "python2.7", "python3.1", "python3.2", "python3.3"]
 
 Vagrant::Config.run do |config|
   config.vm.define :box do |config|
@@ -19,7 +19,6 @@ Vagrant::Config.run do |config|
     PYTHON_VERSIONS.each { |python_executable|
       config.vm.provision :shell, :inline => python_executable + " /tmp/distribute_setup.py"
     }
-    config.vm.provision :shell, :inline => "easy_install-2.4 ssl"
     config.vm.provision :shell, :inline => "easy_install-2.5 ssl"
     config.vm.provision :shell, :inline => "sudo easy_install tox==1.2"
     config.vm.provision :shell, :inline => "sudo easy_install virtualenv==1.6.4"

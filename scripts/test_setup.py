@@ -14,25 +14,17 @@ if __name__ == '__main__':
     deps = [
         "execnet",
         "Jinja2",
+        "nose",
     ]
 
     if python_version < "2.6":
-        deps.append("ssl")
-        deps.append("multiprocessing")
-        if python_version < "2.5":
-            # 2.4
-            deps.extend([
-                "pysqlite",
-                "simplejson==2.0.9",
-                "sqlalchemy==0.7.0",
-            ])
-        else:
-            # 2.5
-            deps.extend([
-                "pyzmq==2.1.11",
-                "sqlalchemy",
-                "simplejson",
-            ])
+        deps.extend([
+            "ssl",
+            "multiprocessing",
+            "pyzmq==2.1.11",
+            "sqlalchemy",
+            "simplejson",
+        ])
     else:
         deps.append("sqlalchemy")
         deps.append("pyzmq")

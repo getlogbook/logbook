@@ -29,7 +29,7 @@ import six
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
-from logbook.helpers import any, rename, F, b, _is_text_stream, is_unicode
+from logbook.helpers import rename, F, b, _is_text_stream, is_unicode
 
 
 DEFAULT_FORMAT_STRING = (
@@ -1085,12 +1085,8 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         (:class:`email.message.Message`).  `suppressed` is the number
         of mails not sent if the `record_limit` feature is active.
         """
-        try:
-            from email.message import Message
-            from email.header import Header
-        except ImportError:  # Python 2.4
-            from email.Message import Message
-            from email.Header import Header
+        from email.message import Message
+        from email.header import Header
         msg = Message()
         msg.set_charset('utf-8')
         lineiter = iter(self.format(record).splitlines())
@@ -1112,7 +1108,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
             body += '\r\n\r\nThis message occurred additional %d ' \
                     'time(s) and was suppressed' % suppressed
 
-        # inconsistency in Python 2.4 and 2.5
+        # inconsistency in Python 2.5
         # other versions correctly return msg.get_payload() as str
         if sys.version_info < (2, 6) and isinstance(body, unicode):
             body = body.encode('utf-8')
@@ -1131,10 +1127,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         with headers and date.  `suppressed` is the number of mails
         that were not send if the `record_limit` feature is active.
         """
-        try:
-            from email.utils import formatdate
-        except ImportError:  # Python 2.4
-            from email.Utils import formatdate
+        from email.utils import formatdate
         msg = self.message_from_record(record, suppressed)
         msg['From'] = self.from_addr
         msg['Date'] = formatdate()

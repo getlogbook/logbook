@@ -20,17 +20,6 @@ import six
 from six import PY3 as _PY3
 from six import next, u
 
-# Python 2.4 compatibility
-
-try:
-    any = any
-except NameError:
-    def any(iterable):
-        for item in iterable:
-            if item:
-                return True
-
-
 # Python 2.5 compatibility
 
 try:
