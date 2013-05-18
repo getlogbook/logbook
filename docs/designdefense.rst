@@ -224,3 +224,12 @@ emit log messages and can take the full advantage of logbook's powerful
 stack system.
 
 If you are curious, have a look at :ref:`logging-compat`.
+
+Gevent Compatability
+--------------------
+
+Logbook will first try to import gevent; if successful:
+* Logbook will use greenlets instead of threads
+* The sockets being used in the handlers will be gevent sockets
+
+Multiprocessing-related logging affecting by gevent.

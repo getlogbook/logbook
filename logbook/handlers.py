@@ -13,15 +13,20 @@ import re
 import sys
 import stat
 import errno
-import socket
+try:
+    from gevent import socket
+except ImportError:
+    import socket
 try:
     from hashlib import sha1
 except ImportError:
     from sha import new as sha1
-import threading
+try:
+    from gevent import threading
+except ImportError:
+    import threading
 import traceback
 from datetime import datetime, timedelta
-from threading import Lock
 from collections import deque
 
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
@@ -451,7 +456,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
 
     def __init__(self, record_limit, record_delta):
         self.record_limit = record_limit
-        self._limit_lock = Lock()
+        self._limit_lock = threading.Lock()
         self._record_limits = {}
         if record_delta is None:
             record_delta = timedelta(seconds=60)
@@ -1520,7 +1525,7 @@ class FingersCrossedHandler(Handler):
                  pull_information=True, reset=False, filter=None,
                  bubble=False):
         Handler.__init__(self, NOTSET, filter, bubble)
-        self.lock = Lock()
+        self.lock = threading.Lock()
         self._level = action_level
         if isinstance(handler, Handler):
             self._handler = handler

@@ -11,11 +11,17 @@
 import os
 import sys
 try:
-    import thread
+    from gevent import thread
 except ImportError:
-    # for python 3.1,3.2
-    import _thread as thread
-import threading
+    try:
+        import thread
+    except ImportError:
+        # for python 3.1,3.2
+        import _thread as thread
+try:
+    from gevent import threading
+except ImportError:
+    import threading
 import traceback
 from itertools import chain
 from weakref import ref as weakref
@@ -586,7 +592,11 @@ class LogRecord(object):
         if the log record is passed to another thread, :meth:`pull_information`
         was called in the old thread.
         """
-        return threading.currentThread().getName()
+        try:
+            import gevent
+        except ImportError:
+            return threading.currentThread().getName()
+        return "greenlet"
 
     @cached_property
     def process_name(self):
