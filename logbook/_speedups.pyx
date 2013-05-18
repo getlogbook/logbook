@@ -9,8 +9,11 @@
     :license: BSD, see LICENSE for more details.
 """
 
-import thread
-import threading
+try:
+    from gevent import thread, threading
+except ImportError:
+    import thread
+    import threading
 import platform
 
 from cpython.dict cimport PyDict_Clear, PyDict_SetItem

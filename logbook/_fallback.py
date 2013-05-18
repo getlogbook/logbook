@@ -8,12 +8,19 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-import threading
+
+try:
+    from gevent import threading
+except ImportError:
+    import threading
 from itertools import count
 try:
-    from thread import get_ident as current_thread
+    from gevent.thread import get_ident as current_thread
 except ImportError:
-    from _thread import get_ident as current_thread
+    try:
+        from thread import get_ident as current_thread
+    except ImportError:
+        from _thread import get_ident as current_thread
 from logbook.helpers import get_iterator_next_method
 
 _missing = object()
