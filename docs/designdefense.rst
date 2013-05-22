@@ -232,4 +232,4 @@ Logbook will first try to import gevent; if successful:
 * Logbook will use greenlets instead of threads
 * The sockets being used in the handlers will be gevent sockets
 
-Multiprocessing-related logging affecting by gevent.
+Multiprocessing-related logging is not affected by gevent, as gevent currently does not a coroutine implementation of multiprocessing.
