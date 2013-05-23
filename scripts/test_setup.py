@@ -13,8 +13,8 @@ if __name__ == '__main__':
 
     deps = [
         "execnet",
-        "Jinja2",
         "nose",
+        "sqlalchemy",
     ]
 
     if python_version < "2.6":
@@ -22,12 +22,20 @@ if __name__ == '__main__':
             "ssl",
             "multiprocessing",
             "pyzmq==2.1.11",
-            "sqlalchemy",
             "simplejson",
         ])
     else:
-        deps.append("sqlalchemy")
-        deps.append("pyzmq")
+        deps.extend([
+            "pyzmq",
+        ])
+
+    # Jinja2 is a bit fragmented...
+    if python_version < "3.3":
+        deps.append("Jinja2==2.6")
+    else:
+        deps.append("Jinja2")
+
+
     if python_version < "2.7":
         deps.append("unittest2")
     print("Setting up dependencies...")
