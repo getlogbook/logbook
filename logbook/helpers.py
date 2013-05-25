@@ -17,7 +17,7 @@ import random
 from datetime import datetime, timedelta
 
 import six
-from six import PY3 as _PY3
+from six import PY3
 from six import next, u
 
 # Python 2.5 compatibility
@@ -42,7 +42,7 @@ _iso8601_re = re.compile(
     r'(?:T(\d{2}):(\d{2})(?::(\d{2}(?:\.\d+)?))?(Z|[+-]\d{2}:\d{2})?)?$'
 )
 _missing = object()
-if _PY3:
+if PY3:
     import io
     def b(x): return x.encode('ascii')
     def _is_text_stream(stream): return isinstance(stream, io.TextIOBase)
@@ -64,7 +64,7 @@ if os.name == 'nt': # pragma: no cover
         _MoveFileEx = ctypes.windll.kernel32.MoveFileExW
 
         def _rename(src, dst):
-            if not _PY3:
+            if not PY3:
                 if not isinstance(src, unicode):
                     src = unicode(src, sys.getfilesystemencoding())
                 if not isinstance(dst, unicode):
@@ -142,7 +142,7 @@ def to_safe_json(data):
     def _convert(obj):
         if obj is None:
             return None
-        elif not _PY3 and isinstance(obj, str):
+        elif not PY3 and isinstance(obj, str):
             return obj.decode('utf-8', 'replace')
         elif isinstance(obj, _JSON_SIMPLE_TYPES):
             return obj
@@ -238,6 +238,6 @@ def get_iterator_next_method(it):
     return lambda: next(it)
 
 def is_unicode(x):
-    if _PY3:
+    if PY3:
         return isinstance(x, str)
     return isinstance(x, unicode)

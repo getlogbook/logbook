@@ -24,7 +24,7 @@ from datetime import datetime
 import six
 
 from logbook.helpers import to_safe_json, parse_iso8601, cached_property, \
-     F
+     F, PY3
 try:
     from logbook._speedups import group_reflected_property, \
          ContextStackManager, StackedObject
@@ -98,7 +98,7 @@ _missing = object()
 
 # on python 3 we can savely assume that frame filenames will be in
 # unicode, on Python 2 we have to apply a trick.
-if six.PY3:
+if PY3:
     def _convert_frame_filename(fn):
         return fn
 else:
@@ -488,7 +488,7 @@ class LogRecord(object):
                 return F(msg).format(*self.args, **self.kwargs)
             except (UnicodeEncodeError, AttributeError):
                 # we catch AttributeError since if msg is bytes, it won't have the 'format' method
-                if sys.exc_info()[0] is AttributeError and (not six.PY3 or not isinstance(self.msg, bytes)):
+                if sys.exc_info()[0] is AttributeError and (not PY3 or not isinstance(self.msg, bytes)):
                     # this is not the case we thought it is...
                     raise
                 # Assume encoded message with unicode args.
@@ -512,7 +512,7 @@ class LogRecord(object):
                 kwargs=self.kwargs, file=self.filename,
                 lineno=self.lineno
             )
-            if not six.PY3:
+            if not PY3:
                 errormsg = errormsg.encode('utf-8')
             raise TypeError(errormsg)
 
@@ -607,7 +607,7 @@ class LogRecord(object):
         """
         if self.exc_info is not None:
             rv = ''.join(traceback.format_exception(*self.exc_info))
-            if not six.PY3:
+            if not PY3:
                 rv = rv.decode('utf-8', 'replace')
             return rv.rstrip()
 

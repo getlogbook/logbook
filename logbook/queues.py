@@ -10,15 +10,16 @@
 """
 from threading import Thread
 import platform
-from six import PY3 as _PY3
 from six import u
-if _PY3:
+from logbook.helpers import PY3
+from logbook.base import NOTSET, LogRecord, dispatch_record
+from logbook.handlers import Handler, WrapperHandler
+from logbook.helpers import json, PY3
+
+if PY3:
     from queue import Empty, Queue as ThreadQueue
 else:
     from Queue import Empty, Queue as ThreadQueue
-from logbook.base import NOTSET, LogRecord, dispatch_record
-from logbook.handlers import Handler, WrapperHandler
-from logbook.helpers import json
 
 
 class RabbitMQHandler(Handler):
@@ -316,7 +317,7 @@ class ZeroMQSubscriber(SubscriberBase):
             if not self._zmq.select([self.socket], [], [], timeout)[0]:
                 return
             rv = self.socket.recv(self._zmq.NOBLOCK)
-        if _PY3:
+        if PY3:
             rv = rv.decode("utf-8")
         return LogRecord.from_dict(json.loads(rv))
 

@@ -16,14 +16,14 @@ from logbook.base import RecordDispatcher, NOTSET, ERROR, NOTICE
 from logbook.handlers import Handler, StringFormatter, \
      StringFormatterHandlerMixin, StderrHandler
 from logbook._termcolors import colorize
-from logbook.helpers import F
+from logbook.helpers import F, PY3
 
 from logbook.ticketing import TicketingHandler as DatabaseHandler
 from logbook.ticketing import BackendBase
 
 import six
 from six import u
-if six.PY3:
+if PY3:
     from urllib.parse import urlencode
 else:
     from urllib import urlencode

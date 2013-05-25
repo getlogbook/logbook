@@ -15,11 +15,11 @@ from time import time
 
 from logbook.base import NOTSET, ERROR, WARNING
 from logbook.handlers import Handler, LimitingHandlerMixin
-from logbook.helpers import get_application_name
+from logbook.helpers import get_application_name, PY3
 
 import six
 from six import u
-if six.PY3:
+if PY3:
     from urllib.parse import urlencode
 else:
     from urllib import urlencode

@@ -9,12 +9,11 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-from six import PY3 as _PY3
 from six import u
 from time import time
 from logbook.base import NOTSET, level_name_property, LogRecord
 from logbook.handlers import Handler, HashingHandlerMixin
-from logbook.helpers import json, cached_property, b
+from logbook.helpers import json, cached_property, b, PY3
 
 
 class Ticket(object):
@@ -417,7 +416,7 @@ class TicketingBaseHandler(Handler, HashingHandlerMixin):
         hash = HashingHandlerMixin.hash_record_raw(self, record)
         if self.hash_salt is not None:
             hash_salt = self.hash_salt
-            if _PY3 or isinstance(hash_salt, unicode):
+            if PY3 or isinstance(hash_salt, unicode):
                 hash_salt = hash_salt.encode('utf-8')
             hash.update(b('\x00') + hash_salt)
         return hash

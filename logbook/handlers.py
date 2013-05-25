@@ -29,7 +29,7 @@ import six
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
-from logbook.helpers import rename, F, b, _is_text_stream, is_unicode
+from logbook.helpers import rename, F, b, _is_text_stream, is_unicode, PY3
 
 
 DEFAULT_FORMAT_STRING = (
@@ -548,7 +548,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         """Formats the record and encodes it to the stream encoding."""
         stream = self.stream
         rv = self.format(record) + '\n'
-        if not is_unicode(rv) and (not six.PY3 or not _is_text_stream(stream)):
+        if not is_unicode(rv) and (not PY3 or not _is_text_stream(stream)):
             enc = self.encoding
             if enc is None:
                 enc = getattr(stream, 'encoding', None) or 'utf-8'
@@ -598,7 +598,7 @@ class FileHandler(StreamHandler):
     def write(self, item):
         if self.stream is None:
             self._open()
-        if six.PY3 and isinstance(item, bytes):
+        if PY3 and isinstance(item, bytes):
             self.stream.buffer.write(item)
         else:
             self.stream.write(item)
