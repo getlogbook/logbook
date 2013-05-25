@@ -16,17 +16,17 @@ from logbook.base import RecordDispatcher, NOTSET, ERROR, NOTICE
 from logbook.handlers import Handler, StringFormatter, \
      StringFormatterHandlerMixin, StderrHandler
 from logbook._termcolors import colorize
-from logbook.helpers import F, PY3
+from logbook.helpers import F, PY2
 
 from logbook.ticketing import TicketingHandler as DatabaseHandler
 from logbook.ticketing import BackendBase
 
 import six
 from six import u
-if PY3:
-    from urllib.parse import urlencode
-else:
+if PY2:
     from urllib import urlencode
+else:
+    from urllib.parse import urlencode
 
 _ws_re = re.compile(r'(\s+)(?u)')
 TWITTER_FORMAT_STRING = \

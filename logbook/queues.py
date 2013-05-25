@@ -11,15 +11,14 @@
 from threading import Thread
 import platform
 from six import u
-from logbook.helpers import PY3
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler, WrapperHandler
-from logbook.helpers import json, PY3
+from logbook.helpers import json, PY2
 
-if PY3:
-    from queue import Empty, Queue as ThreadQueue
-else:
+if PY2:
     from Queue import Empty, Queue as ThreadQueue
+else:
+    from queue import Empty, Queue as ThreadQueue
 
 
 class RabbitMQHandler(Handler):
@@ -317,7 +316,7 @@ class ZeroMQSubscriber(SubscriberBase):
             if not self._zmq.select([self.socket], [], [], timeout)[0]:
                 return
             rv = self.socket.recv(self._zmq.NOBLOCK)
-        if PY3:
+        if not PY2:
             rv = rv.decode("utf-8")
         return LogRecord.from_dict(json.loads(rv))
 

@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 
 import six
 from six import PY3
+PY2 = sys.version_info[0] == 2
 from six import next, u
 
 # Python 2.5 compatibility
@@ -42,13 +43,13 @@ _iso8601_re = re.compile(
     r'(?:T(\d{2}):(\d{2})(?::(\d{2}(?:\.\d+)?))?(Z|[+-]\d{2}:\d{2})?)?$'
 )
 _missing = object()
-if PY3:
+if PY2:
+    def b(x): return x
+    def _is_text_stream(x): return True
+else:
     import io
     def b(x): return x.encode('ascii')
     def _is_text_stream(stream): return isinstance(stream, io.TextIOBase)
-else:
-    def b(x): return x
-    def _is_text_stream(x): return True
 
 
 can_rename_open_file = False
@@ -64,7 +65,7 @@ if os.name == 'nt': # pragma: no cover
         _MoveFileEx = ctypes.windll.kernel32.MoveFileExW
 
         def _rename(src, dst):
-            if not PY3:
+            if PY2:
                 if not isinstance(src, unicode):
                     src = unicode(src, sys.getfilesystemencoding())
                 if not isinstance(dst, unicode):
@@ -142,7 +143,7 @@ def to_safe_json(data):
     def _convert(obj):
         if obj is None:
             return None
-        elif not PY3 and isinstance(obj, str):
+        elif PY2 and isinstance(obj, str):
             return obj.decode('utf-8', 'replace')
         elif isinstance(obj, _JSON_SIMPLE_TYPES):
             return obj
@@ -238,6 +239,6 @@ def get_iterator_next_method(it):
     return lambda: next(it)
 
 def is_unicode(x):
-    if PY3:
-        return isinstance(x, str)
-    return isinstance(x, unicode)
+    if PY2:
+        return isinstance(x, unicode)
+    return isinstance(x, str)

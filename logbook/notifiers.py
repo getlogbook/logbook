@@ -15,14 +15,14 @@ from time import time
 
 from logbook.base import NOTSET, ERROR, WARNING
 from logbook.handlers import Handler, LimitingHandlerMixin
-from logbook.helpers import get_application_name, PY3
+from logbook.helpers import get_application_name, PY2
 
 import six
 from six import u
-if PY3:
-    from urllib.parse import urlencode
-else:
+if PY2:
     from urllib import urlencode
+else:
+    from urllib.parse import urlencode
 
 def create_notification_handler(application_name=None, level=NOTSET, icon=None):
     """Creates a handler perfectly fit the current platform.  On Linux
