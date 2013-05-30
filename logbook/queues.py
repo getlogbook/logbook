@@ -10,6 +10,10 @@
 """
 from threading import Thread
 import platform
+import sys
+import base64
+from collections import deque
+from six import PY3 as _PY3
 from six import u
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler, WrapperHandler
@@ -95,6 +99,120 @@ class ZeroMQHandler(Handler):
 
     def close(self):
         self.socket.close()
+
+
+class SQSHandler(Handler):
+    """A handler that acts as an SQS publisher, which publishes each record
+    as json dump.  Requires the boto module.
+
+    The queue will be filled with base64'd JSON exported log records, written
+    in batches.
+
+
+    Example setup::
+
+        handler = SQSHandler('my_queue', aws_access_key_id='x', aws_secret_access_key='y')
+
+    Another example setup::
+
+        handler = SQSHandler(
+            queue       = 'my_queue',
+            region      = 'ap-southeast-2',  # region can be anything in :meth:`boto.sqs.regions`
+            is_secure   = False,             # extra kwargs passed to :class:`boto.sqs.connection.SQSConnection`
+            # authentication parameters implicitly derived from environment variables
+        )
+    """
+    def __init__(self, queue, region='us-east-1', batch_size=10, level=NOTSET,
+                 filter=None, bubble=False, **sqs_conn_params):
+        Handler.__init__(self, level, filter, bubble)
+
+        # make sure we have boto installed
+        try:
+            from boto import sqs
+        except ImportError:
+            raise RuntimeError('The boto library is required for the SQSHandler.')
+
+        # establish the connection to SQS
+        self.sqs_conn = sqs.connect_to_region(region, **sqs_conn_params)
+        # make sure we have the ability to send records in batches
+        if not hasattr(self.sqs_conn, 'send_message_batch'):
+            raise RuntimeError('boto >= 2.2.0 is required to use the SQSHandler.')
+
+        # create/use the specified SQS queue
+        self.queue = self.sqs_conn.create_queue(queue)
+        # size of batches used when sending to SQS
+        self.batch_size = batch_size
+
+        # buffer used for batching requests
+        self.buffer = deque()
+
+    def encode_record(self, record):
+        """Encodes the record into something we can send to SQS"""
+        json_record = json.dumps(record.to_dict(json_safe=True))
+        return base64.b64encode(json_record.encode("utf-8"))
+
+    def emit(self, record):
+        """Append the record to our buffer and flush it if we have enough messages"""
+        self.buffer.append(record)
+
+        if len(self.buffer) >= self.batch_size:
+            self.flush()
+
+    def close(self):
+        self.flush()
+
+    def prepare_batch(self):
+        """Returns a batch of messages to be sent"""
+        # list of records to send in this batch
+        record_batch = []
+
+        for i in xrange(self.batch_size):
+            try:
+                record = self.buffer.popleft()
+            except IndexError:  # deque's raise IndexError when their empty and popped
+                break
+
+            # batch up a 3-tuple of (batch-unique id, the record, delivery delay)
+            record_batch.append((
+                str(i),
+                record,
+                0,
+            ))
+
+        return record_batch
+
+    def send_batch(self, record_batch):
+        """Attempts to send a batch of messages to SQS"""
+        # make sure we have something to send
+        if not record_batch:
+            return
+
+        # encode the records and send them, along with their id's and delay's
+        delivery_results = self.sqs_conn.send_message_batch(self.queue, [(
+            id,
+            self.encode_record(record),
+            delay,
+        ) for id, record, delay in record_batch])
+
+        # log and append the messages that failed to the buffer (loop in reverse to preserve order)
+        for error in reversed(delivery_results.errors):
+            # id is the index in record_batch, and 1 is the index of the message in the tuple
+            record = record_batch[int(error.id)][1]
+            self.buffer.appendleft(record)
+
+            # XXX: surely there's a better way of logging inside a handler
+            # can't use `handle_error` here, since we don't have a traceback
+            sys.stderr.write("Failed to write to SQS: '%s'\n" % (error.error_message, ))
+
+    def flush(self):
+        """Repeatedly sends everything in the buffer to SQS until there's 
+        nothing left to send"""
+        while self.buffer:
+            # get a batch of messages to send
+            record_batch = self.prepare_batch()
+
+            # attempt to send the batch
+            self.send_batch(record_batch)
 
 
 class ThreadController(object):
