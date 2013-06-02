@@ -5,6 +5,7 @@ python:
   - "2.7"
   - "3.2"
   - "3.3"
+
 install:
   # this fixes SemLock issues on travis
   - "sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm" 
@@ -13,8 +14,20 @@ install:
   - "pip install cython"
   - "make test_setup"
   - "python setup.py develop"
+
 env:
   matrix: 
     - COMMAND="make test"
     - COMMAND="make cybuild test""
+
 script: "$COMMAND"
+
+notifications:
+  email: false
+  irc:
+    channels:
+      - "chat.freenode.net#pocoo"
+    on_success: change
+    on_failure: always
+    use_notice: true
+    skip_join: true
