@@ -28,15 +28,15 @@ from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
 from logbook.helpers import rename, b, _is_text_stream, is_unicode, PY2, \
-    zip, xrange, string_types, integer_types, iteritems, u, reraise
+    zip, xrange, string_types, integer_types, iteritems, reraise
 
 
 DEFAULT_FORMAT_STRING = (
-    u('[{record.time:%Y-%m-%d %H:%M}] '
-      '{record.level_name}: {record.channel}: {record.message}')
+    u'[{record.time:%Y-%m-%d %H:%M}] '
+    u'{record.level_name}: {record.channel}: {record.message}'
 )
-SYSLOG_FORMAT_STRING = u('{record.channel}: {record.message}')
-NTLOG_FORMAT_STRING = u('''\
+SYSLOG_FORMAT_STRING = u'{record.channel}: {record.message}'
+NTLOG_FORMAT_STRING = u'''\
 Message Level: {record.level_name}
 Location: {record.filename}:{record.lineno}
 Module: {record.module}
@@ -46,10 +46,10 @@ Exact Time: {record.time:%Y-%m-%d %H:%M:%S}
 Event provided Message:
 
 {record.message}
-''')
+'''
 TEST_FORMAT_STRING = \
-u('[{record.level_name}] {record.channel}: {record.message}')
-MAIL_FORMAT_STRING = u('''\
+u'[{record.level_name}] {record.channel}: {record.message}'
+MAIL_FORMAT_STRING = u'''\
 Subject: {handler.subject}
 
 Message type:       {record.level_name}
@@ -61,14 +61,14 @@ Time:               {record.time:%Y-%m-%d %H:%M:%S}
 Message:
 
 {record.message}
-''')
-MAIL_RELATED_FORMAT_STRING = u('''\
+'''
+MAIL_RELATED_FORMAT_STRING = u'''\
 Message type:       {record.level_name}
 Location:           {record.filename}:{record.lineno}
 Module:             {record.module}
 Function:           {record.func_name}
 {record.message}
-''')
+'''
 
 SYSLOG_PORT = 514
 
@@ -374,7 +374,7 @@ class StringFormatter(object):
         line = self.format_record(record, handler)
         exc = self.format_exception(record)
         if exc:
-            line += u('\n') + exc
+            line += u'\n' + exc
         return line
 
 
@@ -420,7 +420,7 @@ class HashingHandlerMixin(object):
         """Returns a hashlib object with the hash of the record."""
         hash = sha1()
         hash.update(('%d\x00' % record.level).encode('ascii'))
-        hash.update((record.channel or u('')).encode('utf-8') + b('\x00'))
+        hash.update((record.channel or u'').encode('utf-8') + b('\x00'))
         hash.update(record.filename.encode('utf-8') + b('\x00'))
         hash.update(b(str(record.lineno)))
         return hash
@@ -1032,7 +1032,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
     """
     default_format_string = MAIL_FORMAT_STRING
     default_related_format_string = MAIL_RELATED_FORMAT_STRING
-    default_subject = u('Server Error in Application')
+    default_subject = u'Server Error in Application'
 
     #: the maximum number of record hashes in the cache for the limiting
     #: feature.  Afterwards, record_cache_prune percent of the oldest
@@ -1336,10 +1336,10 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         return (facility << 3) | priority
 
     def emit(self, record):
-        prefix = u('')
+        prefix = u''
         if self.application_name is not None:
-            prefix = self.application_name + u(':')
-        self.send_to_socket((u('<%d>%s%s\x00') % (
+            prefix = self.application_name + u':'
+        self.send_to_socket((u'<%d>%s%s\x00' % (
             self.encode_priority(record),
             prefix,
             self.format(record)

@@ -18,8 +18,6 @@ from datetime import datetime, timedelta
 
 PY2 = sys.version_info[0] == 2
 
-# Python 2.5 compatibility
-
 if PY2:
     import __builtin__ as _builtins
 else:
@@ -274,14 +272,6 @@ class cached_property(object):
             value = self.func(obj)
             obj.__dict__[self.__name__] = value
         return value
-
-
-# python 2.5
-try:
-    next
-except NameError:
-    def next(it):
-        return it.next()
 
 def get_iterator_next_method(it):
     return lambda: next(it)

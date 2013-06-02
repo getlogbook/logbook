@@ -10,9 +10,10 @@
     :license: BSD, see LICENSE for more details.
 """
 from time import time
+import json
 from logbook.base import NOTSET, level_name_property, LogRecord
 from logbook.handlers import Handler, HashingHandlerMixin
-from logbook.helpers import json, cached_property, b, PY2, u
+from logbook.helpers import cached_property, b, PY2
 
 class Ticket(object):
     """Represents a ticket from the database."""
@@ -191,9 +192,9 @@ class SQLAlchemyBackend(BackendBase):
                 row = cnx.execute(self.tickets.insert().values(
                     record_hash=hash,
                     level=record.level,
-                    channel=record.channel or u(''),
-                    location=u('%s:%d') % (record.filename, record.lineno),
-                    module=record.module or u('<unknown>'),
+                    channel=record.channel or u'',
+                    location=u'%s:%d' % (record.filename, record.lineno),
+                    module=record.module or u'<unknown>',
                     occurrence_count=0,
                     solved=False,
                     app_id=app_id
@@ -286,7 +287,7 @@ class MongoDBBackend(BackendBase):
         from pymongo.errors import AutoReconnect
 
         _connection = None
-        uri = self.options.pop('uri', u(''))
+        uri = self.options.pop('uri', u'')
         _connection_attempts = 0
 
         parsed_uri = parse_uri(uri, Connection.PORT)
@@ -335,9 +336,9 @@ class MongoDBBackend(BackendBase):
             doc = {
                 'record_hash':      hash,
                 'level':            record.level,
-                'channel':          record.channel or u(''),
-                'location':         u('%s:%d') % (record.filename, record.lineno),
-                'module':           record.module or u('<unknown>'),
+                'channel':          record.channel or u'',
+                'location':         u'%s:%d' % (record.filename, record.lineno),
+                'module':           record.module or u'<unknown>',
                 'occurrence_count': 0,
                 'solved':           False,
                 'app_id':           app_id,
@@ -447,7 +448,7 @@ class TicketingHandler(TicketingBaseHandler):
                  filter=None, bubble=False, hash_salt=None, backend=None,
                  **db_options):
         if hash_salt is None:
-            hash_salt = u('apphash-') + app_id
+            hash_salt = u'apphash-' + app_id
         TicketingBaseHandler.__init__(self, hash_salt, level, filter, bubble)
         if backend is None:
             backend = self.default_backend

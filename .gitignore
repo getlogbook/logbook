@@ -12,3 +12,4 @@ env*
 cover
 build
 .vagrant
+flycheck-*

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import with_statement
 from .utils import (
     LogbookTestCase,
     activate_via_push_pop,
@@ -15,7 +14,7 @@ from contextlib import closing, contextmanager
 from datetime import datetime, timedelta
 from random import randrange
 import logbook
-from logbook.helpers import u, StringIO, xrange, iteritems, zip
+from logbook.helpers import StringIO, xrange, iteritems, zip, u
 import os
 import pickle
 import re
@@ -335,7 +334,7 @@ class _HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline().rstrip(), '[02:00] Third One')
 
     def test_mail_handler(self):
-        subject = u('\xf8nicode')
+        subject = u'\xf8nicode'
         handler = make_fake_mail_handler(subject=subject)
         with capturing_stderr_context() as fallback:
             with self.thread_activation_strategy(handler):
@@ -343,7 +342,7 @@ class _HandlerTestCase(LogbookTestCase):
                 try:
                     1 / 0
                 except Exception:
-                    self.log.exception(u('Viva la Espa\xf1a'))
+                    self.log.exception(u'Viva la Espa\xf1a')
 
             if not handler.mails:
                 # if sending the mail failed, the reason should be on stderr
@@ -461,8 +460,8 @@ class _HandlerTestCase(LogbookTestCase):
                     except socket.error:
                         self.fail('got timeout on socket')
                     self.assertEqual(rv, (
-                        u('<12>%stestlogger: Syslog is weird\x00') %
-                        (app_name and app_name + u(':') or u(''))).encode('utf-8'))
+                        u'<12>%stestlogger: Syslog is weird\x00' %
+                        (app_name and app_name + u':' or u'')).encode('utf-8'))
 
     def test_handler_processors(self):
         handler = make_fake_mail_handler(format_string='''\
@@ -1074,9 +1073,9 @@ class QueuesTestCase(LogbookTestCase):
     @require_module('zmq')
     def test_zeromq_handler(self):
         tests = [
-            u('Logging something'),
-            u('Something with umlauts äöü'),
-            u('Something else for good measure'),
+            u'Logging something',
+            u'Something with umlauts äöü',
+            u'Something else for good measure',
         ]
         handler, subscriber = self._get_zeromq()
         for test in tests:
@@ -1258,16 +1257,16 @@ class HelperTestCase(LogbookTestCase):
         rv = to_safe_json([
             None,
             'foo',
-            u('jäger'),
+            u'jäger',
             1,
             datetime(2000, 1, 1),
-            {'jäger1': 1, u('jäger2'): 2, Bogus(): 3, 'invalid': object()},
+            {'jäger1': 1, u'jäger2': 2, Bogus(): 3, 'invalid': object()},
             object()  # invalid
         ])
         self.assertEqual(
-            rv, [None, u('foo'), u('jäger'), 1, '2000-01-01T00:00:00Z',
-                 {u('jäger1'): 1, u('jäger2'): 2, u('bogus'): 3,
-                  u('invalid'): None}, None])
+            rv, [None, u'foo', u'jäger', 1, '2000-01-01T00:00:00Z',
+                 {u('jäger1'): 1, u'jäger2': 2, u'bogus': 3,
+                  u'invalid': None}, None])
 
     def test_datehelpers(self):
         from logbook.helpers import format_iso8601, parse_iso8601

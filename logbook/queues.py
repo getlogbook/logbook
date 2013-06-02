@@ -8,11 +8,12 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
+import json
 from threading import Thread
 import platform
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler, WrapperHandler
-from logbook.helpers import json, PY2, u
+from logbook.helpers import PY2
 
 if PY2:
     from Queue import Empty, Queue as ThreadQueue
@@ -287,7 +288,7 @@ class ZeroMQSubscriber(SubscriberBase):
         self.socket = self.context.socket(zmq.SUB)
         if uri is not None:
             self.socket.connect(uri)
-        self.socket.setsockopt_unicode(zmq.SUBSCRIBE, u(''))
+        self.socket.setsockopt_unicode(zmq.SUBSCRIBE, u'')
 
     def __del__(self):
         try:
