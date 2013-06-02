@@ -16,12 +16,14 @@ import time
 import random
 from datetime import datetime, timedelta
 
-import six
-from six import PY3
 PY2 = sys.version_info[0] == 2
-from six import next, u
 
 # Python 2.5 compatibility
+
+if PY2:
+    import __builtin__ as _builtins
+else:
+    import builtins as _builtins
 
 try:
     import json
@@ -33,6 +35,50 @@ if hasattr(str, 'format'):
         return format_string
 else:
     from logbook._stringfmt import FormattableString as F
+
+if PY2:
+    from cStringIO import StringIO
+    iteritems = dict.iteritems
+    from itertools import izip as zip
+    xrange = _builtins.xrange
+else:
+    from io import StringIO
+    zip = _builtins.zip
+    xrange = range
+    iteritems = dict.items
+
+_IDENTITY = lambda obj: obj
+
+if PY2:
+    def u(s):
+        return unicode(s, "unicode_escape")
+else:
+    u = _IDENTITY
+
+if PY2:
+    integer_types = (int, long)
+    string_types = (basestring,)
+else:
+    integer_types = (int,)
+    string_types = (str,)
+
+if PY2:
+    import httplib as http_client
+else:
+    from http import client as http_client
+
+if PY2:
+    #Yucky, but apparently that's the only way to do this
+    exec("""
+def reraise(tp, value, tb=None):
+    raise tp, value, tb
+""", locals(), globals())
+else:
+    def reraise(tp, value, tb=None):
+        if value.__traceback__ is not tb:
+            raise value.with_traceback(tb)
+        raise value
+
 
 # this regexp also matches incompatible dates like 20070101 because
 # some libraries (like the python xmlrpclib modules) use this
@@ -134,7 +180,7 @@ else:
     rename = os.rename
     can_rename_open_file = True
 
-_JSON_SIMPLE_TYPES = (bool, float) + six.integer_types + six.string_types
+_JSON_SIMPLE_TYPES = (bool, float) + integer_types + string_types
 
 def to_safe_json(data):
     """Makes a data structure safe for JSON silently discarding invalid
@@ -155,8 +201,8 @@ def to_safe_json(data):
             return tuple(_convert(x) for x in obj)
         elif isinstance(obj, dict):
             rv = {}
-            for key, value in six.iteritems(obj):
-                if not isinstance(key, six.string_types):
+            for key, value in iteritems(obj):
+                if not isinstance(key, string_types):
                     key = str(key)
                 if not is_unicode(key):
                     key = u(key)
@@ -235,9 +281,18 @@ class cached_property(object):
             obj.__dict__[self.__name__] = value
         return value
 
+
+# python 2.5
+try:
+    next
+except NameError:
+    def next(it):
+        return it.next()
+
 def get_iterator_next_method(it):
     return lambda: next(it)
 
+# python 2 support functions and aliases
 def is_unicode(x):
     if PY2:
         return isinstance(x, unicode)

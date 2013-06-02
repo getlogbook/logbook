@@ -21,10 +21,8 @@ from itertools import chain
 from weakref import ref as weakref
 from datetime import datetime
 
-import six
-
 from logbook.helpers import to_safe_json, parse_iso8601, cached_property, \
-     F, PY2
+     F, PY2, u, string_types, iteritems, integer_types
 try:
     from logbook._speedups import group_reflected_property, \
          ContextStackManager, StackedObject
@@ -92,7 +90,7 @@ _level_names = {
     DEBUG:      'DEBUG',
     NOTSET:     'NOTSET'
 }
-_reverse_level_names = dict((v, k) for (k, v) in six.iteritems(_level_names))
+_reverse_level_names = dict((v, k) for (k, v) in iteritems(_level_names))
 _missing = object()
 
 
@@ -125,7 +123,7 @@ def level_name_property():
 
 def lookup_level(level):
     """Return the integer representation of a logging level."""
-    if isinstance(level, six.integer_types):
+    if isinstance(level, integer_types):
         return level
     try:
         return _reverse_level_names[level]
@@ -149,10 +147,10 @@ class ExtraDict(dict):
             try:
                 return dict.__getitem__(self, key)
             except KeyError:
-                return six.u('')
+                return u('')
     else:
         def __missing__(self, key):
-            return six.u('')
+            return u('')
 
     def copy(self):
         return self.__class__(self)
@@ -443,7 +441,7 @@ class LogRecord(object):
         """
         self.pull_information()
         rv = {}
-        for key, value in six.iteritems(self.__dict__):
+        for key, value in iteritems(self.__dict__):
             if key[:1] != '_' and key not in self._noned_on_close:
                 rv[key] = value
         # the extra dict is exported as regular dict
@@ -470,7 +468,7 @@ class LogRecord(object):
             setattr(self, key, None)
         self._information_pulled = True
         self._channel = None
-        if isinstance(self.time, six.string_types):
+        if isinstance(self.time, string_types):
             self.time = parse_iso8601(self.time)
         return self
 
@@ -616,7 +614,7 @@ class LogRecord(object):
         """The name of the exception."""
         if self.exc_info is not None:
             cls = self.exc_info[0]
-            return six.u(cls.__module__ + '.' + cls.__name__)
+            return u(cls.__module__ + '.' + cls.__name__)
 
     @property
     def exception_shortname(self):
@@ -629,7 +627,7 @@ class LogRecord(object):
         if self.exc_info is not None:
             val = self.exc_info[1]
             try:
-                return six.u(str(val))
+                return u(str(val))
             except UnicodeError:
                 return str(val).decode('utf-8', 'replace')
 

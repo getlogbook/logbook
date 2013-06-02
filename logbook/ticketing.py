@@ -9,12 +9,10 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-from six import u
 from time import time
 from logbook.base import NOTSET, level_name_property, LogRecord
 from logbook.handlers import Handler, HashingHandlerMixin
-from logbook.helpers import json, cached_property, b, PY2
-
+from logbook.helpers import json, cached_property, b, PY2, u
 
 class Ticket(object):
     """Represents a ticket from the database."""

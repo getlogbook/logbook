@@ -16,13 +16,11 @@ from logbook.base import RecordDispatcher, NOTSET, ERROR, NOTICE
 from logbook.handlers import Handler, StringFormatter, \
      StringFormatterHandlerMixin, StderrHandler
 from logbook._termcolors import colorize
-from logbook.helpers import F, PY2
+from logbook.helpers import F, PY2, u, string_types, iteritems
 
 from logbook.ticketing import TicketingHandler as DatabaseHandler
 from logbook.ticketing import BackendBase
 
-import six
-from six import u
 if PY2:
     from urllib import urlencode
 else:
@@ -109,7 +107,7 @@ class TaggingLogger(RecordDispatcher):
             self.log(tag, msg, *args, **kwargs)) for tag in (tags or ()))
 
     def log(self, tags, msg, *args, **kwargs):
-        if isinstance(tags, six.string_types):
+        if isinstance(tags, string_types):
             tags = [tags]
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', {})
@@ -137,7 +135,7 @@ class TaggingHandler(Handler):
         assert isinstance(handlers, dict)
         self._handlers = dict(
             (tag, isinstance(handler, Handler) and [handler] or handler)
-            for (tag, handler) in six.iteritems(handlers))
+            for (tag, handler) in iteritems(handlers))
 
     def emit(self, record):
         for tag in record.extra.get('tags', ()):

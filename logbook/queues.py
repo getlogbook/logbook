@@ -10,10 +10,9 @@
 """
 from threading import Thread
 import platform
-from six import u
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler, WrapperHandler
-from logbook.helpers import json, PY2
+from logbook.helpers import json, PY2, u
 
 if PY2:
     from Queue import Empty, Queue as ThreadQueue

@@ -15,11 +15,11 @@ from contextlib import closing, contextmanager
 from datetime import datetime, timedelta
 from random import randrange
 import logbook
+from logbook.helpers import u, StringIO, xrange, iteritems, zip
 import os
 import pickle
 import re
 import shutil
-import six
 import socket
 import sys
 import tempfile
@@ -33,7 +33,6 @@ __file_without_pyc__ = __file__
 if __file_without_pyc__.endswith(".pyc"):
     __file_without_pyc__ = __file_without_pyc__[:-1]
 
-u = six.u
 LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 class _BasicAPITestCase(LogbookTestCase):
@@ -137,7 +136,7 @@ class _BasicAPITestCase(LogbookTestCase):
         exported = record.to_dict()
         record.close()
         imported = logbook.LogRecord.from_dict(exported)
-        for key, value in six.iteritems(record.__dict__):
+        for key, value in iteritems(record.__dict__):
             if key[0] == '_':
                 continue
             self.assertEqual(value, getattr(imported, key))
@@ -152,10 +151,10 @@ class _BasicAPITestCase(LogbookTestCase):
         record.pull_information()
         record.close()
 
-        for p in six.moves.xrange(pickle.HIGHEST_PROTOCOL):
+        for p in xrange(pickle.HIGHEST_PROTOCOL):
             exported = pickle.dumps(record, p)
             imported = pickle.loads(exported)
-            for key, value in six.iteritems(record.__dict__):
+            for key, value in iteritems(record.__dict__):
                 if key[0] == '_':
                     continue
                 imported_value = getattr(imported, key)
@@ -281,7 +280,7 @@ class _HandlerTestCase(LogbookTestCase):
                                               )
         handler.format_string = '{record.message}'
         with self.thread_activation_strategy(handler):
-            for c, x in six.moves.zip(LETTERS, six.moves.xrange(32)):
+            for c, x in zip(LETTERS, xrange(32)):
                 self.log.warn(c * 256)
         files = [x for x in os.listdir(self.dirname)
                  if x.startswith('rot.log')]
@@ -308,13 +307,13 @@ class _HandlerTestCase(LogbookTestCase):
             return lr
 
         with self.thread_activation_strategy(handler):
-            for x in six.moves.xrange(10):
+            for x in xrange(10):
                 handler.handle(fake_record('First One', 2010, 1, 5, x + 1))
-            for x in six.moves.xrange(20):
+            for x in xrange(20):
                 handler.handle(fake_record('Second One', 2010, 1, 6, x + 1))
-            for x in six.moves.xrange(10):
+            for x in xrange(10):
                 handler.handle(fake_record('Third One', 2010, 1, 7, x + 1))
-            for x in six.moves.xrange(20):
+            for x in xrange(20):
                 handler.handle(fake_record('Last One', 2010, 1, 8, x + 1))
 
         files = sorted(
@@ -877,7 +876,7 @@ class LoggingCompatTestCase(LogbookTestCase):
     def test_redirect_logbook(self):
         import logging
         from logbook.compat import LoggingHandler
-        out = six.moves.cStringIO()
+        out = StringIO()
         logger = logging.getLogger()
         old_handlers = logger.handlers[:]
         handler = logging.StreamHandler(out)
@@ -950,7 +949,7 @@ class MoreTestCase(LogbookTestCase):
         class TestColorizingHandler(ColorizedStderrHandler):
             def should_colorize(self, record):
                 return True
-            stream = six.moves.cStringIO()
+            stream = StringIO()
         with TestColorizingHandler(format_string='{record.message}') as handler:
             self.log.error('An error')
             self.log.warn('A warning')
@@ -965,7 +964,7 @@ class MoreTestCase(LogbookTestCase):
 
     def test_tagged(self):
         from logbook.more import TaggingLogger, TaggingHandler
-        stream = six.moves.cStringIO()
+        stream = StringIO()
         second_handler = logbook.StreamHandler(stream)
 
         logger = TaggingLogger('name', ['cmd'])
@@ -1198,7 +1197,7 @@ class TicketingTestCase(LogbookTestCase):
     def test_basic_ticketing(self):
         from logbook.ticketing import TicketingHandler
         with TicketingHandler('sqlite:///') as handler:
-            for x in six.moves.xrange(5):
+            for x in xrange(5):
                 self.log.warn('A warning')
                 self.log.info('An error')
                 if x < 2:

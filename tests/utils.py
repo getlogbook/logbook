@@ -15,7 +15,7 @@ if platform.python_version() < "2.7":
 else:
     import unittest
 import logbook
-import six
+from logbook.helpers import StringIO
 
 _missing = object()
 
@@ -27,7 +27,7 @@ def get_total_delta_seconds(delta):
     return (delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6) / 10**6
 
 
-require_py3 = unittest.skipUnless(six.PY3, "Requires Python 3")
+require_py3 = unittest.skipUnless(sys.version_info[0] == 3, "Requires Python 3")
 def require_module(module_name):
     try:
         __import__(module_name)
@@ -91,7 +91,7 @@ def activate_via_push_pop(handler):
 @contextmanager
 def capturing_stderr_context():
     original = sys.stderr
-    sys.stderr = six.moves.StringIO()
+    sys.stderr = StringIO()
     try:
         yield sys.stderr
     finally:
