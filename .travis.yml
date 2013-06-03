@@ -23,7 +23,9 @@ env:
 script: "$COMMAND"
 
 notifications:
-  email: false
+  email: 
+    recipients:
+      - vmalloc@gmail.com
   irc:
     channels:
       - "chat.freenode.net#pocoo"
