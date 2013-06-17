@@ -1,6 +1,6 @@
 # Welcome to Logbook
 
-![Build Status](https://secure.travis-ci.org/mitsuhiko/logbook.png )
+[![Build Status](https://secure.travis-ci.org/mitsuhiko/logbook.png)](https://travis-ci.org/mitsuhiko/logbook)
 
 Logbook is a nice logging replacement, but still under development.
 
