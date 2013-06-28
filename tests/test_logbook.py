@@ -233,6 +233,12 @@ class _HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline(),
                              'WARNING:testlogger:warning message\n')
 
+    def test_file_handler_unicode(self):
+        with capturing_stderr_context() as captured:
+            with self.thread_activation_strategy(logbook.FileHandler(self.filename)) as h:
+                self.log.info(u'\u0431')
+        self.assertFalse(captured.getvalue())
+
     def test_file_handler_delay(self):
         handler = logbook.FileHandler(self.filename,
             format_string='{record.level_name}:{record.channel}:'
@@ -1275,7 +1281,6 @@ class HelperTestCase(LogbookTestCase):
         self.assertEqual(v.hour, 13)
 
 class UnicodeTestCase(LogbookTestCase):
-
     # in Py3 we can just assume a more uniform unicode environment
     @require_py3
     def test_default_format_unicode(self):
