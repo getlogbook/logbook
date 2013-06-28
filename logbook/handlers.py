@@ -547,7 +547,8 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         """Formats the record and encodes it to the stream encoding."""
         stream = self.stream
         rv = self.format(record) + '\n'
-        if not is_unicode(rv) and (PY2 or not _is_text_stream(stream)):
+        if (PY2 and is_unicode(rv)) or \
+                not (PY2 or is_unicode(rv) or _is_text_stream(stream)):
             enc = self.encoding
             if enc is None:
                 enc = getattr(stream, 'encoding', None) or 'utf-8'
