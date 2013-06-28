@@ -351,17 +351,18 @@ class _HandlerTestCase(LogbookTestCase):
 
             self.assertEqual(len(handler.mails), 1)
             sender, receivers, mail = handler.mails[0]
+            mail = mail.replace("\r", "")
             self.assertEqual(sender, handler.from_addr)
             self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
             self.assertRegexpMatches(mail, 'Message type:\s+ERROR')
             self.assertRegexpMatches(mail, 'Location:.*%s' % __file_without_pyc__)
             self.assertRegexpMatches(mail, 'Module:\s+%s' % __name__)
             self.assertRegexpMatches(mail, 'Function:\s+test_mail_handler')
-            body = u('Message:\r\n\r\nViva la Espa\xf1a')
+            body = u'Message:\n\nViva la Espa\xf1a'
             if sys.version_info < (3, 0):
                 body = body.encode('utf-8')
             self.assertIn(body, mail)
-            self.assertIn('\r\n\r\nTraceback', mail)
+            self.assertIn('\n\nTraceback (most', mail)
             self.assertIn('1 / 0', mail)
             self.assertIn('This is not mailed', fallback.getvalue())
 
@@ -402,12 +403,13 @@ class _HandlerTestCase(LogbookTestCase):
         pieces = mail.split('Log records that led up to this one:')
         self.assertEqual(len(pieces), 2)
         body, rest = pieces
+        rest = rest.replace("\r", "")
 
         self.assertRegexpMatches(body, 'Message type:\s+ERROR')
         self.assertRegexpMatches(body, 'Module:\s+%s' % __name__)
         self.assertRegexpMatches(body, 'Function:\s+test_mail_handler_batching')
 
-        related = rest.strip().split('\r\n\r\n')
+        related = rest.strip().split('\n\n')
         self.assertEqual(len(related), 2)
         self.assertRegexpMatches(related[0], 'Message type:\s+WARNING')
         self.assertRegexpMatches(related[1], 'Message type:\s+DEBUG')
@@ -429,12 +431,13 @@ class _HandlerTestCase(LogbookTestCase):
         pieces = mail.split('Other log records in the same group:')
         self.assertEqual(len(pieces), 2)
         body, rest = pieces
+        rest = rest.replace("\r", "")
 
         self.assertRegexpMatches(body, 'Message type:\s+ERROR')
         self.assertRegexpMatches(body, 'Module:\s+'+__name__)
         self.assertRegexpMatches(body, 'Function:\s+test_group_handler_mail_combo')
 
-        related = rest.strip().split('\r\n\r\n')
+        related = rest.strip().split('\n\n')
         self.assertEqual(len(related), 2)
         self.assertRegexpMatches(related[0], 'Message type:\s+WARNING')
         self.assertRegexpMatches(related[1], 'Message type:\s+DEBUG')
