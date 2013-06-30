@@ -30,12 +30,6 @@ try:
 except ImportError:
     import simplejson as json
 
-if hasattr(str, 'format'):
-    def F(format_string):
-        return format_string
-else:
-    from logbook._stringfmt import FormattableString as F
-
 if PY2:
     from cStringIO import StringIO
     iteritems = dict.iteritems

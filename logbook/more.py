@@ -16,7 +16,7 @@ from logbook.base import RecordDispatcher, NOTSET, ERROR, NOTICE
 from logbook.handlers import Handler, StringFormatter, \
      StringFormatterHandlerMixin, StderrHandler
 from logbook._termcolors import colorize
-from logbook.helpers import F, PY2, u, string_types, iteritems
+from logbook.helpers import PY2, u, string_types, iteritems
 
 from logbook.ticketing import TicketingHandler as DatabaseHandler
 from logbook.ticketing import BackendBase
@@ -257,9 +257,9 @@ class ExternalApplicationHandler(Handler):
                  bubble=False):
         Handler.__init__(self, level, filter, bubble)
         self.encoding = encoding
-        self._arguments = [F(arg) for arg in arguments]
+        self._arguments = list(arguments)
         if stdin_format is not None:
-            stdin_format = F(stdin_format)
+            stdin_format = stdin_format
         self._stdin_format = stdin_format
         import subprocess
         self._subprocess = subprocess

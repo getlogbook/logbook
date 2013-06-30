@@ -27,7 +27,7 @@ from collections import deque
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
-from logbook.helpers import rename, F, b, _is_text_stream, is_unicode, PY2, \
+from logbook.helpers import rename, b, _is_text_stream, is_unicode, PY2, \
     zip, xrange, string_types, integer_types, iteritems, u, reraise
 
 
@@ -348,7 +348,7 @@ class StringFormatter(object):
 
     def _set_format_string(self, value):
         self._format_string = value
-        self._formatter = F(value)
+        self._formatter = value
 
     format_string = property(_get_format_string, _set_format_string)
     del _get_format_string, _set_format_string

@@ -22,7 +22,7 @@ from weakref import ref as weakref
 from datetime import datetime
 
 from logbook.helpers import to_safe_json, parse_iso8601, cached_property, \
-     F, PY2, u, string_types, iteritems, integer_types
+     PY2, u, string_types, iteritems, integer_types
 try:
     from logbook._speedups import group_reflected_property, \
          ContextStackManager, StackedObject
@@ -479,11 +479,11 @@ class LogRecord(object):
             return self.msg
         try:
             try:
-                return F(self.msg).format(*self.args, **self.kwargs)
+                return self.msg.format(*self.args, **self.kwargs)
             except UnicodeDecodeError:
                 # Assume an unicode message but mixed-up args
                 msg = self.msg.encode('utf-8', 'replace')
-                return F(msg).format(*self.args, **self.kwargs)
+                return msg.format(*self.args, **self.kwargs)
             except (UnicodeEncodeError, AttributeError):
                 # we catch AttributeError since if msg is bytes, it won't have the 'format' method
                 if sys.exc_info()[0] is AttributeError and (PY2 or not isinstance(self.msg, bytes)):
@@ -494,7 +494,7 @@ class LogRecord(object):
                 # but this codepath is unlikely (if the message is a constant
                 # string in the caller's source file)
                 msg = self.msg.decode('utf-8', 'replace')
-                return F(msg).format(*self.args, **self.kwargs)
+                return msg.format(*self.args, **self.kwargs)
 
         except Exception:
             # this obviously will not give a proper error message if the
@@ -502,10 +502,10 @@ class LogRecord(object):
             # access to the frame.  But there is not much we can do about
             # that.
             e = sys.exc_info()[1]
-            errormsg = F('Could not format message with provided '
-                         'arguments: {err}\n  msg={msg!r}\n  '
-                         'args={args!r} \n  kwargs={kwargs!r}.\n'
-                         'Happened in file {file}, line {lineno}').format(
+            errormsg = ('Could not format message with provided '
+                       'arguments: {err}\n  msg={msg!r}\n  '
+                       'args={args!r} \n  kwargs={kwargs!r}.\n'
+                       'Happened in file {file}, line {lineno}').format(
                 err=e, msg=self.msg, args=self.args,
                 kwargs=self.kwargs, file=self.filename,
                 lineno=self.lineno
