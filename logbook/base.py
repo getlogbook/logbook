@@ -372,6 +372,8 @@ class LogRecord(object):
         #: optional exception information.  If set, this is a tuple in the
         #: form ``(exc_type, exc_value, tb)`` as returned by
         #: :func:`sys.exc_info`.
+        #: This parameter can also be ``True``, which would cause the exception info tuple
+        #: to be fetched for you.
         self.exc_info = exc_info
         #: optional extra information as dictionary.  This is the place
         #: where custom log processors can attach custom context sensitive
@@ -405,6 +407,8 @@ class LogRecord(object):
         self.time = _datetime_factory()
         if self.frame is None and Flags.get_flag('introspection', True):
             self.frame = sys._getframe(1)
+        if self.exc_info is True:
+            self.exc_info = sys.exc_info()
 
     def pull_information(self):
         """A helper function that pulls all frame-related information into

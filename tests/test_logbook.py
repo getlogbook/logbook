@@ -124,6 +124,23 @@ class _BasicAPITestCase(LogbookTestCase):
         self.assertIsNotNone(handler.records[0].exc_info)
         self.assertIn('1 / 0', handler.records[0].formatted_exception)
 
+    def test_exc_info_tuple(self):
+        self._test_exc_info(as_tuple=True)
+
+    def test_exc_info_true(self):
+        self._test_exc_info(as_tuple=False)
+
+    def _test_exc_info(self, as_tuple):
+        logger = logbook.Logger("Test")
+        with self.thread_activation_strategy(logbook.TestHandler()) as handler:
+            try:
+                1 / 0
+            except Exception:
+                exc_info = sys.exc_info()
+                logger.info("Exception caught", exc_info=exc_info if as_tuple else True)
+        self.assertIsNotNone(handler.records[0].exc_info)
+        self.assertEquals(handler.records[0].exc_info, exc_info)
+
     def test_exporting(self):
         with self.thread_activation_strategy(logbook.TestHandler()) as handler:
             try:
