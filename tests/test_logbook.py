@@ -584,12 +584,12 @@ Message:
         with self.thread_activation_strategy(logbook.TestHandler()) as handler:
             self.log.warn('First line')
             self.assertEqual(len(handler.formatted_records),1)
-            cache = handler._formatted_record_cache # store cache, to make sure it is identifiable
+            cache = handler.formatted_records # store cache, to make sure it is identifiable
             self.assertEqual(len(handler.formatted_records),1)
-            self.assert_(cache is handler._formatted_record_cache) # Make sure cache is not invalidated without changes to record
+            self.assert_(cache is handler.formatted_records) # Make sure cache is not invalidated without changes to record
             self.log.warn('Second line invalidates cache')
         self.assertEqual(len(handler.formatted_records),2)
-        self.assertFalse(cache is handler._formatted_record_cache) # Make sure cache is invalidated when records change
+        self.assertFalse(cache is handler.formatted_records) # Make sure cache is invalidated when records change
         
     def test_blackhole_setting(self):
         null_handler = logbook.NullHandler()
