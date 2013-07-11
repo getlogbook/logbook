@@ -580,6 +580,17 @@ Message:
             self.assertFalse(handler.has_warning('A warning'))
             self.assert_(handler.has_error('An error'))
 
+    def test_test_handler_cache(self):
+        with self.thread_activation_strategy(logbook.TestHandler()) as handler:
+            self.log.warn('First line')
+            self.assertEqual(len(handler.formatted_records),1)
+            cache = handler.formatted_records # store cache, to make sure it is identifiable
+            self.assertEqual(len(handler.formatted_records),1)
+            self.assert_(cache is handler.formatted_records) # Make sure cache is not invalidated without changes to record
+            self.log.warn('Second line invalidates cache')
+        self.assertEqual(len(handler.formatted_records),2)
+        self.assertFalse(cache is handler.formatted_records) # Make sure cache is invalidated when records change
+        
     def test_blackhole_setting(self):
         null_handler = logbook.NullHandler()
         heavy_init = logbook.LogRecord.heavy_init
