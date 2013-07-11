@@ -890,9 +890,9 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
     @property
     def formatted_records(self):
         """Captures the formatted log records as unicode strings."""
-        if len(self._formatted_records) != self.records or \
-           any(r1 != r2 for r1, (r2, f) in
-               zip(self.records, self._formatted_records)):
+        if len(self._formatted_record_cache) != len(self.records) or \
+           any(r1 != r2 for r1, r2 in
+               zip(self.records, self._formatted_record_cache)):
             self._formatted_records = [self.format(r) for r in self.records]
             self._formatted_record_cache = list(self.records)
         return self._formatted_records
