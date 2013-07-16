@@ -197,7 +197,9 @@ class LoggingHandler(logbook.Handler):
 
 def redirect_warnings():
     """Like :func:`redirected_warnings` but will redirect all warnings
-    to the shutdown of the interpreter::
+    to the shutdown of the interpreter:
+
+    .. code-block:: python
 
         from logbook.compat import redirect_warnings
         redirect_warnings()
@@ -212,7 +214,9 @@ class redirected_warnings(object):
     The :attr:`~logbook.LogRecord.channel` attribute of the log record will be
     the import name of the warning.
 
-    Example usage::
+    Example usage:
+
+    .. code-block:: python
 
         from logbook.compat import redirected_warnings
         from warnings import warn
