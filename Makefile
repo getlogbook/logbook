@@ -21,9 +21,11 @@ vagrant_toxtest:
 bench:
 	@python benchmark/run.py
 
-upload-docs:
-	make -C docs html SPHINXOPTS=-Aonline=1
+upload-docs: docs
 	python setup.py upload_docs
+
+docs:
+	make -C docs html SPHINXOPTS=-Aonline=1
 
 logbook/_speedups.so: logbook/_speedups.pyx
 	cython logbook/_speedups.pyx
