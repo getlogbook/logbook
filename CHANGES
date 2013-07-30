@@ -12,7 +12,7 @@ Version 0.5.0 (future)
 Version 0.4.2
 -------------
 
-Released on June 2th 2013.
+Released on June 2nd 2013.
 
 - Fixed Python 3.x compatibility, including speedups
 - Dropped Python 2.4 support. Python 2.4 support caused a lot of hacks in the code and introduced duplication to the test code. In addition, it is impossible to cover 2.4-3.x with a single tox installation, which may introduce unwitting code breakage. Travis also does not support Python 2.4 so the chances of accidentally breaking this support were very high as it was...

@@ -27,6 +27,9 @@ upload-docs: docs
 docs:
 	make -C docs html SPHINXOPTS=-Aonline=1
 
+release:
+	python scripts/make-release.py
+
 logbook/_speedups.so: logbook/_speedups.pyx
 	cython logbook/_speedups.pyx
 	python setup.py build
