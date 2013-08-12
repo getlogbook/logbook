@@ -3,8 +3,10 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
-Version 0.5.0 (future)
-----------------------
+Version 0.5.0
+-------------
+
+Released on August 10th 2013.
 
 - Drop 2.5, 3.2 support, code cleanup
 - The exc_info argument now accepts `True`, like in the standard logging module

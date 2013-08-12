@@ -23,7 +23,7 @@ from logbook.handlers import Handler, StreamHandler, FileHandler, \
      LimitingHandlerMixin, WrapperHandler, FingersCrossedHandler, \
      GroupHandler
 
-__version__ = '0.5.0-dev'
+__version__ = '0.6-dev'
 
 # create an anonymous default logger and provide all important
 # methods of that logger as global functions
