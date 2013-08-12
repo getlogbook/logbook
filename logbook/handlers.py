@@ -1103,6 +1103,8 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
             else:
                 msg[h.strip()] = v.strip()
 
+        msg.replace_header('Content-Transfer-Encoding', '8bit')
+
         body = '\r\n'.join(lineiter)
         if suppressed:
             body += '\r\n\r\nThis message occurred additional %d ' \
