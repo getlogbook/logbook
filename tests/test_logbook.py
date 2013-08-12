@@ -10,6 +10,7 @@ from .utils import (
     require_module,
     require_py3,
 )
+import base64
 from contextlib import closing, contextmanager
 from datetime import datetime, timedelta
 from random import randrange
@@ -370,6 +371,8 @@ class _HandlerTestCase(LogbookTestCase):
             mail = mail.replace("\r", "")
             self.assertEqual(sender, handler.from_addr)
             self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
+            payload = mail.split('\n')[-1]
+            mail = base64.b64decode(payload).replace("\r", "")
             self.assertRegexpMatches(mail, 'Message type:\s+ERROR')
             self.assertRegexpMatches(mail, 'Location:.*%s' % __file_without_pyc__)
             self.assertRegexpMatches(mail, 'Module:\s+%s' % __name__)
@@ -400,8 +403,8 @@ class _HandlerTestCase(LogbookTestCase):
             self.assert_(not suppression_test(handler.mails[0][2]))
 
             # the next two have a supression count
-            self.assert_(suppression_test(handler.mails[1][2]))
-            self.assert_(suppression_test(handler.mails[2][2]))
+            self.assert_(suppression_test(base64.b64decode(handler.mails[1][2])))
+            self.assert_(suppression_test(base64.b64decode(handler.mails[2][2])))
 
     def test_mail_handler_batching(self):
         mail_handler = make_fake_mail_handler()
@@ -421,6 +424,7 @@ class _HandlerTestCase(LogbookTestCase):
         body, rest = pieces
         rest = rest.replace("\r", "")
 
+        body = base64.b64decode(body)
         self.assertRegexpMatches(body, 'Message type:\s+ERROR')
         self.assertRegexpMatches(body, 'Module:\s+%s' % __name__)
         self.assertRegexpMatches(body, 'Function:\s+test_mail_handler_batching')
@@ -430,7 +434,7 @@ class _HandlerTestCase(LogbookTestCase):
         self.assertRegexpMatches(related[0], 'Message type:\s+WARNING')
         self.assertRegexpMatches(related[1], 'Message type:\s+DEBUG')
 
-        self.assertIn('And this triggers it again', mail_handler.mails[1][2])
+        self.assertIn('And this triggers it again', base64.b64decode(mail_handler.mails[1][2]))
 
     def test_group_handler_mail_combo(self):
         mail_handler = make_fake_mail_handler(level=logbook.DEBUG)
@@ -449,6 +453,7 @@ class _HandlerTestCase(LogbookTestCase):
         body, rest = pieces
         rest = rest.replace("\r", "")
 
+        body = base64.b64decode(body)
         self.assertRegexpMatches(body, 'Message type:\s+ERROR')
         self.assertRegexpMatches(body, 'Module:\s+'+__name__)
         self.assertRegexpMatches(body, 'Function:\s+test_group_handler_mail_combo')
@@ -524,7 +529,7 @@ Message:
         mail = handler.mails[0][2]
         self.assertIn('Subject: Application Error '
                      'for /index.html [GET]', mail)
-        self.assertIn('1 / 0', mail)
+        self.assertIn('1 / 0', base64.b64decode(mail))
 
     def test_regex_matching(self):
         test_handler = logbook.TestHandler()
@@ -590,7 +595,7 @@ Message:
             self.log.warn('Second line invalidates cache')
         self.assertEqual(len(handler.formatted_records),2)
         self.assertFalse(cache is handler.formatted_records) # Make sure cache is invalidated when records change
-        
+
     def test_blackhole_setting(self):
         null_handler = logbook.NullHandler()
         heavy_init = logbook.LogRecord.heavy_init
@@ -639,8 +644,8 @@ Message:
             self.assert_(test_handler.has_warning('This is a warning'))
             self.assert_(test_handler.has_error('This is also a mail'))
             self.assertEqual(len(mail_handler.mails), 2)
-            self.assertIn('This is also a mail', mail_handler.mails[0][2])
-            self.assertIn('1 / 0',mail_handler.mails[1][2])
+            self.assertIn('This is also a mail', base64.b64decode(mail_handler.mails[0][2]))
+            self.assertIn('1 / 0', base64.b64decode(mail_handler.mails[1][2]))
             self.assertIn('And here we go straight back to stderr',
                          captured.getvalue())
 
