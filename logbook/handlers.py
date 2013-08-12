@@ -8,6 +8,7 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
+import base64
 import os
 import re
 import sys
@@ -1113,7 +1114,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         if sys.version_info < (2, 6) and isinstance(body, unicode):
             body = body.encode('utf-8')
 
-        msg.set_payload(body, 'UTF-8')
+        msg.set_payload(base64.b64encode(body.encode('UTF-8')), 'UTF-8')
         return msg
 
     def format_related_record(self, record):
