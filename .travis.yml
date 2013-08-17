@@ -15,11 +15,10 @@ install:
   - "python setup.py develop"
 
 env:
-  matrix: 
-    - COMMAND="make test"
-    - COMMAND="make cybuild test""
+  - USE_CYTHON=False
+  - USE_CYTHON=True
 
-script: "$COMMAND"
+script: "python scripts/travis_build.py"
 
 notifications:
   email: 
