@@ -99,7 +99,7 @@ class _BasicAPITestCase(LogbookTestCase):
 
         errormsg = str(caught.exception)
         self.assertRegexpMatches(errormsg,
-                "Could not format message with provided arguments: Invalid (?:format specifier)|(?:conversion specification)")
+                "Could not format message with provided arguments: Invalid (?:format specifier)|(?:conversion specification)|(?:format spec)")
         self.assertIn("msg='Hello {foo:invalid}'", errormsg)
         self.assertIn('args=()', errormsg)
         self.assertIn("kwargs={'foo': 42}", errormsg)
