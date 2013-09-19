@@ -21,6 +21,41 @@ else:
     from queue import Empty, Queue as ThreadQueue
 
 
+class RedisHandler(Handler):
+    """A handler that sends log messages to a Redis instance. It
+    publishes each record as json dump. Requires redis module.
+
+    To receive such records you need to have a running instance of Redis.
+
+    Example setup::
+
+        handler = RedisHandler('http://localhost', port='9200', key='redis')
+    """
+    def __init__(self, host='localhost', port=6379, key='redis', level=NOTSET,
+                filter=None, bubble=True, context=None):
+        Handler.__init__(self, level, filter, bubble)
+        try:
+            import redis
+        except ImportError:
+            raise RuntimeError('The redis library is required for '
+                               'the RedisHandler')
+
+        self.redis = redis.Redis(host=host, port=port)
+        self.redis.ping()
+        self.key = key
+
+    def emit(self, record):
+        """Emits a pair (key, value) to redis.
+
+        The key is the one provided when creating the handler, or redis if none was
+        provided. The value contains both the message and the hostname. Extra values
+        are also appended.
+        """
+        r = {"message": record.msg, "host": platform.node()}
+        r.update(record.args)
+        self.redis.rpush(self.key, json.dumps(r))
+
+
 class RabbitMQHandler(Handler):
     """A handler that acts as a RabbitMQ publisher, which publishes each record
     as json dump.  Requires the kombu module.
