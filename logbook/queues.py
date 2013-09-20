@@ -31,8 +31,8 @@ class RedisHandler(Handler):
 
         handler = RedisHandler('http://localhost', port='9200', key='redis')
     """
-    def __init__(self, host='localhost', port=6379, key='redis', level=NOTSET,
-                filter=None, bubble=True, context=None):
+    def __init__(self, host='localhost', port=6379, key='redis', extra_fields={},
+                level=NOTSET, filter=None, bubble=True, context=None):
         Handler.__init__(self, level, filter, bubble)
         try:
             import redis
@@ -43,6 +43,7 @@ class RedisHandler(Handler):
         self.redis = redis.Redis(host=host, port=port)
         self.redis.ping()
         self.key = key
+        self.extra_fields = extra_fields
 
     def emit(self, record):
         """Emits a pair (key, value) to redis.
@@ -52,7 +53,8 @@ class RedisHandler(Handler):
         are also appended.
         """
         r = {"message": record.msg, "host": platform.node()}
-        r.update(record.args)
+        r.update(self.extra_fields)
+        r.update(record.kwargs)
         self.redis.rpush(self.key, json.dumps(r))
 
 

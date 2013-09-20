@@ -23,6 +23,7 @@ import socket
 import sys
 import tempfile
 import time
+import json
 try:
     from thread import get_ident
 except ImportError:
@@ -590,7 +591,7 @@ Message:
             self.log.warn('Second line invalidates cache')
         self.assertEqual(len(handler.formatted_records),2)
         self.assertFalse(cache is handler.formatted_records) # Make sure cache is invalidated when records change
-        
+
     def test_blackhole_setting(self):
         null_handler = logbook.NullHandler()
         heavy_init = logbook.LogRecord.heavy_init
@@ -1226,6 +1227,71 @@ class QueuesTestCase(LogbookTestCase):
             p2.join()
             messages = [subscriber.recv().message for i in (1, 2)]
             self.assertEqual(sorted(messages), ['bar', 'foo'])
+
+    @require_module('redis')
+    def test_redis_handler(self):
+        import redis
+        from logbook.queues import RedisHandler
+
+        KEY = 'redis'
+        FIELDS = ['message', 'host']
+        r = redis.Redis()
+        redis_handler = RedisHandler(level=logbook.INFO, bubble=True)
+        #We don't want output for the tests, so we can wrapp everything in a NullHandler
+        null_handler = logbook.NullHandler()
+
+        #Check default values
+        with null_handler.applicationbound():
+            with redis_handler:
+                logbook.info(LETTERS)
+
+        record = r.blpop(KEY)
+        key, message = (record[0], json.loads(record[1]))
+        #Are all the fields in the record?
+        [self.assertTrue(message.has_key(field)) for field in FIELDS]
+        self.assertEqual(key, KEY)
+        self.assertEqual(message.get('message'), LETTERS)
+
+        #Change the key of the handler and check on redis
+        KEY = 'test_another_key'
+        redis_handler.key = KEY
+
+        with null_handler.applicationbound():
+            with redis_handler:
+                logbook.info(LETTERS)
+
+        record = r.blpop(KEY)
+        key, message = (record[0], json.loads(record[1]))
+        self.assertEqual(key, KEY)
+
+        #Check that extra fields are added if specified when creating the handler
+        FIELDS.append('type')
+        extra_fields = {'type': 'test'}
+        del(redis_handler)
+        redis_handler = RedisHandler(key=KEY, level=logbook.INFO,
+                                     extra_fields=extra_fields, bubble=True)
+
+        with null_handler.applicationbound():
+            with redis_handler:
+                logbook.info(LETTERS)
+
+        record = r.blpop(KEY)
+        key, message = (record[0], json.loads(record[1]))
+        [self.assertTrue(message.has_key(field)) for field in FIELDS]
+        self.assertEqual(message.get('type'), 'test')
+
+        #And finally, check that fields are correctly added if appended to the
+        #log message
+        FIELDS.append('more_info')
+        with null_handler.applicationbound():
+            with redis_handler:
+                logbook.info(LETTERS, more_info='This works')
+
+        record = r.blpop(KEY)
+        key, message = (record[0], json.loads(record[1]))
+        [self.assertTrue(message.has_key(field)) for field in FIELDS]
+        self.assertEqual(message.get('more_info'), 'This works')
+
 
 class TicketingTestCase(LogbookTestCase):
 
