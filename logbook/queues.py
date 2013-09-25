@@ -9,6 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 import json
+import threading
 from threading import Thread
 import platform
 from logbook.base import NOTSET, LogRecord, dispatch_record
@@ -32,7 +33,8 @@ class RedisHandler(Handler):
         handler = RedisHandler('http://localhost', port='9200', key='redis')
     """
     def __init__(self, host='localhost', port=6379, key='redis', extra_fields={},
-                level=NOTSET, filter=None, bubble=True, context=None):
+                flush_threshold=256, flush_time=1, level=NOTSET, filter=None,
+                bubble=True, context=None):
         Handler.__init__(self, level, filter, bubble)
         try:
             import redis
@@ -44,6 +46,31 @@ class RedisHandler(Handler):
         self.redis.ping()
         self.key = key
         self.extra_fields = extra_fields
+        self.flush_threshold = flush_threshold
+        self.queue = []
+
+        #Set up a thread that flushes the queue every specified seconds
+        self._stop_event = threading.Event()
+        self._flushing_t = threading.Thread(target=self._flush_task,
+                                            args=(flush_time, self._stop_event))
+        self._flushing_t.daemon = True
+        self._flushing_t.start()
+
+
+    def _flush_task(self, time, stop_event):
+        """Flushes the queue and wait for the next time to flush
+        """
+        while not self._stop_event.isSet():
+            self._flush_buffer()
+            self._stop_event.wait(time)
+
+
+    def _flush_buffer(self):
+        """Flushes the messagin queue into Redis.
+        """
+        if self.queue:
+            self.redis.rpush(self.key, *self.queue)
+        self.queue = []
 
     def emit(self, record):
         """Emits a pair (key, value) to redis.
@@ -55,7 +82,9 @@ class RedisHandler(Handler):
         r = {"message": record.msg, "host": platform.node()}
         r.update(self.extra_fields)
         r.update(record.kwargs)
-        self.redis.rpush(self.key, json.dumps(r))
+        self.queue.append(json.dumps(r))
+        if len(self.queue) == self.flush_threshold:
+            self._flush_buffer()
 
 
 class RabbitMQHandler(Handler):

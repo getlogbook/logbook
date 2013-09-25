@@ -1244,6 +1244,7 @@ class QueuesTestCase(LogbookTestCase):
         with null_handler.applicationbound():
             with redis_handler:
                 logbook.info(LETTERS)
+                time.sleep(1)
 
         record = r.blpop(KEY)
         key, message = (record[0], json.loads(record[1]))
@@ -1259,6 +1260,7 @@ class QueuesTestCase(LogbookTestCase):
         with null_handler.applicationbound():
             with redis_handler:
                 logbook.info(LETTERS)
+                time.sleep(1)
 
         record = r.blpop(KEY)
         key, message = (record[0], json.loads(record[1]))
@@ -1274,6 +1276,7 @@ class QueuesTestCase(LogbookTestCase):
         with null_handler.applicationbound():
             with redis_handler:
                 logbook.info(LETTERS)
+                time.sleep(1)
 
         record = r.blpop(KEY)
         key, message = (record[0], json.loads(record[1]))
@@ -1286,6 +1289,7 @@ class QueuesTestCase(LogbookTestCase):
         with null_handler.applicationbound():
             with redis_handler:
                 logbook.info(LETTERS, more_info='This works')
+                time.sleep(1)
 
         record = r.blpop(KEY)
         key, message = (record[0], json.loads(record[1]))
