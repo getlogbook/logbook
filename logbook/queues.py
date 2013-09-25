@@ -34,16 +34,20 @@ class RedisHandler(Handler):
     """
     def __init__(self, host='localhost', port=6379, key='redis', extra_fields={},
                 flush_threshold=256, flush_time=1, level=NOTSET, filter=None,
-                bubble=True, context=None):
+                password=False, bubble=True, context=None):
         Handler.__init__(self, level, filter, bubble)
         try:
             import redis
+            from redis import ResponseError
         except ImportError:
             raise RuntimeError('The redis library is required for '
                                'the RedisHandler')
 
-        self.redis = redis.Redis(host=host, port=port)
-        self.redis.ping()
+        self.redis = redis.Redis(host=host, port=port, password=password)
+        try:
+            self.redis.ping()
+        except ResponseError:
+            raise ResponseError('The password provided is apparently incorrect')
         self.key = key
         self.extra_fields = extra_fields
         self.flush_threshold = flush_threshold
