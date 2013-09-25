@@ -94,6 +94,10 @@ class RedisHandler(Handler):
             self._flush_buffer()
 
 
+    def close(self):
+        self._flush_buffer()
+
+
 class RabbitMQHandler(Handler):
     """A handler that acts as a RabbitMQ publisher, which publishes each record
     as json dump.  Requires the kombu module.
