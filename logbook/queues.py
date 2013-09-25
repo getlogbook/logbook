@@ -72,6 +72,13 @@ class RedisHandler(Handler):
             self.redis.rpush(self.key, *self.queue)
         self.queue = []
 
+
+    def disble_time_flushing(self):
+        """Disables periodic flushing of the queue
+        """
+        self._stop_event.set()
+
+
     def emit(self, record):
         """Emits a pair (key, value) to redis.
 
