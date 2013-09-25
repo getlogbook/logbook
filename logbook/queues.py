@@ -86,7 +86,7 @@ class RedisHandler(Handler):
         provided. The value contains both the message and the hostname. Extra values
         are also appended.
         """
-        r = {"message": record.msg, "host": platform.node()}
+        r = {"message": record.msg, "host": platform.node(), "level": record.level_name}
         r.update(self.extra_fields)
         r.update(record.kwargs)
         self.queue.append(json.dumps(r))
