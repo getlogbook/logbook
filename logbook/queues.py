@@ -77,7 +77,7 @@ class RedisHandler(Handler):
         self.queue = []
 
 
-    def disble_time_flushing(self):
+    def disble_buffering(self):
         """Disables periodic flushing of the queue
         """
         self._stop_event.set()
