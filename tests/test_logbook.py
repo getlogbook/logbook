@@ -1246,12 +1246,11 @@ class QueuesTestCase(LogbookTestCase):
                 logbook.info(LETTERS)
                 time.sleep(1)
 
-        record = r.blpop(KEY)
-        key, message = (record[0], json.loads(record[1]))
+        key, message = r.blpop(KEY)
         #Are all the fields in the record?
-        [self.assertTrue(message.has_key(field)) for field in FIELDS]
+        [self.assertTrue(message.find(field)) for field in FIELDS]
         self.assertEqual(key, KEY)
-        self.assertEqual(message.get('message'), LETTERS)
+        self.assertTrue(message.find(LETTERS))
 
         #Change the key of the handler and check on redis
         KEY = 'test_another_key'
@@ -1262,8 +1261,7 @@ class QueuesTestCase(LogbookTestCase):
                 logbook.info(LETTERS)
                 time.sleep(1)
 
-        record = r.blpop(KEY)
-        key, message = (record[0], json.loads(record[1]))
+        key, message = r.blpop(KEY)
         self.assertEqual(key, KEY)
 
         #Check that extra fields are added if specified when creating the handler
@@ -1278,10 +1276,9 @@ class QueuesTestCase(LogbookTestCase):
                 logbook.info(LETTERS)
                 time.sleep(1)
 
-        record = r.blpop(KEY)
-        key, message = (record[0], json.loads(record[1]))
-        [self.assertTrue(message.has_key(field)) for field in FIELDS]
-        self.assertEqual(message.get('type'), 'test')
+        key, message = r.blpop(KEY)
+        [self.assertTrue(message.find(field)) for field in FIELDS]
+        self.assertTrue(message.find('test'))
 
         #And finally, check that fields are correctly added if appended to the
         #log message
@@ -1291,10 +1288,9 @@ class QueuesTestCase(LogbookTestCase):
                 logbook.info(LETTERS, more_info='This works')
                 time.sleep(1)
 
-        record = r.blpop(KEY)
-        key, message = (record[0], json.loads(record[1]))
-        [self.assertTrue(message.has_key(field)) for field in FIELDS]
-        self.assertEqual(message.get('more_info'), 'This works')
+        key, message = r.blpop(KEY)
+        [self.assertTrue(message.find(field)) for field in FIELDS]
+        self.assertTrue(message.find('This works'))
 
 
 class TicketingTestCase(LogbookTestCase):

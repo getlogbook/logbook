@@ -43,7 +43,7 @@ class RedisHandler(Handler):
             raise RuntimeError('The redis library is required for '
                                'the RedisHandler')
 
-        self.redis = redis.Redis(host=host, port=port, password=password)
+        self.redis = redis.Redis(host=host, port=port, password=password, decode_responses=True)
         try:
             self.redis.ping()
         except ResponseError:
