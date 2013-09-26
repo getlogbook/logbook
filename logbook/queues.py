@@ -31,6 +31,13 @@ class RedisHandler(Handler):
     Example setup::
 
         handler = RedisHandler('http://localhost', port='9200', key='redis')
+
+    If your Redis instance is password protected, you can securely connect passing
+    your password when creating a RedisHandler object.
+
+    Example:
+
+        handler = RedisHandler(password='your_redis_password')
     """
     def __init__(self, host='localhost', port=6379, key='redis', extra_fields={},
                 flush_threshold=256, flush_time=1, level=NOTSET, filter=None,
@@ -62,7 +69,7 @@ class RedisHandler(Handler):
 
 
     def _flush_task(self, time, stop_event):
-        """Flushes the queue and wait for the next time to flush
+        """Calls the method _flush_buffer every certain time.
         """
         while not self._stop_event.isSet():
             self._flush_buffer()
@@ -71,6 +78,8 @@ class RedisHandler(Handler):
 
     def _flush_buffer(self):
         """Flushes the messagin queue into Redis.
+
+        All values are pushed at once for the same key.
         """
         if self.queue:
             self.redis.rpush(self.key, *self.queue)
@@ -78,9 +87,12 @@ class RedisHandler(Handler):
 
 
     def disble_buffering(self):
-        """Disables periodic flushing of the queue
+        """Disables buffering.
+
+        If called, every single message will be directly pushed to Redis.
         """
         self._stop_event.set()
+        self.flush_threshold = 1
 
 
     def emit(self, record):
@@ -88,7 +100,7 @@ class RedisHandler(Handler):
 
         The key is the one provided when creating the handler, or redis if none was
         provided. The value contains both the message and the hostname. Extra values
-        are also appended.
+        are also appended to the message.
         """
         r = {"message": record.msg, "host": platform.node(), "level": record.level_name}
         r.update(self.extra_fields)
