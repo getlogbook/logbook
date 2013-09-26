@@ -23,8 +23,9 @@ else:
 
 
 class RedisHandler(Handler):
-    """A handler that sends log messages to a Redis instance. It
-    publishes each record as json dump. Requires redis module.
+    """A handler that sends log messages to a Redis instance.
+
+    It publishes each record as json dump. Requires redis module.
 
     To receive such records you need to have a running instance of Redis.
 
@@ -35,7 +36,7 @@ class RedisHandler(Handler):
     If your Redis instance is password protected, you can securely connect passing
     your password when creating a RedisHandler object.
 
-    Example:
+    Example::
 
         handler = RedisHandler(password='your_redis_password')
     """
