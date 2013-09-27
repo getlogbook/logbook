@@ -10,7 +10,7 @@
 """
 import json
 import threading
-from threading import Thread
+from threading import Thread, Lock
 import platform
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler, WrapperHandler
@@ -60,6 +60,7 @@ class RedisHandler(Handler):
         self.extra_fields = extra_fields
         self.flush_threshold = flush_threshold
         self.queue = []
+        self.lock = Lock()
 
         #Set up a thread that flushes the queue every specified seconds
         self._stop_event = threading.Event()
@@ -73,7 +74,9 @@ class RedisHandler(Handler):
         """Calls the method _flush_buffer every certain time.
         """
         while not self._stop_event.isSet():
+            self.lock.acquire()
             self._flush_buffer()
+            self.lock.release()
             self._stop_event.wait(time)
 
 
@@ -103,12 +106,14 @@ class RedisHandler(Handler):
         provided. The value contains both the message and the hostname. Extra values
         are also appended to the message.
         """
+        self.lock.acquire()
         r = {"message": record.msg, "host": platform.node(), "level": record.level_name}
         r.update(self.extra_fields)
         r.update(record.kwargs)
         self.queue.append(json.dumps(r))
         if len(self.queue) == self.flush_threshold:
             self._flush_buffer()
+        self.lock.release()
 
 
     def close(self):
