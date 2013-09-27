@@ -1235,7 +1235,7 @@ class QueuesTestCase(LogbookTestCase):
 
         KEY = 'redis'
         FIELDS = ['message', 'host']
-        r = redis.Redis()
+        r = redis.Redis(decode_responses=True)
         redis_handler = RedisHandler(level=logbook.INFO, bubble=True)
         #We don't want output for the tests, so we can wrapp everything in a NullHandler
         null_handler = logbook.NullHandler()
