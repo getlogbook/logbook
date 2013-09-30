@@ -74,9 +74,8 @@ class RedisHandler(Handler):
         """Calls the method _flush_buffer every certain time.
         """
         while not self._stop_event.isSet():
-            self.lock.acquire()
-            self._flush_buffer()
-            self.lock.release()
+            with self.lock:
+                self._flush_buffer()
             self._stop_event.wait(time)
 
 
@@ -106,14 +105,13 @@ class RedisHandler(Handler):
         provided. The value contains both the message and the hostname. Extra values
         are also appended to the message.
         """
-        self.lock.acquire()
-        r = {"message": record.msg, "host": platform.node(), "level": record.level_name}
-        r.update(self.extra_fields)
-        r.update(record.kwargs)
-        self.queue.append(json.dumps(r))
-        if len(self.queue) == self.flush_threshold:
-            self._flush_buffer()
-        self.lock.release()
+        with self.lock:
+            r = {"message": record.msg, "host": platform.node(), "level": record.level_name}
+            r.update(self.extra_fields)
+            r.update(record.kwargs)
+            self.queue.append(json.dumps(r))
+            if len(self.queue) == self.flush_threshold:
+                self._flush_buffer()
 
 
     def close(self):
