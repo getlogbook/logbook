@@ -1237,14 +1237,13 @@ class QueuesTestCase(LogbookTestCase):
         FIELDS = ['message', 'host']
         r = redis.Redis(decode_responses=True)
         redis_handler = RedisHandler(level=logbook.INFO, bubble=True)
-        #We don't want output for the tests, so we can wrapp everything in a NullHandler
+        #We don't want output for the tests, so we can wrap everything in a NullHandler
         null_handler = logbook.NullHandler()
 
         #Check default values
         with null_handler.applicationbound():
             with redis_handler:
                 logbook.info(LETTERS)
-                time.sleep(1)
 
         key, message = r.blpop(KEY)
         #Are all the fields in the record?
@@ -1259,7 +1258,6 @@ class QueuesTestCase(LogbookTestCase):
         with null_handler.applicationbound():
             with redis_handler:
                 logbook.info(LETTERS)
-                time.sleep(1)
 
         key, message = r.blpop(KEY)
         self.assertEqual(key, KEY)
@@ -1274,7 +1272,6 @@ class QueuesTestCase(LogbookTestCase):
         with null_handler.applicationbound():
             with redis_handler:
                 logbook.info(LETTERS)
-                time.sleep(1)
 
         key, message = r.blpop(KEY)
         [self.assertTrue(message.find(field)) for field in FIELDS]
@@ -1286,7 +1283,6 @@ class QueuesTestCase(LogbookTestCase):
         with null_handler.applicationbound():
             with redis_handler:
                 logbook.info(LETTERS, more_info='This works')
-                time.sleep(1)
 
         key, message = r.blpop(KEY)
         [self.assertTrue(message.find(field)) for field in FIELDS]
