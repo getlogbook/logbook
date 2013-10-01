@@ -80,7 +80,7 @@ class RedisHandler(Handler):
 
 
     def _flush_buffer(self):
-        """Flushes the messagin queue into Redis.
+        """Flushes the messaging queue into Redis.
 
         All values are pushed at once for the same key.
         """
@@ -89,7 +89,7 @@ class RedisHandler(Handler):
         self.queue = []
 
 
-    def disble_buffering(self):
+    def disable_buffering(self):
         """Disables buffering.
 
         If called, every single message will be directly pushed to Redis.
