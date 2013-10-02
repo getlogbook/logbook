@@ -13,6 +13,7 @@
 import sys
 import os
 import re
+import argparse
 from datetime import datetime, date
 from subprocess import Popen, PIPE
 
@@ -84,6 +85,11 @@ def set_setup_version(version):
     info('Setting setup.py version to %s', version)
     set_filename_version('setup.py', version, 'version')
 
+def set_doc_version(version):
+    info('Setting docs/conf.py version to %s', version)
+    set_filename_version('docs/conf.py', version, 'version')
+    set_filename_version('docs/conf.py', version, 'release')
+
 
 def build_and_upload():
     Popen([sys.executable, 'setup.py', 'release', 'sdist', 'upload']).wait()
@@ -116,7 +122,12 @@ def make_git_tag(tag):
     Popen(['git', 'tag', tag]).wait()
 
 
+parser = argparse.ArgumentParser("%prog [options]")
+parser.add_argument("--no-upload", dest="upload", action="store_false", default=True)
+
 def main():
+    args = parser.parse_args()
+
     os.chdir(os.path.join(os.path.dirname(__file__), '..'))
 
     rv = parse_changelog()
@@ -140,11 +151,15 @@ def main():
 
     set_init_version(version)
     set_setup_version(version)
+    set_doc_version(version)
     make_git_commit('Bump version number to %s', version)
     make_git_tag(version)
-    build_and_upload()
+    if args.upload:
+        build_and_upload()
     set_init_version(dev_version)
     set_setup_version(dev_version)
+    set_doc_version(dev_version)
+    make_git_commit('Bump version number to %s', dev_version)
 
 
 if __name__ == '__main__':
