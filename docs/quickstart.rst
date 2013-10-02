@@ -60,6 +60,7 @@ On top of those there are a couple of handlers for special use cases:
   are tagged (used in combination with a
   :class:`logbook.more.TaggingLogger`)
 * :class:`logbook.queues.ZeroMQHandler` for logging to ZeroMQ
+* :class:`logbook.queues.RedisHandler` for logging to Redis
 * :class:`logbook.queues.MultiProcessingHandler` for logging from a child
   process to a handler from the outer process.
 * :class:`logbook.queues.ThreadedWrapperHandler` for moving the actual

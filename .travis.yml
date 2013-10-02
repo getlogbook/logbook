@@ -8,9 +8,9 @@ python:
 install:
   # this fixes SemLock issues on travis
   - "sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm" 
-  - "sudo apt-get install libzmq3-dev"
+  - "sudo apt-get install libzmq3-dev redis-server"
   - "python scripts/pypi_mirror_setup.py http://a.pypi.python.org/simple"
-  - "pip install cython"
+  - "pip install cython redis"
   - "make test_setup"
   - "python setup.py develop"
 

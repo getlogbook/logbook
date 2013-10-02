@@ -176,6 +176,20 @@ same way as the ZeroMQ equivalents but are connected through a
     handler = MultiProcessingHandler(queue)
     subscriber = MultiProcessingSubscriber(queue)
 
+There is also the possibility to log into a Redis instance using the
+:class:`~logbook.queues.RedisHandler`. To do so, you just need to create an
+instance of this handler as follows::
+
+    import logbook
+    from logbook.queues import RedisHandler
+
+    handler = RedisHandler()
+    l = logbook.Logger()
+    with handler:
+        l.info('Your log message')
+
+With the default parameters, this will send a message to redis under the key redis.
+
 
 Redirecting Single Loggers
 --------------------------
