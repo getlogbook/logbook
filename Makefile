@@ -37,4 +37,4 @@ logbook/_speedups.so: logbook/_speedups.pyx
 
 cybuild: logbook/_speedups.so
 
-.PHONY: test upload-docs clean-pyc cybuild bench all
+.PHONY: test upload-docs clean-pyc cybuild bench all docs
