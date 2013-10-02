@@ -3,6 +3,12 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.6.0
+-------------
+
+- Added Redis handler (Thanks a lot @guillermo for this PR)
+- Fixed email encoding bug (Thanks Raphaël Vinot)
+
 Version 0.5.0
 -------------
 
