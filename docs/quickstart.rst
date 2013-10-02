@@ -47,7 +47,7 @@ multitude of available handlers, and of course you can also create your own:
 * :class:`FileHandler`, :class:`MonitoringFileHandler`,
   :class:`RotatingFileHandler` and :class:`TimedRotatingFileHandler` for
   logging to files
-* :class:`MailHandler` for logging via e-mail
+* :class:`MailHandler` and :class:`GMailHandler` for logging via e-mail
 * :class:`SyslogHandler` for logging to the syslog daemon
 * :class:`NTEventLogHandler` for logging to the Windows NT event log
 

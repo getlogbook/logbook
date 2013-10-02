@@ -1219,6 +1219,21 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
                      self.get_recipients(trigger))
 
 
+class GMailHandler(MailHandler):
+    """
+    A customized mail handler class for sending emails via GMail (or Google Apps mail)::
+
+       handler = GMailHandler("my_user@gmail.com", "mypassword", ["to_user@some_mail.com"], ...) # other arguments same as MailHandler
+
+    .. versionadded:: 0.6.0
+    """
+
+    def __init__(self, account_id, password, recipients, **kw):
+        super(GMailHandler, self).__init__(
+            account_id, recipients, secure=(), server_addr=("smtp.gmail.com", 587),
+            credentials=(account_id, password), **kw)
+
+
 class SyslogHandler(Handler, StringFormatterHandlerMixin):
     """A handler class which sends formatted logging records to a
     syslog server.  By default it will send to it via unix socket.

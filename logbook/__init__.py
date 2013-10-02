@@ -17,7 +17,7 @@ from logbook.base import LogRecord, Logger, LoggerGroup, NestedSetup, \
      set_datetime_format
 from logbook.handlers import Handler, StreamHandler, FileHandler, \
      MonitoringFileHandler, StderrHandler, RotatingFileHandler, \
-     TimedRotatingFileHandler, TestHandler, MailHandler, SyslogHandler, \
+     TimedRotatingFileHandler, TestHandler, MailHandler, GMailHandler, SyslogHandler, \
      NullHandler, NTEventLogHandler, create_syshandler, StringFormatter, \
      StringFormatterHandlerMixin, HashingHandlerMixin, \
      LimitingHandlerMixin, WrapperHandler, FingersCrossedHandler, \

@@ -48,6 +48,9 @@ Core Handlers
 .. autoclass:: MailHandler
    :members:
 
+.. autoclass:: GMailHandler
+   :members:
+
 .. autoclass:: SyslogHandler
    :members:
 
