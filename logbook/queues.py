@@ -39,9 +39,11 @@ class RedisHandler(Handler):
     Example::
 
         handler = RedisHandler(password='your_redis_password')
+
+    More info about the default buffer size: wp.me/p3tYJu-3b
     """
     def __init__(self, host='localhost', port=6379, key='redis', extra_fields={},
-                flush_threshold=256, flush_time=1, level=NOTSET, filter=None,
+                flush_threshold=128, flush_time=1, level=NOTSET, filter=None,
                 password=False, bubble=True, context=None):
         Handler.__init__(self, level, filter, bubble)
         try:
