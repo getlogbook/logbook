@@ -9,7 +9,8 @@
     :license: BSD, see LICENSE for more details.
 """
 import json
-from threading import Thread
+import threading
+from threading import Thread, Lock
 import platform
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler, WrapperHandler
@@ -19,6 +20,104 @@ if PY2:
     from Queue import Empty, Queue as ThreadQueue
 else:
     from queue import Empty, Queue as ThreadQueue
+
+
+class RedisHandler(Handler):
+    """A handler that sends log messages to a Redis instance.
+
+    It publishes each record as json dump. Requires redis module.
+
+    To receive such records you need to have a running instance of Redis.
+
+    Example setup::
+
+        handler = RedisHandler('http://localhost', port='9200', key='redis')
+
+    If your Redis instance is password protected, you can securely connect passing
+    your password when creating a RedisHandler object.
+
+    Example::
+
+        handler = RedisHandler(password='your_redis_password')
+
+    More info about the default buffer size: wp.me/p3tYJu-3b
+    """
+    def __init__(self, host='localhost', port=6379, key='redis', extra_fields={},
+                flush_threshold=128, flush_time=1, level=NOTSET, filter=None,
+                password=False, bubble=True, context=None):
+        Handler.__init__(self, level, filter, bubble)
+        try:
+            import redis
+            from redis import ResponseError
+        except ImportError:
+            raise RuntimeError('The redis library is required for '
+                               'the RedisHandler')
+
+        self.redis = redis.Redis(host=host, port=port, password=password, decode_responses=True)
+        try:
+            self.redis.ping()
+        except ResponseError:
+            raise ResponseError('The password provided is apparently incorrect')
+        self.key = key
+        self.extra_fields = extra_fields
+        self.flush_threshold = flush_threshold
+        self.queue = []
+        self.lock = Lock()
+
+        #Set up a thread that flushes the queue every specified seconds
+        self._stop_event = threading.Event()
+        self._flushing_t = threading.Thread(target=self._flush_task,
+                                            args=(flush_time, self._stop_event))
+        self._flushing_t.daemon = True
+        self._flushing_t.start()
+
+
+    def _flush_task(self, time, stop_event):
+        """Calls the method _flush_buffer every certain time.
+        """
+        while not self._stop_event.isSet():
+            with self.lock:
+                self._flush_buffer()
+            self._stop_event.wait(time)
+
+
+    def _flush_buffer(self):
+        """Flushes the messaging queue into Redis.
+
+        All values are pushed at once for the same key.
+        """
+        if self.queue:
+            self.redis.rpush(self.key, *self.queue)
+        self.queue = []
+
+
+    def disable_buffering(self):
+        """Disables buffering.
+
+        If called, every single message will be directly pushed to Redis.
+        """
+        self._stop_event.set()
+        self.flush_threshold = 1
+
+
+    def emit(self, record):
+        """Emits a pair (key, value) to redis.
+
+        The key is the one provided when creating the handler, or redis if none was
+        provided. The value contains both the message and the hostname. Extra values
+        are also appended to the message.
+        """
+        with self.lock:
+            r = {"message": record.msg, "host": platform.node(), "level": record.level_name}
+            r.update(self.extra_fields)
+            r.update(record.kwargs)
+            self.queue.append(json.dumps(r))
+            if len(self.queue) == self.flush_threshold:
+                self._flush_buffer()
+
+
+    def close(self):
+        self._flush_buffer()
 
 
 class RabbitMQHandler(Handler):
