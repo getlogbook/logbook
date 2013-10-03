@@ -13,9 +13,8 @@ in mind and the idea to make logging fun:
 What makes it fun?  What about getting log messages on your phone or
 desktop notification system?  :ref:`Logbook can do that <notifiers>`.
 
-This library is still under heavy development and the API is not fully
-finalized yet.  Feedback is appreciated.  The docs here only show a tiny,
-tiny feature set and are terribly incomplete.  We will have better docs
+Feedback is appreciated.  The docs here only show a tiny,
+tiny feature set and can be incomplete. We will have better docs
 soon, but until then we hope this gives a sneak peak about how cool
 Logbook is.  If you want more, have a look at the comprehensive suite of tests.
 
