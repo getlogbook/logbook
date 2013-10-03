@@ -2,14 +2,12 @@ What does it do?
 ================
 
 Although the Python standard library provides a logging system, you should
-consider having a look at Logbook for your applications.  Currently
-logbook is an alpha version and should be considered a developer preview.
+consider having a look at Logbook for your applications.
 
-But give it a try, we think it will work out for you and be fun to use :)
+We think it will work out for you and be fun to use :)
 
-Furthermore because it was prototyped in a couple of days, it leverages
-some features of Python that are not available in older Python releases.
-Logbook currently requires Python 2.5 or higher including Python 3 (3.1 or
+Logbook leverages some features of Python that are not available in older Python releases.
+Logbook currently requires Python 2.7 or higher including Python 3 (3.1 or
 higher, 3.0 is not supported).
 
 Core Features
@@ -48,8 +46,8 @@ Core Features
 -   Logbook was designed to be fast and with modern Python features in mind.
     For example, it uses context managers to handle the stack of handlers as
     well as new-style string formatting for all of the core log calls.
--   Builtin support for ZeroMQ and other means to distribute log messages
-    between heavily distributed systems and multiple processes.
+-   Builtin support for ZeroMQ, RabbitMQ, Redis and other means to distribute
+    log messages between heavily distributed systems and multiple processes.
 -   The Logbook system does not depend on log levels.  In fact, custom log
     levels are not supported, instead we strongly recommend using logging
     subclasses or log processors that inject tagged information into the log
