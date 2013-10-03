@@ -8,7 +8,7 @@ Version 0.6.0
 
 Released on October 3rd 2013. Codename "why_not_production_ready"
 
-- Added Redis handler (Thanks a lot @guillermo for this PR)
+- Added Redis handler (Thanks a lot @guillermo-carrasco for this PR)
 - Fixed email encoding bug (Thanks Raphaël Vinot)
 
 Version 0.5.0
