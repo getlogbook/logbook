@@ -6,6 +6,8 @@ Here you can see the full list of changes between each Logbook release.
 Version 0.6.0
 -------------
 
+Released on October 3rd 2013. Codename "why_not_production_ready"
+
 - Added Redis handler (Thanks a lot @guillermo for this PR)
 - Fixed email encoding bug (Thanks Raphaël Vinot)
 

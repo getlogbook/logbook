@@ -5,7 +5,7 @@
 
 [![Downloads](https://pypip.in/v/Logbook/badge.png)](https://crate.io/package/Logbook)
 
-Logbook is a nice logging replacement, but still under development.
+Logbook is a nice logging replacement.
 
 It should be easy to setup, use and configure and support web applications :)
 
