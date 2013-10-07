@@ -28,7 +28,7 @@ from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
 from logbook.helpers import rename, b, _is_text_stream, is_unicode, PY2, \
-    zip, xrange, string_types, integer_types, iteritems, reraise
+    zip, xrange, string_types, integer_types, reraise
 
 
 DEFAULT_FORMAT_STRING = (
