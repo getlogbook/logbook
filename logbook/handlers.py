@@ -125,7 +125,7 @@ class Handler(ContextObject):
         # all here goes to that handler
         handler.pop_application()
 
-    By default messages send to that handler will not go to a handler on
+    By default messages sent to that handler will not go to a handler on
     an outer level on the stack, if handled.  This can be changed by
     setting bubbling to `True`.  This setup for example would not have
     any effect::
