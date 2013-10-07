@@ -3,6 +3,11 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.7.0
+-------------
+
+- NullHandlers now respect filters - allows to only drop/mute certain records (#73)
+
 Version 0.6.0
 -------------
 

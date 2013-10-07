@@ -680,6 +680,22 @@ Message:
         self.assertFalse(outer_handler.has_warning('foo', channel='Logger1'))
         self.assert_(outer_handler.has_warning('bar', channel='Logger2'))
 
+    def test_null_handler_filtering(self):
+        logger1 = logbook.Logger("1")
+        logger2 = logbook.Logger("2")
+        outer = logbook.TestHandler()
+        inner = logbook.NullHandler()
+
+        inner.filter = lambda record, handler: record.dispatcher is logger1
+
+        with self.thread_activation_strategy(outer):
+            with self.thread_activation_strategy(inner):
+                logger1.warn("1")
+                logger2.warn("2")
+
+        self.assertTrue(outer.has_warning("2", channel="2"))
+        self.assertFalse(outer.has_warning("1", channel="1"))
+
     def test_different_context_pushing(self):
         h1 = logbook.TestHandler(level=logbook.DEBUG)
         h2 = logbook.TestHandler(level=logbook.INFO)
