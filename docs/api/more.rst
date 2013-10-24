@@ -30,6 +30,9 @@ Special Handlers
 .. autoclass:: ExceptionHandler
    :members:
 
+.. autoclass:: DedupHandler
+   :members:
+
 Colorized Handlers
 ------------------
 

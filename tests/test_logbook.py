@@ -1097,6 +1097,17 @@ class MoreTestCase(LogbookTestCase):
             self.assertIn('WARNING: testlogger: here i am', caught.exception.args[0])
         self.assertIn('this is irrelevant', test_handler.records[0].message)
 
+    def test_dedup_handler(self):
+        from logbook.more import DedupHandler
+        with logbook.TestHandler() as test_handler:
+            with DedupHandler():
+                self.log.info('foo')
+                self.log.info('bar')
+                self.log.info('foo')
+        self.assertEqual(2, len(test_handler.records))
+        self.assertIn('message repeated 2 times: foo', test_handler.records[0].message)
+        self.assertIn('message repeated 1 times: bar', test_handler.records[1].message)
+
 class QueuesTestCase(LogbookTestCase):
     def _get_zeromq(self):
         from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
