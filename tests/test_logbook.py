@@ -1109,7 +1109,7 @@ class MoreTestCase(LogbookTestCase):
         self.assertIn('message repeated 1 times: bar', test_handler.records[1].message)
 
 class QueuesTestCase(LogbookTestCase):
-    def _get_zeromq(self):
+    def _get_zeromq(self, multi=False):
         from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
 
         # Get an unused port
@@ -1120,8 +1120,11 @@ class QueuesTestCase(LogbookTestCase):
 
         # Retrieve the ZeroMQ handler and subscriber
         uri = 'tcp://%s:%d' % (host, unused_port)
-        handler = ZeroMQHandler(uri)
-        subscriber = ZeroMQSubscriber(uri)
+        if multi:
+            handler = [ZeroMQHandler(uri, multi=True) for _ in range(3)]
+        else:
+            handler = ZeroMQHandler(uri)
+        subscriber = ZeroMQSubscriber(uri, multi=multi)
         # Enough time to start
         time.sleep(0.1)
         return handler, subscriber
@@ -1140,6 +1143,22 @@ class QueuesTestCase(LogbookTestCase):
                 record = subscriber.recv()
                 self.assertEqual(record.message, test)
                 self.assertEqual(record.channel, self.log.name)
+
+    @require_module('zmq')
+    def test_multi_zeromq_handler(self):
+        tests = [
+            u'Logging something',
+            u'Something with umlauts äöü',
+            u'Something else for good measure',
+        ]
+        handlers, subscriber = self._get_zeromq(multi=True)
+        for handler in handlers:
+            for test in tests:
+                with handler:
+                    self.log.warn(test)
+                    record = subscriber.recv()
+                    self.assertEqual(record.message, test)
+                    self.assertEqual(record.channel, self.log.name)
 
     @require_module('zmq')
     def test_zeromq_background_thread(self):
