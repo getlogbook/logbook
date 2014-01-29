@@ -164,6 +164,11 @@ class ZeroMQHandler(Handler):
     The queue will be filled with JSON exported log records.  To receive such
     log records from a queue you can use the :class:`ZeroMQSubscriber`.
 
+    If `multi` is set to `True`, the handler will use a `PUSH` socket to
+    publish the records. This allows multiple handlers to use the same `uri`.
+    The records can be received by using the :class:`ZeroMQSubscriber` with
+    `multi` set to `True`.
+
 
     Example setup::
 
@@ -171,7 +176,7 @@ class ZeroMQHandler(Handler):
     """
 
     def __init__(self, uri=None, level=NOTSET, filter=None, bubble=False,
-                 context=None):
+                 context=None, multi=False):
         Handler.__init__(self, level, filter, bubble)
         try:
             import zmq
@@ -180,10 +185,18 @@ class ZeroMQHandler(Handler):
                                'the ZeroMQHandler.')
         #: the zero mq context
         self.context = context or zmq.Context()
-        #: the zero mq socket.
-        self.socket = self.context.socket(zmq.PUB)
-        if uri is not None:
-            self.socket.bind(uri)
+
+        if multi:
+            #: the zero mq socket.
+            self.socket = self.context.socket(zmq.PUSH)
+            if uri is not None:
+                self.socket.connect(uri)
+        else:
+            #: the zero mq socket.
+            self.socket = self.context.socket(zmq.PUB)
+            if uri is not None:
+                self.socket.bind(uri)
+
 
     def export_record(self, record):
         """Exports the record into a dictionary ready for JSON dumping."""
@@ -371,9 +384,14 @@ class ZeroMQSubscriber(SubscriberBase):
     thread::
 
         controller.stop()
+
+    If `multi` is set to `True`, the subscriber will use a `PULL` socket
+    and listen to records published by a `PUSH` socket (usually via a
+    :class:`ZeroMQHandler` with `multi` set to `True`). This allows a
+    single subscriber to dispatch multiple handlers.
     """
 
-    def __init__(self, uri=None, context=None):
+    def __init__(self, uri=None, context=None, multi=False):
         try:
             import zmq
         except ImportError:
@@ -383,11 +401,18 @@ class ZeroMQSubscriber(SubscriberBase):
 
         #: the zero mq context
         self.context = context or zmq.Context()
-        #: the zero mq socket.
-        self.socket = self.context.socket(zmq.SUB)
-        if uri is not None:
-            self.socket.connect(uri)
-        self.socket.setsockopt_unicode(zmq.SUBSCRIBE, u'')
+
+        if multi:
+            #: the zero mq socket.
+            self.socket = self.context.socket(zmq.PULL)
+            if uri is not None:
+                self.socket.bind(uri)
+        else:
+            #: the zero mq socket.
+            self.socket = self.context.socket(zmq.SUB)
+            if uri is not None:
+                self.socket.connect(uri)
+            self.socket.setsockopt_unicode(zmq.SUBSCRIBE, u'')
 
     def __del__(self):
         try:
