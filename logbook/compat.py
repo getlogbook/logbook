@@ -20,13 +20,18 @@ from logbook.helpers import u, string_types, iteritems
 _epoch_ord = date(1970, 1, 1).toordinal()
 
 
-def redirect_logging():
+def redirect_logging(set_root_logger_level=True):
     """Permanently redirects logging to the stdlib.  This also
     removes all otherwise registered handlers on root logger of
     the logging system but leaves the other loggers untouched.
+
+    :param set_root_logger_level: controls of the default level of the legacy root logger is changed
+       so that all legacy log messages get redirected to Logbook
     """
     del logging.root.handlers[:]
     logging.root.addHandler(RedirectLoggingHandler())
+    if set_root_logger_level:
+        logging.root.setLevel(logging.DEBUG)
 
 
 class redirected_logging(object):
@@ -38,14 +43,17 @@ class redirected_logging(object):
         with redirected_logging():
             ...
     """
-    def __init__(self):
+    def __init__(self, set_root_logger_level=True):
         self.old_handlers = logging.root.handlers[:]
+        self.old_level = logging.root.level
+        self.set_root_logger_level = set_root_logger_level
 
     def start(self):
-        redirect_logging()
+        redirect_logging(self.set_root_logger_level)
 
     def end(self, etype=None, evalue=None, tb=None):
         logging.root.handlers[:] = self.old_handlers
+        logging.root.setLevel(self.old_level)
 
     __enter__ = start
     __exit__ = end

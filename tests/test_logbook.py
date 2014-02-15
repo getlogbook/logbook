@@ -906,25 +906,36 @@ class DefaultConfigurationTestCase(LogbookTestCase):
 
 class LoggingCompatTestCase(LogbookTestCase):
 
-    def test_basic_compat(self):
-        from logging import getLogger
+    def test_basic_compat_with_level_setting(self):
+        self._test_basic_compat(True)
+    def test_basic_compat_without_level_setting(self):
+        self._test_basic_compat(False)
+
+    def _test_basic_compat(self, set_root_logger_level):
+        import logging
         from logbook.compat import redirected_logging
 
+        # mimic the default logging setting
+        self.addCleanup(logging.root.setLevel, logging.root.level)
+        logging.root.setLevel(logging.WARNING)
+
         name = 'test_logbook-%d' % randrange(1 << 32)
-        logger = getLogger(name)
-        with capturing_stderr_context() as captured:
-            redirector = redirected_logging()
-            redirector.start()
-            try:
-                logger.debug('This is from the old system')
-                logger.info('This is from the old system')
-                logger.warn('This is from the old system')
-                logger.error('This is from the old system')
-                logger.critical('This is from the old system')
-            finally:
-                redirector.end()
+        logger = logging.getLogger(name)
+
+        with logbook.TestHandler(bubble=True) as handler:
+            with capturing_stderr_context() as captured:
+                with redirected_logging(set_root_logger_level):
+                    logger.debug('This is from the old system')
+                    logger.info('This is from the old system')
+                    logger.warn('This is from the old system')
+                    logger.error('This is from the old system')
+                    logger.critical('This is from the old system')
             self.assertIn(('WARNING: %s: This is from the old system' % name),
                           captured.getvalue())
+        if set_root_logger_level:
+            self.assertEquals(handler.records[0].level, logbook.DEBUG)
+        else:
+            self.assertEquals(handler.records[0].level, logbook.WARNING)
 
     def test_redirect_logbook(self):
         import logging
