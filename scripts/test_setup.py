@@ -12,7 +12,7 @@ if __name__ == '__main__':
     python_version = platform.python_version()
 
     deps = [
-        "execnet",
+        "execnet>=1.0.9",
         "Jinja2",
         "nose",
         "pyzmq",

@@ -554,7 +554,7 @@ class ExecnetChannelSubscriber(SubscriberBase):
     def __init__(self, channel):
         self.channel = channel
 
-    def recv(self, timeout=-1):
+    def recv(self, timeout=None):
         try:
             rv = self.channel.receive(timeout=timeout)
         except self.channel.RemoteError:
