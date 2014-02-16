@@ -147,10 +147,10 @@ class ExtraDict(dict):
             try:
                 return dict.__getitem__(self, key)
             except KeyError:
-                return u''
+                return u('')
     else:
         def __missing__(self, key):
-            return u''
+            return u('')
 
     def copy(self):
         return self.__class__(self)

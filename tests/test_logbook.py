@@ -253,7 +253,7 @@ class _HandlerTestCase(LogbookTestCase):
     def test_file_handler_unicode(self):
         with capturing_stderr_context() as captured:
             with self.thread_activation_strategy(logbook.FileHandler(self.filename)) as h:
-                self.log.info(u'\u0431')
+                self.log.info(u('\u0431'))
         self.assertFalse(captured.getvalue())
 
     def test_file_handler_delay(self):
@@ -352,7 +352,7 @@ class _HandlerTestCase(LogbookTestCase):
             self.assertEqual(f.readline().rstrip(), '[02:00] Third One')
 
     def test_mail_handler(self):
-        subject = u'\xf8nicode'
+        subject = u('\xf8nicode')
         handler = make_fake_mail_handler(subject=subject)
         with capturing_stderr_context() as fallback:
             with self.thread_activation_strategy(handler):
@@ -360,7 +360,7 @@ class _HandlerTestCase(LogbookTestCase):
                 try:
                     1 / 0
                 except Exception:
-                    self.log.exception(u'Viva la Espa\xf1a')
+                    self.log.exception(u('Viva la Espa\xf1a'))
 
             if not handler.mails:
                 # if sending the mail failed, the reason should be on stderr
@@ -375,7 +375,7 @@ class _HandlerTestCase(LogbookTestCase):
             self.assertRegexpMatches(mail, 'Location:.*%s' % __file_without_pyc__)
             self.assertRegexpMatches(mail, 'Module:\s+%s' % __name__)
             self.assertRegexpMatches(mail, 'Function:\s+test_mail_handler')
-            body = u'Message:\n\nViva la Espa\xf1a'
+            body = u('Message:\n\nViva la Espa\xf1a')
             if sys.version_info < (3, 0):
                 body = body.encode('utf-8')
             self.assertIn(body, mail)
@@ -478,8 +478,8 @@ class _HandlerTestCase(LogbookTestCase):
                     except socket.error:
                         self.fail('got timeout on socket')
                     self.assertEqual(rv, (
-                        u'<12>%stestlogger: Syslog is weird\x00' %
-                        (app_name and app_name + u':' or u'')).encode('utf-8'))
+                        u('<12>%stestlogger: Syslog is weird\x00') %
+                        (app_name and app_name + u(':') or u(''))).encode('utf-8'))
 
     def test_handler_processors(self):
         handler = make_fake_mail_handler(format_string='''\
@@ -1143,9 +1143,9 @@ class QueuesTestCase(LogbookTestCase):
     @require_module('zmq')
     def test_zeromq_handler(self):
         tests = [
-            u'Logging something',
-            u'Something with umlauts äöü',
-            u'Something else for good measure',
+            u('Logging something'),
+            u('Something with umlauts äöü'),
+            u('Something else for good measure'),
         ]
         handler, subscriber = self._get_zeromq()
         for test in tests:
@@ -1158,9 +1158,9 @@ class QueuesTestCase(LogbookTestCase):
     @require_module('zmq')
     def test_multi_zeromq_handler(self):
         tests = [
-            u'Logging something',
-            u'Something with umlauts äöü',
-            u'Something else for good measure',
+            u('Logging something'),
+            u('Something with umlauts äöü'),
+            u('Something else for good measure'),
         ]
         handlers, subscriber = self._get_zeromq(multi=True)
         for handler in handlers:
@@ -1404,16 +1404,16 @@ class HelperTestCase(LogbookTestCase):
         rv = to_safe_json([
             None,
             'foo',
-            u'jäger',
+            u('jäger'),
             1,
             datetime(2000, 1, 1),
-            {'jäger1': 1, u'jäger2': 2, Bogus(): 3, 'invalid': object()},
+            {'jäger1': 1, u('jäger2'): 2, Bogus(): 3, 'invalid': object()},
             object()  # invalid
         ])
         self.assertEqual(
-            rv, [None, u'foo', u'jäger', 1, '2000-01-01T00:00:00Z',
-                 {u('jäger1'): 1, u'jäger2': 2, u'bogus': 3,
-                  u'invalid': None}, None])
+            rv, [None, u('foo'), u('jäger'), 1, '2000-01-01T00:00:00Z',
+                 {u('jäger1'): 1, u('jäger2'): 2, u('bogus'): 3,
+                  u('invalid'): None}, None])
 
     def test_datehelpers(self):
         from logbook.helpers import format_iso8601, parse_iso8601
