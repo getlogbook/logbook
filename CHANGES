@@ -7,6 +7,7 @@ Version 0.7.0
 -------------
 
 - NullHandlers now respect filters - allows to only drop/mute certain records (#73)
+- redirect_logging now sets the legacy root logger's level to DEBUG by default. This can be changed by specifying `set_root_logger_level=False` (#96)
 
 Version 0.6.0
 -------------
