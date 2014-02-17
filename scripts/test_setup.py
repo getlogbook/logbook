@@ -13,7 +13,6 @@ if __name__ == '__main__':
 
     deps = [
         "execnet>=1.0.9",
-        "Jinja2",
         "nose",
         "pyzmq",
         "sqlalchemy",
@@ -21,5 +20,10 @@ if __name__ == '__main__':
 
     if python_version < "2.7":
         deps.append("unittest2")
+    if python_version.startswith('3.2.'):
+        deps.append("markupsafe==0.15")
+        deps.append("Jinja2==2.6")
+    else:
+        deps.append("Jinja2")
     print("Setting up dependencies...")
-    _execute("pip install %s" % " ".join(deps), shell=True)
+    _execute(["pip",  "install"] + deps, shell=False)

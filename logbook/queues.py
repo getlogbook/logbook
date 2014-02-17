@@ -14,7 +14,7 @@ from threading import Thread, Lock
 import platform
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler, WrapperHandler
-from logbook.helpers import PY2
+from logbook.helpers import PY2, u
 
 if PY2:
     from Queue import Empty, Queue as ThreadQueue
@@ -412,7 +412,7 @@ class ZeroMQSubscriber(SubscriberBase):
             self.socket = self.context.socket(zmq.SUB)
             if uri is not None:
                 self.socket.connect(uri)
-            self.socket.setsockopt_unicode(zmq.SUBSCRIBE, u'')
+            self.socket.setsockopt_unicode(zmq.SUBSCRIBE, u(''))
 
     def __del__(self):
         try:
