@@ -1125,7 +1125,7 @@ class QueuesTestCase(LogbookTestCase):
 
         # Get an unused port
         tempsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        tempsock.bind(('localhost', 0))
+        tempsock.bind(('127.0.0.1', 0))
         host, unused_port = tempsock.getsockname()
         tempsock.close()
 

@@ -31,7 +31,7 @@ class RedisHandler(Handler):
 
     Example setup::
 
-        handler = RedisHandler('http://localhost', port='9200', key='redis')
+        handler = RedisHandler('http://127.0.0.1', port='9200', key='redis')
 
     If your Redis instance is password protected, you can securely connect passing
     your password when creating a RedisHandler object.
@@ -42,7 +42,7 @@ class RedisHandler(Handler):
 
     More info about the default buffer size: wp.me/p3tYJu-3b
     """
-    def __init__(self, host='localhost', port=6379, key='redis', extra_fields={},
+    def __init__(self, host='127.0.0.1', port=6379, key='redis', extra_fields={},
                 flush_threshold=128, flush_time=1, level=NOTSET, filter=None,
                 password=False, bubble=True, context=None):
         Handler.__init__(self, level, filter, bubble)
@@ -130,7 +130,7 @@ class RabbitMQHandler(Handler):
 
     Example setup::
 
-        handler = RabbitMQHandler('amqp://guest:guest@localhost//', queue='my_log')
+        handler = RabbitMQHandler('amqp://guest:guest@127.0.0.1//', queue='my_log')
     """
     def __init__(self, uri=None, queue='logging', level=NOTSET,
                 filter=None, bubble=False, context=None):
@@ -295,20 +295,20 @@ class RabbitMQSubscriber(SubscriberBase):
 
     It can be used to receive log records from a queue::
 
-        subscriber = RabbitMQSubscriber('amqp://guest:guest@localhost//')
+        subscriber = RabbitMQSubscriber('amqp://guest:guest@127.0.0.1//')
         record = subscriber.recv()
 
     But it can also be used to receive and dispatch these in one go::
 
         with target_handler:
-            subscriber = RabbitMQSubscriber('amqp://guest:guest@localhost//')
+            subscriber = RabbitMQSubscriber('amqp://guest:guest@127.0.0.1//')
             subscriber.dispatch_forever()
 
     This will take all the log records from that queue and dispatch them
     over to `target_handler`.  If you want you can also do that in the
     background::
 
-        subscriber = RabbitMQSubscriber('amqp://guest:guest@localhost//')
+        subscriber = RabbitMQSubscriber('amqp://guest:guest@127.0.0.1//')
         controller = subscriber.dispatch_in_background(target_handler)
 
     The controller returned can be used to shut down the background
@@ -664,7 +664,7 @@ class SubscriberGroup(SubscriberBase):
 
         subscribers = SubscriberGroup([
             MultiProcessingSubscriber(queue),
-            ZeroMQSubscriber('tcp://localhost:5000')
+            ZeroMQSubscriber('tcp://127.0.0.1:5000')
         ])
         with target_handler:
             subscribers.dispatch_forever()
