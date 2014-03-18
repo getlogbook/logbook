@@ -1,6 +1,6 @@
 #! /usr/bin/python
-import platform
 import subprocess
+import os
 import sys
 
 def _execute(*args, **kwargs):
@@ -9,7 +9,7 @@ def _execute(*args, **kwargs):
         sys.exit(result)
 
 if __name__ == '__main__':
-    python_version = platform.python_version()
+    python_version = sys.version_info
 
     deps = [
         "execnet>=1.0.9",
@@ -18,12 +18,12 @@ if __name__ == '__main__':
         "sqlalchemy",
     ]
 
-    if python_version < "2.7":
+    if python_version < (2, 7):
         deps.append("unittest2")
-    if python_version.startswith('3.2.'):
+    if (3, 2) <= python_version < (3, 3):
         deps.append("markupsafe==0.15")
         deps.append("Jinja2==2.6")
     else:
         deps.append("Jinja2")
     print("Setting up dependencies...")
-    _execute(["pip",  "install"] + deps, shell=False)
+    _execute([os.path.join(os.path.dirname(sys.executable), "pip"),  "install"] + deps, shell=False)
