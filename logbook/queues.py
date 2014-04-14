@@ -157,19 +157,7 @@ class MessageQueueHandler(Handler):
         self.queue.close()
 
 
-class RabbitMQHandler(Handler):
-    """A handler that acts as a RabbitMQ publisher, which publishes each record
-    as json dump.  Requires the kombu module.
-
-    The queue will be filled with JSON exported log records.  To receive such
-    log records from a queue you can use the :class:`RabbitMQSubscriber`.
-
-
-    Example setup::
-
-        handler = RabbitMQHandler('amqp://guest:guest@127.0.0.1//',
-                                  queue='my_log')
-    """
+RabbitMQHandler = MessageQueueHandler
 
 
 class ZeroMQHandler(Handler):
@@ -370,34 +358,7 @@ class MessageQueueSubscriber(SubscriberBase):
         return LogRecord.from_dict(log_record)
 
 
-class RabbitMQSubscriber(MessageQueueSubscriber):
-    """A helper that acts as RabbitMQ subscriber and will dispatch received
-    log records to the active handler setup.  There are multiple ways to
-    use this class.
-
-    It can be used to receive log records from a queue::
-
-        subscriber = RabbitMQSubscriber('amqp://guest:guest@127.0.0.1//')
-        record = subscriber.recv()
-
-    But it can also be used to receive and dispatch these in one go::
-
-        with target_handler:
-            subscriber = RabbitMQSubscriber('amqp://guest:guest@127.0.0.1//')
-            subscriber.dispatch_forever()
-
-    This will take all the log records from that queue and dispatch them
-    over to `target_handler`.  If you want you can also do that in the
-    background::
-
-        subscriber = RabbitMQSubscriber('amqp://guest:guest@127.0.0.1//')
-        controller = subscriber.dispatch_in_background(target_handler)
-
-    The controller returned can be used to shut down the background
-    thread::
-
-        controller.stop()
-    """
+RabbitMQSubscriber = MessageQueueSubscriber
 
 
 class ZeroMQSubscriber(SubscriberBase):
