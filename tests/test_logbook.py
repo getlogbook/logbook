@@ -25,9 +25,41 @@ import tempfile
 import time
 import json
 try:
-    from thread import get_ident
+    from gevent import thread
 except ImportError:
-    from _thread import get_ident
+    try:
+        import thread
+    except ImportError:
+        import _thread as thread
+import pickle
+import shutil
+import unittest
+import tempfile
+import socket
+from datetime import datetime, timedelta
+from random import randrange
+
+import six
+from six import u
+
+import logbook
+from .utils import LogbookTestCase, missing, require_module, require_py3, \
+     make_fake_mail_handler
+
+def _total_seconds(delta):
+    """
+    Replacement for datetime.timedelta.total_seconds() for Python 2.5, 2.6 and 3.1
+    """
+    return (delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6) / 10**6
+
+test_file = __file__.rstrip('co')
+LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+
+class capture_stderr(object):
+
+    def __init__(self):
+        self.original = sys.stderr
 
 __file_without_pyc__ = __file__
 if __file_without_pyc__.endswith(".pyc"):
@@ -948,7 +980,7 @@ class LoggingCompatTestCase(LogbookTestCase):
             '%(name)s:%(levelname)s:%(message)s'))
         logger.handlers[:] = [handler]
         try:
-            with logbook.compat.LoggingHandler() as logging_handler:
+            with LoggingHandler() as logging_handler:
                 self.log.warn("This goes to logging")
                 pieces = out.getvalue().strip().split(':')
                 self.assertEqual(pieces, [
@@ -1481,3 +1513,40 @@ class UnicodeTestCase(LogbookTestCase):
         with capturing_stderr_context() as stream:
             self.log.warn('\u2603 {0}'.encode('utf8'), '\u2603')
         self.assertIn('WARNING: testlogger: \u2603 \u2603', stream.getvalue())
+
+    @require_module('gevent')
+    def test_gevent_spawn(self):
+        from gevent import spawn, sleep
+        def func(handler):
+            with handler.threadbound():
+                self.log.warn("hi")
+                sleep(0.1)
+                self.log.warn("bye")
+
+        with capturing_stderr_context() as stream:
+            stderr_handler = logbook.StderrHandler(format_string="foo")
+            null_handler = logbook.NullHandler()
+
+            f1 = spawn(func, stderr_handler)
+            f2 = spawn(func, null_handler)
+            f1.join()
+            f2.join()
+            captured = stream.getvalue()
+        self.assertEquals("foo\nfoo\n", captured)
+
+
+def suite():
+    loader = unittest.TestLoader()
+    suite = LogbookTestSuite()
+    suite.addTests(loader.loadTestsFromName(__name__))
+    try:
+        suite.addTests(loader.loadTestsFromName
+                       ('logbook.testsuite.test_contextmanager'))
+    except SyntaxError:
+        # Python 2.4 does not support the 'with' statement
+        pass
+    return suite
+
+
+if __name__ == '__main__':
+    unittest.main(defaultTest='suite')
