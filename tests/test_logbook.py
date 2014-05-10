@@ -28,6 +28,7 @@ try:
     from thread import get_ident
 except ImportError:
     from _thread import get_ident
+import base64
 
 __file_without_pyc__ = __file__
 if __file_without_pyc__.endswith(".pyc"):
@@ -371,16 +372,19 @@ class _HandlerTestCase(LogbookTestCase):
             mail = mail.replace("\r", "")
             self.assertEqual(sender, handler.from_addr)
             self.assert_('=?utf-8?q?=C3=B8nicode?=' in mail)
-            self.assertRegexpMatches(mail, 'Message type:\s+ERROR')
-            self.assertRegexpMatches(mail, 'Location:.*%s' % __file_without_pyc__)
-            self.assertRegexpMatches(mail, 'Module:\s+%s' % __name__)
-            self.assertRegexpMatches(mail, 'Function:\s+test_mail_handler')
-            body = u('Message:\n\nViva la Espa\xf1a')
+            header, data = mail.split("\n\n", 1)
+            if "Content-Transfer-Encoding: base64" in header:
+                data = base64.b64decode(data).decode("utf-8")
+            self.assertRegexpMatches(data, 'Message type:\s+ERROR')
+            self.assertRegexpMatches(data, 'Location:.*%s' % __file_without_pyc__)
+            self.assertRegexpMatches(data, 'Module:\s+%s' % __name__)
+            self.assertRegexpMatches(data, 'Function:\s+test_mail_handler')
+            body = u('Viva la Espa\xf1a')
             if sys.version_info < (3, 0):
                 body = body.encode('utf-8')
-            self.assertIn(body, mail)
-            self.assertIn('\n\nTraceback (most', mail)
-            self.assertIn('1 / 0', mail)
+            self.assertIn(body, data)
+            self.assertIn('\nTraceback (most', data)
+            self.assertIn('1 / 0', data)
             self.assertIn('This is not mailed', fallback.getvalue())
 
     def test_mail_handler_record_limits(self):
