@@ -474,6 +474,7 @@ class LogRecord(object):
         self._channel = None
         if isinstance(self.time, string_types):
             self.time = parse_iso8601(self.time)
+        self.extra = ExtraDict(self.extra)
         return self
 
     @cached_property
