@@ -130,7 +130,7 @@ class _BasicAPITestCase(LogbookTestCase):
         """ See https://github.com/mitsuhiko/logbook/issues/104
         """
         try:
-            raise Exception(u'\u202a test \u202c')
+            raise Exception(u('\u202a test \u202c'))
         except:
             r = logbook.LogRecord('channel', 'DEBUG', 'test', exc_info=sys.exc_info())
         r.exception_message
