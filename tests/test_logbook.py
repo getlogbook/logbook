@@ -126,6 +126,15 @@ class _BasicAPITestCase(LogbookTestCase):
         self.assertIsNotNone(handler.records[0].exc_info)
         self.assertIn('1 / 0', handler.records[0].formatted_exception)
 
+    def test_exception_catching_with_unicode(self):
+        """ See https://github.com/mitsuhiko/logbook/issues/104
+        """
+        try:
+            raise Exception(u'\u202a test \u202c')
+        except:
+            r = logbook.LogRecord('channel', 'DEBUG', 'test', exc_info=sys.exc_info())
+        r.exception_message
+
     def test_exc_info_tuple(self):
         self._test_exc_info(as_tuple=True)
 

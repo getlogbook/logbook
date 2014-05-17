@@ -632,7 +632,10 @@ class LogRecord(object):
         if self.exc_info is not None:
             val = self.exc_info[1]
             try:
-                return u(str(val))
+                if PY2:
+                    return unicode(val)
+                else:
+                    return str(val)
             except UnicodeError:
                 return str(val).decode('utf-8', 'replace')
 
