@@ -14,4 +14,4 @@ Logbook is a nice logging replacement.
 
 It should be easy to setup, use and configure and support web applications :)
 
-For more information look at http://logbook.pocoo.org/
+For more information look at http://pythonhosted.org/Logbook
