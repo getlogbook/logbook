@@ -24,11 +24,11 @@ import sys
 import tempfile
 import time
 import json
+import base64
 try:
     from thread import get_ident
 except ImportError:
     from _thread import get_ident
-import base64
 
 __file_without_pyc__ = __file__
 if __file_without_pyc__.endswith(".pyc"):
