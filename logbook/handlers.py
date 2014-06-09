@@ -1496,7 +1496,7 @@ class FingersCrossedHandler(Handler):
     handler when a severity theshold was reached with the buffer emitting.
     This now enables this logger to be properly used with the
     :class:`~logbook.MailHandler`.  You will now only get one mail for
-    each bfufered record.  However once the threshold was reached you would
+    each buffered record.  However once the threshold was reached you would
     still get a mail for each record which is why the `reset` flag was added.
 
     When set to `True`, the handler will instantly reset to the untriggered
