@@ -32,7 +32,7 @@ from logbook.helpers import rename, b, _is_text_stream, is_unicode, PY2, \
 
 
 DEFAULT_FORMAT_STRING = (
-    u('[{record.time:%Y-%m-%d %H:%M}] ') +
+    u('[{record.time:%Y-%m-%d %H:%M:%S}] ') +
     u('{record.level_name}: {record.channel}: {record.message}')
 )
 SYSLOG_FORMAT_STRING = u('{record.channel}: {record.message}')
