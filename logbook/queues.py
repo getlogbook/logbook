@@ -148,7 +148,7 @@ class MessageQueueHandler(Handler):
     """
 
     def __init__(self, uri=None, queue='logging', level=NOTSET,
-                 filter=None, bubble=False, context=None):
+                 filter=None, bubble=False):
         Handler.__init__(self, level, filter, bubble)
         try:
             import kombu
