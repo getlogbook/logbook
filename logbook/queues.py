@@ -127,9 +127,24 @@ class MessageQueueHandler(Handler):
     The queue will be filled with JSON exported log records.  To receive such
     log records from a queue you can use the :class:`MessageQueueSubscriber`.
 
-    Example setup::
+    For an AMQP backend such as RabbitMQ::
+
+        handler = MessageQueueHandler('amqp://guest:guest@localhost//')
+
+    This requires the py-amqp or the librabbitmq client library.
+
+    For Redis (requires redis client library)::
+
+        handler = MessageQueueHandler('redis://localhost:8889/0')
+
+    For MongoDB (requires pymongo)::
 
         handler = MessageQueueHandler('mongodb://localhost:27017/logging')
+
+    Several other backends are also supported.
+    Refer to the `kombu`_ documentation
+
+    .. _kombu: http://kombu.readthedocs.org/en/latest/introduction.html
     """
 
     def __init__(self, uri=None, queue='logging', level=NOTSET,
