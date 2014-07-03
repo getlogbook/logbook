@@ -13,13 +13,11 @@ if __name__ == '__main__':
 
     deps = [
         "execnet>=1.0.9",
-        "nose",
+        "pytest",
         "pyzmq",
         "sqlalchemy",
     ]
 
-    if python_version < (2, 7):
-        deps.append("unittest2")
     if (3, 2) <= python_version < (3, 3):
         deps.append("markupsafe==0.15")
         deps.append("Jinja2==2.6")

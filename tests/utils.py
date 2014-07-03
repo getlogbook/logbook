@@ -6,19 +6,19 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-from contextlib import contextmanager
 import platform
+import functools
 import sys
+from contextlib import contextmanager
 
-if platform.python_version() < "2.7":
-    import unittest2 as unittest
-else:
-    import unittest
 import logbook
 from logbook.helpers import StringIO
 
+import pytest
+
 _missing = object()
 
+LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 def get_total_delta_seconds(delta):
     """
@@ -27,23 +27,15 @@ def get_total_delta_seconds(delta):
     return (delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6) / 10**6
 
 
-require_py3 = unittest.skipUnless(sys.version_info[0] == 3, "Requires Python 3")
+require_py3 = pytest.mark.skipif(sys.version_info[0] < 3, reason="Requires Python 3")
 def require_module(module_name):
+    found = True
     try:
         __import__(module_name)
     except ImportError:
-        return unittest.skip("Requires the %r module" % (module_name,))
-    return lambda func: func
+        found = False
 
-class LogbookTestSuite(unittest.TestSuite):
-    pass
-
-class LogbookTestCase(unittest.TestCase):
-    def setUp(self):
-        self.log = logbook.Logger('testlogger')
-
-# silence deprecation warning displayed on Py 3.2
-LogbookTestCase.assert_ = LogbookTestCase.assertTrue
+    return pytest.mark.skipif(not found, reason='Module {0} is required'.format(module_name))
 
 def make_fake_mail_handler(**kwargs):
     class FakeMailHandler(logbook.MailHandler):
@@ -64,6 +56,7 @@ def make_fake_mail_handler(**kwargs):
 
 def missing(name):
     def decorate(f):
+        @functools.wraps(f)
         def wrapper(*args, **kwargs):
             old = sys.modules.get(name, _missing)
             sys.modules[name] = None
