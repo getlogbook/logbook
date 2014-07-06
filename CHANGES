@@ -3,6 +3,11 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.8.0
+-------------
+
+- Added Pushover handler (thanks @owo)
+
 Version 0.7.0
 -------------
 
