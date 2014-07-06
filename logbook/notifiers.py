@@ -292,13 +292,8 @@ class PushoverHandler(NotificationBaseHandler):
 
     def emit(self, record):
 
-        if self.title is None:
-            tlen = 0
-        else:
-            tlen = len(self.title)
-
-        if len(record.message) + tlen > 512:
-            message = "%s..." % (record.message[:-(tlen+3)],)
+        if len(record.message) > 512:
+            message = "%s..." % (record.message[:-3],)
         else:
             message = record.message
 
