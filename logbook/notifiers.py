@@ -270,8 +270,8 @@ class PushoverHandler(NotificationBaseHandler):
                  device=None, priority=0, sound=None, record_limit=None,
                  record_delta=None, level=NOTSET, filter=None, bubble=False):
 
-        NotificationBaseHandler.__init__(self, None, record_limit, record_delta,
-                                         level, filter, bubble)
+        super(PushoverHandler, self).__init__(None, record_limit, record_delta,
+                                              level, filter, bubble)
 
         self.application_name = application_name
         self.apikey = apikey
