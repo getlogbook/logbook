@@ -259,3 +259,60 @@ class NotifoHandler(NotificationBaseHandler):
         self._notifo.send_notification(self.username, self.secret, None,
                                        record.message, self.application_name,
                                        _level_name, None)
+
+
+class PushoverHandler(NotificationBaseHandler):
+    """Sends notifications to pushover.net.  Can be forwarded to your Desktop,
+    iPhone, or other compatible device. If `priority` is not one of -2, -1, 0,
+    or 1, it is set to 0 automatically.
+    """
+
+    def __init__(self, application_name=None, apikey=None, userkey=None,
+                 device=None, priority=0, sound=None, record_limit=None,
+                 record_delta=None, level=NOTSET, filter=None, bubble=False):
+
+        super(PushoverHandler, self).__init__(None, record_limit, record_delta,
+                                              level, filter, bubble)
+
+        self.application_name = application_name
+        self.apikey = apikey
+        self.userkey = userkey
+        self.device = device
+        self.priority = priority
+        self.sound = sound
+
+        if self.application_name is None:
+            self.title = None
+        elif len(self.application_name) > 100:
+            self.title = "%s..." % (self.application_name[:-3],)
+        else:
+            self.title = self.application_name
+
+        if self.priority not in [-2, -1, 0, 1]:
+            self.priority = 0
+
+    def emit(self, record):
+
+        if len(record.message) > 512:
+            message = "%s..." % (record.message[:-3],)
+        else:
+            message = record.message
+
+        body_dict = {
+            'token': self.apikey,
+            'user': self.userkey,
+            'message': message,
+            'priority': self.priority
+        }
+
+        if self.title is not None:
+            body_dict['title'] = self.title
+        if self.device is not None:
+            body_dict['device'] = self.device
+        if self.sound is not None:
+            body_dict['sound'] = self.sound
+
+        body = urlencode(body_dict)
+        con = http_client.HTTPSConnection('api.pushover.net')
+        con.request('POST', '/1/messages.json', body=body)
+        con.close()
