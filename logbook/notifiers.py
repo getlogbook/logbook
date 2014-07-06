@@ -263,7 +263,8 @@ class NotifoHandler(NotificationBaseHandler):
 
 class PushoverHandler(NotificationBaseHandler):
     """Sends notifications to pushover.net.  Can be forwarded to your Desktop,
-    iPhone, or other compatible device.
+    iPhone, or other compatible device. If `priority` is not one of -2, -1, 0,
+    or 1, it is set to 0 automatically.
     """
 
     def __init__(self, application_name=None, apikey=None, userkey=None,
