@@ -267,7 +267,7 @@ class PushoverHandler(NotificationBaseHandler):
     """
 
     def __init__(self, application_name=None, apikey=None, userkey=None,
-                 device=None, priority=-1, sound=None, record_limit=None,
+                 device=None, priority=0, sound=None, record_limit=None,
                  record_delta=None, level=NOTSET, filter=None, bubble=False):
 
         NotificationBaseHandler.__init__(self, None, record_limit, record_delta,
@@ -287,7 +287,7 @@ class PushoverHandler(NotificationBaseHandler):
         else:
             self.title = self.application_name
 
-        if self.priority not in [-2, -1, 1]:
+        if self.priority not in [-2, -1, 0, 1]:
             self.priority = -1
 
     def emit(self, record):
