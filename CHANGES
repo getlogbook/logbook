@@ -7,6 +7,8 @@ Version 0.8.0
 -------------
 
 - Added Pushover handler (thanks @owo)
+- Default logging format now includes seconds
+
 
 Version 0.7.0
 -------------
