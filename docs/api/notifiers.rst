@@ -33,6 +33,9 @@ Other Services
 .. autoclass:: NotifoHandler
   :members:
 
+.. autoclass:: PushoverHandler
+  :members:
+
 Base Interface
 --------------
 
