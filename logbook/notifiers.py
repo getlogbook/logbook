@@ -288,7 +288,7 @@ class PushoverHandler(NotificationBaseHandler):
             self.title = self.application_name
 
         if self.priority not in [-2, -1, 0, 1]:
-            self.priority = -1
+            self.priority = 0
 
     def emit(self, record):
 
