@@ -106,7 +106,7 @@ def run_setup(with_binary):
         features['speedups'] = speedups
     setup(
         name='Logbook',
-        version='0.7.0.1',
+        version='0.7.0.2',
         license='BSD',
         url='http://logbook.pocoo.org/',
         author='Armin Ronacher, Georg Brandl',
