@@ -11,7 +11,7 @@ def test_timedate_format(activation_strategy, logger):
     """
     tests the logbook.set_datetime_format() function
     """
-    FORMAT_STRING = '{record.time:%H:%M:%S} {record.message}'
+    FORMAT_STRING = '{record.time:%H:%M:%S.%f} {record.message}'
     handler = logbook.TestHandler(format_string=FORMAT_STRING)
     with activation_strategy(handler):
         logbook.set_datetime_format('utc')
