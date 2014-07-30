@@ -7,7 +7,7 @@ Version 0.8.0
 -------------
 
 - Added Pushover handler (thanks @owo)
-- Default logging format now includes seconds
+- Default logging format now includes seconds and microseconds (#110)
 
 
 Version 0.7.0

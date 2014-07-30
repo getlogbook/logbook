@@ -9,7 +9,7 @@ class, create yourself a logger and you are set:
 >>> from logbook import Logger
 >>> log = Logger('My Awesome Logger')
 >>> log.warn('This is too cool for stdlib')
-[2010-07-23 16:34] WARNING: My Awesome Logger: This is too cool for stdlib
+[2010-07-23 16:34:42.687111] WARNING: My Awesome Logger: This is too cool for stdlib
 
 A logger is a so-called :class:`~logbook.base.RecordDispatcher`, which is
 commonly referred to as a "logging channel".  The name you give such a channel
