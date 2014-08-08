@@ -41,6 +41,7 @@ def test_basic_compat(request, set_root_logger_level):
     else:
         assert handler.records[0].level == logbook.WARNING
 
+
 def test_redirect_logbook():
     import logging
     out = StringIO()
@@ -52,7 +53,7 @@ def test_redirect_logbook():
         '%(name)s:%(levelname)s:%(message)s'))
     logger.handlers[:] = [handler]
     try:
-        with logbook.compat.LoggingHandler() as logging_handler:
+        with logbook.compat.LoggingHandler():
             logbook_logger.warn("This goes to logging")
             pieces = out.getvalue().strip().split(':')
             assert pieces == ['testlogger', 'WARNING', 'This goes to logging']

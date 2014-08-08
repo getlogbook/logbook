@@ -1,4 +1,5 @@
 import os
+import pytest
 from datetime import datetime
 
 import logbook
@@ -39,9 +40,8 @@ def test_file_handler_delay(logfile, activation_strategy, logger):
 
 
 def test_monitoring_file_handler(logfile, activation_strategy, logger):
-    if os.name == "nt":
-        pytest.skip(
-            "unsupported on windows due to different IO (also unneeded)")
+    if os.name == 'nt':
+        pytest.skip('unsupported on windows due to different IO (also unneeded)')
     handler = logbook.MonitoringFileHandler(logfile,
                                             format_string='{record.level_name}:{record.channel}:'
                                             '{record.message}', delay=True)
@@ -87,6 +87,7 @@ def test_rotating_file_handler(logfile, activation_strategy, logger):
         assert f.readline().rstrip() == ('E' * 256)
         assert f.readline().rstrip() == ('F' * 256)
 
+
 def test_timed_rotating_file_handler(tmpdir, activation_strategy):
     basename = str(tmpdir.join('trot.log'))
     handler = logbook.TimedRotatingFileHandler(basename, backup_count=3)
@@ -109,9 +110,8 @@ def test_timed_rotating_file_handler(tmpdir, activation_strategy):
         for x in xrange(20):
             handler.handle(fake_record('Last One', 2010, 1, 8, x + 1))
 
-    files = sorted(
-        x for x in os.listdir(str(tmpdir)) if x.startswith('trot')
-    )
+    files = sorted(x for x in os.listdir(str(tmpdir)) if x.startswith('trot'))
+
     assert files == ['trot-2010-01-06.log', 'trot-2010-01-07.log', 'trot-2010-01-08.log']
     with open(str(tmpdir.join('trot-2010-01-08.log'))) as f:
         assert f.readline().rstrip() == '[01:00] Last One'

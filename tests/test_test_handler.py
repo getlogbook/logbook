@@ -1,7 +1,5 @@
 import re
 
-import logbook
-
 
 def test_regex_matching(active_handler, logger):
     logger.warn('Hello World!')

@@ -24,8 +24,9 @@ def test_jsonhelper():
     ])
 
     assert rv == [None, u('foo'), u('jäger'), 1, '2000-01-01T00:00:00Z',
-             {u('jäger1'): 1, u('jäger2'): 2, u('bogus'): 3,
-              u('invalid'): None}, None]
+                  {u('jäger1'): 1, u('jäger2'): 2, u('bogus'): 3,
+                   u('invalid'): None}, None]
+
 
 def test_datehelpers():
     from logbook.helpers import format_iso8601, parse_iso8601

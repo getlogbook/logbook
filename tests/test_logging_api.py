@@ -40,6 +40,7 @@ def test_exception_catching_with_unicode():
         r = logbook.LogRecord('channel', 'DEBUG', 'test', exc_info=sys.exc_info())
     r.exception_message
 
+
 @pytest.mark.parametrize('as_tuple', [True, False])
 def test_exc_info(as_tuple, logger, active_handler):
     try:
@@ -49,6 +50,7 @@ def test_exc_info(as_tuple, logger, active_handler):
         logger.info("Exception caught", exc_info=exc_info if as_tuple else True)
     assert active_handler.records[0].exc_info is not None
     assert active_handler.records[0].exc_info == exc_info
+
 
 def test_to_dict(logger, active_handler):
     try:
@@ -88,4 +90,3 @@ def test_pickle(active_handler, logger):
                 assert value.args == imported_value.args
             else:
                 assert value == imported_value
-

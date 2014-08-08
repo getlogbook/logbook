@@ -32,11 +32,13 @@ def test_timedate_format(activation_strategy, logger):
     tz_minutes_diff = get_total_delta_seconds(t1 - t2)/60.0
 
     if abs(tz_minutes_diff) < 1:
-        pytest.skip("Cannot test utc/localtime differences if they vary by less than one minute...")
+        pytest.skip('Cannot test utc/localtime differences '
+                    'if they vary by less than one minute...')
 
     # get the difference between LogRecord local and utc times
     logbook_minutes_diff = get_total_delta_seconds(time_local - time_utc)/60.0
-    assert abs(logbook_minutes_diff) > 1, ('Localtime does not differ from UTC by more than 1 minute (Local: %s, UTC: %s)' % (time_local, time_utc))
+    assert abs(logbook_minutes_diff) > 1, ('Localtime does not differ from UTC by more than 1 '
+                                           'minute (Local: %s, UTC: %s)' % (time_local, time_utc))
 
     ratio = logbook_minutes_diff / tz_minutes_diff
 

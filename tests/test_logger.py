@@ -9,6 +9,7 @@ def test_level_properties(logger):
     logger.level = logbook.ERROR
     assert logger.level_name == 'ERROR'
 
+
 def test_reflected_properties(logger):
     group = logbook.LoggerGroup()
     group.add_logger(logger)
@@ -24,4 +25,4 @@ def test_reflected_properties(logger):
     assert logger.level == logbook.CRITICAL
     assert logger.level_name == 'CRITICAL'
     group.remove_logger(logger)
-    assert logger.group == None
+    assert logger.group is None

@@ -8,7 +8,7 @@ import pytest
 from .utils import capturing_stderr_context
 
 __file_without_pyc__ = __file__
-if __file_without_pyc__.endswith(".pyc"):
+if __file_without_pyc__.endswith('.pyc'):
     __file_without_pyc__ = __file_without_pyc__[:-1]
 
 
@@ -24,6 +24,7 @@ def test_handler_exception(activation_strategy, logger):
     assert 'something bad happened' in stderr.getvalue()
     assert 'I warn you' not in stderr.getvalue()
 
+
 def test_formatting_exception():
     def make_record():
         return logbook.LogRecord('Test Logger', logbook.WARNING,
@@ -35,10 +36,11 @@ def test_formatting_exception():
         record.message
 
     errormsg = str(caught.value)
-    assert re.search(
-        "Could not format message with provided arguments: Invalid (?:format specifier)|(?:conversion specification)|(?:format spec)",
-        errormsg, re.M | re.S)
+    assert re.search('Could not format message with provided arguments: '
+                     'Invalid (?:format specifier)|(?:conversion specification)|(?:format spec)',
+                     errormsg, re.M | re.S)
     assert "msg='Hello {foo:invalid}'" in errormsg
     assert 'args=()' in errormsg
     assert "kwargs={'foo': 42}" in errormsg
-    assert re.search(r'Happened in file .*%s, line \d+' % __file_without_pyc__, errormsg, re.M | re.S)
+    assert re.search(r'Happened in file .*%s, line \d+' % re.escape(__file_without_pyc__),
+                     errormsg, re.M | re.S)

@@ -46,6 +46,7 @@ def test_zeromq_background_thread(logger, handlers, subscriber):
     assert test_handler.has_warning('This is a warning')
     assert test_handler.has_error('This is an error')
 
+
 @missing('zmq')
 def test_missing_zeromq():
     from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
