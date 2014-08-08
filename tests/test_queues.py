@@ -40,7 +40,7 @@ def test_zeromq_background_thread(logger, handlers, subscriber):
     # stop the controller.  This will also stop the loop and join the
     # background process.  Before that we give it a fraction of a second
     # to get all results
-    time.sleep(0.2)
+    time.sleep(0.5)
     controller.stop()
 
     assert test_handler.has_warning('This is a warning')
