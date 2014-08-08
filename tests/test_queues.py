@@ -2,7 +2,6 @@
 import time
 import socket
 
-
 from .utils import require_module, missing, LETTERS
 
 import logbook
@@ -56,23 +55,29 @@ def test_missing_zeromq():
         ZeroMQSubscriber('tcp://127.0.0.1:42000')
 
 
-@require_module('multiprocessing')
-def test_multi_processing_handler():
-    from multiprocessing import Process, Queue
-    from logbook.queues import MultiProcessingHandler, MultiProcessingSubscriber
-    queue = Queue(-1)
-    test_handler = logbook.TestHandler()
-    subscriber = MultiProcessingSubscriber(queue)
+class MultiProcessingHandlerSendBack(object):
+    def __init__(self, queue):
+        self.queue = queue
 
-    def send_back():
-        handler = MultiProcessingHandler(queue)
+    def __call__(self):
+        from logbook.queues import MultiProcessingHandler
+        handler = MultiProcessingHandler(self.queue)
         handler.push_thread()
         try:
             logbook.warn('Hello World')
         finally:
             handler.pop_thread()
 
-    p = Process(target=send_back)
+
+@require_module('multiprocessing')
+def test_multi_processing_handler():
+    from multiprocessing import Process, Queue
+    from logbook.queues import MultiProcessingSubscriber
+    queue = Queue(-1)
+    test_handler = logbook.TestHandler()
+    subscriber = MultiProcessingSubscriber(queue)
+
+    p = Process(target=MultiProcessingHandlerSendBack(queue))
     p.start()
     p.join()
 
@@ -102,7 +107,7 @@ def test_execnet_handler():
         import logbook
         from logbook.queues import ExecnetChannelHandler
         handler = ExecnetChannelHandler(channel)
-        log = logbook.Logger("Execnet")
+        log = logbook.Logger('Execnet')
         handler.push_application()
         log.info('Execnet works')
 
@@ -116,27 +121,31 @@ def test_execnet_handler():
     gw.exit()
 
 
+class SubscriberGroupSendBack(object):
+    def __init__(self, message, queue):
+        self.message = message
+        self.queue = queue
+
+    def __call__(self):
+        from logbook.queues import MultiProcessingHandler
+        with MultiProcessingHandler(self.queue):
+            logbook.warn(self.message)
+
+
 @require_module('multiprocessing')
 def test_subscriber_group():
     from multiprocessing import Process, Queue
-    from logbook.queues import MultiProcessingHandler, MultiProcessingSubscriber, SubscriberGroup
+    from logbook.queues import MultiProcessingSubscriber, SubscriberGroup
     a_queue = Queue(-1)
     b_queue = Queue(-1)
-    test_handler = logbook.TestHandler()
     subscriber = SubscriberGroup([
         MultiProcessingSubscriber(a_queue),
         MultiProcessingSubscriber(b_queue)
     ])
 
-    def make_send_back(message, queue):
-        def send_back():
-            with MultiProcessingHandler(queue):
-                logbook.warn(message)
-        return send_back
-
     for _ in range(10):
-        p1 = Process(target=make_send_back('foo', a_queue))
-        p2 = Process(target=make_send_back('bar', b_queue))
+        p1 = Process(target=SubscriberGroupSendBack('foo', a_queue))
+        p2 = Process(target=SubscriberGroupSendBack('bar', b_queue))
         p1.start()
         p2.start()
         p1.join()
@@ -213,9 +222,11 @@ def test_redis_handler():
 def handlers(handlers_subscriber):
     return handlers_subscriber[0]
 
+
 @pytest.fixture
 def subscriber(handlers_subscriber):
     return handlers_subscriber[1]
+
 
 @pytest.fixture
 def handlers_subscriber(multi):
@@ -237,6 +248,7 @@ def handlers_subscriber(multi):
     # Enough time to start
     time.sleep(0.1)
     return handlers, subscriber
+
 
 @pytest.fixture(params=[True, False])
 def multi(request):
