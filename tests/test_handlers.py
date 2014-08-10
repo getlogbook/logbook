@@ -3,7 +3,6 @@ import logbook
 from .utils import capturing_stderr_context, make_fake_mail_handler
 
 
-
 def test_custom_logger(activation_strategy, logger):
     client_ip = '127.0.0.1'
 
@@ -23,7 +22,8 @@ def test_custom_logger(activation_strategy, logger):
         logger.warn('"Music" playing')
 
     assert handler.formatted_records == [
-        '[WARNING] awesome logger: Too many sounds [127.0.0.1]', '[WARNING] testlogger: "Music" playing []']
+        '[WARNING] awesome logger: Too many sounds [127.0.0.1]',
+        '[WARNING] testlogger: "Music" playing []']
 
 
 def test_custom_handling(activation_strategy, logger):

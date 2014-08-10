@@ -6,6 +6,7 @@ import pytest
 def logger():
     return logbook.Logger('testlogger')
 
+
 @pytest.fixture
 def active_handler(request, test_handler, activation_strategy):
 
@@ -17,6 +18,7 @@ def active_handler(request, test_handler, activation_strategy):
         s.deactivate()
 
     return test_handler
+
 
 @pytest.fixture
 def test_handler():
@@ -30,10 +32,10 @@ class ActivationStrategy(object):
         self.handler = handler
 
     def activate(self):
-        raise NotImplementedError() # pragma: no cover
+        raise NotImplementedError()  # pragma: no cover
 
     def deactivate(self):
-        raise NotImplementedError() # pragma: no cover
+        raise NotImplementedError()  # pragma: no cover
 
     def __enter__(self):
         self.activate()
@@ -41,6 +43,7 @@ class ActivationStrategy(object):
 
     def __exit__(self, *_):
         self.deactivate()
+
 
 class ContextEnteringStrategy(ActivationStrategy):
 
@@ -50,6 +53,7 @@ class ContextEnteringStrategy(ActivationStrategy):
     def deactivate(self):
         self.handler.__exit__(None, None, None)
 
+
 class PushingStrategy(ActivationStrategy):
 
     def activate(self):
@@ -57,7 +61,6 @@ class PushingStrategy(ActivationStrategy):
 
     def deactivate(self):
         self.handler.pop_thread()
-
 
 
 @pytest.fixture(params=[ContextEnteringStrategy, PushingStrategy])

@@ -8,7 +8,7 @@ from logbook.helpers import u
 from .utils import capturing_stderr_context, make_fake_mail_handler
 
 __file_without_pyc__ = __file__
-if __file_without_pyc__.endswith(".pyc"):
+if __file_without_pyc__.endswith('.pyc'):
     __file_without_pyc__ = __file_without_pyc__[:-1]
 
 
@@ -29,14 +29,14 @@ def test_mail_handler(activation_strategy, logger):
 
         assert len(handler.mails) == 1
         sender, receivers, mail = handler.mails[0]
-        mail = mail.replace("\r", "")
+        mail = mail.replace('\r', '')
         assert sender == handler.from_addr
         assert '=?utf-8?q?=C3=B8nicode?=' in mail
-        header, data = mail.split("\n\n", 1)
-        if "Content-Transfer-Encoding: base64" in header:
-            data = base64.b64decode(data).decode("utf-8")
+        header, data = mail.split('\n\n', 1)
+        if 'Content-Transfer-Encoding: base64' in header:
+            data = base64.b64decode(data).decode('utf-8')
         assert re.search('Message type:\s+ERROR', data)
-        assert re.search('Location:.*%s' % __file_without_pyc__, data)
+        assert re.search('Location:.*%s' % re.escape(__file_without_pyc__), data)
         assert re.search('Module:\s+%s' % __name__, data)
         assert re.search('Function:\s+test_mail_handler', data)
         body = u('Viva la Espa\xf1a')
@@ -64,7 +64,7 @@ def test_mail_handler_batching(activation_strategy, logger):
     pieces = mail.split('Log records that led up to this one:')
     assert len(pieces) == 2
     body, rest = pieces
-    rest = rest.replace("\r", "")
+    rest = rest.replace('\r', '')
 
     assert re.search('Message type:\s+ERROR', body)
     assert re.search('Module:\s+%s' % __name__, body)
@@ -93,7 +93,7 @@ def test_group_handler_mail_combo(activation_strategy, logger):
     pieces = mail.split('Other log records in the same group:')
     assert len(pieces) == 2
     body, rest = pieces
-    rest = rest.replace("\r", "")
+    rest = rest.replace('\r', '')
 
     assert re.search('Message type:\\s+ERROR', body)
     assert re.search('Module:\s+' + __name__, body)

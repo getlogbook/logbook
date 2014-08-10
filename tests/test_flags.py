@@ -22,6 +22,7 @@ def test_error_flag(logger):
                 logger.warn('Foo {42}', 'aha')
         assert 'Could not format message with provided arguments' in str(caught.value)
 
+
 def test_disable_introspection(logger):
     with logbook.Flags(introspection=False):
         with logbook.TestHandler() as h:
