@@ -88,9 +88,10 @@ def test_rotating_file_handler(logfile, activation_strategy, logger):
         assert f.readline().rstrip() == ('F' * 256)
 
 
-def test_timed_rotating_file_handler(tmpdir, activation_strategy):
+@pytest.mark.parametrize("backup_count", [1, 3])
+def test_timed_rotating_file_handler(tmpdir, activation_strategy, backup_count):
     basename = str(tmpdir.join('trot.log'))
-    handler = logbook.TimedRotatingFileHandler(basename, backup_count=3)
+    handler = logbook.TimedRotatingFileHandler(basename, backup_count=backup_count)
     handler.format_string = '[{record.time:%H:%M}] {record.message}'
 
     def fake_record(message, year, month, day, hour=0,
@@ -112,10 +113,11 @@ def test_timed_rotating_file_handler(tmpdir, activation_strategy):
 
     files = sorted(x for x in os.listdir(str(tmpdir)) if x.startswith('trot'))
 
-    assert files == ['trot-2010-01-06.log', 'trot-2010-01-07.log', 'trot-2010-01-08.log']
+    assert files == ['trot-2010-01-0{0}.log'.format(i) for i in xrange(5, 9)][-backup_count:]
     with open(str(tmpdir.join('trot-2010-01-08.log'))) as f:
         assert f.readline().rstrip() == '[01:00] Last One'
         assert f.readline().rstrip() == '[02:00] Last One'
-    with open(str(tmpdir.join('trot-2010-01-07.log'))) as f:
-        assert f.readline().rstrip() == '[01:00] Third One'
-        assert f.readline().rstrip() == '[02:00] Third One'
+    if backup_count > 1:
+        with open(str(tmpdir.join('trot-2010-01-07.log'))) as f:
+            assert f.readline().rstrip() == '[01:00] Third One'
+            assert f.readline().rstrip() == '[02:00] Third One'
