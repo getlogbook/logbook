@@ -832,7 +832,8 @@ class TimedRotatingFileHandler(FileHandler):
                filename.endswith(self._fn_parts[1]):
                 files.append((os.path.getmtime(filename), filename))
         files.sort()
-        return files[:-self.backup_count + 1]
+        return files[:-self.backup_count + 1] if self.backup_count > 1\
+                else files[:]
 
     def perform_rollover(self):
         self.stream.close()
