@@ -17,9 +17,9 @@ from logbook.handlers import Handler, WrapperHandler
 from logbook.helpers import PY2, u
 
 if PY2:
-    from Queue import Empty, Queue as ThreadQueue
+    from Queue import Empty, Full, Queue as ThreadQueue
 else:
-    from queue import Empty, Queue as ThreadQueue
+    from queue import Empty, Full, Queue as ThreadQueue
 
 
 class RedisHandler(Handler):
@@ -623,9 +623,9 @@ class ThreadedWrapperHandler(WrapperHandler):
     """
     _direct_attrs = frozenset(['handler', 'queue', 'controller'])
 
-    def __init__(self, handler):
+    def __init__(self, handler, maxsize=0):
         WrapperHandler.__init__(self, handler)
-        self.queue = ThreadQueue(-1)
+        self.queue = ThreadQueue(maxsize)
         self.controller = TWHThreadController(self)
         self.controller.start()
 
@@ -634,7 +634,11 @@ class ThreadedWrapperHandler(WrapperHandler):
         self.handler.close()
 
     def emit(self, record):
-        self.queue.put_nowait(record)
+        try:
+            self.queue.put_nowait(record)
+        except Full:
+            # silently drop
+            pass
 
 
 class GroupMember(ThreadController):
