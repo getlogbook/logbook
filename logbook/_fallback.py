@@ -11,8 +11,10 @@
 
 try:
     from gevent import threading
+    import threading as native_threading
 except ImportError:
     import threading
+    native_threading = threading
 from itertools import count
 try:
     from gevent.thread import get_ident as current_thread
@@ -108,7 +110,7 @@ class ContextStackManager(object):
 
     def __init__(self):
         self._global = []
-        self._context_lock = threading.Lock()
+        self._context_lock = native_threading.Lock()
         self._context = threading.local()
         self._cache = {}
         self._stackop = get_iterator_next_method(count())

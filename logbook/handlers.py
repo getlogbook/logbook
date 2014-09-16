@@ -22,9 +22,88 @@ try:
 except ImportError:
     from sha import new as sha1
 try:
+    import gevent
     from gevent import threading
+    import threading as native_threading
+
+    class NativeFriendlyRLock(object):
+        def __init__(self):
+            self._thread_local = native_threading.local()
+            self._owner = None
+            self._wait_queue = []
+            self._count = 0
+
+        def __repr__(self):
+            owner = self._owner
+            return "<%s owner=%r count=%d>" % (self.__class__.__name__, owner, self._count)
+
+        def acquire(self, blocking=1):
+            tid = native_threading.get_ident()
+            gid = id(gevent.getcurrent())
+            tid_gid = (tid, gid)
+            if tid_gid == self._owner:  # We trust the GIL here so we can do this comparison w/o locking.
+                self._count = self._count + 1
+                return True
+
+            greenlet_lock = self._get_greenlet_lock()
+
+            self._wait_queue.append(gid)
+            # this is a safety in case an exception is raised somewhere and we must make sure we're not in the queue
+            # otherwise it'll get stuck forever.
+            remove_from_queue_on_return = True
+            try:
+                while True:
+                    if not greenlet_lock.acquire(blocking):
+                        return False  # non-blocking and failed to acquire lock
+
+                    if self._wait_queue[0] == gid:
+                        # Hurray, we can have the lock.
+                        self._owner = tid_gid
+                        self._count = 1
+                        remove_from_queue_on_return = False  # don't remove us from the queue
+                        return True
+                    else:
+                        # we already hold the greenlet lock so obviously the owner is not in our thread.
+                        greenlet_lock.release()
+                        if blocking:
+                            gevent.sleep(0.0005)  # 500 us -> initial delay of 1 ms
+                        else:
+                            return False
+            finally:
+                if remove_from_queue_on_return:
+                    self._wait_queue.remove(gid)
+
+        def release(self):
+            tid_gid = (native_threading.get_ident(), id(gevent.getcurrent()))
+            if tid_gid != self._owner:
+                raise RuntimeError("cannot release un-acquired lock")
+
+            self._count = self._count - 1
+            if not self._count:
+                self._owner = None
+                gid = self._wait_queue.pop(0)
+                assert gid == tid_gid[1]
+                self._thread_local.greenlet_lock.release()
+
+        __enter__ = acquire
+
+        def __exit__(self, t, v, tb):
+            self.release()
+
+        def _get_greenlet_lock(self):
+            if not hasattr(self._thread_local, 'greenlet_lock'):
+                greenlet_lock = self._thread_local.greenlet_lock = threading.Semaphore(1)
+            else:
+                greenlet_lock = self._thread_local.greenlet_lock
+            return greenlet_lock
+
+        def _is_owned(self):
+            return self._owner == (native_threading.get_ident(), id(gevent.getcurrent()))
+
+    Lock = NativeFriendlyRLock
 except ImportError:
     import threading
+    Lock = threading.Lock
 import traceback
 from datetime import datetime, timedelta
 from collections import deque
@@ -456,7 +535,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
 
     def __init__(self, record_limit, record_delta):
         self.record_limit = record_limit
-        self._limit_lock = threading.Lock()
+        self._limit_lock = Lock()
         self._record_limits = {}
         if record_delta is None:
             record_delta = timedelta(seconds=60)
@@ -526,7 +605,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.encoding = encoding
-        self.lock = threading.Lock()
+        self.lock = Lock()
         if stream is not _missing:
             self.stream = stream
 
@@ -1525,7 +1604,7 @@ class FingersCrossedHandler(Handler):
                  pull_information=True, reset=False, filter=None,
                  bubble=False):
         Handler.__init__(self, NOTSET, filter, bubble)
-        self.lock = threading.Lock()
+        self.lock = Lock()
         self._level = action_level
         if isinstance(handler, Handler):
             self._handler = handler
