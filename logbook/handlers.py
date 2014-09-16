@@ -24,7 +24,7 @@ except ImportError:
 try:
     import gevent
     from gevent import threading
-    import threading as native_threading
+    from gevent import _threading as native_threading
 
     class NativeFriendlyRLock(object):
         def __init__(self):
