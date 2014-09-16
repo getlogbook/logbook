@@ -23,7 +23,7 @@ except ImportError:
     from sha import new as sha1
 try:
     import gevent
-    from gevent import threading
+    from gevent.lock import Semaphore
     from gevent import _threading as native_threading
 
     class NativeFriendlyRLock(object):
@@ -92,7 +92,7 @@ try:
 
         def _get_greenlet_lock(self):
             if not hasattr(self._thread_local, 'greenlet_lock'):
-                greenlet_lock = self._thread_local.greenlet_lock = threading.Semaphore(1)
+                greenlet_lock = self._thread_local.greenlet_lock = Semaphore(1)
             else:
                 greenlet_lock = self._thread_local.greenlet_lock
             return greenlet_lock
@@ -102,8 +102,7 @@ try:
 
     Lock = NativeFriendlyRLock
 except ImportError:
-    import threading
-    Lock = threading.Lock
+    from threading import Lock
 import traceback
 from datetime import datetime, timedelta
 from collections import deque
