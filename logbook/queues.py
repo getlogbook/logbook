@@ -208,8 +208,17 @@ class ZeroMQHandler(Handler):
     def emit(self, record):
         self.socket.send(json.dumps(self.export_record(record)).encode("utf-8"))
 
-    def close(self):
-        self.socket.close()
+    def close(self, linger=-1):
+        self.socket.close(linger)
+
+    def __del__(self):
+        # When the Handler is deleted we must close our socket in a non-blocking
+        # fashion (using linger).
+        # Otherwise it can block indefinitely, for example if the Subscriber is
+        # not reachable.
+        # If messages are pending on the socket, we wait 100ms for them to be sent
+        # then we discard them.
+        self.close(linger=100)
 
 
 class ThreadController(object):
