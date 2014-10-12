@@ -766,50 +766,6 @@ class StderrHandler(StreamHandler):
         return sys.stderr
 
 
-class RotatingFileHandlerBase(FileHandler):
-    """Baseclass for rotating file handlers.
-
-    .. versionchanged:: 0.3
-       This class was deprecated because the interface is not flexible
-       enough to implement proper file rotations.  The former builtin
-       subclasses no longer use this baseclass.
-    """
-
-    def __init__(self, *args, **kwargs):
-        from warnings import warn
-        warn(DeprecationWarning('This class is deprecated'))
-        FileHandler.__init__(self, *args, **kwargs)
-
-    def emit(self, record):
-        msg = self.format(record)
-        self.lock.acquire()
-        try:
-            msg = self.encode(msg)
-            if self.should_rollover(record, msg):
-                self.perform_rollover()
-            self.write(msg)
-            self.flush()
-        finally:
-            self.lock.release()
-
-    def should_rollover(self, record, formatted_record):
-        """Called with the log record and the return value of the
-        :meth:`encode` method.  The method has then to
-        return `True` if a rollover should happen or `False`
-        otherwise.
-
-        .. versionchanged:: 0.3
-           Previously this method was called with the number of bytes
-           returned by :meth:`encode`
-        """
-        return False
-
-    def perform_rollover(self):
-        """Called if :meth:`should_rollover` returns `True` and has
-        to perform the actual rollover.
-        """
-
-
 class RotatingFileHandler(FileHandler):
     """This handler rotates based on file size.  Once the maximum size
     is reached it will reopen the file and start with an empty file
