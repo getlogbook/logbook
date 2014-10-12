@@ -615,6 +615,12 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         self.close()
         return Handler.__exit__(self, exc_type, exc_value, tb)
 
+    def ensure_stream_is_open(self):
+        """this method should be overriden in sub-classes to ensure that the
+        inner stream is open
+        """
+        pass
+
     def close(self):
         """The default stream handler implementation is not to close
         the wrapped stream but to flush it.
@@ -646,6 +652,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         msg = self.format(record)
         self.lock.acquire()
         try:
+            self.ensure_stream_is_open()
             self.write(self.encode(msg))
             self.flush()
         finally:
@@ -680,30 +687,31 @@ class FileHandler(StreamHandler):
         self.stream = open(self._filename, mode)
 
     def write(self, item):
-        if self.stream is None:
-            self._open()
+        self.ensure_stream_is_open()
         if not PY2 and isinstance(item, bytes):
             self.stream.buffer.write(item)
         else:
             self.stream.write(item)
 
     def close(self):
-        if self.stream is not None:
-            self.flush()
-            self.stream.close()
-            self.stream = None
+        self.lock.acquire()
+        try:
+            if self.stream is not None:
+                self.flush()
+                self.stream.close()
+                self.stream = None
+        finally:
+            self.lock.release()
 
     def encode(self, record):
         # encodes based on the stream settings, so the stream has to be
         # open at the time this function is called.
-        if self.stream is None:
-            self._open()
+        self.ensure_stream_is_open()
         return StreamHandler.encode(self, record)
 
-    def emit(self, record):
+    def ensure_stream_is_open(self):
         if self.stream is None:
             self._open()
-        StreamHandler.emit(self, record)
 
 
 class MonitoringFileHandler(FileHandler):
@@ -739,12 +747,21 @@ class MonitoringFileHandler(FileHandler):
                 self._last_stat = st[stat.ST_DEV], st[stat.ST_INO]
 
     def emit(self, record):
-        last_stat = self._last_stat
-        self._query_fd()
-        if last_stat != self._last_stat:
-            self.close()
-        FileHandler.emit(self, record)
-        self._query_fd()
+        msg = self.format(record)
+        self.lock.acquire()
+        try:
+            last_stat = self._last_stat
+            self._query_fd()
+            if last_stat != self._last_stat and self.stream is not None:
+                self.flush()
+                self.stream.close()
+                self.stream = None
+            self.ensure_stream_is_open()
+            self.write(self.encode(msg))
+            self.flush()
+            self._query_fd()
+        finally:
+            self.lock.release()
 
 
 class StderrHandler(StreamHandler):
