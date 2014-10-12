@@ -532,6 +532,12 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         self.close()
         return Handler.__exit__(self, exc_type, exc_value, tb)
 
+    def ensure_stream_is_open(self):
+        """this method should be overriden in sub-classes to ensure that the
+        inner stream is open
+        """
+        pass
+
     def close(self):
         """The default stream handler implementation is not to close
         the wrapped stream but to flush it.
@@ -543,10 +549,10 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         if self.stream is not None and hasattr(self.stream, 'flush'):
             self.stream.flush()
 
-    def format_and_encode(self, record):
-        """Formats the record and encodes it to the stream encoding."""
+    def encode(self, msg):
+        """Encodes the message to the stream encoding."""
         stream = self.stream
-        rv = self.format(record) + '\n'
+        rv = msg + '\n'
         if (PY2 and is_unicode(rv)) or \
                 not (PY2 or is_unicode(rv) or _is_text_stream(stream)):
             enc = self.encoding
@@ -560,9 +566,11 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         self.stream.write(item)
 
     def emit(self, record):
+        msg = self.format(record)
         self.lock.acquire()
         try:
-            self.write(self.format_and_encode(record))
+            self.ensure_stream_is_open()
+            self.write(self.encode(msg))
             self.flush()
         finally:
             self.lock.release()
@@ -596,30 +604,31 @@ class FileHandler(StreamHandler):
         self.stream = open(self._filename, mode)
 
     def write(self, item):
-        if self.stream is None:
-            self._open()
+        self.ensure_stream_is_open()
         if not PY2 and isinstance(item, bytes):
             self.stream.buffer.write(item)
         else:
             self.stream.write(item)
 
     def close(self):
-        if self.stream is not None:
-            self.flush()
-            self.stream.close()
-            self.stream = None
+        self.lock.acquire()
+        try:
+            if self.stream is not None:
+                self.flush()
+                self.stream.close()
+                self.stream = None
+        finally:
+            self.lock.release()
 
-    def format_and_encode(self, record):
+    def encode(self, record):
         # encodes based on the stream settings, so the stream has to be
         # open at the time this function is called.
-        if self.stream is None:
-            self._open()
-        return StreamHandler.format_and_encode(self, record)
+        self.ensure_stream_is_open()
+        return StreamHandler.encode(self, record)
 
-    def emit(self, record):
+    def ensure_stream_is_open(self):
         if self.stream is None:
             self._open()
-        StreamHandler.emit(self, record)
 
 
 class MonitoringFileHandler(FileHandler):
@@ -655,12 +664,21 @@ class MonitoringFileHandler(FileHandler):
                 self._last_stat = st[stat.ST_DEV], st[stat.ST_INO]
 
     def emit(self, record):
-        last_stat = self._last_stat
-        self._query_fd()
-        if last_stat != self._last_stat:
-            self.close()
-        FileHandler.emit(self, record)
-        self._query_fd()
+        msg = self.format(record)
+        self.lock.acquire()
+        try:
+            last_stat = self._last_stat
+            self._query_fd()
+            if last_stat != self._last_stat and self.stream is not None:
+                self.flush()
+                self.stream.close()
+                self.stream = None
+            self.ensure_stream_is_open()
+            self.write(self.encode(msg))
+            self.flush()
+            self._query_fd()
+        finally:
+            self.lock.release()
 
 
 class StderrHandler(StreamHandler):
@@ -680,49 +698,6 @@ class StderrHandler(StreamHandler):
     @property
     def stream(self):
         return sys.stderr
-
-
-class RotatingFileHandlerBase(FileHandler):
-    """Baseclass for rotating file handlers.
-
-    .. versionchanged:: 0.3
-       This class was deprecated because the interface is not flexible
-       enough to implement proper file rotations.  The former builtin
-       subclasses no longer use this baseclass.
-    """
-
-    def __init__(self, *args, **kwargs):
-        from warnings import warn
-        warn(DeprecationWarning('This class is deprecated'))
-        FileHandler.__init__(self, *args, **kwargs)
-
-    def emit(self, record):
-        self.lock.acquire()
-        try:
-            msg = self.format_and_encode(record)
-            if self.should_rollover(record, msg):
-                self.perform_rollover()
-            self.write(msg)
-            self.flush()
-        finally:
-            self.lock.release()
-
-    def should_rollover(self, record, formatted_record):
-        """Called with the log record and the return value of the
-        :meth:`format_and_encode` method.  The method has then to
-        return `True` if a rollover should happen or `False`
-        otherwise.
-
-        .. versionchanged:: 0.3
-           Previously this method was called with the number of bytes
-           returned by :meth:`format_and_encode`
-        """
-        return False
-
-    def perform_rollover(self):
-        """Called if :meth:`should_rollover` returns `True` and has
-        to perform the actual rollover.
-        """
 
 
 class RotatingFileHandler(FileHandler):
@@ -768,9 +743,10 @@ class RotatingFileHandler(FileHandler):
         self._open('w')
 
     def emit(self, record):
+        msg = self.format(record)
         self.lock.acquire()
         try:
-            msg = self.format_and_encode(record)
+            msg = self.encode(msg)
             if self.should_rollover(record, len(msg)):
                 self.perform_rollover()
             self.write(msg)
@@ -843,11 +819,12 @@ class TimedRotatingFileHandler(FileHandler):
         self._open('w')
 
     def emit(self, record):
+        msg = self.format(record)
         self.lock.acquire()
         try:
             if self.should_rollover(record):
                 self.perform_rollover()
-            self.write(self.format_and_encode(record))
+            self.write(self.encode(msg))
             self.flush()
         finally:
             self.lock.release()

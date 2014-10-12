@@ -41,8 +41,9 @@ def test_colorizing_support(logger):
         logger.debug('A debug message')
         lines = handler.stream.getvalue().rstrip('\n').splitlines()
         assert lines == [
-            '\x1b[31;01mAn error', '\x1b[39;49;00m\x1b[33;01mA warning',
-            '\x1b[39;49;00m\x1b[37mA debug message', '\x1b[39;49;00m']
+            '\x1b[31;01mAn error\x1b[39;49;00m',
+            '\x1b[33;01mA warning\x1b[39;49;00m',
+            '\x1b[37mA debug message\x1b[39;49;00m']
 
 
 def test_tagged():

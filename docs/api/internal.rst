@@ -20,8 +20,5 @@ setups or custom handlers.
 
 .. module:: logbook.handlers
 
-.. autoclass:: RotatingFileHandlerBase
-   :members:
-
 .. autoclass:: StringFormatterHandlerMixin
    :members:

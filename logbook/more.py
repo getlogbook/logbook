@@ -304,9 +304,8 @@ class ColorizingStreamHandlerMixin(object):
             return 'yellow'
         return 'lightgray'
 
-    def format_and_encode(self, record):
-        rv = super(ColorizingStreamHandlerMixin, self) \
-                .format_and_encode(record)
+    def format(self, record):
+        rv = super(ColorizingStreamHandlerMixin, self).format(record)
         if self.should_colorize(record):
             color = self.get_color(record)
             if color:
@@ -379,7 +378,7 @@ class DedupHandler(Handler):
         Handler.__init__(self, bubble=False, *args, **kwargs)
         self._format_string = format_string
         self.clear()
-        
+
     def clear(self):
         self._message_to_count = defaultdict(int)
         self._unique_ordered_records = []
