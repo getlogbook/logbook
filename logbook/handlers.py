@@ -626,10 +626,10 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         if self.stream is not None and hasattr(self.stream, 'flush'):
             self.stream.flush()
 
-    def format_and_encode(self, record):
-        """Formats the record and encodes it to the stream encoding."""
+    def encode(self, msg):
+        """Encodes the message to the stream encoding."""
         stream = self.stream
-        rv = self.format(record) + '\n'
+        rv = msg + '\n'
         if (PY2 and is_unicode(rv)) or \
                 not (PY2 or is_unicode(rv) or _is_text_stream(stream)):
             enc = self.encoding
@@ -643,9 +643,10 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         self.stream.write(item)
 
     def emit(self, record):
+        msg = self.format(record)
         self.lock.acquire()
         try:
-            self.write(self.format_and_encode(record))
+            self.write(self.encode(msg))
             self.flush()
         finally:
             self.lock.release()
@@ -692,12 +693,12 @@ class FileHandler(StreamHandler):
             self.stream.close()
             self.stream = None
 
-    def format_and_encode(self, record):
+    def encode(self, record):
         # encodes based on the stream settings, so the stream has to be
         # open at the time this function is called.
         if self.stream is None:
             self._open()
-        return StreamHandler.format_and_encode(self, record)
+        return StreamHandler.encode(self, record)
 
     def emit(self, record):
         if self.stream is None:
@@ -780,9 +781,10 @@ class RotatingFileHandlerBase(FileHandler):
         FileHandler.__init__(self, *args, **kwargs)
 
     def emit(self, record):
+        msg = self.format(record)
         self.lock.acquire()
         try:
-            msg = self.format_and_encode(record)
+            msg = self.encode(msg)
             if self.should_rollover(record, msg):
                 self.perform_rollover()
             self.write(msg)
@@ -792,13 +794,13 @@ class RotatingFileHandlerBase(FileHandler):
 
     def should_rollover(self, record, formatted_record):
         """Called with the log record and the return value of the
-        :meth:`format_and_encode` method.  The method has then to
+        :meth:`encode` method.  The method has then to
         return `True` if a rollover should happen or `False`
         otherwise.
 
         .. versionchanged:: 0.3
            Previously this method was called with the number of bytes
-           returned by :meth:`format_and_encode`
+           returned by :meth:`encode`
         """
         return False
 
@@ -851,9 +853,10 @@ class RotatingFileHandler(FileHandler):
         self._open('w')
 
     def emit(self, record):
+        msg = self.format(record)
         self.lock.acquire()
         try:
-            msg = self.format_and_encode(record)
+            msg = self.encode(msg)
             if self.should_rollover(record, len(msg)):
                 self.perform_rollover()
             self.write(msg)
@@ -925,11 +928,12 @@ class TimedRotatingFileHandler(FileHandler):
         self._open('w')
 
     def emit(self, record):
+        msg = self.format(record)
         self.lock.acquire()
         try:
             if self.should_rollover(record):
                 self.perform_rollover()
-            self.write(self.format_and_encode(record))
+            self.write(self.encode(msg))
             self.flush()
         finally:
             self.lock.release()
