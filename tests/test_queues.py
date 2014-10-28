@@ -217,6 +217,12 @@ def test_redis_handler():
         assert message.find(field)
     assert message.find('This works')
 
+    # Test if lpush works
+    redis_handler = RedisHandler(key=KEY, push_method='lpush')
+    with null_handler.applicationbound():
+        with redis_handler:
+            logbook.info("item 1")
+            logbook.info("item 2")
 
 @pytest.fixture
 def handlers(handlers_subscriber):
