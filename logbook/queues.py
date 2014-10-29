@@ -111,7 +111,10 @@ class RedisHandler(Handler):
         are also appended to the message.
         """
         with self.lock:
-            r = {"message": record.msg, "host": platform.node(), "level": record.level_name}
+            r = {"message": record.msg,
+                 "host": platform.node(),
+                 "level": record.level_name,
+                 "time": record.time.isoformat()}
             r.update(self.extra_fields)
             r.update(record.kwargs)
             self.queue.append(json.dumps(r))
