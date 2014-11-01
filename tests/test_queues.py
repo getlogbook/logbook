@@ -217,12 +217,62 @@ def test_redis_handler():
         assert message.find(field)
     assert message.find('This works')
 
-    # Test if lpush works
-    redis_handler = RedisHandler(key=KEY, push_method='lpush')
+
+@require_module('redis')
+def test_redis_handler_lpush():
+    """
+    Test if lpush stores messages in the right order
+    new items should be first on list
+    """
+    import redis
+    from logbook.queues import RedisHandler
+    null_handler = logbook.NullHandler()
+
+
+    redis_handler = RedisHandler(key='lpushed', push_method='lpush',
+                                 level=logbook.INFO, bubble=True)
+
     with null_handler.applicationbound():
         with redis_handler:
-            logbook.info("item 1")
-            logbook.info("item 2")
+            logbook.info("old item")
+            logbook.info("new item")
+
+    time.sleep(1.5)
+
+    r = redis.Redis()
+    logs = r.lrange('lpushed', 0, -1)
+    assert logs
+    assert logs[0].find("new item")
+    r.delete('lpushed')
+
+
+@require_module('redis')
+def test_redis_handler_rpush():
+    """
+    Test if rpush stores messages in the right order
+    old items should be first on list
+    """
+    import redis
+    from logbook.queues import RedisHandler
+    null_handler = logbook.NullHandler()
+
+
+    redis_handler = RedisHandler(key='rpushed', push_method='rpush',
+                                 level=logbook.INFO, bubble=True)
+
+    with null_handler.applicationbound():
+        with redis_handler:
+            logbook.info("old item")
+            logbook.info("new item")
+
+    time.sleep(1.5)
+
+    r = redis.Redis()
+    logs = r.lrange('rpushed', 0, -1)
+    assert logs
+    assert logs[0].find("old item")
+    r.delete('rpushed')
+
 
 @pytest.fixture
 def handlers(handlers_subscriber):
