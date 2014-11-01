@@ -242,7 +242,7 @@ def test_redis_handler_lpush():
     r = redis.Redis()
     logs = r.lrange('lpushed', 0, -1)
     assert logs
-    assert logs[0].find("new item")
+    assert "new item" in logs[0]
     r.delete('lpushed')
 
 
@@ -270,7 +270,7 @@ def test_redis_handler_rpush():
     r = redis.Redis()
     logs = r.lrange('rpushed', 0, -1)
     assert logs
-    assert logs[0].find("old item")
+    assert "old item" in logs[0]
     r.delete('rpushed')
 
 
