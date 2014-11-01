@@ -228,7 +228,6 @@ def test_redis_handler_lpush():
     from logbook.queues import RedisHandler
     null_handler = logbook.NullHandler()
 
-
     redis_handler = RedisHandler(key='lpushed', push_method='lpush',
                                  level=logbook.INFO, bubble=True)
 
@@ -255,7 +254,6 @@ def test_redis_handler_rpush():
     import redis
     from logbook.queues import RedisHandler
     null_handler = logbook.NullHandler()
-
 
     redis_handler = RedisHandler(key='rpushed', push_method='rpush',
                                  level=logbook.INFO, bubble=True)
