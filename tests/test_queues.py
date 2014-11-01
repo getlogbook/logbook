@@ -239,7 +239,7 @@ def test_redis_handler_lpush():
 
     time.sleep(1.5)
 
-    r = redis.Redis()
+    r = redis.Redis(decode_responses=True)
     logs = r.lrange('lpushed', 0, -1)
     assert logs
     assert "new item" in logs[0]
@@ -267,7 +267,7 @@ def test_redis_handler_rpush():
 
     time.sleep(1.5)
 
-    r = redis.Redis()
+    r = redis.Redis(decode_responses=True)
     logs = r.lrange('rpushed', 0, -1)
     assert logs
     assert "old item" in logs[0]
