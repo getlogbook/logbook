@@ -10,16 +10,11 @@
 """
 import os
 import sys
-try:
-    import thread
-except ImportError:
-    # for python 3.1,3.2
-    import _thread as thread
-import threading
 import traceback
 from itertools import chain
 from weakref import ref as weakref
 from datetime import datetime
+from logbook.concurrency import thread_get_name, thread_get_ident, greenlet_get_ident
 
 from logbook.helpers import to_safe_json, parse_iso8601, cached_property, \
      PY2, u, string_types, iteritems, integer_types
@@ -190,6 +185,15 @@ class ContextObject(StackedObject):
     #: subclasses of it.
     stack_manager = None
 
+    def push_greenlet(self):
+        """Pushes the context object to the greenlet stack."""
+        self.stack_manager.push_greenlet(self)
+
+    def pop_greenlet(self):
+        """Pops the context object from the stack."""
+        popped = self.stack_manager.pop_greenlet()
+        assert popped is self, 'popped unexpected object'
+
     def push_thread(self):
         """Pushes the context object to the thread stack."""
         self.stack_manager.push_thread(self)
@@ -232,6 +236,14 @@ class NestedSetup(StackedObject):
     def pop_thread(self):
         for obj in reversed(self.objects):
             obj.pop_thread()
+
+    def push_greenlet(self):
+        for obj in self.objects:
+            obj.push_greenlet()
+
+    def pop_greenlet(self):
+        for obj in reversed(self.objects):
+            obj.pop_greenlet()
 
 
 class Processor(ContextObject):
@@ -330,7 +342,7 @@ class LogRecord(object):
     """
     _pullable_information = frozenset((
         'func_name', 'module', 'filename', 'lineno', 'process_name', 'thread',
-        'thread_name', 'formatted_exception', 'message', 'exception_name',
+        'thread_name', 'greenlet', 'formatted_exception', 'message', 'exception_name',
         'exception_message'
     ))
     _noned_on_close = frozenset(('exc_info', 'frame', 'calling_frame'))
@@ -574,12 +586,20 @@ class LogRecord(object):
             return cf.f_lineno
 
     @cached_property
+    def greenlet(self):
+        """The ident of the greenlet.  This is evaluated late and means that
+        if the log record is passed to another greenlet, :meth:`pull_information`
+        was called in the old greenlet.
+        """
+        return greenlet_get_ident()
+
+    @cached_property
     def thread(self):
         """The ident of the thread.  This is evaluated late and means that
         if the log record is passed to another thread, :meth:`pull_information`
         was called in the old thread.
         """
-        return thread.get_ident()
+        return thread_get_ident()
 
     @cached_property
     def thread_name(self):
@@ -587,7 +607,7 @@ class LogRecord(object):
         if the log record is passed to another thread, :meth:`pull_information`
         was called in the old thread.
         """
-        return threading.currentThread().getName()
+        return thread_get_name()
 
     @cached_property
     def process_name(self):

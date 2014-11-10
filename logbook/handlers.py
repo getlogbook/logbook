@@ -18,10 +18,8 @@ try:
     from hashlib import sha1
 except ImportError:
     from sha import new as sha1
-import threading
 import traceback
 from datetime import datetime, timedelta
-from threading import Lock
 from collections import deque
 
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
@@ -29,7 +27,7 @@ from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      Flags, ContextObject, ContextStackManager
 from logbook.helpers import rename, b, _is_text_stream, is_unicode, PY2, \
     zip, xrange, string_types, integer_types, reraise, u
-
+from logbook.concurrency import new_fine_grained_lock
 
 DEFAULT_FORMAT_STRING = (
     u('[{record.time:%Y-%m-%d %H:%M:%S.%f}] ') +
@@ -115,10 +113,10 @@ class Handler(ContextObject):
     records as desired. By default, no formatter is specified; in this case,
     the 'raw' message as determined by record.message is logged.
 
-    To bind a handler you can use the :meth:`push_application` and
-    :meth:`push_thread` methods.  This will push the handler on a stack of
-    handlers.  To undo this, use the :meth:`pop_application` and
-    :meth:`pop_thread` methods::
+    To bind a handler you can use the :meth:`push_application`,
+    :meth:`push_thread` or :meth:`push_greenlet` methods.  This will push the handler on a stack of
+    handlers.  To undo this, use the :meth:`pop_application`,
+    :meth:`pop_thread` methods and :meth:`pop_greenlet`::
 
         handler = MyHandler()
         handler.push_application()
@@ -147,11 +145,16 @@ class Handler(ContextObject):
         with handler.threadbound():
             ...
 
+        with handler.greenletbound():
+            ...
+
     Because `threadbound` is a common operation, it is aliased to a with
-    on the handler itself::
+    on the handler itself if not using gevent::
 
         with handler:
             ...
+
+    If gevent is enabled, the handler is aliased to `greenletbound`.
     """
     __metaclass__ = _HandlerType
 
@@ -451,7 +454,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
 
     def __init__(self, record_limit, record_delta):
         self.record_limit = record_limit
-        self._limit_lock = Lock()
+        self._limit_lock = new_fine_grained_lock()
         self._record_limits = {}
         if record_delta is None:
             record_delta = timedelta(seconds=60)
@@ -521,7 +524,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.encoding = encoding
-        self.lock = threading.Lock()
+        self.lock = new_fine_grained_lock()
         if stream is not _missing:
             self.stream = stream
 
@@ -1498,7 +1501,7 @@ class FingersCrossedHandler(Handler):
                  pull_information=True, reset=False, filter=None,
                  bubble=False):
         Handler.__init__(self, NOTSET, filter, bubble)
-        self.lock = Lock()
+        self.lock = new_fine_grained_lock()
         self._level = action_level
         if isinstance(handler, Handler):
             self._handler = handler
@@ -1602,6 +1605,10 @@ class GroupHandler(WrapperHandler):
 
     def pop_thread(self):
         Handler.pop_thread(self)
+        self.rollover()
+
+    def pop_greenlet(self):
+        Handler.pop_greenlet(self)
         self.rollover()
 
     def emit(self, record):
