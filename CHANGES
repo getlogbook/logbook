@@ -6,8 +6,16 @@ Here you can see the full list of changes between each Logbook release.
 Version 0.8.0
 -------------
 
+Released on November 11th 2014. Codename "improve_some_more"
+
 - Added Pushover handler (thanks @owo)
 - Default logging format now includes seconds and microseconds (#110)
+- Several fixes regarding possible deadlocks in log formatting (thanks Guy Rozendorn)
+- Fixed packaging so that the speedups module now gets packaged by default (#122)
+- ThreadedWrapperHandler now supports maxsize (#121) (thanks Ken Jung)
+- Fixes in rotating handlers (thanks zhangliyong)
+- Added Pushover handler (thanks Ossama W. Obeid)
+- RedisHandler now supports lpush as an option (thanks Bruno Rocha)
 
 
 Version 0.7.0
