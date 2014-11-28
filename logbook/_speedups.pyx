@@ -26,15 +26,14 @@ cdef enum:
 
 
 cdef class group_reflected_property:
-    cdef char* name
-    cdef char* _name
+    cdef object name
+    cdef object _name
     cdef object default
     cdef object fallback
 
-    def __init__(self, char* name, object default, object fallback=_missing):
+    def __init__(self, name, object default, object fallback=_missing):
         self.name = name
-        _name = '_' + name
-        self._name = _name
+        self._name = '_' + name
         self.default = default
         self.fallback = fallback
 
