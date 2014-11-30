@@ -7,6 +7,10 @@ try:
         global use_gevent
         use_gevent = True
 
+    def _disable_gevent():  # for testing
+        global use_gevent
+        use_gevent = False
+
     def is_gevent_enabled():
         global use_gevent
         return use_gevent
@@ -14,6 +18,9 @@ except ImportError:
     has_gevent = False
 
     def enable_gevent():
+        pass
+
+    def _disable_gevent():
         pass
 
     def is_gevent_enabled():

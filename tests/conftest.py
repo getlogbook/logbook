@@ -57,10 +57,18 @@ class ContextEnteringStrategy(ActivationStrategy):
 class PushingStrategy(ActivationStrategy):
 
     def activate(self):
-        self.handler.push_thread()
+        from logbook.concurrency import is_gevent_enabled
+        if is_gevent_enabled():
+            self.handler.push_greenlet()
+        else:
+            self.handler.push_thread()
 
     def deactivate(self):
-        self.handler.pop_thread()
+        from logbook.concurrency import is_gevent_enabled
+        if is_gevent_enabled():
+            self.handler.pop_greenlet()
+        else:
+            self.handler.pop_thread()
 
 
 @pytest.fixture(params=[ContextEnteringStrategy, PushingStrategy])
@@ -71,3 +79,20 @@ def activation_strategy(request):
 @pytest.fixture
 def logfile(tmpdir):
     return str(tmpdir.join('logfile.log'))
+
+
+try:
+    import gevent
+
+    @pytest.fixture(scope="module", autouse=True, params=[False, True])
+    def gevent(request):
+        module_name = getattr(request.module, '__name__', '')
+        if not any(s in module_name for s in ('queues', 'processors')) and request.param:
+            from logbook.concurrency import enable_gevent, _disable_gevent
+            enable_gevent()
+
+            @request.addfinalizer
+            def fin():
+                _disable_gevent()
+except ImportError:
+    pass
