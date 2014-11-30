@@ -28,22 +28,33 @@ def list_benchmarks():
     return result
 
 
-def run_bench(name):
+def run_bench(name, use_gevent=False):
     sys.stdout.write('%-32s' % name)
     sys.stdout.flush()
     Popen([sys.executable, '-mtimeit', '-s',
            'from bench_%s import run' % name,
+           'from logbook.concurrency import enable_gevent',
+           'enable_gevent()' if use_gevent else '',
            'run()']).wait()
 
 
-def main():
+def bench_wrapper(use_gevent=False):
     print '=' * 80
-    print 'Running benchmark with Logbook %s' % version
+    print 'Running benchmark with Logbook %s (gevent enabled=%s)' % (version, use_gevent)
     print '-' * 80
     os.chdir(bench_directory)
     for bench in list_benchmarks():
-        run_bench(bench)
+        run_bench(bench, use_gevent)
     print '-' * 80
+
+
+def main():
+    bench_wrapper(False)
+    try:
+        import gevent
+        bench_wrapper(True)
+    except ImportError:
+        pass
 
 
 if __name__ == '__main__':

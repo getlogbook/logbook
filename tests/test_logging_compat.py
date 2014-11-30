@@ -61,17 +61,22 @@ def test_redirect_logbook():
         logger.handlers[:] = old_handlers
 
 
+from itertools import count
+test_warning_redirections_i = count()
+
+
 def test_warning_redirections():
     from logbook.compat import redirected_warnings
     with logbook.TestHandler() as handler:
         redirector = redirected_warnings()
         redirector.start()
         try:
-            from warnings import warn
-            warn(RuntimeWarning('Testing'))
+            from warnings import warn, resetwarnings
+            resetwarnings()
+            warn(RuntimeWarning('Testing' + str(next(test_warning_redirections_i))))
         finally:
             redirector.end()
 
     assert len(handler.records) == 1
-    assert '[WARNING] RuntimeWarning: Testing' == handler.formatted_records[0]
+    assert handler.formatted_records[0].startswith('[WARNING] RuntimeWarning: Testing')
     assert __file_without_pyc__ in handler.records[0].filename

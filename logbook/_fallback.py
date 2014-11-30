@@ -8,16 +8,15 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-import threading
 from itertools import count
-try:
-    from thread import get_ident as current_thread
-except ImportError:
-    from _thread import get_ident as current_thread
 from logbook.helpers import get_iterator_next_method
+from logbook.concurrency import (thread_get_ident, greenlet_get_ident,
+                                 thread_local, greenlet_local,
+                                 ThreadLock, GreenletRLock, is_gevent_enabled)
 
 _missing = object()
 _MAX_CONTEXT_OBJECT_CACHE = 256
+
 
 def group_reflected_property(name, default, fallback=_missing):
     """Returns a property for a given name that falls back to the
@@ -58,6 +57,14 @@ class StackedObject(object):
     operations.
     """
 
+    def push_greenlet(self):
+        """Pushes the stacked object to the greenlet stack."""
+        raise NotImplementedError()
+
+    def pop_greenlet(self):
+        """Pops the stacked object from the greenlet stack."""
+        raise NotImplementedError()
+
     def push_thread(self):
         """Pushes the stacked object to the thread stack."""
         raise NotImplementedError()
@@ -75,11 +82,23 @@ class StackedObject(object):
         raise NotImplementedError()
 
     def __enter__(self):
-        self.push_thread()
+        if is_gevent_enabled():
+            self.push_greenlet()
+        else:
+            self.push_thread()
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
-        self.pop_thread()
+        if is_gevent_enabled():
+            self.pop_greenlet()
+        else:
+            self.pop_thread()
+
+    def greenletbound(self, _cls=_StackBound):
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the greenlet.
+        """
+        return _cls(self, self.push_greenlet, self.pop_greenlet)
 
     def threadbound(self, _cls=_StackBound):
         """Can be used in combination with the `with` statement to
@@ -101,8 +120,10 @@ class ContextStackManager(object):
 
     def __init__(self):
         self._global = []
-        self._context_lock = threading.Lock()
-        self._context = threading.local()
+        self._thread_context_lock = ThreadLock()
+        self._thread_context = thread_local()
+        self._greenlet_context_lock = GreenletRLock()
+        self._greenlet_context = greenlet_local()
         self._cache = {}
         self._stackop = get_iterator_next_method(count())
 
@@ -110,40 +131,66 @@ class ContextStackManager(object):
         """Returns an iterator over all objects for the combined
         application and context cache.
         """
-        tid = current_thread()
+        use_gevent = is_gevent_enabled()
+        tid = greenlet_get_ident() if use_gevent else thread_get_ident()
         objects = self._cache.get(tid)
         if objects is None:
             if len(self._cache) > _MAX_CONTEXT_OBJECT_CACHE:
                 self._cache.clear()
             objects = self._global[:]
-            objects.extend(getattr(self._context, 'stack', ()))
+            objects.extend(getattr(self._thread_context, 'stack', ()))
+            if use_gevent:
+                objects.extend(getattr(self._greenlet_context, 'stack', ()))
             objects.sort(reverse=True)
             objects = [x[1] for x in objects]
             self._cache[tid] = objects
         return iter(objects)
 
-    def push_thread(self, obj):
-        self._context_lock.acquire()
+    def push_greenlet(self, obj):
+        self._greenlet_context_lock.acquire()
         try:
-            self._cache.pop(current_thread(), None)
+            self._cache.pop(greenlet_get_ident(), None)  # remote chance to conflict with thread ids
             item = (self._stackop(), obj)
-            stack = getattr(self._context, 'stack', None)
+            stack = getattr(self._greenlet_context, 'stack', None)
             if stack is None:
-                self._context.stack = [item]
+                self._greenlet_context.stack = [item]
             else:
                 stack.append(item)
         finally:
-            self._context_lock.release()
+            self._greenlet_context_lock.release()
 
-    def pop_thread(self):
-        self._context_lock.acquire()
+    def pop_greenlet(self):
+        self._greenlet_context_lock.acquire()
         try:
-            self._cache.pop(current_thread(), None)
-            stack = getattr(self._context, 'stack', None)
+            self._cache.pop(greenlet_get_ident(), None)  # remote chance to conflict with thread ids
+            stack = getattr(self._greenlet_context, 'stack', None)
             assert stack, 'no objects on stack'
             return stack.pop()[1]
         finally:
-            self._context_lock.release()
+            self._greenlet_context_lock.release()
+
+    def push_thread(self, obj):
+        self._thread_context_lock.acquire()
+        try:
+            self._cache.pop(thread_get_ident(), None)
+            item = (self._stackop(), obj)
+            stack = getattr(self._thread_context, 'stack', None)
+            if stack is None:
+                self._thread_context.stack = [item]
+            else:
+                stack.append(item)
+        finally:
+            self._thread_context_lock.release()
+
+    def pop_thread(self):
+        self._thread_context_lock.acquire()
+        try:
+            self._cache.pop(thread_get_ident(), None)
+            stack = getattr(self._thread_context, 'stack', None)
+            assert stack, 'no objects on stack'
+            return stack.pop()[1]
+        finally:
+            self._thread_context_lock.release()
 
     def push_application(self, obj):
         self._global.append((self._stackop(), obj))

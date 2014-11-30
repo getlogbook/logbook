@@ -93,7 +93,7 @@ class RedirectLoggingHandler(logging.Handler):
                     'pathname', 'filename', 'module', 'exc_info',
                     'exc_text', 'lineno', 'funcName', 'created',
                     'msecs', 'relativeCreated', 'thread', 'threadName',
-                    'processName', 'process'):
+                    'greenlet', 'processName', 'process'):
             rv.pop(key, None)
         return rv
 

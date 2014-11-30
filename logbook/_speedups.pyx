@@ -9,9 +9,9 @@
     :license: BSD, see LICENSE for more details.
 """
 
-import thread
-import threading
 import platform
+from logbook.concurrency import (is_gevent_enabled, thread_get_ident, greenlet_get_ident, thread_local,
+                                 GreenletRLock, greenlet_local)
 
 from cpython.dict cimport PyDict_Clear, PyDict_SetItem
 from cpython.list cimport PyList_New, PyList_Append, PyList_Sort, \
@@ -24,18 +24,16 @@ cdef object _missing = object()
 cdef enum:
     _MAX_CONTEXT_OBJECT_CACHE = 256
 
-cdef current_thread = thread.get_ident
 
 cdef class group_reflected_property:
-    cdef char* name
-    cdef char* _name
+    cdef object name
+    cdef object _name
     cdef object default
     cdef object fallback
 
-    def __init__(self, char* name, object default, object fallback=_missing):
+    def __init__(self, name, object default, object fallback=_missing):
         self.name = name
-        _name = '_' + name
-        self._name = _name
+        self._name = '_' + name
         self.default = default
         self.fallback = fallback
 
@@ -102,6 +100,14 @@ cdef class StackedObject:
     operations.
     """
 
+    cpdef push_greenlet(self):
+        """Pushes the stacked object to the greenlet stack."""
+        raise NotImplementedError()
+
+    cpdef pop_greenlet(self):
+        """Pops the stacked object from the greenlet stack."""
+        raise NotImplementedError()
+
     cpdef push_thread(self):
         """Pushes the stacked object to the thread stack."""
         raise NotImplementedError()
@@ -119,11 +125,23 @@ cdef class StackedObject:
         raise NotImplementedError()
 
     def __enter__(self):
-        self.push_thread()
+        if is_gevent_enabled():
+            self.push_greenlet()
+        else:
+            self.push_thread()
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
-        self.pop_thread()
+        if is_gevent_enabled():
+            self.pop_greenlet()
+        else:
+            self.pop_thread()
+
+    cpdef greenletbound(self):
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the greenlet.
+        """
+        return _StackBound(self, self.push_greenlet, self.pop_greenlet)
 
     cpdef threadbound(self):
         """Can be used in combination with the `with` statement to
@@ -140,15 +158,19 @@ cdef class StackedObject:
 
 cdef class ContextStackManager:
     cdef list _global
-    cdef PyThread_type_lock _context_lock
-    cdef object _context
+    cdef PyThread_type_lock _thread_context_lock
+    cdef object _thread_context
+    cdef object _greenlet_context_lock
+    cdef object _greenlet_context
     cdef dict _cache
     cdef int _stackcnt
 
     def __init__(self):
         self._global = []
-        self._context_lock = PyThread_allocate_lock()
-        self._context = threading.local()
+        self._thread_context_lock = PyThread_allocate_lock()
+        self._thread_context = thread_local()
+        self._greenlet_context_lock = GreenletRLock()
+        self._greenlet_context = greenlet_local()
         self._cache = {}
         self._stackcnt = 0
 
@@ -157,40 +179,66 @@ cdef class ContextStackManager:
         return self._stackcnt
 
     cpdef iter_context_objects(self):
-        tid = current_thread()
+        use_gevent = is_gevent_enabled()
+        tid = greenlet_get_ident() if use_gevent else thread_get_ident()
         objects = self._cache.get(tid)
         if objects is None:
             if PyList_GET_SIZE(self._cache) > _MAX_CONTEXT_OBJECT_CACHE:
                 PyDict_Clear(self._cache)
             objects = self._global[:]
-            objects.extend(getattr3(self._context, 'stack', ()))
+            objects.extend(getattr3(self._thread_context, 'stack', ()))
+            if use_gevent:
+                objects.extend(getattr3(self._greenlet_context, 'stack', ()))
             PyList_Sort(objects)
             objects = [(<_StackItem>x).val for x in objects]
             PyDict_SetItem(self._cache, tid, objects)
         return iter(objects)
 
-    cpdef push_thread(self, obj):
-        PyThread_acquire_lock(self._context_lock, WAIT_LOCK)
+    cpdef push_greenlet(self, obj):
+        self._greenlet_context_lock.acquire()
         try:
-            self._cache.pop(current_thread(), None)
+            self._cache.pop(greenlet_get_ident(), None)
             item = _StackItem(self._stackop(), obj)
-            stack = getattr3(self._context, 'stack', None)
+            stack = getattr3(self._greenlet_context, 'stack', None)
             if stack is None:
-                self._context.stack = [item]
+                self._greenlet_context.stack = [item]
             else:
                 PyList_Append(stack, item)
         finally:
-            PyThread_release_lock(self._context_lock)
+            self._greenlet_context_lock.release()
 
-    cpdef pop_thread(self):
-        PyThread_acquire_lock(self._context_lock, WAIT_LOCK)
+    cpdef pop_greenlet(self):
+        self._greenlet_context_lock.acquire()
         try:
-            self._cache.pop(current_thread(), None)
-            stack = getattr3(self._context, 'stack', None)
+            self._cache.pop(greenlet_get_ident(), None)
+            stack = getattr3(self._greenlet_context, 'stack', None)
             assert stack, 'no objects on stack'
             return (<_StackItem>stack.pop()).val
         finally:
-            PyThread_release_lock(self._context_lock)
+            self._greenlet_context_lock.release()
+
+    cpdef push_thread(self, obj):
+        PyThread_acquire_lock(self._thread_context_lock, WAIT_LOCK)
+        try:
+            self._cache.pop(thread_get_ident(), None)
+            item = _StackItem(self._stackop(), obj)
+            stack = getattr3(self._thread_context, 'stack', None)
+            if stack is None:
+                self._thread_context.stack = [item]
+            else:
+                PyList_Append(stack, item)
+        finally:
+            PyThread_release_lock(self._thread_context_lock)
+
+    cpdef pop_thread(self):
+        PyThread_acquire_lock(self._thread_context_lock, WAIT_LOCK)
+        try:
+            self._cache.pop(thread_get_ident(), None)
+            stack = getattr3(self._thread_context, 'stack', None)
+            assert stack, 'no objects on stack'
+            return (<_StackItem>stack.pop()).val
+        finally:
+            PyThread_release_lock(self._thread_context_lock)
 
     cpdef push_application(self, obj):
         self._global.append(_StackItem(self._stackop(), obj))

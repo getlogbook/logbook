@@ -391,6 +391,10 @@ class DedupHandler(Handler):
         Handler.pop_thread(self)
         self.flush()
 
+    def pop_greenlet(self):
+        Handler.pop_greenlet(self)
+        self.flush()
+
     def handle(self, record):
         if not record.message in self._message_to_count:
             self._unique_ordered_records.append(record)
