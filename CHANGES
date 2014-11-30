@@ -3,6 +3,13 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.8.1
+-------------
+
+Released on November 30th 2014
+
+- Fix support for gevent, along with various other fixes (Thanks Tal Yalon)
+
 Version 0.8.0
 -------------
 
