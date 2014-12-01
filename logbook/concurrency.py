@@ -123,8 +123,7 @@ else:
     def thread_get_name():
         return currentThread().getName()
 
-    def greenlet_get_ident():
-        return 1
+    greenlet_get_ident = thread_get_ident
 
     greenlet_local = thread_local
 
