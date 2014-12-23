@@ -113,8 +113,9 @@ class TaggingLogger(RecordDispatcher):
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', {})
         extra['tags'] = list(tags)
+        frame_correction = kwargs.pop('frame_correction', 0)
         return self.make_record_and_handle(NOTSET, msg, args, kwargs,
-                                           exc_info, extra)
+                                           exc_info, extra, frame_correction)
 
 
 class TaggingHandler(Handler):
