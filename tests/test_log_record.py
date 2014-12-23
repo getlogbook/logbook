@@ -14,6 +14,12 @@ def test_calling_frame(active_handler, logger):
     logger.warn('test')
     assert active_handler.records[0].calling_frame == sys._getframe()
 
+def test_frame_correction(active_handler, logger):
+    def inner():
+        logger.warn('test', frame_correction=+1)
+
+    inner()
+    assert active_handler.records[0].calling_frame == sys._getframe()
 
 def test_dispatcher(active_handler, logger):
     logger.warn('Logbook is too awesome for stdlib')

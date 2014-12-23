@@ -368,7 +368,7 @@ class LogRecord(object):
     information_pulled = False
 
     def __init__(self, channel, level, msg, args=None, kwargs=None,
-                 exc_info=None, extra=None, frame=None, dispatcher=None):
+                 exc_info=None, extra=None, frame=None, dispatcher=None, frame_correction=0):
         #: the name of the logger that created it or any other textual
         #: channel description.  This is a descriptive name and can be
         #: used for filtering.
@@ -396,6 +396,11 @@ class LogRecord(object):
         #: Might not be available for all calls and is removed when the log
         #: record is closed.
         self.frame = frame
+        #: A positive integer telling the number of frames to go back from
+        #: the frame which triggered the log entry. This is mainly useful
+        #: for decorators that want to show that the log was emitted from
+        #: form the function they decorate
+        self.frame_correction = frame_correction
         #: the PID of the current process
         self.process = None
         if dispatcher is not None:
@@ -542,6 +547,10 @@ class LogRecord(object):
         globs = globals()
         while frm is not None and frm.f_globals is globs:
             frm = frm.f_back
+
+        for _ in xrange(self.frame_correction):
+            frm = frm.f_back
+
         return frm
 
     @cached_property
@@ -771,8 +780,9 @@ class LoggerMixin(object):
     def _log(self, level, args, kwargs):
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', None)
+        frame_correction = kwargs.pop('frame_correction', 0)
         self.make_record_and_handle(level, args[0], args[1:], kwargs,
-                                    exc_info, extra)
+                                    exc_info, extra, frame_correction)
 
 
 class RecordDispatcher(object):
@@ -809,7 +819,7 @@ class RecordDispatcher(object):
             self.call_handlers(record)
 
     def make_record_and_handle(self, level, msg, args, kwargs, exc_info,
-                               extra):
+                               extra, frame_correction):
         """Creates a record from some given arguments and heads it
         over to the handling system.
         """
@@ -823,7 +833,7 @@ class RecordDispatcher(object):
             channel = self
 
         record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
-                           extra, None, channel)
+                           extra, None, channel, frame_correction)
 
         # after handling the log record is closed which will remove some
         # referenes that would require a GC run on cpython.  This includes
