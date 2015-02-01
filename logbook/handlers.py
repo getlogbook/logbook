@@ -1180,7 +1180,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
 
     def emit_batch(self, records, reason):
         if reason not in ('escalation', 'group'):
-            return MailHandler.emit_batch(self, records, reason)
+            raise RuntimeError("reason must be either 'escalation' or 'group'")
         records = list(records)
         if not records:
             return
