@@ -3,6 +3,13 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.9.0
+-------------
+
+- Added frame correction option, to properly mark log record origins (Thanks Roey Darwish)
+- Fixed MailHandler infinite recursion bug (Thanks Tal Yalon)
+
+
 Version 0.8.1
 -------------
 
