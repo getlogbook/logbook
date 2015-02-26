@@ -210,7 +210,7 @@ Secondly you can write a handler that looks at the logging channel and
 only accepts loggers of a specific kind.  You can also do that with a
 filter function::
 
-    handler = MyHandler(filter=lambda r: r.channel == 'app.database')
+    handler = MyHandler(filter=lambda r, h: r.channel == 'app.database')
 
 Keep in mind that the channel is intended to be a human readable string
 and is not necessarily unique.  If you really need to keep loggers apart
@@ -220,7 +220,7 @@ into the extra dictionary.
 You can also compare the dispatcher on the log record::
 
     from yourapplication.yourmodule import logger
-    handler = MyHandler(filter=lambda r: r.dispatcher is logger)
+    handler = MyHandler(filter=lambda r, h: r.dispatcher is logger)
 
 This however has the disadvantage that the dispatcher entry on the log
 record is a weak reference and might go away unexpectedly and will not be
