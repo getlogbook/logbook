@@ -877,6 +877,21 @@ class RecordDispatcher(object):
             if not handler.should_handle(record):
                 continue
 
+            # first case of blackhole (without filter).
+            # this should discard all further processing and we don't have to heavy_init to know that...
+            if handler.filter is None and handler.blackhole:
+                break
+
+            # we are about to handle the record.  If it was not yet
+            # processed by context-specific record processors we
+            # have to do that now and remeber that we processed
+            # the record already.
+            if not record_initialized:
+                record.heavy_init()
+                self.process_record(record)
+                record_initialized = True
+
+
             # a filter can still veto the handling of the record.  This
             # however is already operating on an initialized and processed
             # record.  The impact is that filters are slower than the
@@ -885,6 +900,11 @@ class RecordDispatcher(object):
             if handler.filter is not None \
                and not handler.filter(record, handler):
                 continue
+
+            # We might have a filter, so now that we know we *should* handle
+            # this record, we should consider the case of us being a black hole...
+            if handler.blackhole:
+                break
 
             # if this is a blackhole handler, don't even try to
             # do further processing, stop right away.  Technically
@@ -897,15 +917,6 @@ class RecordDispatcher(object):
             # useful in general.
             if handler.blackhole:
                 break
-
-            # we are about to handle the record.  If it was not yet
-            # processed by context-specific record processors we
-            # have to do that now and remeber that we processed
-            # the record already.
-            if not record_initialized:
-                record.heavy_init()
-                self.process_record(record)
-                record_initialized = True
 
             # handle the record.  If the record was handled and
             # the record is not bubbling we can abort now.
