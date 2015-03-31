@@ -29,7 +29,6 @@ Message:
 
     def handle_request(request):
         def inject_extra(record):
-            print 'injecting'
             record.extra['ip'] = request.remote_addr
             record.extra['method'] = request.method
             record.extra['path'] = request.path
