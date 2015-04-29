@@ -495,6 +495,12 @@ class LogRecord(object):
         self.extra = ExtraDict(self.extra)
         return self
 
+    def _format_message(self, msg, *args, **kwargs):
+        """Called if the record's message needs to be formatted.
+        Subclasses can implement their own formatting.
+        """
+        return msg.format(*args, **kwargs)
+
     @cached_property
     def message(self):
         """The formatted message."""
@@ -502,11 +508,11 @@ class LogRecord(object):
             return self.msg
         try:
             try:
-                return self.msg.format(*self.args, **self.kwargs)
+                return self._format_message(self.msg, *self.args, **self.kwargs)
             except UnicodeDecodeError:
                 # Assume an unicode message but mixed-up args
                 msg = self.msg.encode('utf-8', 'replace')
-                return msg.format(*self.args, **self.kwargs)
+                return self._format_message(msg, *self.args, **self.kwargs)
             except (UnicodeEncodeError, AttributeError):
                 # we catch AttributeError since if msg is bytes, it won't have the 'format' method
                 if sys.exc_info()[0] is AttributeError and (PY2 or not isinstance(self.msg, bytes)):
@@ -517,7 +523,7 @@ class LogRecord(object):
                 # but this codepath is unlikely (if the message is a constant
                 # string in the caller's source file)
                 msg = self.msg.decode('utf-8', 'replace')
-                return msg.format(*self.args, **self.kwargs)
+                return self._format_message(msg, *self.args, **self.kwargs)
 
         except Exception:
             # this obviously will not give a proper error message if the

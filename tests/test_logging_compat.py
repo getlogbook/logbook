@@ -40,7 +40,7 @@ def test_basic_compat(request, set_root_logger_level):
         assert handler.records[0].level == logbook.DEBUG
     else:
         assert handler.records[0].level == logbook.WARNING
-        assert handler.records[0].msg == 'This is from the old {}'
+        assert handler.records[0].msg == 'This is from the old %s'
 
 
 def test_redirect_logbook():
