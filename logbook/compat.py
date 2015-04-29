@@ -118,7 +118,7 @@ class RedirectLoggingHandler(logging.Handler):
         """Converts an old logging record into a logbook log record."""
         record = logbook.LogRecord(old_record.name,
                                    self.convert_level(old_record.levelno),
-                                   old_record.msg, old_record.args,
+                                   old_record.msg.replace('%s', '{}'), old_record.args,
                                    None, old_record.exc_info,
                                    self.find_extra(old_record),
                                    self.find_caller(old_record))
