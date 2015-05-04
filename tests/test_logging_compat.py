@@ -32,7 +32,7 @@ def test_basic_compat(request, set_root_logger_level):
             with redirected_logging(set_root_logger_level):
                 logger.debug('This is from the old system')
                 logger.info('This is from the old system')
-                logger.warn('This is from the old system')
+                logger.warn('This is from the old %s', 'system')
                 logger.error('This is from the old system')
                 logger.critical('This is from the old system')
         assert ('WARNING: %s: This is from the old system' % name) in captured.getvalue()
@@ -40,6 +40,7 @@ def test_basic_compat(request, set_root_logger_level):
         assert handler.records[0].level == logbook.DEBUG
     else:
         assert handler.records[0].level == logbook.WARNING
+        assert handler.records[0].msg == 'This is from the old %s'
 
 
 def test_redirect_logbook():
