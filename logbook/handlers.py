@@ -125,16 +125,7 @@ class Handler(ContextObject):
 
     By default messages sent to that handler will not go to a handler on
     an outer level on the stack, if handled.  This can be changed by
-    setting bubbling to `True`.  This setup for example would not have
-    any effect::
-
-        handler = NullHandler(bubble=True)
-        handler.push_application()
-
-    Whereas this setup disables all logging for the application::
-
-        handler = NullHandler()
-        handler.push_application()
+    setting bubbling to `True`.
 
     There are also context managers to setup the handler for the duration
     of a `with`-block::
@@ -303,8 +294,15 @@ class Handler(ContextObject):
 
 
 class NullHandler(Handler):
-    """A handler that does nothing, meant to be inserted in a handler chain
-    with ``bubble=False`` to stop further processing.
+    """A handler that does nothing.
+
+    Useful to silence logs above a certain location in the handler stack::
+
+        handler = NullHandler()
+        handler.push_application()
+
+    NullHandlers swallow all logs sent to them, and do not bubble them onwards.
+
     """
     blackhole = True
 
