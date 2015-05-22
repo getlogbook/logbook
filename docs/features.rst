@@ -22,7 +22,7 @@ Core Features
     stack.  Setting a handler does not replace existing handlers, but gives it
     higher priority.  Each handler has the ability to prevent records from
     propagating to lower-priority handlers.
--   Logbook comes with a useful default configuration that spits all the
+-   Logbook comes with a default configuration that spits all the
     information to stderr in a useful manner.
 -   All of the built-in handlers have a useful default configuration applied with
     formatters that provide all the available information in a format that
