@@ -33,10 +33,14 @@ def test_custom_handling(activation_strategy, logger):
                 return False
             return logbook.TestHandler.handle(self, record)
 
+    # Check metaclass (== cls.__class__)
+    assert logbook.Handler.__class__ == logbook.handlers._HandlerType
+
     class MyLogger(logbook.Logger):
         def process_record(self, record):
             logbook.Logger.process_record(self, record)
             record.extra['flag'] = 'testing'
+
     log = MyLogger()
     handler = MyTestHandler()
     with capturing_stderr_context() as captured:
