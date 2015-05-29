@@ -22,6 +22,8 @@ import traceback
 from datetime import datetime, timedelta
 from collections import deque
 
+from six import add_metaclass
+
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
@@ -105,6 +107,7 @@ class _HandlerType(type):
         return type.__new__(cls, name, bases, d)
 
 
+@add_metaclass(_HandlerType)
 class Handler(ContextObject):
     """Handler instances dispatch logging events to specific destinations.
 
@@ -147,8 +150,6 @@ class Handler(ContextObject):
 
     If gevent is enabled, the handler is aliased to `greenletbound`.
     """
-    __metaclass__ = _HandlerType
-
     stack_manager = ContextStackManager()
 
     #: a flag for this handler that can be set to `True` for handlers that
