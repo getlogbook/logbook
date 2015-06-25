@@ -3,6 +3,11 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.10.0
+--------------
+
+- Removed the global handler which was installed by default so far. The rationale is to ease adoption for 3rd party libraries who don't want output to go to stderr by default. The old behavior can still be restored by setting the LOGBOOK_INSTALL_DEFAULT_HANDLER environment variable
+
 Version 0.9.1
 -------------
 

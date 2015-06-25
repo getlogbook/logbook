@@ -10,7 +10,7 @@
     :license: BSD, see LICENSE for more details.
 """
 
-
+import os
 from logbook.base import LogRecord, Logger, LoggerGroup, NestedSetup, \
      Processor, Flags, get_level_name, lookup_level, dispatch_record, \
      CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET, \
@@ -43,5 +43,6 @@ del _default_logger
 
 
 # install a default global handler
-default_handler = StderrHandler()
-default_handler.push_application()
+if os.environ.get('LOGBOOK_INSTALL_DEFAULT_HANDLER'):
+    default_handler = StderrHandler()
+    default_handler.push_application()

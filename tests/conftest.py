@@ -1,6 +1,7 @@
 import logbook
 import pytest
 
+logbook.StderrHandler().push_application()
 
 @pytest.fixture
 def logger():
@@ -80,6 +81,13 @@ def activation_strategy(request):
 def logfile(tmpdir):
     return str(tmpdir.join('logfile.log'))
 
+
+@pytest.fixture
+def default_handler(request):
+    returned = logbook.StderrHandler()
+    returned.push_application()
+    request.addfinalizer(returned.pop_application)
+    return returned
 
 try:
     import gevent

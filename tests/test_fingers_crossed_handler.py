@@ -1,10 +1,11 @@
 import logbook
+import pytest
 
 from .utils import capturing_stderr_context
 
 
-def test_fingerscrossed(activation_strategy, logger):
-    handler = logbook.FingersCrossedHandler(logbook.default_handler,
+def test_fingerscrossed(activation_strategy, logger, default_handler):
+    handler = logbook.FingersCrossedHandler(default_handler,
                                             logbook.WARNING)
 
     # if no warning occurs, the infos are not logged
@@ -73,3 +74,4 @@ def test_fingerscrossed_buffer_size(activation_strategy):
         logger.error('Pure hate!')
 
     assert test_handler.formatted_records == ['[WARNING] Test: Aha!', '[WARNING] Test: Moar!', '[ERROR] Test: Pure hate!']
+

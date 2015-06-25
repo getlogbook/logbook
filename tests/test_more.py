@@ -46,16 +46,16 @@ def test_colorizing_support(logger):
             '\x1b[37mA debug message\x1b[39;49;00m']
 
 
-def test_tagged():
+def test_tagged(default_handler):
     from logbook.more import TaggingLogger, TaggingHandler
     stream = StringIO()
     second_handler = logbook.StreamHandler(stream)
 
     logger = TaggingLogger('name', ['cmd'])
     handler = TaggingHandler(dict(
-        info=logbook.default_handler,
+        info=default_handler,
         cmd=second_handler,
-        both=[logbook.default_handler, second_handler],
+        both=[default_handler, second_handler],
     ))
     handler.bubble = False
 
