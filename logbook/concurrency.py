@@ -34,7 +34,7 @@ if has_gevent:
                                    local as thread_local)
     from gevent.thread import get_ident as greenlet_get_ident
     from gevent.local import local as greenlet_local
-    from gevent.coros import BoundedSemaphore
+    from gevent.lock import BoundedSemaphore
     from gevent.threading import __threading__
 
     def thread_get_name():
