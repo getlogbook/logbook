@@ -10,6 +10,7 @@ python:
   - "3.3"
   - "3.4"
   - "pypy"
+  - "pypy3"
 
 install:
   # this fixes SemLock issues on travis
@@ -31,6 +32,8 @@ script: "$COMMAND"
 matrix:
   exclude:
     - python: "pypy"
+      env: COMMAND="make cybuild test"
+    - python: "pypy3"
       env: COMMAND="make cybuild test"
 
 notifications:
