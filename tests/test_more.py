@@ -78,6 +78,27 @@ def test_tagged(default_handler):
     assert 'cmd message' in stringio
 
 
+def test_tagging_logger(default_handler):
+    from logbook import StderrHandler
+    from logbook.more import TaggingLogger
+    stream = StringIO()
+
+    logger = TaggingLogger('tagged', ['a', 'b'])
+    handler = StderrHandler(format_string="{record.msg}|{record.extra[tags]}")
+
+    with handler:
+        with capturing_stderr_context() as captured:
+            logger.a("a")
+            logger.b("b")
+
+    stderr = captured.getvalue()
+
+    assert "a|['a']" in stderr
+    assert "a|['b']" not in stderr
+    assert "b|['b']" in stderr
+    assert "b|['a']" not in stderr
+
+
 def test_external_application_handler(tmpdir, logger):
     from logbook.more import ExternalApplicationHandler as Handler
     fn = tmpdir.join('tempfile')

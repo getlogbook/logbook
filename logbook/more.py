@@ -12,6 +12,7 @@ import re
 import os
 from collections import defaultdict
 from cgi import parse_qsl
+from functools import partial
 
 from logbook.base import RecordDispatcher, dispatch_record, NOTSET, ERROR, NOTICE
 from logbook.handlers import Handler, StringFormatter, \
@@ -104,8 +105,8 @@ class TaggingLogger(RecordDispatcher):
     def __init__(self, name=None, tags=None):
         RecordDispatcher.__init__(self, name)
         # create a method for each tag named
-        list(setattr(self, tag, lambda msg, *args, **kwargs:
-            self.log(tag, msg, *args, **kwargs)) for tag in (tags or ()))
+        for tag in (tags or ()):
+            setattr(self, tag, partial(self.log, tag))
 
     def log(self, tags, msg, *args, **kwargs):
         if isinstance(tags, string_types):
