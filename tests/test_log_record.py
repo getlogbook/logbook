@@ -1,5 +1,15 @@
 import sys
 
+import logbook
+
+from .utils import capturing_stderr_context
+
+
+def test_exc_info_when_no_exceptions_exist(logger):
+    with capturing_stderr_context() as captured:
+        with logbook.StreamHandler(sys.stderr):
+            logger.debug('message', exc_info=True)
+    assert 'Traceback' not in captured.getvalue()
 
 def test_extradict(active_handler, logger):
     logger.warn('Test warning')

@@ -644,7 +644,7 @@ class LogRecord(object):
         """The formatted exception which caused this record to be created
         in case there was any.
         """
-        if self.exc_info is not None:
+        if self.exc_info is not None and self.exc_info != (None, None, None):
             rv = ''.join(traceback.format_exception(*self.exc_info))
             if PY2:
                 rv = rv.decode('utf-8', 'replace')
