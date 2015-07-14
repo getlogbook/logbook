@@ -6,7 +6,10 @@ Here you can see the full list of changes between each Logbook release.
 Version 0.10.0
 --------------
 
+Released on July 14th 2015
+
 - Removed the global handler which was installed by default so far. The rationale is to ease adoption for 3rd party libraries who don't want output to go to stderr by default. The old behavior can still be restored by setting the LOGBOOK_INSTALL_DEFAULT_HANDLER environment variable
+- Fix small Python 3 compatibility issues
 
 Version 0.9.1
 -------------
