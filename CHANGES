@@ -3,6 +3,13 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.10.1
+--------------
+
+Released on August 4th 2015
+
+- Small bugfix supporting exc_info=False without breaking formatting
+
 Version 0.10.0
 --------------
 
