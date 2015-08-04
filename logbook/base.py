@@ -387,6 +387,10 @@ class LogRecord(object):
         #: :func:`sys.exc_info`.
         #: This parameter can also be ``True``, which would cause the exception info tuple
         #: to be fetched for you.
+        if not exc_info:
+            # this is a special case where exc_info=False can be passed in theory,
+            # and it should be the same as exc_info=None
+            exc_info = None
         self.exc_info = exc_info
         #: optional extra information as dictionary.  This is the place
         #: where custom log processors can attach custom context sensitive

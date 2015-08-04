@@ -11,6 +11,13 @@ def test_exc_info_when_no_exceptions_exist(logger):
             logger.debug('message', exc_info=True)
     assert 'Traceback' not in captured.getvalue()
 
+def test_exc_info_false():
+    with logbook.handlers.TestHandler() as handler:
+        logbook.debug('message here', exc_info=False)
+    [record] = handler.records
+    assert not record.formatted_exception
+
+
 def test_extradict(active_handler, logger):
     logger.warn('Test warning')
     record = active_handler.records[0]
