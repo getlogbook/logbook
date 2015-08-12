@@ -281,3 +281,16 @@ def is_unicode(x):
     if PY2:
         return isinstance(x, unicode)
     return isinstance(x, str)
+
+if PY2:
+    exec("""def with_metaclass(meta):
+    class _WithMetaclassBase(object):
+        __metaclass__ = meta
+    return _WithMetaclassBase
+""")
+else:
+    exec("""def with_metaclass(meta):
+    class _WithMetaclassBase(object, metaclass=meta):
+        pass
+    return _WithMetaclassBase
+""")

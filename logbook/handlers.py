@@ -22,13 +22,11 @@ import traceback
 from datetime import datetime, timedelta
 from collections import deque
 
-from six import add_metaclass
-
 from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
      NOTSET, level_name_property, _missing, lookup_level, \
      Flags, ContextObject, ContextStackManager
 from logbook.helpers import rename, b, _is_text_stream, is_unicode, PY2, \
-    zip, xrange, string_types, integer_types, reraise, u
+    zip, xrange, string_types, integer_types, reraise, u, with_metaclass
 from logbook.concurrency import new_fine_grained_lock
 
 DEFAULT_FORMAT_STRING = (
@@ -107,8 +105,7 @@ class _HandlerType(type):
         return type.__new__(cls, name, bases, d)
 
 
-@add_metaclass(_HandlerType)
-class Handler(ContextObject):
+class Handler(with_metaclass(_HandlerType), ContextObject):
     """Handler instances dispatch logging events to specific destinations.
 
     The base handler class. Acts as a placeholder which defines the Handler

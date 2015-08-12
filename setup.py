@@ -119,7 +119,6 @@ def run_setup(with_binary):
         cmdclass=cmdclass,
         features=features,
         install_requires=[
-            'six>=1.4.0',
         ],
         **extra
     )
