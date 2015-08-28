@@ -304,6 +304,9 @@ class NullHandler(Handler):
     """
     blackhole = True
 
+    def __init__(self, level=NOTSET, filter=None):
+        super(NullHandler, self).__init__(level=level, filter=filter, bubble=False)
+
 
 class WrapperHandler(Handler):
     """A class that can wrap another handler and redirect all calls to the
