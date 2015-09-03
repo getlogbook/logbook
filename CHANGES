@@ -3,6 +3,11 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.11.0
+--------------
+
+- Added TRACE log level for enabling logs below DEBUG
+
 Version 0.10.1
 --------------
 

@@ -13,7 +13,7 @@
 import os
 from logbook.base import LogRecord, Logger, LoggerGroup, NestedSetup, \
      Processor, Flags, get_level_name, lookup_level, dispatch_record, \
-     CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET, \
+     CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, TRACE, NOTSET, \
      set_datetime_format
 from logbook.handlers import Handler, StreamHandler, FileHandler, \
      MonitoringFileHandler, StderrHandler, RotatingFileHandler, \
@@ -29,6 +29,7 @@ __version__ = '0.10.2-dev'
 # methods of that logger as global functions
 _default_logger = Logger('Generic')
 _default_logger.suppress_dispatcher = True
+trace = _default_logger.trace
 debug = _default_logger.debug
 info = _default_logger.info
 warn = _default_logger.warn

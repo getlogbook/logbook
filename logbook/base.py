@@ -69,12 +69,13 @@ def set_datetime_format(datetime_format):
         raise ValueError("Invalid value %r.  Valid values are 'utc' and 'local'." % (datetime_format,))
 
 # make sure to sync these up with _speedups.pyx
-CRITICAL = 6
-ERROR = 5
-WARNING = 4
-NOTICE = 3
-INFO = 2
-DEBUG = 1
+CRITICAL = 15
+ERROR = 14
+WARNING = 13
+NOTICE = 12
+INFO = 11
+DEBUG = 10
+TRACE = 9
 NOTSET = 0
 
 _level_names = {
@@ -84,6 +85,7 @@ _level_names = {
     NOTICE:     'NOTICE',
     INFO:       'INFO',
     DEBUG:      'DEBUG',
+    TRACE:      'TRACE',
     NOTSET:     'NOTSET'
 }
 _reverse_level_names = dict((v, k) for (k, v) in iteritems(_level_names))
@@ -702,6 +704,14 @@ class LoggerMixin(object):
     #: The name of the minimium logging level required for records to be
     #: created.
     level_name = level_name_property()
+
+    def trace(self, *args, **kwargs):
+        """Logs a :class:`~logbook.LogRecord` with the level set
+        to :data:`~logbook.TRACE`.
+        """
+        if not self.disabled and TRACE >= self.level:
+            self._log(TRACE, args, kwargs)
+
 
     def debug(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
