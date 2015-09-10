@@ -11,17 +11,18 @@
 """
 
 import os
-from logbook.base import LogRecord, Logger, LoggerGroup, NestedSetup, \
+from .base import LogRecord, Logger, LoggerGroup, NestedSetup, \
      Processor, Flags, get_level_name, lookup_level, dispatch_record, \
      CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, TRACE, NOTSET, \
      set_datetime_format
-from logbook.handlers import Handler, StreamHandler, FileHandler, \
+from .handlers import Handler, StreamHandler, FileHandler, \
      MonitoringFileHandler, StderrHandler, RotatingFileHandler, \
      TimedRotatingFileHandler, TestHandler, MailHandler, GMailHandler, SyslogHandler, \
      NullHandler, NTEventLogHandler, create_syshandler, StringFormatter, \
      StringFormatterHandlerMixin, HashingHandlerMixin, \
      LimitingHandlerMixin, WrapperHandler, FingersCrossedHandler, \
      GroupHandler
+from . import compat
 
 __version__ = '0.10.2-dev'
 
