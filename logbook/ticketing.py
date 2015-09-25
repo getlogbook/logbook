@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    logbook.ticketing
+logbook.ticketing
+
     ~~~~~~~~~~~~~~~~~
 
     Implements long handlers that write to remote data stores and assign
@@ -14,6 +15,8 @@ import json
 from logbook.base import NOTSET, level_name_property, LogRecord
 from logbook.handlers import Handler, HashingHandlerMixin
 from logbook.helpers import cached_property, b, PY2, u
+from sqlalchemy.orm import sessionmaker, scoped_session
+
 
 class Ticket(object):
     """Represents a ticket from the database."""
@@ -138,7 +141,20 @@ class SQLAlchemyBackend(BackendBase):
         if hasattr(engine_or_uri, 'execute'):
             self.engine = engine_or_uri
         else:
-            self.engine = create_engine(engine_or_uri, convert_unicode=True)
+            # Pool recycle keeps connections from going stale, which happens in MySQL Databases
+            # Pool size is more custom for out stack
+            self.engine = create_engine(engine_or_uri, convert_unicode=True, pool_recycle=360, pool_size=1000)
+
+            # Create session factory using session maker
+            session = sessionmaker()
+
+            # Bind to the engined
+            session.configure(bind=self.engine)
+
+            # Scoped session is a thread safe solution for
+            # interaction with the Database
+            self.session = scoped_session(session)
+
         if metadata is None:
             metadata = MetaData()
         self.table_prefix = table_prefix
@@ -183,13 +199,13 @@ class SQLAlchemyBackend(BackendBase):
 
     def record_ticket(self, record, data, hash, app_id):
         """Records a log record as ticket."""
-        cnx = self.engine.connect()
-        trans = cnx.begin()
+        # Can use the session instead engine.connection and transaction
+        s = self.session
         try:
             q = self.tickets.select(self.tickets.c.record_hash == hash)
-            row = cnx.execute(q).fetchone()
+            row = s.execute(q).fetchone()
             if row is None:
-                row = cnx.execute(self.tickets.insert().values(
+                row = s.execute(self.tickets.insert().values(
                     record_hash=hash,
                     level=record.level,
                     channel=record.channel or u(''),
@@ -202,21 +218,22 @@ class SQLAlchemyBackend(BackendBase):
                 ticket_id = row.inserted_primary_key[0]
             else:
                 ticket_id = row['ticket_id']
-            cnx.execute(self.occurrences.insert()
-                .values(ticket_id=ticket_id,
-                        time=record.time,
-                        app_id=app_id,
-                        data=json.dumps(data)))
-            cnx.execute(self.tickets.update()
-                .where(self.tickets.c.ticket_id == ticket_id)
-                .values(occurrence_count=self.tickets.c.occurrence_count + 1,
-                        last_occurrence_time=record.time,
-                        solved=False))
-            trans.commit()
+            s.execute(self.occurrences.insert()
+             .values(ticket_id=ticket_id,
+                     time=record.time,
+                     app_id=app_id,
+                     data=json.dumps(data)))
+            s.execute(self.tickets.update()
+             .where(self.tickets.c.ticket_id == ticket_id)
+             .values(occurrence_count=self.tickets.c.occurrence_count + 1,
+                     last_occurrence_time=record.time,
+                     solved=False))
+            s.commit()
         except Exception:
-            trans.rollback()
+            s.rollback()
             raise
-        cnx.close()
+        # Closes the session and removes it from the pool
+        s.remove()
 
     def count_tickets(self):
         """Returns the number of tickets."""
