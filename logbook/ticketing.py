@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-logbook.ticketing
-
+    logbook.ticketing
     ~~~~~~~~~~~~~~~~~
 
     Implements long handlers that write to remote data stores and assign
