@@ -14,7 +14,6 @@ import json
 from logbook.base import NOTSET, level_name_property, LogRecord
 from logbook.handlers import Handler, HashingHandlerMixin
 from logbook.helpers import cached_property, b, PY2, u
-from sqlalchemy.orm import sessionmaker, scoped_session
 
 
 class Ticket(object):
@@ -132,7 +131,7 @@ class SQLAlchemyBackend(BackendBase):
     """
 
     def setup_backend(self):
-        from sqlalchemy import create_engine, MetaData
+        from sqlalchemy import create_engine, MetaData, sessionmaker, scoped_session
         engine_or_uri = self.options.pop('uri', None)
         metadata = self.options.pop('metadata', None)
         table_prefix = self.options.pop('table_prefix', 'logbook_')
