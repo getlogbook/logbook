@@ -7,6 +7,8 @@ Version 0.11.0
 --------------
 
 - Added TRACE log level for enabling logs below DEBUG
+- Improved SQLAlchemy session management (thanks @fintan)
+- Removed the ``bubble`` argument from NullHandler, preventing many future confusions
 
 Version 0.10.1
 --------------
