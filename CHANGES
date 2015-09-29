@@ -3,6 +3,13 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.11.1
+--------------
+
+Released on September 29th 2015
+
+- Fix importing issue with SQLAlchemy ticketing handler
+
 Version 0.11.0
 --------------
 
