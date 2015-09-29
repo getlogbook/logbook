@@ -131,7 +131,8 @@ class SQLAlchemyBackend(BackendBase):
     """
 
     def setup_backend(self):
-        from sqlalchemy import create_engine, MetaData, sessionmaker, scoped_session
+        from sqlalchemy import create_engine, MetaData
+        from sqlalchemy.orm import sessionmaker, scoped_session
         engine_or_uri = self.options.pop('uri', None)
         metadata = self.options.pop('metadata', None)
         table_prefix = self.options.pop('table_prefix', 'logbook_')
