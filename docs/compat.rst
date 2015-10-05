@@ -19,12 +19,14 @@ after this call will transparently be redirected to Logbook::
 
 This also means you don't have to call :func:`logging.basicConfig`:
 
->>> from logbook.compat import redirect_logging
+>>> from logbook.compat import redirect_logging, StreamHandler
+>>> import sys
+>>> StreamHandler(sys.stdout).push_application()
 >>> redirect_logging()
 >>> from logging import getLogger
 >>> log = getLogger('My Logger')
 >>> log.warn('This is a warning')
-[2010-07-25 00:24] WARNING: My Logger: This is a warning
+[2015-10-05 19:13:37.524346] WARNING: My Logger: This is a warning
 
 Advanced Setup
 --------------
@@ -35,7 +37,9 @@ the old logging system that sends records via an internal logbook logger to the
 active logbook handlers.  This handler can then be added to specific logging
 loggers if you want:
 
->>> from logging import getLogger
+>>> from logging import getLogger, StreamHandler
+>>> import sys
+>>> StreamHandler(sys.stdout).push_application()
 >>> mylog = getLogger('My Log')
 >>> from logbook.compat import RedirectLoggingHandler
 >>> mylog.addHandler(RedirectLoggingHandler())
@@ -43,7 +47,7 @@ loggers if you want:
 >>> otherlog.warn('logging is deprecated')
 No handlers could be found for logger "Other Log"
 >>> mylog.warn('but logbook is awesome')
-[2010-07-25 00:29] WARNING: My Log: but logbook is awesome
+[2015-10-05 19:13:37.524346] WARNING: My Log: but logbook is awesome
 
 Reverse Redirects
 -----------------

@@ -5,10 +5,12 @@ Logbook is a logging sytem for Python that replaces the standard library's
 logging module.  It was designed with both complex and simple applications
 in mind and the idea to make logging fun:
 
->>> from logbook import Logger
+>>> from logbook import Logger, StreamHandler
+>>> import sys
+>>> StreamHandler(sys.stdout).push_application() 
 >>> log = Logger('Logbook')
 >>> log.info('Hello, World!')
-[2010-07-23 16:34] INFO: Logbook: Hello, World!
+[2015-10-05 18:55:56.937141] INFO: Logbook: Hello, World!
 
 What makes it fun?  What about getting log messages on your phone or
 desktop notification system?  :ref:`Logbook can do that <notifiers>`.

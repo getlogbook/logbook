@@ -6,10 +6,12 @@ Quickstart
 Logbook makes it very easy to get started with logging.  Just import the logger
 class, create yourself a logger and you are set:
 
->>> from logbook import Logger
+>>> from logbook import Logger, StreamHandler
+>>> import sys
+>>> StreamHandler(sys.stdout).push_application() 
 >>> log = Logger('My Awesome Logger')
 >>> log.warn('This is too cool for stdlib')
-[2010-07-23 16:34:42.687111] WARNING: My Awesome Logger: This is too cool for stdlib
+[2015-10-05 19:02:03.575723] WARNING: My Awesome Logger: This is too cool for stdlib
 
 A logger is a so-called :class:`~logbook.base.RecordDispatcher`, which is
 commonly referred to as a "logging channel".  The name you give such a channel
@@ -109,8 +111,7 @@ stderr, even if they went to the syslog you can enable bubbling by setting
     error_handler = SyslogHandler('logbook example', level='ERROR', bubble=True)
     with error_handler.applicationbound():
         # whatever is executed here and an error is logged to the
-        # error handler but it will also bubble up to the default
-        # stderr handler.
+        # error handler but it will also bubble up other handles.
         ...
 
 So what if you want to only log errors to the syslog and nothing to
