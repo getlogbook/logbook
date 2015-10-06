@@ -18,10 +18,13 @@ ZeroMQ
    :members:
    :inherited-members:
 
-Redis
+AMQP Message Queues
 -----
 
-.. autoclass:: RedisHandler
+.. autoclass:: MessageQueueHandler
+    :members:
+
+.. autoclass:: MessageQueueSubscriber
     :members:
 
 MultiProcessing
