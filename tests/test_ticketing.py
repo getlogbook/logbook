@@ -17,10 +17,13 @@ if __file_without_pyc__.endswith(".pyc"):
 @require_module('sqlalchemy')
 def test_basic_ticketing(logger):
     from logbook.ticketing import TicketingHandler
+    from time import sleep
     with TicketingHandler('sqlite:///') as handler:
         for x in xrange(5):
             logger.warn('A warning')
+            sleep(0.1)
             logger.info('An error')
+            sleep(0.1)
             if x < 2:
                 try:
                     1 / 0
