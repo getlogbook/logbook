@@ -9,7 +9,7 @@ test_setup:
 	@python scripts/test_setup.py
 
 test:
-	@py.test tests
+	@py.test -r s tests
 
 toxtest:
 	@tox

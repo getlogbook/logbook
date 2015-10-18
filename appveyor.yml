@@ -143,7 +143,7 @@ install:
 build: off
 
 test_script:
-  - py.test -v tests
+  - py.test -r s tests
 
 after_test:
   - "IF DEFINED CYBUILD (%WITH_COMPILER% python setup.py bdist_wheel)"
