@@ -1,12 +1,7 @@
 #! /usr/bin/python
-import subprocess
 import os
+import pip
 import sys
-
-def _execute(*args, **kwargs):
-    result = subprocess.call(*args, **kwargs)
-    if result != 0:
-        sys.exit(result)
 
 if __name__ == '__main__':
     python_version = sys.version_info
@@ -24,4 +19,5 @@ if __name__ == '__main__':
     else:
         deps.append("Jinja2")
     print("Setting up dependencies...")
-    _execute([os.path.join(os.path.dirname(sys.executable), "pip"),  "install"] + deps, shell=False)
+    result = pip.main(["install"] + deps)
+    sys.exit(result)

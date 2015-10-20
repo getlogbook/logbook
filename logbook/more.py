@@ -268,7 +268,7 @@ class ExternalApplicationHandler(Handler):
         self._subprocess = subprocess
 
     def emit(self, record):
-        args = [arg.format(record=record).encode(self.encoding)
+        args = [arg.format(record=record)
                 for arg in self._arguments]
         if self._stdin_format is not None:
             stdin_data = self._stdin_format.format(record=record) \

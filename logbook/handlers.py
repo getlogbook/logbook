@@ -8,6 +8,7 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
+import io
 import os
 import re
 import sys
@@ -603,11 +604,11 @@ class FileHandler(StreamHandler):
     def _open(self, mode=None):
         if mode is None:
             mode = self._mode
-        self.stream = open(self._filename, mode)
+        self.stream = io.open(self._filename, mode, encoding=self.encoding)
 
     def write(self, item):
         self.ensure_stream_is_open()
-        if not PY2 and isinstance(item, bytes):
+        if isinstance(item, bytes):
             self.stream.buffer.write(item)
         else:
             self.stream.write(item)
