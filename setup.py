@@ -117,6 +117,13 @@ def run_setup(with_binary):
         zip_safe=False,
         platforms='any',
         cmdclass=cmdclass,
+        classifiers=[
+            "Programming Language :: Python :: 2.6",
+            "Programming Language :: Python :: 2.7",
+            "Programming Language :: Python :: 3.3",
+            "Programming Language :: Python :: 3.4",
+            "Programming Language :: Python :: 3.5",
+        ],
         features=features,
         install_requires=[
         ],
