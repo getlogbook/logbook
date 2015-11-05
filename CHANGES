@@ -3,6 +3,15 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 0.11.3
+--------------
+
+Released on November 5th 2015
+
+- Windows-specific fixes and CI configuration (Thanks Frazer McLean)
+- Several Unicode-specific fixes (Thanks Frazer McLean)
+- Documentation cleanups
+
 Version 0.11.2
 --------------
 
