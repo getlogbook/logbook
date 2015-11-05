@@ -24,7 +24,7 @@ from .handlers import Handler, StreamHandler, FileHandler, \
      GroupHandler
 from . import compat
 
-__version__ = '0.11.3'
+__version__ = '0.11.4-dev'
 
 # create an anonymous default logger and provide all important
 # methods of that logger as global functions
