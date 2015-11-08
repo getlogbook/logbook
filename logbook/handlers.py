@@ -23,11 +23,12 @@ import traceback
 from datetime import datetime, timedelta
 from collections import deque
 
-from logbook.base import CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, \
-     NOTSET, level_name_property, _missing, lookup_level, \
-     Flags, ContextObject, ContextStackManager
-from logbook.helpers import rename, b, _is_text_stream, is_unicode, PY2, \
-    zip, xrange, string_types, integer_types, reraise, u, with_metaclass
+from logbook.base import (
+    CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET, level_name_property,
+    _missing, lookup_level, Flags, ContextObject, ContextStackManager)
+from logbook.helpers import (
+    rename, b, _is_text_stream, is_unicode, PY2, zip, xrange, string_types,
+    integer_types, reraise, u, with_metaclass)
 from logbook.concurrency import new_fine_grained_lock
 
 DEFAULT_FORMAT_STRING = (

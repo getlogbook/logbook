@@ -116,14 +116,14 @@ if has_gevent:
         def _is_owned(self):
             return self._owner == (thread_get_ident(), greenlet_get_ident())
 else:
-    from threading import Lock as ThreadLock, RLock as ThreadRLock, \
-        currentThread
+    from threading import (
+        Lock as ThreadLock, RLock as ThreadRLock, currentThread)
     try:
-        from thread import get_ident as thread_get_ident, _local as \
-            thread_local
+        from thread import (
+            get_ident as thread_get_ident, _local as thread_local)
     except ImportError:
-        from _thread import get_ident as thread_get_ident, _local as \
-            thread_local
+        from _thread import (
+            get_ident as thread_get_ident, _local as thread_local)
 
     def thread_get_name():
         return currentThread().getName()

@@ -14,17 +14,18 @@ import traceback
 from itertools import chain
 from weakref import ref as weakref
 from datetime import datetime
-from logbook.concurrency import thread_get_name, thread_get_ident, \
-    greenlet_get_ident
+from logbook.concurrency import (
+    thread_get_name, thread_get_ident, greenlet_get_ident)
 
-from logbook.helpers import to_safe_json, parse_iso8601, cached_property, \
-    PY2, u, string_types, iteritems, integer_types, xrange
+from logbook.helpers import (
+    to_safe_json, parse_iso8601, cached_property, PY2, u, string_types,
+    iteritems, integer_types, xrange)
 try:
-    from logbook._speedups import group_reflected_property, \
-        ContextStackManager, StackedObject
+    from logbook._speedups import (
+        group_reflected_property, ContextStackManager, StackedObject)
 except ImportError:
-    from logbook._fallback import group_reflected_property, \
-        ContextStackManager, StackedObject
+    from logbook._fallback import (
+        group_reflected_property, ContextStackManager, StackedObject)
 
 _datetime_factory = datetime.utcnow
 

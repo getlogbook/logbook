@@ -14,10 +14,10 @@ from collections import defaultdict
 from cgi import parse_qsl
 from functools import partial
 
-from logbook.base import RecordDispatcher, dispatch_record, NOTSET, ERROR, \
-    NOTICE
-from logbook.handlers import Handler, StringFormatter, \
-    StringFormatterHandlerMixin, StderrHandler
+from logbook.base import (
+    RecordDispatcher, dispatch_record, NOTSET, ERROR, NOTICE)
+from logbook.handlers import (
+    Handler, StringFormatter, StringFormatterHandlerMixin, StderrHandler)
 from logbook._termcolors import colorize
 from logbook.helpers import PY2, string_types, iteritems, u
 
@@ -326,8 +326,8 @@ class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
 
 
 # backwards compat.  Should go away in some future releases
-from logbook.handlers import FingersCrossedHandler as \
-    FingersCrossedHandlerBase
+from logbook.handlers import (
+    FingersCrossedHandler as FingersCrossedHandlerBase)
 
 
 class FingersCrossedHandler(FingersCrossedHandlerBase):
