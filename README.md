@@ -2,7 +2,7 @@
 
 |                       |                                                                                    |
 |-----------------------|------------------------------------------------------------------------------------|
-| Build Status          | ![Build Status] (https://secure.travis-ci.org/mitsuhiko/logbook.png?branch=master) |
+| Build Status          | ![Build Status] (https://secure.travis-ci.org/getlogbook/logbook.png?branch=master) |
 | Supported Versions    | ![Supported Versions] (https://img.shields.io/pypi/pyversions/logbook.svg)    |
 | Downloads             | ![Downloads] (https://img.shields.io/pypi/dm/logbook.svg)                       |
 | Latest Version        | ![Latest Version] (https://img.shields.io/pypi/v/logbook.svg)                  |

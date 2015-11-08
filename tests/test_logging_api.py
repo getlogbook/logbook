@@ -32,7 +32,7 @@ def test_exception_catching(active_handler, logger):
 
 
 def test_exception_catching_with_unicode():
-    """ See https://github.com/mitsuhiko/logbook/issues/104
+    """ See https://github.com/getlogbook/logbook/issues/104
     """
     try:
         raise Exception(u('\u202a test \u202c'))
