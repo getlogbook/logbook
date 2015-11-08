@@ -33,8 +33,8 @@ class RedisHandler(Handler):
 
         handler = RedisHandler('http://127.0.0.1', port='9200', key='redis')
 
-    If your Redis instance is password protected, you can securely connect passing
-    your password when creating a RedisHandler object.
+    If your Redis instance is password protected, you can securely connect
+    passing your password when creating a RedisHandler object.
 
     Example::
 
@@ -42,9 +42,10 @@ class RedisHandler(Handler):
 
     More info about the default buffer size: wp.me/p3tYJu-3b
     """
-    def __init__(self, host='127.0.0.1', port=6379, key='redis', extra_fields={},
-                flush_threshold=128, flush_time=1, level=NOTSET, filter=None,
-                password=False, bubble=True, context=None, push_method='rpush'):
+    def __init__(self, host='127.0.0.1', port=6379, key='redis',
+                 extra_fields={}, flush_threshold=128, flush_time=1,
+                 level=NOTSET, filter=None, password=False, bubble=True,
+                 context=None, push_method='rpush'):
         Handler.__init__(self, level, filter, bubble)
         try:
             import redis
@@ -53,7 +54,8 @@ class RedisHandler(Handler):
             raise RuntimeError('The redis library is required for '
                                'the RedisHandler')
 
-        self.redis = redis.Redis(host=host, port=port, password=password, decode_responses=True)
+        self.redis = redis.Redis(host=host, port=port, password=password,
+                                 decode_responses=True)
         try:
             self.redis.ping()
         except ResponseError:
@@ -65,13 +67,13 @@ class RedisHandler(Handler):
         self.lock = Lock()
         self.push_method = push_method
 
-        #Set up a thread that flushes the queue every specified seconds
+        # Set up a thread that flushes the queue every specified seconds
         self._stop_event = threading.Event()
         self._flushing_t = threading.Thread(target=self._flush_task,
-                                            args=(flush_time, self._stop_event))
+                                            args=(flush_time,
+                                                  self._stop_event))
         self._flushing_t.daemon = True
         self._flushing_t.start()
-
 
     def _flush_task(self, time, stop_event):
         """Calls the method _flush_buffer every certain time.
@@ -80,7 +82,6 @@ class RedisHandler(Handler):
             with self.lock:
                 self._flush_buffer()
             self._stop_event.wait(time)
-
 
     def _flush_buffer(self):
         """Flushes the messaging queue into Redis.
@@ -93,7 +94,6 @@ class RedisHandler(Handler):
             getattr(self.redis, self.push_method)(self.key, *self.queue)
         self.queue = []
 
-
     def disable_buffering(self):
         """Disables buffering.
 
@@ -102,13 +102,12 @@ class RedisHandler(Handler):
         self._stop_event.set()
         self.flush_threshold = 1
 
-
     def emit(self, record):
         """Emits a pair (key, value) to redis.
 
-        The key is the one provided when creating the handler, or redis if none was
-        provided. The value contains both the message and the hostname. Extra values
-        are also appended to the message.
+        The key is the one provided when creating the handler, or redis if none
+        was provided. The value contains both the message and the hostname.
+        Extra values are also appended to the message.
         """
         with self.lock:
             r = {"message": record.msg,
@@ -120,7 +119,6 @@ class RedisHandler(Handler):
             self.queue.append(json.dumps(r))
             if len(self.queue) == self.flush_threshold:
                 self._flush_buffer()
-
 
     def close(self):
         self._flush_buffer()
@@ -221,7 +219,6 @@ class ZeroMQHandler(Handler):
             if uri is not None:
                 self.socket.bind(uri)
 
-
     def export_record(self, record):
         """Exports the record into a dictionary ready for JSON dumping."""
         return record.to_dict(json_safe=True)
@@ -233,12 +230,12 @@ class ZeroMQHandler(Handler):
         self.socket.close(linger)
 
     def __del__(self):
-        # When the Handler is deleted we must close our socket in a non-blocking
-        # fashion (using linger).
+        # When the Handler is deleted we must close our socket in a
+        # non-blocking fashion (using linger).
         # Otherwise it can block indefinitely, for example if the Subscriber is
         # not reachable.
-        # If messages are pending on the socket, we wait 100ms for them to be sent
-        # then we discard them.
+        # If messages are pending on the socket, we wait 100ms for them to be
+        # sent then we discard them.
         self.close(linger=100)
 
 
@@ -592,7 +589,7 @@ class ExecnetChannelSubscriber(SubscriberBase):
         try:
             rv = self.channel.receive(timeout=timeout)
         except self.channel.RemoteError:
-            #XXX: handle
+            # XXX: handle
             return None
         except (self.channel.TimeoutError, EOFError):
             return None

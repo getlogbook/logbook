@@ -14,9 +14,10 @@ from collections import defaultdict
 from cgi import parse_qsl
 from functools import partial
 
-from logbook.base import RecordDispatcher, dispatch_record, NOTSET, ERROR, NOTICE
+from logbook.base import RecordDispatcher, dispatch_record, NOTSET, ERROR, \
+    NOTICE
 from logbook.handlers import Handler, StringFormatter, \
-     StringFormatterHandlerMixin, StderrHandler
+    StringFormatterHandlerMixin, StderrHandler
 from logbook._termcolors import colorize
 from logbook.helpers import PY2, string_types, iteritems, u
 
@@ -326,13 +327,15 @@ class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
 
 # backwards compat.  Should go away in some future releases
 from logbook.handlers import FingersCrossedHandler as \
-     FingersCrossedHandlerBase
+    FingersCrossedHandlerBase
+
+
 class FingersCrossedHandler(FingersCrossedHandlerBase):
     def __init__(self, *args, **kwargs):
         FingersCrossedHandlerBase.__init__(self, *args, **kwargs)
         from warnings import warn
         warn(PendingDeprecationWarning('fingers crossed handler changed '
-            'location.  It\'s now a core component of Logbook.'))
+             'location.  It\'s now a core component of Logbook.'))
 
 
 class ExceptionHandler(Handler, StringFormatterHandlerMixin):
@@ -360,10 +363,12 @@ class ExceptionHandler(Handler, StringFormatterHandlerMixin):
             raise self.exc_type(self.format(record))
         return False
 
+
 class DedupHandler(Handler):
     """A handler that deduplicates log messages.
 
-    It emits each unique log record once, along with the number of times it was emitted.
+    It emits each unique log record once, along with the number of times it was
+    emitted.
     Example:::
 
         with logbook.more.DedupHandler():
@@ -376,7 +381,9 @@ class DedupHandler(Handler):
        message repeated 2 times: foo
        message repeated 1 times: bar
     """
-    def __init__(self, format_string='message repeated {count} times: {message}', *args, **kwargs):
+    def __init__(self,
+                 format_string='message repeated {count} times: {message}',
+                 *args, **kwargs):
         Handler.__init__(self, bubble=False, *args, **kwargs)
         self._format_string = format_string
         self.clear()
@@ -406,8 +413,8 @@ class DedupHandler(Handler):
     def flush(self):
         for record in self._unique_ordered_records:
             record.message = self._format_string.format(message=record.message, count=self._message_to_count[record.message])
-            # record.dispatcher is the logger who created the message, it's sometimes supressed (by logbook.info for example)
+            # record.dispatcher is the logger who created the message,
+            # it's sometimes supressed (by logbook.info for example)
             dispatch = record.dispatcher.call_handlers if record.dispatcher is not None else dispatch_record
             dispatch(record)
         self.clear()
-

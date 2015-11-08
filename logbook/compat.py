@@ -25,8 +25,9 @@ def redirect_logging(set_root_logger_level=True):
     removes all otherwise registered handlers on root logger of
     the logging system but leaves the other loggers untouched.
 
-    :param set_root_logger_level: controls of the default level of the legacy root logger is changed
-       so that all legacy log messages get redirected to Logbook
+    :param set_root_logger_level: controls of the default level of the legacy
+       root logger is changed so that all legacy log messages get redirected
+       to Logbook
     """
     del logging.root.handlers[:]
     logging.root.addHandler(RedirectLoggingHandler())
@@ -124,11 +125,11 @@ class RedirectLoggingHandler(logging.Handler):
     def convert_record(self, old_record):
         """Converts an old logging record into a logbook log record."""
         record = LoggingCompatRecord(old_record.name,
-                                   self.convert_level(old_record.levelno),
-                                   old_record.msg, old_record.args,
-                                   None, old_record.exc_info,
-                                   self.find_extra(old_record),
-                                   self.find_caller(old_record))
+                                     self.convert_level(old_record.levelno),
+                                     old_record.msg, old_record.args,
+                                     None, old_record.exc_info,
+                                     self.find_extra(old_record),
+                                     self.find_caller(old_record))
         record.time = self.convert_time(old_record.created)
         return record
 

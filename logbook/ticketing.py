@@ -90,7 +90,8 @@ class BackendBase(object):
         """Returns the number of tickets."""
         raise NotImplementedError()
 
-    def get_tickets(self, order_by='-last_occurrence_time', limit=50, offset=0):
+    def get_tickets(self, order_by='-last_occurrence_time',
+                    limit=50, offset=0):
         """Selects tickets from the database."""
         raise NotImplementedError()
 
@@ -140,9 +141,11 @@ class SQLAlchemyBackend(BackendBase):
         if hasattr(engine_or_uri, 'execute'):
             self.engine = engine_or_uri
         else:
-            # Pool recycle keeps connections from going stale, which happens in MySQL Databases
+            # Pool recycle keeps connections from going stale,
+            # which happens in MySQL Databases
             # Pool size is more custom for out stack
-            self.engine = create_engine(engine_or_uri, convert_unicode=True, pool_recycle=360, pool_size=1000)
+            self.engine = create_engine(engine_or_uri, convert_unicode=True,
+                                        pool_recycle=360, pool_size=1000)
 
             # Create session factory using session maker
             session = sessionmaker()
@@ -167,6 +170,7 @@ class SQLAlchemyBackend(BackendBase):
         metadata.
         """
         import sqlalchemy as db
+
         def table(name, *args, **kwargs):
             return db.Table(self.table_prefix + name, self.metadata,
                             *args, **kwargs)
@@ -289,7 +293,7 @@ class MongoDBBackend(BackendBase):
             self.ticket_id = row['ticket_id']
             self.occurrence_id = row['_id']
 
-    #TODO: Update connection setup once PYTHON-160 is solved.
+    # TODO: Update connection setup once PYTHON-160 is solved.
     def setup_backend(self):
         import pymongo
         from pymongo import ASCENDING, DESCENDING

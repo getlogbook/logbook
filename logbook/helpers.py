@@ -60,7 +60,7 @@ else:
     from http import client as http_client
 
 if PY2:
-    #Yucky, but apparently that's the only way to do this
+    # Yucky, but apparently that's the only way to do this
     exec("""
 def reraise(tp, value, tb=None):
     raise tp, value, tb
@@ -83,15 +83,18 @@ _iso8601_re = re.compile(
 _missing = object()
 if PY2:
     def b(x): return x
+
     def _is_text_stream(x): return True
 else:
     import io
+
     def b(x): return x.encode('ascii')
+
     def _is_text_stream(stream): return isinstance(stream, io.TextIOBase)
 
 
 can_rename_open_file = False
-if os.name == 'nt': # pragma: no cover
+if os.name == 'nt':     # pragma: no cover
     _rename = lambda src, dst: False
     _rename_atomic = lambda src, dst: False
 
@@ -114,7 +117,7 @@ if os.name == 'nt': # pragma: no cover
             rv = False
             while not rv and retry < 100:
                 rv = _MoveFileEx(src, dst, _MOVEFILE_REPLACE_EXISTING |
-                                           _MOVEFILE_WRITE_THROUGH)
+                                 _MOVEFILE_WRITE_THROUGH)
                 if not rv:
                     time.sleep(0.001)
                     retry += 1
@@ -173,6 +176,7 @@ else:
     can_rename_open_file = True
 
 _JSON_SIMPLE_TYPES = (bool, float) + integer_types + string_types
+
 
 def to_safe_json(data):
     """Makes a data structure safe for JSON silently discarding invalid
@@ -273,8 +277,10 @@ class cached_property(object):
             obj.__dict__[self.__name__] = value
         return value
 
+
 def get_iterator_next_method(it):
     return lambda: next(it)
+
 
 # python 2 support functions and aliases
 def is_unicode(x):

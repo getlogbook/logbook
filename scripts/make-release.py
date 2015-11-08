@@ -61,6 +61,7 @@ def parse_date(string):
 
 def set_filename_version(filename, version_number, pattern):
     changed = []
+
     def inject_version(match):
         before, old, after = match.groups()
         changed.append(True)
@@ -84,6 +85,7 @@ def set_init_version(version):
 def set_setup_version(version):
     info('Setting setup.py version to %s', version)
     set_filename_version('setup.py', version, 'version')
+
 
 def set_doc_version(version):
     info('Setting docs/conf.py version to %s', version)
@@ -124,6 +126,7 @@ def make_git_tag(tag):
 
 parser = argparse.ArgumentParser("%prog [options]")
 parser.add_argument("--no-upload", dest="upload", action="store_false", default=True)
+
 
 def main():
     args = parser.parse_args()

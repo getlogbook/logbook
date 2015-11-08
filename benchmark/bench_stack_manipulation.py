@@ -1,6 +1,6 @@
 """Tests basic stack manipulation performance"""
 from logbook import Handler, NullHandler, StreamHandler, FileHandler, \
-     ERROR, WARNING
+    ERROR, WARNING
 from tempfile import NamedTemporaryFile
 from cStringIO import StringIO
 

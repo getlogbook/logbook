@@ -73,6 +73,7 @@ SYSLOG_PORT = 514
 
 REGTYPE = type(re.compile("I'm a regular expression!"))
 
+
 def create_syshandler(application_name, level=NOTSET):
     """Creates the handler the operating system provides.  On Unix systems
     this creates a :class:`SyslogHandler`, on Windows sytems it will
@@ -115,8 +116,9 @@ class Handler(with_metaclass(_HandlerType), ContextObject):
     the 'raw' message as determined by record.message is logged.
 
     To bind a handler you can use the :meth:`push_application`,
-    :meth:`push_thread` or :meth:`push_greenlet` methods.  This will push the handler on a stack of
-    handlers.  To undo this, use the :meth:`pop_application`,
+    :meth:`push_thread` or :meth:`push_greenlet` methods.
+    This will push the handler on a stack of handlers.
+    To undo this, use the :meth:`pop_application`,
     :meth:`pop_thread` methods and :meth:`pop_greenlet`::
 
         handler = MyHandler()
@@ -306,7 +308,8 @@ class NullHandler(Handler):
     blackhole = True
 
     def __init__(self, level=NOTSET, filter=None):
-        super(NullHandler, self).__init__(level=level, filter=filter, bubble=False)
+        super(NullHandler, self).__init__(level=level, filter=filter,
+                                          bubble=False)
 
 
 class WrapperHandler(Handler):
@@ -439,6 +442,7 @@ class HashingHandlerMixin(object):
 
 _NUMBER_TYPES = integer_types + (float,)
 
+
 class LimitingHandlerMixin(HashingHandlerMixin):
     """Mixin class for handlers that want to limit emitting records.
 
@@ -489,8 +493,8 @@ class LimitingHandlerMixin(HashingHandlerMixin):
                len(self._record_limits) >= self.max_record_cache:
                 cache_items = self._record_limits.items()
                 cache_items.sort()
-                del cache_items[:int(self._record_limits) \
-                    * self.record_cache_prune]
+                del cache_items[:int(self._record_limits)
+                                * self.record_cache_prune]
                 self._record_limits = dict(cache_items)
 
             self._record_limits[hash] = (first_count, old_count + 1)
@@ -1046,13 +1050,14 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
     def _get_related_format_string(self):
         if isinstance(self.related_formatter, StringFormatter):
             return self.related_formatter.format_string
+
     def _set_related_format_string(self, value):
         if value is None:
             self.related_formatter = None
         else:
             self.related_formatter = self.formatter_class(value)
     related_format_string = property(_get_related_format_string,
-                                    _set_related_format_string)
+                                     _set_related_format_string)
     del _get_related_format_string, _set_related_format_string
 
     def get_recipients(self, record):
@@ -1211,7 +1216,8 @@ class GMailHandler(MailHandler):
 
     def __init__(self, account_id, password, recipients, **kw):
         super(GMailHandler, self).__init__(
-            account_id, recipients, secure=(), server_addr=("smtp.gmail.com", 587),
+            account_id, recipients, secure=(),
+            server_addr=("smtp.gmail.com", 587),
             credentials=(account_id, password), **kw)
 
 
@@ -1222,38 +1228,38 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
     default_format_string = SYSLOG_FORMAT_STRING
 
     # priorities
-    LOG_EMERG     = 0       #  system is unusable
-    LOG_ALERT     = 1       #  action must be taken immediately
-    LOG_CRIT      = 2       #  critical conditions
-    LOG_ERR       = 3       #  error conditions
-    LOG_WARNING   = 4       #  warning conditions
-    LOG_NOTICE    = 5       #  normal but significant condition
-    LOG_INFO      = 6       #  informational
-    LOG_DEBUG     = 7       #  debug-level messages
+    LOG_EMERG = 0       # system is unusable
+    LOG_ALERT = 1       # action must be taken immediately
+    LOG_CRIT = 2       # critical conditions
+    LOG_ERR = 3       # error conditions
+    LOG_WARNING = 4       # warning conditions
+    LOG_NOTICE = 5       # normal but significant condition
+    LOG_INFO = 6       # informational
+    LOG_DEBUG = 7       # debug-level messages
 
     # facility codes
-    LOG_KERN      = 0       #  kernel messages
-    LOG_USER      = 1       #  random user-level messages
-    LOG_MAIL      = 2       #  mail system
-    LOG_DAEMON    = 3       #  system daemons
-    LOG_AUTH      = 4       #  security/authorization messages
-    LOG_SYSLOG    = 5       #  messages generated internally by syslogd
-    LOG_LPR       = 6       #  line printer subsystem
-    LOG_NEWS      = 7       #  network news subsystem
-    LOG_UUCP      = 8       #  UUCP subsystem
-    LOG_CRON      = 9       #  clock daemon
-    LOG_AUTHPRIV  = 10      #  security/authorization messages (private)
-    LOG_FTP       = 11      #  FTP daemon
+    LOG_KERN = 0       # kernel messages
+    LOG_USER = 1       # random user-level messages
+    LOG_MAIL = 2       # mail system
+    LOG_DAEMON = 3       # system daemons
+    LOG_AUTH = 4       # security/authorization messages
+    LOG_SYSLOG = 5       # messages generated internally by syslogd
+    LOG_LPR = 6       # line printer subsystem
+    LOG_NEWS = 7       # network news subsystem
+    LOG_UUCP = 8       # UUCP subsystem
+    LOG_CRON = 9       # clock daemon
+    LOG_AUTHPRIV = 10      # security/authorization messages (private)
+    LOG_FTP = 11      # FTP daemon
 
     # other codes through 15 reserved for system use
-    LOG_LOCAL0    = 16      #  reserved for local use
-    LOG_LOCAL1    = 17      #  reserved for local use
-    LOG_LOCAL2    = 18      #  reserved for local use
-    LOG_LOCAL3    = 19      #  reserved for local use
-    LOG_LOCAL4    = 20      #  reserved for local use
-    LOG_LOCAL5    = 21      #  reserved for local use
-    LOG_LOCAL6    = 22      #  reserved for local use
-    LOG_LOCAL7    = 23      #  reserved for local use
+    LOG_LOCAL0 = 16      # reserved for local use
+    LOG_LOCAL1 = 17      # reserved for local use
+    LOG_LOCAL2 = 18      # reserved for local use
+    LOG_LOCAL3 = 19      # reserved for local use
+    LOG_LOCAL4 = 20      # reserved for local use
+    LOG_LOCAL5 = 21      # reserved for local use
+    LOG_LOCAL6 = 22      # reserved for local use
+    LOG_LOCAL7 = 23      # reserved for local use
 
     facility_names = {
         'auth':     LOG_AUTH,
@@ -1536,7 +1542,7 @@ class FingersCrossedHandler(Handler):
             if self._buffer_full:
                 self.buffered_records.popleft()
             elif self.buffer_size and \
-                 len(self.buffered_records) >= self.buffer_size:
+                    len(self.buffered_records) >= self.buffer_size:
                 self._buffer_full = True
             return record.level >= self._level
         return False
