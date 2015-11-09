@@ -62,7 +62,8 @@ if has_gevent:
             greenlet_lock = self._get_greenlet_lock()
 
             self._wait_queue.append(gid)
-            # this is a safety in case an exception is raised somewhere and we must make sure we're not in the queue
+            # this is a safety in case an exception is raised somewhere
+            # and we must make sure we're not in the queue
             # otherwise it'll get stuck forever.
             remove_from_queue_on_return = True
             try:
@@ -77,7 +78,8 @@ if has_gevent:
                         remove_from_queue_on_return = False  # don't remove us from the queue
                         return True
                     else:
-                        # we already hold the greenlet lock so obviously the owner is not in our thread.
+                        # we already hold the greenlet lock so obviously
+                        # the owner is not in our thread.
                         greenlet_lock.release()
                         if blocking:
                             gevent.sleep(0.0005)  # 500 us -> initial delay of 1 ms
@@ -114,11 +116,14 @@ if has_gevent:
         def _is_owned(self):
             return self._owner == (thread_get_ident(), greenlet_get_ident())
 else:
-    from threading import Lock as ThreadLock, RLock as ThreadRLock, currentThread
+    from threading import (
+        Lock as ThreadLock, RLock as ThreadRLock, currentThread)
     try:
-        from thread import get_ident as thread_get_ident, _local as thread_local
+        from thread import (
+            get_ident as thread_get_ident, _local as thread_local)
     except ImportError:
-        from _thread import get_ident as thread_get_ident, _local as thread_local
+        from _thread import (
+            get_ident as thread_get_ident, _local as thread_local)
 
     def thread_get_name():
         return currentThread().getName()
@@ -139,6 +144,7 @@ else:
 
         def __exit__(self, t, v, tb):
             pass
+
 
 def new_fine_grained_lock():
     global use_gevent

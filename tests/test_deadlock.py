@@ -28,7 +28,8 @@ class FakeLock(object):
 def test_deadlock_in_emit():
     logbook_logger = logbook.Logger("logbook")
     obj = MyObject(logbook_logger.info)
-    stream_handler = logbook.StreamHandler(stream=sys.stderr, level=logbook.DEBUG)
+    stream_handler = logbook.StreamHandler(stream=sys.stderr,
+                                           level=logbook.DEBUG)
     stream_handler.lock = FakeLock()
     with stream_handler.applicationbound():
         logbook_logger.info("format this: {}", obj)

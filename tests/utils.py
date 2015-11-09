@@ -20,14 +20,18 @@ _missing = object()
 
 LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
+
 def get_total_delta_seconds(delta):
     """
-    Replacement for datetime.timedelta.total_seconds() for Python 2.5, 2.6 and 3.1
+    Replacement for datetime.timedelta.total_seconds() for Python 2.5, 2.6
+    and 3.1
     """
     return (delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6) / 10**6
 
 
 require_py3 = pytest.mark.skipif(sys.version_info[0] < 3, reason="Requires Python 3")
+
+
 def require_module(module_name):
     found = True
     try:
@@ -36,6 +40,7 @@ def require_module(module_name):
         found = False
 
     return pytest.mark.skipif(not found, reason='Module {0} is required'.format(module_name))
+
 
 def make_fake_mail_handler(**kwargs):
     class FakeMailHandler(logbook.MailHandler):
@@ -70,8 +75,10 @@ def missing(name):
         return wrapper
     return decorate
 
+
 def activate_via_with_statement(handler):
     return handler
+
 
 @contextmanager
 def activate_via_push_pop(handler):
@@ -80,6 +87,7 @@ def activate_via_push_pop(handler):
         yield handler
     finally:
         handler.pop_thread()
+
 
 @contextmanager
 def capturing_stderr_context():

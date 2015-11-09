@@ -14,30 +14,37 @@ import traceback
 from itertools import chain
 from weakref import ref as weakref
 from datetime import datetime
-from logbook.concurrency import thread_get_name, thread_get_ident, greenlet_get_ident
+from logbook.concurrency import (
+    thread_get_name, thread_get_ident, greenlet_get_ident)
 
-from logbook.helpers import to_safe_json, parse_iso8601, cached_property, \
-     PY2, u, string_types, iteritems, integer_types, xrange
+from logbook.helpers import (
+    to_safe_json, parse_iso8601, cached_property, PY2, u, string_types,
+    iteritems, integer_types, xrange)
 try:
-    from logbook._speedups import group_reflected_property, \
-         ContextStackManager, StackedObject
+    from logbook._speedups import (
+        group_reflected_property, ContextStackManager, StackedObject)
 except ImportError:
-    from logbook._fallback import group_reflected_property, \
-         ContextStackManager, StackedObject
+    from logbook._fallback import (
+        group_reflected_property, ContextStackManager, StackedObject)
 
 _datetime_factory = datetime.utcnow
+
+
 def set_datetime_format(datetime_format):
     """
     Set the format for the datetime objects created, which are then
     made available as the :py:attr:`LogRecord.time` attribute of
     :py:class:`LogRecord` instances.
 
-    :param datetime_format: Indicates how to generate datetime objects.  Possible values are:
+    :param datetime_format: Indicates how to generate datetime objects.
+    Possible values are:
 
          "utc"
-             :py:attr:`LogRecord.time` will be a datetime in UTC time zone (but not time zone aware)
+             :py:attr:`LogRecord.time` will be a datetime in UTC time zone
+             (but not time zone aware)
          "local"
-             :py:attr:`LogRecord.time` will be a datetime in local time zone (but not time zone aware)
+             :py:attr:`LogRecord.time` will be a datetime in local time zone
+             (but not time zone aware)
 
     This function defaults to creating datetime objects in UTC time,
     using `datetime.utcnow()
@@ -344,8 +351,8 @@ class LogRecord(object):
     """
     _pullable_information = frozenset((
         'func_name', 'module', 'filename', 'lineno', 'process_name', 'thread',
-        'thread_name', 'greenlet', 'formatted_exception', 'message', 'exception_name',
-        'exception_message'
+        'thread_name', 'greenlet', 'formatted_exception', 'message',
+        'exception_name', 'exception_message'
     ))
     _noned_on_close = frozenset(('exc_info', 'frame', 'calling_frame'))
 
@@ -370,7 +377,8 @@ class LogRecord(object):
     information_pulled = False
 
     def __init__(self, channel, level, msg, args=None, kwargs=None,
-                 exc_info=None, extra=None, frame=None, dispatcher=None, frame_correction=0):
+                 exc_info=None, extra=None, frame=None, dispatcher=None,
+                 frame_correction=0):
         #: the name of the logger that created it or any other textual
         #: channel description.  This is a descriptive name and can be
         #: used for filtering.
@@ -386,11 +394,11 @@ class LogRecord(object):
         #: optional exception information.  If set, this is a tuple in the
         #: form ``(exc_type, exc_value, tb)`` as returned by
         #: :func:`sys.exc_info`.
-        #: This parameter can also be ``True``, which would cause the exception info tuple
-        #: to be fetched for you.
+        #: This parameter can also be ``True``, which would cause the exception
+        #: info tuple to be fetched for you.
         if not exc_info:
-            # this is a special case where exc_info=False can be passed in theory,
-            # and it should be the same as exc_info=None
+            # this is a special case where exc_info=False can be passed in
+            # theory, and it should be the same as exc_info=None
             exc_info = None
         self.exc_info = exc_info
         #: optional extra information as dictionary.  This is the place
@@ -513,14 +521,17 @@ class LogRecord(object):
             return self.msg
         try:
             try:
-                return self._format_message(self.msg, *self.args, **self.kwargs)
+                return self._format_message(self.msg, *self.args,
+                                            **self.kwargs)
             except UnicodeDecodeError:
                 # Assume an unicode message but mixed-up args
                 msg = self.msg.encode('utf-8', 'replace')
                 return self._format_message(msg, *self.args, **self.kwargs)
             except (UnicodeEncodeError, AttributeError):
-                # we catch AttributeError since if msg is bytes, it won't have the 'format' method
-                if sys.exc_info()[0] is AttributeError and (PY2 or not isinstance(self.msg, bytes)):
+                # we catch AttributeError since if msg is bytes,
+                # it won't have the 'format' method
+                if (sys.exc_info()[0] is AttributeError
+                        and (PY2 or not isinstance(self.msg, bytes))):
                     # this is not the case we thought it is...
                     raise
                 # Assume encoded message with unicode args.
@@ -537,9 +548,9 @@ class LogRecord(object):
             # that.
             e = sys.exc_info()[1]
             errormsg = ('Could not format message with provided '
-                       'arguments: {err}\n  msg={msg!r}\n  '
-                       'args={args!r} \n  kwargs={kwargs!r}.\n'
-                       'Happened in file {file}, line {lineno}').format(
+                        'arguments: {err}\n  msg={msg!r}\n  '
+                        'args={args!r} \n  kwargs={kwargs!r}.\n'
+                        'Happened in file {file}, line {lineno}').format(
                 err=e, msg=self.msg, args=self.args,
                 kwargs=self.kwargs, file=self.filename,
                 lineno=self.lineno
@@ -609,8 +620,8 @@ class LogRecord(object):
     @cached_property
     def greenlet(self):
         """The ident of the greenlet.  This is evaluated late and means that
-        if the log record is passed to another greenlet, :meth:`pull_information`
-        was called in the old greenlet.
+        if the log record is passed to another greenlet,
+        :meth:`pull_information` was called in the old greenlet.
         """
         return greenlet_get_ident()
 
@@ -710,7 +721,6 @@ class LoggerMixin(object):
         """
         if not self.disabled and TRACE >= self.level:
             self._log(TRACE, args, kwargs)
-
 
     def debug(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
@@ -897,7 +907,8 @@ class RecordDispatcher(object):
                 continue
 
             # first case of blackhole (without filter).
-            # this should discard all further processing and we don't have to heavy_init to know that...
+            # this should discard all further processing and
+            # we don't have to heavy_init to know that...
             if handler.filter is None and handler.blackhole:
                 break
 
@@ -909,7 +920,6 @@ class RecordDispatcher(object):
                 record.heavy_init()
                 self.process_record(record)
                 record_initialized = True
-
 
             # a filter can still veto the handling of the record.  This
             # however is already operating on an initialized and processed
@@ -924,7 +934,6 @@ class RecordDispatcher(object):
             # this record, we should consider the case of us being a black hole...
             if handler.blackhole:
                 break
-
 
             # handle the record.  If the record was handled and
             # the record is not bubbling we can abort now.

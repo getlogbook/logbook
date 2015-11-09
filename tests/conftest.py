@@ -3,6 +3,7 @@ import pytest
 
 logbook.StderrHandler().push_application()
 
+
 @pytest.fixture
 def logger():
     return logbook.Logger('testlogger')
@@ -95,7 +96,8 @@ try:
     @pytest.fixture(scope="module", autouse=True, params=[False, True])
     def gevent(request):
         module_name = getattr(request.module, '__name__', '')
-        if not any(s in module_name for s in ('queues', 'processors')) and request.param:
+        if (not any(s in module_name for s in ('queues', 'processors'))
+                and request.param):
             from logbook.concurrency import enable_gevent, _disable_gevent
             enable_gevent()
 

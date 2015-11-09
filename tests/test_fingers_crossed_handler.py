@@ -73,5 +73,6 @@ def test_fingerscrossed_buffer_size(activation_strategy):
         logger.warn('Moar!')
         logger.error('Pure hate!')
 
-    assert test_handler.formatted_records == ['[WARNING] Test: Aha!', '[WARNING] Test: Moar!', '[ERROR] Test: Pure hate!']
-
+    assert test_handler.formatted_records == ['[WARNING] Test: Aha!',
+                                              '[WARNING] Test: Moar!',
+                                              '[ERROR] Test: Pure hate!']

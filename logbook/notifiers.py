@@ -22,7 +22,9 @@ if PY2:
 else:
     from urllib.parse import urlencode
 
-def create_notification_handler(application_name=None, level=NOTSET, icon=None):
+
+def create_notification_handler(application_name=None, level=NOTSET,
+                                icon=None):
     """Creates a handler perfectly fit the current platform.  On Linux
     systems this creates a :class:`LibNotifyHandler`, on OS X systems it
     will create a :class:`GrowlHandler`.
@@ -151,7 +153,7 @@ class LibNotifyHandler(NotificationBaseHandler):
         try:
             from gtk import gdk
         except ImportError:
-            #TODO: raise a warning?
+            # TODO: raise a warning?
             raise RuntimeError('The gtk.gdk module is required to set an icon.')
 
         if icon is not None:
@@ -197,8 +199,8 @@ class BoxcarHandler(NotificationBaseHandler):
 
     def __init__(self, email, password, record_limit=None, record_delta=None,
                  level=NOTSET, filter=None, bubble=False):
-        NotificationBaseHandler.__init__(self, None, record_limit, record_delta,
-                                         level, filter, bubble)
+        NotificationBaseHandler.__init__(self, None, record_limit,
+                                         record_delta, level, filter, bubble)
         self.email = email
         self.password = password
 
@@ -231,8 +233,8 @@ class NotifoHandler(NotificationBaseHandler):
     """
 
     def __init__(self, application_name=None, username=None, secret=None,
-                 record_limit=None, record_delta=None, level=NOTSET, filter=None,
-                 bubble=False, hide_level=False):
+                 record_limit=None, record_delta=None, level=NOTSET,
+                 filter=None, bubble=False, hide_level=False):
         try:
             import notifo
         except ImportError:
@@ -240,14 +242,13 @@ class NotifoHandler(NotificationBaseHandler):
                 'The notifo module is not available.  You have '
                 'to install notifo to use the NotifoHandler.'
             )
-        NotificationBaseHandler.__init__(self, None, record_limit, record_delta,
-                                         level, filter, bubble)
+        NotificationBaseHandler.__init__(self, None, record_limit,
+                                         record_delta, level, filter, bubble)
         self._notifo = notifo
         self.application_name = application_name
         self.username = username
         self.secret = secret
         self.hide_level = hide_level
-
 
     def emit(self, record):
 

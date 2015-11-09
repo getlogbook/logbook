@@ -30,8 +30,10 @@ def group_reflected_property(name, default, fallback=_missing):
         if self.group is None:
             return default
         return getattr(self.group, name)
+
     def _set(self, value):
         setattr(self, '_' + name, value)
+
     def _del(self):
         delattr(self, '_' + name)
     return property(_get, _set, _del)
