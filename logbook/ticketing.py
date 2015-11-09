@@ -175,25 +175,26 @@ class SQLAlchemyBackend(BackendBase):
             return db.Table(self.table_prefix + name, self.metadata,
                             *args, **kwargs)
         self.tickets = table('tickets',
-            db.Column('ticket_id', db.Integer, primary_key=True),
-            db.Column('record_hash', db.String(40), unique=True),
-            db.Column('level', db.Integer),
-            db.Column('channel', db.String(120)),
-            db.Column('location', db.String(512)),
-            db.Column('module', db.String(256)),
-            db.Column('last_occurrence_time', db.DateTime),
-            db.Column('occurrence_count', db.Integer),
-            db.Column('solved', db.Boolean),
-            db.Column('app_id', db.String(80))
-        )
+                             db.Column('ticket_id', db.Integer,
+                                       primary_key=True),
+                             db.Column('record_hash', db.String(40),
+                                       unique=True),
+                             db.Column('level', db.Integer),
+                             db.Column('channel', db.String(120)),
+                             db.Column('location', db.String(512)),
+                             db.Column('module', db.String(256)),
+                             db.Column('last_occurrence_time', db.DateTime),
+                             db.Column('occurrence_count', db.Integer),
+                             db.Column('solved', db.Boolean),
+                             db.Column('app_id', db.String(80)))
         self.occurrences = table('occurrences',
-            db.Column('occurrence_id', db.Integer, primary_key=True),
-            db.Column('ticket_id', db.Integer,
-                      db.ForeignKey(self.table_prefix + 'tickets.ticket_id')),
-            db.Column('time', db.DateTime),
-            db.Column('data', db.Text),
-            db.Column('app_id', db.String(80))
-        )
+                                 db.Column('occurrence_id',
+                                           db.Integer, primary_key=True),
+                                 db.Column('ticket_id', db.Integer,
+                                           db.ForeignKey(self.table_prefix + 'tickets.ticket_id')),
+                                 db.Column('time', db.DateTime),
+                                 db.Column('data', db.Text),
+                                 db.Column('app_id', db.String(80)))
 
     def _order(self, q, table, order_by):
         if order_by[0] == '-':
@@ -222,10 +223,10 @@ class SQLAlchemyBackend(BackendBase):
             else:
                 ticket_id = row['ticket_id']
             s.execute(self.occurrences.insert()
-             .values(ticket_id=ticket_id,
-                     time=record.time,
-                     app_id=app_id,
-                     data=json.dumps(data)))
+                      .values(ticket_id=ticket_id,
+                              time=record.time,
+                              app_id=app_id,
+                              data=json.dumps(data)))
             s.execute(self.tickets.update()
              .where(self.tickets.c.ticket_id == ticket_id)
              .values(occurrence_count=self.tickets.c.occurrence_count + 1,
@@ -333,8 +334,10 @@ class MongoDBBackend(BackendBase):
         self.database = database
 
         # setup correct indexes
-        database.tickets.ensure_index([('record_hash', ASCENDING)], unique=True)
-        database.tickets.ensure_index([('solved', ASCENDING), ('level', ASCENDING)])
+        database.tickets.ensure_index([('record_hash', ASCENDING)],
+                                      unique=True)
+        database.tickets.ensure_index([('solved', ASCENDING),
+                                      ('level', ASCENDING)])
         database.occurrences.ensure_index([('time', DESCENDING)])
 
     def _order(self, q, order_by):
@@ -389,7 +392,8 @@ class MongoDBBackend(BackendBase):
         """Returns the number of tickets."""
         return self.database.tickets.count()
 
-    def get_tickets(self, order_by='-last_occurrence_time', limit=50, offset=0):
+    def get_tickets(self, order_by='-last_occurrence_time', limit=50,
+                    offset=0):
         """Selects tickets from the database."""
         query = self._order(self.database.tickets.find(), order_by) \
                     .limit(limit).skip(offset)
