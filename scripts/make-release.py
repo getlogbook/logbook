@@ -107,7 +107,8 @@ def info(message, *args):
 
 
 def get_git_tags():
-    return set(Popen(['git', 'tag'], stdout=PIPE).communicate()[0].splitlines())
+    return set(Popen(['git', 'tag'],
+               stdout=PIPE).communicate()[0].splitlines())
 
 
 def git_is_clean():
@@ -125,7 +126,8 @@ def make_git_tag(tag):
 
 
 parser = argparse.ArgumentParser("%prog [options]")
-parser.add_argument("--no-upload", dest="upload", action="store_false", default=True)
+parser.add_argument("--no-upload", dest="upload",
+                    action="store_false", default=True)
 
 
 def main():
@@ -147,7 +149,8 @@ def main():
     if version in tags:
         fail('Version "%s" is already tagged', version)
     if release_date.date() != date.today():
-        fail('Release date is not today (%s != %s)' % (release_date.date(), date.today()))
+        fail('Release date is not today (%s != %s)' %
+             (release_date.date(), date.today()))
 
     if not git_is_clean():
         fail('You have uncommitted changes in git')
