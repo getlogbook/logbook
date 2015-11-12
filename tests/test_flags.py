@@ -20,7 +20,8 @@ def test_error_flag(logger):
         with pytest.raises(Exception) as caught:
             with logbook.Flags(errors='raise'):
                 logger.warn('Foo {42}', 'aha')
-        assert 'Could not format message with provided arguments' in str(caught.value)
+        assert 'Could not format message with provided arguments' in str(
+            caught.value)
 
 
 def test_disable_introspection(logger):

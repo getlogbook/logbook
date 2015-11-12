@@ -37,7 +37,8 @@ def test_exception_catching_with_unicode():
     try:
         raise Exception(u('\u202a test \u202c'))
     except:
-        r = logbook.LogRecord('channel', 'DEBUG', 'test', exc_info=sys.exc_info())
+        r = logbook.LogRecord('channel', 'DEBUG', 'test',
+                              exc_info=sys.exc_info())
     r.exception_message
 
 
@@ -47,7 +48,8 @@ def test_exc_info(as_tuple, logger, active_handler):
         1 / 0
     except Exception:
         exc_info = sys.exc_info()
-        logger.info("Exception caught", exc_info=exc_info if as_tuple else True)
+        logger.info("Exception caught",
+                    exc_info=exc_info if as_tuple else True)
     assert active_handler.records[0].exc_info is not None
     assert active_handler.records[0].exc_info == exc_info
 

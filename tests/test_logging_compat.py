@@ -21,7 +21,8 @@ def test_basic_compat(request, set_root_logger_level):
     from logbook.compat import redirected_logging
 
     # mimic the default logging setting
-    request.addfinalizer(functools.partial(logging.root.setLevel, logging.root.level))
+    request.addfinalizer(functools.partial(
+        logging.root.setLevel, logging.root.level))
     logging.root.setLevel(logging.WARNING)
 
     name = 'test_logbook-%d' % randrange(1 << 32)
@@ -35,7 +36,8 @@ def test_basic_compat(request, set_root_logger_level):
                 logger.warn('This is from the old %s', 'system')
                 logger.error('This is from the old system')
                 logger.critical('This is from the old system')
-        assert ('WARNING: %s: This is from the old system' % name) in captured.getvalue()
+        assert ('WARNING: %s: This is from the old system' %
+                name) in captured.getvalue()
     if set_root_logger_level:
         assert handler.records[0].level == logbook.DEBUG
     else:
@@ -79,5 +81,6 @@ def test_warning_redirections():
             redirector.end()
 
     assert len(handler.records) == 1
-    assert handler.formatted_records[0].startswith('[WARNING] RuntimeWarning: Testing')
+    assert handler.formatted_records[0].startswith(
+        '[WARNING] RuntimeWarning: Testing')
     assert __file_without_pyc__ in handler.records[0].filename
