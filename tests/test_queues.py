@@ -168,7 +168,8 @@ def test_redis_handler():
     FIELDS = ['message', 'host']
     r = redis.Redis(decode_responses=True)
     redis_handler = RedisHandler(level=logbook.INFO, bubble=True)
-    # We don't want output for the tests, so we can wrap everything in a NullHandler
+    # We don't want output for the tests, so we can wrap everything in a
+    # NullHandler
     null_handler = logbook.NullHandler()
 
     # Check default values

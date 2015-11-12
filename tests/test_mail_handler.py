@@ -36,7 +36,8 @@ def test_mail_handler(activation_strategy, logger):
         if 'Content-Transfer-Encoding: base64' in header:
             data = base64.b64decode(data).decode('utf-8')
         assert re.search('Message type:\s+ERROR', data)
-        assert re.search('Location:.*%s' % re.escape(__file_without_pyc__), data)
+        assert re.search('Location:.*%s' %
+                         re.escape(__file_without_pyc__), data)
         assert re.search('Module:\s+%s' % __name__, data)
         assert re.search('Function:\s+test_mail_handler', data)
         body = u('Viva la Espa\xf1a')

@@ -41,7 +41,8 @@ def test_file_handler_delay(logfile, activation_strategy, logger):
 
 def test_monitoring_file_handler(logfile, activation_strategy, logger):
     if os.name == 'nt':
-        pytest.skip('unsupported on windows due to different IO (also unneeded)')
+        pytest.skip(
+            'unsupported on windows due to different IO (also unneeded)')
     handler = logbook.MonitoringFileHandler(logfile,
                                             format_string='{record.level_name}:{record.channel}:'
                                             '{record.message}', delay=True)
@@ -80,7 +81,8 @@ def test_rotating_file_handler(logfile, activation_strategy, logger):
              if x.startswith(basename)]
     files.sort()
 
-    assert files == [basename, basename + '.1', basename + '.2', basename + '.3']
+    assert files == [basename, basename +
+                     '.1', basename + '.2', basename + '.3']
     with open(logfile) as f:
         assert f.readline().rstrip() == ('C' * 256)
         assert f.readline().rstrip() == ('D' * 256)
@@ -91,7 +93,8 @@ def test_rotating_file_handler(logfile, activation_strategy, logger):
 @pytest.mark.parametrize("backup_count", [1, 3])
 def test_timed_rotating_file_handler(tmpdir, activation_strategy, backup_count):
     basename = str(tmpdir.join('trot.log'))
-    handler = logbook.TimedRotatingFileHandler(basename, backup_count=backup_count)
+    handler = logbook.TimedRotatingFileHandler(
+        basename, backup_count=backup_count)
     handler.format_string = '[{record.time:%H:%M}] {record.message}'
 
     def fake_record(message, year, month, day, hour=0,

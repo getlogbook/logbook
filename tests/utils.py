@@ -29,7 +29,8 @@ def get_total_delta_seconds(delta):
     return (delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6) / 10**6
 
 
-require_py3 = pytest.mark.skipif(sys.version_info[0] < 3, reason="Requires Python 3")
+require_py3 = pytest.mark.skipif(
+    sys.version_info[0] < 3, reason="Requires Python 3")
 
 
 def require_module(module_name):
