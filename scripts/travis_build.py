@@ -13,5 +13,6 @@ if __name__ == '__main__':
         print("PyPy+Cython configuration skipped")
     else:
         sys.exit(
-            subprocess.call("make cybuild test" if use_cython else "make test", shell=True)
+            subprocess.call(
+                "make cybuild test" if use_cython else "make test", shell=True)
         )
