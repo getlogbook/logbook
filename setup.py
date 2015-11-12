@@ -92,7 +92,8 @@ class ve_build_ext(build_ext):
 
 cmdclass['build_ext'] = ve_build_ext
 # Don't try to compile the extension if we're running on PyPy
-if os.path.isfile('logbook/_speedups.c') and not hasattr(sys, "pypy_translation_info"):
+if (os.path.isfile('logbook/_speedups.c') and
+        not hasattr(sys, "pypy_translation_info")):
     speedups = Feature('optional C speed-enhancement module', standard=True,
                        ext_modules=[Extension('logbook._speedups',
                                               ['logbook/_speedups.c'])])
