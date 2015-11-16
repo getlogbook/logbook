@@ -12,4 +12,4 @@ Logbook is a nice logging replacement.
 
 It should be easy to setup, use and configure and support web applications :)
 
-For more information: http://pythonhosted.org/Logbook
+For more information: http://logbook.readthedocs.org

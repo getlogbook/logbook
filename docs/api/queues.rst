@@ -19,7 +19,7 @@ ZeroMQ
    :inherited-members:
 
 AMQP Message Queues
------
+-------------------
 
 .. autoclass:: MessageQueueHandler
     :members:

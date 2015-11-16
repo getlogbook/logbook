@@ -32,6 +32,12 @@ class _SlowContextNotifier(object):
 
 
 def log_if_slow_context(message, threshold=1, func=logbook_debug, args=None, kwargs=None):
+    """Logs a message (by default using the global debug logger) if a certain context containing a set of operations is too slow
+
+    >>> with log_if_slow_context('too slow!'):
+    ...     ...
+    """
+    
     full_args = (message, ) if args is None else (message, ) + args
     return _SlowContextNotifier(threshold, func, full_args, kwargs)
 
@@ -44,6 +50,9 @@ _local = _Local()
 @contextmanager
 def get_no_deprecations_context():
     """Disables deprecation messages temporarily
+
+    >>> with get_no_deprecations_context():
+    ...    call_some_deprecated_logic()
     """
     prev_enabled = _local.enabled
     _local.enabled = False
@@ -137,6 +146,12 @@ class _DeprecatedFunction(object):
 
 def deprecated(func=None, message=None):
     """Marks the specified function as deprecated, and emits a warning when it's called
+
+    >>> @deprecated(message='No longer supported')
+    ... def deprecated_func():
+    ...     pass
+
+    This will cause a warning log to be emitted when the function gets called, with the correct filename/lineno
     """
     if isinstance(func, string_types):
         assert message is None

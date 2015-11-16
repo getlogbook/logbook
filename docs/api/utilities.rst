@@ -1,6 +1,9 @@
 Utilities
 =========
 
+Misc. Utilities
+---------------
+
 This documents general purpose utility functions available in Logbook.
 
 .. module:: logbook
@@ -26,3 +29,17 @@ This documents general purpose utility functions available in Logbook.
 .. autofunction:: log
 
 .. autofunction:: set_datetime_format
+
+Slow Operations Logging
+-----------------------
+
+.. autofunction:: logbook.utils.log_if_slow_context
+
+
+Deprecations
+------------
+
+.. autofunction:: logbook.utils.deprecated
+
+.. autofunction:: logbook.utils.get_no_deprecations_context
+
