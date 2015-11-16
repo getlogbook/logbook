@@ -7,6 +7,10 @@ environment:
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
     WITH_COMPILER: "cmd /E:ON /V:ON /C .\\.appveyor\\run_with_compiler.cmd"
+    PYPI_USERNAME:
+      secure: wZdQlOvf+UeH5BUG6l7ANw==
+    PYPI_PASSWORD:
+      secure: wZdQlOvf+UeH5BUG6l7ANw==
 
   matrix:
     # Python 2.6.6 is the latest Python 2.6 with a Windows installer
@@ -146,7 +150,7 @@ test_script:
   - py.test -r s tests
 
 after_test:
-  - "IF DEFINED CYBUILD (%WITH_COMPILER% python setup.py bdist_wheel)"
+  - ".appveyor\\after_test.bat"
 
 artifacts:
   # Archive the generated packages in the ci.appveyor.com build report.
