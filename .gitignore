@@ -13,3 +13,4 @@ cover
 build
 .vagrant
 flycheck-*
+.cache
