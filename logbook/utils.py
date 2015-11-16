@@ -19,7 +19,8 @@ class _SlowContextNotifier(object):
         self.thread = threading.Thread(target=self._notifier)
 
     def _notifier(self):
-        if not self.evt.wait(timeout=self.threshold):
+        self.evt.wait(timeout=self.threshold)
+        if not self.evt.is_set():
             self.logger_func(*self.args, **self.kwargs)
 
     def __enter__(self):
@@ -37,8 +38,7 @@ def log_if_slow_context(message, threshold=1, func=logbook_debug, args=None, kwa
     >>> with log_if_slow_context('too slow!'):
     ...     ...
     """
-    
-    full_args = (message, ) if args is None else (message, ) + args
+    full_args = (message, ) if args is None else (message, ) + tuple(args)
     return _SlowContextNotifier(threshold, func, full_args, kwargs)
 
 class _Local(threading.local):
