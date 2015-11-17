@@ -9,4 +9,5 @@ python setup.py develop
 IF DEFINED CYBUILD (
 	cython logbook\_speedups.pyx
 	%WITH_COMPILER% python setup.py build
+	pip install twine
 )
