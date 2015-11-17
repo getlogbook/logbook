@@ -17,7 +17,7 @@ For more information: http://logbook.readthedocs.org
 
 [ti]: https://secure.travis-ci.org/getlogbook/logbook.svg?branch=master
 [tl]: https://travis-ci.org/getlogbook/logbook
-[ai]: https://ci.appveyor.com/api/projects/status/est77w7podkj83aw/branch/master?svg=true
+[ai]: https://ci.appveyor.com/api/projects/status/quu99exa26e06npp?svg=true
 [vi]: https://img.shields.io/pypi/pyversions/logbook.svg
 [di]: https://img.shields.io/pypi/dm/logbook.svg
 [al]: https://ci.appveyor.com/project/vmalloc/logbook
