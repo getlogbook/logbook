@@ -72,7 +72,8 @@ def set_datetime_format(datetime_format):
     elif datetime_format == "local":
         _datetime_factory = datetime.now
     else:
-        raise ValueError("Invalid value %r.  Valid values are 'utc' and 'local'." % (datetime_format,))
+        raise ValueError("Invalid value %r.  Valid values are 'utc' and "
+                         "'local'." % (datetime_format,))
 
 # make sure to sync these up with _speedups.pyx
 CRITICAL = 15

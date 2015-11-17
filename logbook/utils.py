@@ -150,7 +150,7 @@ class _DeprecatedFunction(object):
 
 def deprecated(func=None, message=None):
     """Marks the specified function as deprecated, and emits a warning when
-       it's called
+    it's called.
 
     >>> @deprecated(message='No longer supported')
     ... def deprecated_func():

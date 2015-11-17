@@ -228,11 +228,12 @@ class SQLAlchemyBackend(BackendBase):
                               time=record.time,
                               app_id=app_id,
                               data=json.dumps(data)))
-            s.execute(self.tickets.update()
-                      .where(self.tickets.c.ticket_id == ticket_id)
-                      .values(occurrence_count=self.tickets.c.occurrence_count + 1,
-                              last_occurrence_time=record.time,
-                              solved=False))
+            s.execute(
+                self.tickets.update()
+                .where(self.tickets.c.ticket_id == ticket_id)
+                .values(occurrence_count=self.tickets.c.occurrence_count + 1,
+                        last_occurrence_time=record.time,
+                        solved=False))
             s.commit()
         except Exception:
             s.rollback()
@@ -274,8 +275,9 @@ class SQLAlchemyBackend(BackendBase):
     def get_occurrences(self, ticket, order_by='-time', limit=50, offset=0):
         """Selects occurrences from the database for a ticket."""
         return [Occurrence(self, row) for row in
-                self.engine.execute(self._order(self.occurrences.select()
-                                    .where(self.occurrences.c.ticket_id == ticket),
+                self.engine.execute(self._order(
+                    self.occurrences.select()
+                    .where(self.occurrences.c.ticket_id == ticket),
                     self.occurrences, order_by)
                 .limit(limit).offset(offset)).fetchall()]
 
@@ -298,7 +300,6 @@ class MongoDBBackend(BackendBase):
 
     # TODO: Update connection setup once PYTHON-160 is solved.
     def setup_backend(self):
-        import pymongo
         from pymongo import ASCENDING, DESCENDING
         from pymongo.connection import Connection
 
@@ -375,7 +376,7 @@ class MongoDBBackend(BackendBase):
 
         db.tickets.update({'_id': ticket_id}, {
             '$inc': {
-                'occurrence_count':     1
+                'occurrence_count': 1
             },
             '$set': {
                 'last_occurrence_time': record.time,

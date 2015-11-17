@@ -81,7 +81,6 @@ def test_tagged(default_handler):
 def test_tagging_logger(default_handler):
     from logbook import StderrHandler
     from logbook.more import TaggingLogger
-    stream = StringIO()
 
     logger = TaggingLogger('tagged', ['a', 'b'])
     handler = StderrHandler(format_string="{record.msg}|{record.extra[tags]}")

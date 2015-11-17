@@ -2,7 +2,7 @@ import pickle
 import sys
 
 import logbook
-from logbook.helpers import iteritems, xrange
+from logbook.helpers import iteritems, xrange, u
 
 import pytest
 

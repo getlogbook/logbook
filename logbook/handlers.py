@@ -22,6 +22,7 @@ except ImportError:
 import traceback
 from datetime import datetime, timedelta
 from collections import deque
+from textwrap import dedent
 
 from logbook.base import (
     CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET, level_name_property,
@@ -31,44 +32,45 @@ from logbook.helpers import (
     integer_types, reraise, u, with_metaclass)
 from logbook.concurrency import new_fine_grained_lock
 
-DEFAULT_FORMAT_STRING = (
-    u('[{record.time:%Y-%m-%d %H:%M:%S.%f}] ') +
-    u('{record.level_name}: {record.channel}: {record.message}')
-)
+DEFAULT_FORMAT_STRING = u(
+    '[{record.time:%Y-%m-%d %H:%M:%S.%f}] '
+    '{record.level_name}: {record.channel}: {record.message}')
+
 SYSLOG_FORMAT_STRING = u('{record.channel}: {record.message}')
-NTLOG_FORMAT_STRING = u('''\
-Message Level: {record.level_name}
-Location: {record.filename}:{record.lineno}
-Module: {record.module}
-Function: {record.func_name}
-Exact Time: {record.time:%Y-%m-%d %H:%M:%S}
+NTLOG_FORMAT_STRING = dedent(u('''
+    Message Level: {record.level_name}
+    Location: {record.filename}:{record.lineno}
+    Module: {record.module}
+    Function: {record.func_name}
+    Exact Time: {record.time:%Y-%m-%d %H:%M:%S}
 
-Event provided Message:
+    Event provided Message:
 
-{record.message}
-''')
-TEST_FORMAT_STRING = \
-u('[{record.level_name}] {record.channel}: {record.message}')
-MAIL_FORMAT_STRING = u('''\
-Subject: {handler.subject}
+    {record.message}
+    ''')).lstrip()
 
-Message type:       {record.level_name}
-Location:           {record.filename}:{record.lineno}
-Module:             {record.module}
-Function:           {record.func_name}
-Time:               {record.time:%Y-%m-%d %H:%M:%S}
+TEST_FORMAT_STRING = u('[{record.level_name}] {record.channel}: {record.message}')
+MAIL_FORMAT_STRING = dedent(u('''
+    Subject: {handler.subject}
 
-Message:
+    Message type:       {record.level_name}
+    Location:           {record.filename}:{record.lineno}
+    Module:             {record.module}
+    Function:           {record.func_name}
+    Time:               {record.time:%Y-%m-%d %H:%M:%S}
 
-{record.message}
-''')
-MAIL_RELATED_FORMAT_STRING = u('''\
-Message type:       {record.level_name}
-Location:           {record.filename}:{record.lineno}
-Module:             {record.module}
-Function:           {record.func_name}
-{record.message}
-''')
+    Message:
+
+    {record.message}
+    ''')).lstrip()
+
+MAIL_RELATED_FORMAT_STRING = dedent(u('''
+    Message type:       {record.level_name}
+    Location:           {record.filename}:{record.lineno}
+    Module:             {record.module}
+    Function:           {record.func_name}
+    {record.message}
+    ''')).lstrip()
 
 SYSLOG_PORT = 514
 
@@ -816,8 +818,10 @@ class TimedRotatingFileHandler(FileHandler):
                filename.endswith(self._fn_parts[1]):
                 files.append((os.path.getmtime(filename), filename))
         files.sort()
-        return files[:-self.backup_count + 1] if self.backup_count > 1\
-                else files[:]
+        if self.backup_count > 1:
+            return files[:-self.backup_count + 1]
+        else:
+            return files[:]
 
     def perform_rollover(self):
         self.stream.close()
@@ -1208,7 +1212,8 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
 
 class GMailHandler(MailHandler):
     """
-    A customized mail handler class for sending emails via GMail (or Google Apps mail)::
+    A customized mail handler class for sending emails via GMail (or Google
+    Apps mail)::
 
        handler = GMailHandler("my_user@gmail.com", "mypassword", ["to_user@some_mail.com"], ...) # other arguments same as MailHandler
 

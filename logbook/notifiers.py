@@ -15,7 +15,7 @@ from time import time
 
 from logbook.base import NOTSET, ERROR, WARNING
 from logbook.handlers import Handler, LimitingHandlerMixin
-from logbook.helpers import get_application_name, PY2, http_client
+from logbook.helpers import get_application_name, PY2, http_client, u
 
 if PY2:
     from urllib import urlencode
@@ -221,8 +221,8 @@ class BoxcarHandler(NotificationBaseHandler):
         con = http_client.HTTPSConnection('boxcar.io')
         con.request('POST', '/notifications/', headers={
             'Authorization': 'Basic ' +
-                base64.b64encode((u('%s:%s') %
-                    (self.email, self.password)).encode('utf-8')).strip(),
+            base64.b64encode((u('%s:%s') % (self.email, self.password))
+                             .encode('utf-8')).strip(),
         }, body=body)
         con.close()
 

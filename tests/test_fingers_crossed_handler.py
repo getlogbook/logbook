@@ -1,5 +1,4 @@
 import logbook
-import pytest
 
 from .utils import capturing_stderr_context
 

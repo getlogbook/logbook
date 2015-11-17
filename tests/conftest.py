@@ -92,7 +92,9 @@ def default_handler(request):
 
 try:
     import gevent
-
+except ImportError:
+    pass
+else:
     @pytest.fixture(scope="module", autouse=True, params=[False, True])
     def gevent(request):
         module_name = getattr(request.module, '__name__', '')
@@ -104,5 +106,3 @@ try:
             @request.addfinalizer
             def fin():
                 _disable_gevent()
-except ImportError:
-    pass

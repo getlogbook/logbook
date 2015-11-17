@@ -82,22 +82,23 @@ _iso8601_re = re.compile(
 )
 _missing = object()
 if PY2:
-    def b(x): return x
+    def b(x):
+        return x
 
-    def _is_text_stream(x): return True
+    def _is_text_stream(x):
+        return True
 else:
     import io
 
-    def b(x): return x.encode('ascii')
+    def b(x):
+        return x.encode('ascii')
 
-    def _is_text_stream(stream): return isinstance(stream, io.TextIOBase)
+    def _is_text_stream(stream):
+        return isinstance(stream, io.TextIOBase)
 
 
 can_rename_open_file = False
-if os.name == 'nt':     # pragma: no cover
-    _rename = lambda src, dst: False
-    _rename_atomic = lambda src, dst: False
-
+if os.name == 'nt':
     try:
         import ctypes
 
@@ -151,7 +152,11 @@ if os.name == 'nt':     # pragma: no cover
             finally:
                 _CloseHandle(ta)
     except Exception:
-        pass
+        def _rename(src, dst):
+            return False
+
+        def _rename_atomic(src, dst):
+            return False
 
     def rename(src, dst):
         # Try atomic or pseudo-atomic rename

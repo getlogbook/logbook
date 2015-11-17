@@ -684,7 +684,7 @@ class GroupMember(ThreadController):
                 if record:
                     try:
                         self.queue.put(record, timeout=0.05)
-                    except Queue.Full:
+                    except Full:
                         pass
         finally:
             if self.setup is not None:

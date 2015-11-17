@@ -49,13 +49,16 @@ if has_gevent:
 
         def __repr__(self):
             owner = self._owner
-            return "<%s owner=%r count=%d>" % (self.__class__.__name__, owner, self._count)
+            return "<%s owner=%r count=%d>" % (self.__class__.__name__, owner,
+                                               self._count)
 
         def acquire(self, blocking=1):
             tid = thread_get_ident()
             gid = greenlet_get_ident()
             tid_gid = (tid, gid)
-            if tid_gid == self._owner:  # We trust the GIL here so we can do this comparison w/o locking.
+
+            # We trust the GIL here so we can do this comparison w/o locking.
+            if tid_gid == self._owner:
                 self._count = self._count + 1
                 return True
 
@@ -75,14 +78,17 @@ if has_gevent:
                         # Hurray, we can have the lock.
                         self._owner = tid_gid
                         self._count = 1
-                        remove_from_queue_on_return = False  # don't remove us from the queue
+
+                        # don't remove us from the queue
+                        remove_from_queue_on_return = False
                         return True
                     else:
                         # we already hold the greenlet lock so obviously
                         # the owner is not in our thread.
                         greenlet_lock.release()
                         if blocking:
-                            gevent.sleep(0.0005)  # 500 us -> initial delay of 1 ms
+                            # 500 us -> initial delay of 1 ms
+                            gevent.sleep(0.0005)
                         else:
                             return False
             finally:
