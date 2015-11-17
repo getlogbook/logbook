@@ -399,8 +399,8 @@ class MongoDBBackend(BackendBase):
     def get_tickets(self, order_by='-last_occurrence_time', limit=50,
                     offset=0):
         """Selects tickets from the database."""
-        query = self._order(self.database.tickets.find(), order_by) \
-                    .limit(limit).skip(offset)
+        query = (self._order(self.database.tickets.find(), order_by)
+                 .limit(limit).skip(offset))
         return [self._FixedTicketClass(self, obj) for obj in query]
 
     def solve_ticket(self, ticket_id):

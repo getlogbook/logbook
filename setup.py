@@ -56,8 +56,8 @@ import os
 import sys
 from setuptools import setup, Extension, Feature
 from distutils.command.build_ext import build_ext
-from distutils.errors import CCompilerError, DistutilsExecError, \
-    DistutilsPlatformError
+from distutils.errors import (
+    CCompilerError, DistutilsExecError, DistutilsPlatformError)
 
 
 extra = {}

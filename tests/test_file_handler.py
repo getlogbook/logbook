@@ -9,9 +9,9 @@ from .utils import capturing_stderr_context, LETTERS
 
 
 def test_file_handler(logfile, activation_strategy, logger):
-    handler = logbook.FileHandler(logfile,
-                                  format_string='{record.level_name}:{record.channel}:'
-                                  '{record.message}',)
+    handler = logbook.FileHandler(
+        logfile,
+        format_string='{record.level_name}:{record.channel}:{record.message}',)
     with activation_strategy(handler):
         logger.warn('warning message')
     handler.close()
@@ -27,9 +27,10 @@ def test_file_handler_unicode(logfile, activation_strategy, logger):
 
 
 def test_file_handler_delay(logfile, activation_strategy, logger):
-    handler = logbook.FileHandler(logfile,
-                                  format_string='{record.level_name}:{record.channel}:'
-                                  '{record.message}', delay=True)
+    handler = logbook.FileHandler(
+        logfile,
+        format_string='{record.level_name}:{record.channel}:{record.message}',
+        delay=True)
     assert (not os.path.isfile(logfile))
     with activation_strategy(handler):
         logger.warn('warning message')
@@ -43,9 +44,10 @@ def test_monitoring_file_handler(logfile, activation_strategy, logger):
     if os.name == 'nt':
         pytest.skip(
             'unsupported on windows due to different IO (also unneeded)')
-    handler = logbook.MonitoringFileHandler(logfile,
-                                            format_string='{record.level_name}:{record.channel}:'
-                                            '{record.message}', delay=True)
+    handler = logbook.MonitoringFileHandler(
+        logfile,
+        format_string='{record.level_name}:{record.channel}:{record.message}',
+        delay=True)
     with activation_strategy(handler):
         logger.warn('warning message')
         os.rename(logfile, logfile + '.old')
@@ -116,7 +118,8 @@ def test_timed_rotating_file_handler(tmpdir, activation_strategy, backup_count):
 
     files = sorted(x for x in os.listdir(str(tmpdir)) if x.startswith('trot'))
 
-    assert files == ['trot-2010-01-0{0}.log'.format(i) for i in xrange(5, 9)][-backup_count:]
+    assert files == ['trot-2010-01-0{0}.log'.format(i)
+                     for i in xrange(5, 9)][-backup_count:]
     with open(str(tmpdir.join('trot-2010-01-08.log'))) as f:
         assert f.readline().rstrip() == '[01:00] Last One'
         assert f.readline().rstrip() == '[02:00] Last One'

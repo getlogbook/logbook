@@ -2,14 +2,14 @@ import pytest
 import logbook
 
 from logbook.utils import (
-    log_if_slow_context, deprecated, forget_deprecation_locations,
-    get_no_deprecations_context, deprecation_message)
+    logged_if_slow, deprecated, forget_deprecation_locations,
+    suppressed_deprecations, deprecation_message)
 from time import sleep
 
 _THRESHOLD = 0.1
 
 
-def test_log_if_slow_context_reached(logger, test_handler):
+def test_logged_if_slow_reached(logger, test_handler):
     with test_handler.applicationbound():
         with logged_if_slow('checking...', threshold=_THRESHOLD):
             sleep(2*_THRESHOLD)
@@ -18,7 +18,7 @@ def test_log_if_slow_context_reached(logger, test_handler):
         assert record.message == 'checking...'
 
 
-def test_log_if_slow_context_did_not_reached(logger, test_handler):
+def test_logged_if_slow_did_not_reached(logger, test_handler):
     with test_handler.applicationbound():
         with logged_if_slow('checking...', threshold=_THRESHOLD):
             sleep(_THRESHOLD/2)

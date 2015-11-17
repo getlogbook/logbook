@@ -273,8 +273,8 @@ class ExternalApplicationHandler(Handler):
         args = [arg.format(record=record)
                 for arg in self._arguments]
         if self._stdin_format is not None:
-            stdin_data = self._stdin_format.format(record=record) \
-                                           .encode(self.encoding)
+            stdin_data = (self._stdin_format.format(record=record)
+                          .encode(self.encoding))
             stdin = self._subprocess.PIPE
         else:
             stdin = None
@@ -413,9 +413,14 @@ class DedupHandler(Handler):
 
     def flush(self):
         for record in self._unique_ordered_records:
-            record.message = self._format_string.format(message=record.message, count=self._message_to_count[record.message])
+            record.message = self._format_string.format(
+                message=record.message,
+                count=self._message_to_count[record.message])
             # record.dispatcher is the logger who created the message,
             # it's sometimes supressed (by logbook.info for example)
-            dispatch = record.dispatcher.call_handlers if record.dispatcher is not None else dispatch_record
+            if record.dispatcher is not None:
+                dispatch = record.dispatcher.call_handlers
+            else:
+                dispatch = dispatch_record
             dispatch(record)
         self.clear()

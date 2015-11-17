@@ -26,8 +26,9 @@ def test_syslog_handler(logger, activation_strategy, unix_sock_path):
                     rv = inc.recvfrom(1024)[0]
                 except socket.error:
                     assert False, 'got timeout on socket'
-                assert rv == (u('<12>%stestlogger: Syslog is weird\x00') %
-                              ((app_name and (app_name + u(':'))) or u(''))).encode('utf-8')
+                assert rv == (
+                    u('<12>%stestlogger: Syslog is weird\x00') %
+                    ((app_name and (app_name + u(':'))) or u(''))).encode('utf-8')
 
 
 @pytest.fixture

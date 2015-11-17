@@ -927,8 +927,8 @@ class RecordDispatcher(object):
             # record.  The impact is that filters are slower than the
             # handler's should_handle function in case there is no default
             # handler that would handle the record (delayed init).
-            if handler.filter is not None \
-               and not handler.filter(record, handler):
+            if (handler.filter is not None
+                    and not handler.filter(record, handler)):
                 continue
 
             # We might have a filter, so now that we know we *should* handle

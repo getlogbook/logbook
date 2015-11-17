@@ -39,7 +39,8 @@ def require_module(module_name):
     except ImportError:
         found = False
 
-    return pytest.mark.skipif(not found, reason='Module {0} is required'.format(module_name))
+    return pytest.mark.skipif(
+        not found, reason='Module {0} is required'.format(module_name))
 
 
 def make_fake_mail_handler(**kwargs):

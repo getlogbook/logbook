@@ -42,5 +42,5 @@ def _str_to_type(obj, strtype):
 
 def colorize(color_key, text):
     """Returns an ANSI formatted text with the given color."""
-    return _str_to_type(codes[color_key], text) + text + \
-        _str_to_type(codes["reset"], text)
+    return (_str_to_type(codes[color_key], text) + text +
+            _str_to_type(codes["reset"], text))
