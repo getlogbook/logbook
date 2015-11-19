@@ -30,8 +30,8 @@ else:
     from urllib.parse import urlencode
 
 _ws_re = re.compile(r'(\s+)(?u)')
-TWITTER_FORMAT_STRING = \
-u('[{record.channel}] {record.level_name}: {record.message}')
+TWITTER_FORMAT_STRING = u(
+    '[{record.channel}] {record.level_name}: {record.message}')
 TWITTER_ACCESS_TOKEN_URL = 'https://twitter.com/oauth/access_token'
 NEW_TWEET_URL = 'https://api.twitter.com/1/statuses/update.json'
 
@@ -210,7 +210,8 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
     def tweet(self, status):
         """Tweets a given status.  Status must not exceed 140 chars."""
         client = self.make_client()
-        resp, content = client.request(NEW_TWEET_URL, 'POST',
+        resp, content = client.request(
+            NEW_TWEET_URL, 'POST',
             body=urlencode({'status': status.encode('utf-8')}),
             headers={'Content-Type': 'application/x-www-form-urlencoded'})
         return resp['status'] == '200'
@@ -272,8 +273,8 @@ class ExternalApplicationHandler(Handler):
         args = [arg.format(record=record)
                 for arg in self._arguments]
         if self._stdin_format is not None:
-            stdin_data = self._stdin_format.format(record=record) \
-                                           .encode(self.encoding)
+            stdin_data = (self._stdin_format.format(record=record)
+                          .encode(self.encoding))
             stdin = self._subprocess.PIPE
         else:
             stdin = None
@@ -405,16 +406,21 @@ class DedupHandler(Handler):
         self.flush()
 
     def handle(self, record):
-        if not record.message in self._message_to_count:
+        if record.message not in self._message_to_count:
             self._unique_ordered_records.append(record)
         self._message_to_count[record.message] += 1
         return True
 
     def flush(self):
         for record in self._unique_ordered_records:
-            record.message = self._format_string.format(message=record.message, count=self._message_to_count[record.message])
+            record.message = self._format_string.format(
+                message=record.message,
+                count=self._message_to_count[record.message])
             # record.dispatcher is the logger who created the message,
             # it's sometimes supressed (by logbook.info for example)
-            dispatch = record.dispatcher.call_handlers if record.dispatcher is not None else dispatch_record
+            if record.dispatcher is not None:
+                dispatch = record.dispatcher.call_handlers
+            else:
+                dispatch = dispatch_record
             dispatch(record)
         self.clear()

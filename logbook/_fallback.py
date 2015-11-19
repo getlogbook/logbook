@@ -10,9 +10,9 @@
 """
 from itertools import count
 from logbook.helpers import get_iterator_next_method
-from logbook.concurrency import (thread_get_ident, greenlet_get_ident,
-                                 thread_local, greenlet_local,
-                                 ThreadLock, GreenletRLock, is_gevent_enabled)
+from logbook.concurrency import (
+    thread_get_ident, greenlet_get_ident, thread_local, greenlet_local,
+    ThreadLock, GreenletRLock, is_gevent_enabled)
 
 _missing = object()
 _MAX_CONTEXT_OBJECT_CACHE = 256
@@ -151,7 +151,8 @@ class ContextStackManager(object):
     def push_greenlet(self, obj):
         self._greenlet_context_lock.acquire()
         try:
-            self._cache.pop(greenlet_get_ident(), None)  # remote chance to conflict with thread ids
+            # remote chance to conflict with thread ids
+            self._cache.pop(greenlet_get_ident(), None)
             item = (self._stackop(), obj)
             stack = getattr(self._greenlet_context, 'stack', None)
             if stack is None:
@@ -164,7 +165,8 @@ class ContextStackManager(object):
     def pop_greenlet(self):
         self._greenlet_context_lock.acquire()
         try:
-            self._cache.pop(greenlet_get_ident(), None)  # remote chance to conflict with thread ids
+            # remote chance to conflict with thread ids
+            self._cache.pop(greenlet_get_ident(), None)
             stack = getattr(self._greenlet_context, 'stack', None)
             assert stack, 'no objects on stack'
             return stack.pop()[1]

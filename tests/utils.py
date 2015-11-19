@@ -6,7 +6,6 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-import platform
 import functools
 import sys
 from contextlib import contextmanager
@@ -40,7 +39,8 @@ def require_module(module_name):
     except ImportError:
         found = False
 
-    return pytest.mark.skipif(not found, reason='Module {0} is required'.format(module_name))
+    return pytest.mark.skipif(
+        not found, reason='Module {0} is required'.format(module_name))
 
 
 def make_fake_mail_handler(**kwargs):

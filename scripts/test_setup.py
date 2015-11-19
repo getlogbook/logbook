@@ -1,5 +1,4 @@
 #! /usr/bin/python
-import os
 import pip
 import sys
 

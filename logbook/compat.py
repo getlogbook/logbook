@@ -109,9 +109,9 @@ class RedirectLoggingHandler(logging.Handler):
         """Tries to find the caller that issued the call."""
         frm = sys._getframe(2)
         while frm is not None:
-            if frm.f_globals is globals() or \
-               frm.f_globals is logbook.base.__dict__ or \
-               frm.f_globals is logging.__dict__:
+            if (frm.f_globals is globals() or
+                    frm.f_globals is logbook.base.__dict__ or
+                    frm.f_globals is logging.__dict__):
                 frm = frm.f_back
             else:
                 return frm

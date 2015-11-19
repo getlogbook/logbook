@@ -2,18 +2,14 @@ import pytest
 import logbook
 
 from logbook.utils import (
-    logged_if_slow,
-    deprecated,
-    forget_deprecation_locations,
-    suppressed_deprecations,
-    deprecation_message
-    )
+    logged_if_slow, deprecated, forget_deprecation_locations,
+    suppressed_deprecations, deprecation_message)
 from time import sleep
 
 _THRESHOLD = 0.1
 
 
-def test_log_if_slow_context_reached(logger, test_handler):
+def test_logged_if_slow_reached(logger, test_handler):
     with test_handler.applicationbound():
         with logged_if_slow('checking...', threshold=_THRESHOLD):
             sleep(2*_THRESHOLD)
@@ -21,11 +17,13 @@ def test_log_if_slow_context_reached(logger, test_handler):
         [record] = test_handler.records
         assert record.message == 'checking...'
 
-def test_log_if_slow_context_did_not_reached(logger, test_handler):
+
+def test_logged_if_slow_did_not_reached(logger, test_handler):
     with test_handler.applicationbound():
         with logged_if_slow('checking...', threshold=_THRESHOLD):
             sleep(_THRESHOLD/2)
         assert len(test_handler.records) == 0
+
 
 def test_deprecated_func_called(capture):
     assert deprecated_func(1, 2) == 3
@@ -61,7 +59,6 @@ def test_no_deprecations(capture):
     with suppressed_deprecations():
         assert func(1, 2) == 3
     assert not capture.records
-
 
 
 def _no_decorator(func):
@@ -164,7 +161,6 @@ def test_doc_update():
     assert 'docstring here' not in some_func.__doc__
     assert 'new_docstring' in some_func.__doc__
     assert 'some_message' in some_func.__doc__
-
 
 
 def test_deprecatd_docstring():

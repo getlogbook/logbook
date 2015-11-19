@@ -22,6 +22,7 @@ except ImportError:
 import traceback
 from datetime import datetime, timedelta
 from collections import deque
+from textwrap import dedent
 
 from logbook.base import (
     CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET, level_name_property,
@@ -31,44 +32,45 @@ from logbook.helpers import (
     integer_types, reraise, u, with_metaclass)
 from logbook.concurrency import new_fine_grained_lock
 
-DEFAULT_FORMAT_STRING = (
-    u('[{record.time:%Y-%m-%d %H:%M:%S.%f}] ') +
-    u('{record.level_name}: {record.channel}: {record.message}')
-)
+DEFAULT_FORMAT_STRING = u(
+    '[{record.time:%Y-%m-%d %H:%M:%S.%f}] '
+    '{record.level_name}: {record.channel}: {record.message}')
+
 SYSLOG_FORMAT_STRING = u('{record.channel}: {record.message}')
-NTLOG_FORMAT_STRING = u('''\
-Message Level: {record.level_name}
-Location: {record.filename}:{record.lineno}
-Module: {record.module}
-Function: {record.func_name}
-Exact Time: {record.time:%Y-%m-%d %H:%M:%S}
+NTLOG_FORMAT_STRING = dedent(u('''
+    Message Level: {record.level_name}
+    Location: {record.filename}:{record.lineno}
+    Module: {record.module}
+    Function: {record.func_name}
+    Exact Time: {record.time:%Y-%m-%d %H:%M:%S}
 
-Event provided Message:
+    Event provided Message:
 
-{record.message}
-''')
-TEST_FORMAT_STRING = \
-u('[{record.level_name}] {record.channel}: {record.message}')
-MAIL_FORMAT_STRING = u('''\
-Subject: {handler.subject}
+    {record.message}
+    ''')).lstrip()
 
-Message type:       {record.level_name}
-Location:           {record.filename}:{record.lineno}
-Module:             {record.module}
-Function:           {record.func_name}
-Time:               {record.time:%Y-%m-%d %H:%M:%S}
+TEST_FORMAT_STRING = u('[{record.level_name}] {record.channel}: {record.message}')
+MAIL_FORMAT_STRING = dedent(u('''
+    Subject: {handler.subject}
 
-Message:
+    Message type:       {record.level_name}
+    Location:           {record.filename}:{record.lineno}
+    Module:             {record.module}
+    Function:           {record.func_name}
+    Time:               {record.time:%Y-%m-%d %H:%M:%S}
 
-{record.message}
-''')
-MAIL_RELATED_FORMAT_STRING = u('''\
-Message type:       {record.level_name}
-Location:           {record.filename}:{record.lineno}
-Module:             {record.module}
-Function:           {record.func_name}
-{record.message}
-''')
+    Message:
+
+    {record.message}
+    ''')).lstrip()
+
+MAIL_RELATED_FORMAT_STRING = dedent(u('''
+    Message type:       {record.level_name}
+    Location:           {record.filename}:{record.lineno}
+    Module:             {record.module}
+    Function:           {record.func_name}
+    {record.message}
+    ''')).lstrip()
 
 SYSLOG_PORT = 514
 
@@ -95,8 +97,8 @@ class _HandlerType(type):
     def __new__(cls, name, bases, d):
         # aha, that thing has a custom close method.  We will need a magic
         # __del__ for it to be called on cleanup.
-        if bases != (ContextObject,) and 'close' in d and '__del__' not in d \
-           and not any(hasattr(x, '__del__') for x in bases):
+        if (bases != (ContextObject,) and 'close' in d and '__del__' not in d
+                and not any(hasattr(x, '__del__') for x in bases)):
             def _magic_del(self):
                 try:
                     self.close()
@@ -490,8 +492,8 @@ class LimitingHandlerMixin(HashingHandlerMixin):
                     first_count = last_count
                     old_count = suppression_count
 
-            if not suppression_count and \
-               len(self._record_limits) >= self.max_record_cache:
+            if (not suppression_count and
+                    len(self._record_limits) >= self.max_record_cache):
                 cache_items = self._record_limits.items()
                 cache_items.sort()
                 del cache_items[:int(self._record_limits)
@@ -561,8 +563,8 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         """Encodes the message to the stream encoding."""
         stream = self.stream
         rv = msg + '\n'
-        if (PY2 and is_unicode(rv)) or \
-                not (PY2 or is_unicode(rv) or _is_text_stream(stream)):
+        if ((PY2 and is_unicode(rv)) or
+                not (PY2 or is_unicode(rv) or _is_text_stream(stream))):
             enc = self.encoding
             if enc is None:
                 enc = getattr(stream, 'encoding', None) or 'utf-8'
@@ -729,8 +731,8 @@ class RotatingFileHandler(FileHandler):
                              format_string, delay, filter, bubble)
         self.max_size = max_size
         self.backup_count = backup_count
-        assert backup_count > 0, 'at least one backup file has to be ' \
-                                 'specified'
+        assert backup_count > 0, ('at least one backup file has to be '
+                                  'specified')
 
     def should_rollover(self, record, bytes):
         self.stream.seek(0, 2)
@@ -793,8 +795,8 @@ class TimedRotatingFileHandler(FileHandler):
         self._filename = None
 
     def _get_timed_filename(self, datetime):
-        return datetime.strftime('-' + self.date_format) \
-                       .join(self._fn_parts)
+        return (datetime.strftime('-' + self.date_format)
+                .join(self._fn_parts))
 
     def should_rollover(self, record):
         fn = self._get_timed_filename(record.time)
@@ -812,12 +814,14 @@ class TimedRotatingFileHandler(FileHandler):
         files = []
         for filename in os.listdir(directory):
             filename = os.path.join(directory, filename)
-            if filename.startswith(self._fn_parts[0] + '-') and \
-               filename.endswith(self._fn_parts[1]):
+            if (filename.startswith(self._fn_parts[0] + '-') and
+                    filename.endswith(self._fn_parts[1])):
                 files.append((os.path.getmtime(filename), filename))
         files.sort()
-        return files[:-self.backup_count + 1] if self.backup_count > 1\
-                else files[:]
+        if self.backup_count > 1:
+            return files[:-self.backup_count + 1]
+        else:
+            return files[:]
 
     def perform_rollover(self):
         self.stream.close()
@@ -876,9 +880,9 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
     @property
     def formatted_records(self):
         """Captures the formatted log records as unicode strings."""
-        if len(self._formatted_record_cache) != len(self.records) or \
-           any(r1 != r2 for r1, r2 in
-               zip(self.records, self._formatted_record_cache)):
+        if (len(self._formatted_record_cache) != len(self.records) or
+                any(r1 != r2 for r1, r2 in
+                    zip(self.records, self._formatted_record_cache))):
             self._formatted_records = [self.format(r) for r in self.records]
             self._formatted_record_cache = list(self.records)
         return self._formatted_records
@@ -1094,8 +1098,8 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
 
         body = '\r\n'.join(lineiter)
         if suppressed:
-            body += '\r\n\r\nThis message occurred additional %d ' \
-                    'time(s) and was suppressed' % suppressed
+            body += ('\r\n\r\nThis message occurred additional %d '
+                     'time(s) and was suppressed' % suppressed)
 
         # inconsistency in Python 2.5
         # other versions correctly return msg.get_payload() as str
@@ -1208,9 +1212,12 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
 
 class GMailHandler(MailHandler):
     """
-    A customized mail handler class for sending emails via GMail (or Google Apps mail)::
+    A customized mail handler class for sending emails via GMail (or Google
+    Apps mail)::
 
-       handler = GMailHandler("my_user@gmail.com", "mypassword", ["to_user@some_mail.com"], ...) # other arguments same as MailHandler
+       handler = GMailHandler(
+           "my_user@gmail.com", "mypassword", ["to_user@some_mail.com"],
+           ...) # other arguments same as MailHandler
 
     .. versionadded:: 0.6.0
     """
@@ -1542,8 +1549,8 @@ class FingersCrossedHandler(Handler):
             self.buffered_records.append(record)
             if self._buffer_full:
                 self.buffered_records.popleft()
-            elif self.buffer_size and \
-                    len(self.buffered_records) >= self.buffer_size:
+            elif (self.buffer_size and
+                    len(self.buffered_records) >= self.buffer_size):
                 self._buffer_full = True
             return record.level >= self._level
         return False

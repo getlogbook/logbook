@@ -1,26 +1,29 @@
+from textwrap import dedent
+
 import logbook
 
 from .utils import make_fake_mail_handler
 
 
 def test_handler_filter_after_processor(activation_strategy, logger):
-    handler = make_fake_mail_handler(format_string='''\
-Subject: Application Error for {record.extra[path]} [{record.extra[method]}]
+    handler = make_fake_mail_handler(
+        format_string=dedent('''
+            Subject: Application Error for {record.extra[path]} [{record.extra[method]}]
 
-Message type:       {record.level_name}
-Location:           {record.filename}:{record.lineno}
-Module:             {record.module}
-Function:           {record.func_name}
-Time:               {record.time:%Y-%m-%d %H:%M:%S}
-Remote IP:          {record.extra[ip]}
-Request:            {record.extra[path]} [{record.extra[method]}]
+            Message type:       {record.level_name}
+            Location:           {record.filename}:{record.lineno}
+            Module:             {record.module}
+            Function:           {record.func_name}
+            Time:               {record.time:%Y-%m-%d %H:%M:%S}
+            Remote IP:          {record.extra[ip]}
+            Request:            {record.extra[path]} [{record.extra[method]}]
 
-Message:
+            Message:
 
-{record.message}
-''',
-                                     filter=lambda r, h: 'ip' in r.extra,
-                                     bubble=False)
+            {record.message}
+            ''').lstrip(),
+        filter=lambda r, h: 'ip' in r.extra,
+        bubble=False)
 
     class Request(object):
         remote_addr = '127.0.0.1'
@@ -52,21 +55,22 @@ Message:
 
 
 def test_handler_processors(activation_strategy, logger):
-    handler = make_fake_mail_handler(format_string='''\
-Subject: Application Error for {record.extra[path]} [{record.extra[method]}]
+    handler = make_fake_mail_handler(
+        format_string=dedent('''
+            Subject: Application Error for {record.extra[path]} [{record.extra[method]}]
 
-Message type:       {record.level_name}
-Location:           {record.filename}:{record.lineno}
-Module:             {record.module}
-Function:           {record.func_name}
-Time:               {record.time:%Y-%m-%d %H:%M:%S}
-Remote IP:          {record.extra[ip]}
-Request:            {record.extra[path]} [{record.extra[method]}]
+            Message type:       {record.level_name}
+            Location:           {record.filename}:{record.lineno}
+            Module:             {record.module}
+            Function:           {record.func_name}
+            Time:               {record.time:%Y-%m-%d %H:%M:%S}
+            Remote IP:          {record.extra[ip]}
+            Request:            {record.extra[path]} [{record.extra[method]}]
 
-Message:
+            Message:
 
-{record.message}
-''')
+            {record.message}
+            ''').lstrip())
 
     class Request(object):
         remote_addr = '127.0.0.1'

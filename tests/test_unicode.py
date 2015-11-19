@@ -25,7 +25,8 @@ def test_default_format_bad_encoding(logger):
         # it's a string, is wrong, but just dump it in the logger,
         # don't try to decode/encode it
         logger.warn('Русский'.encode('koi8-r'))
-    assert "WARNING: testlogger: b'\\xf2\\xd5\\xd3\\xd3\\xcb\\xc9\\xca'" in stream.getvalue()
+    expected = "WARNING: testlogger: b'\\xf2\\xd5\\xd3\\xd3\\xcb\\xc9\\xca'"
+    assert expected in stream.getvalue()
 
 
 @require_py3
