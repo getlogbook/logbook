@@ -59,7 +59,8 @@ class RedisHandler(Handler):
         try:
             self.redis.ping()
         except ResponseError:
-            raise ResponseError('The password provided is apparently incorrect')
+            raise ResponseError(
+                'The password provided is apparently incorrect')
         self.key = key
         self.extra_fields = extra_fields
         self.flush_threshold = flush_threshold
@@ -224,7 +225,8 @@ class ZeroMQHandler(Handler):
         return record.to_dict(json_safe=True)
 
     def emit(self, record):
-        self.socket.send(json.dumps(self.export_record(record)).encode("utf-8"))
+        self.socket.send(json.dumps(
+            self.export_record(record)).encode("utf-8"))
 
     def close(self, linger=-1):
         self.socket.close(linger)
@@ -281,9 +283,9 @@ class SubscriberBase(object):
     """Baseclass for all subscribers."""
 
     def recv(self, timeout=None):
-        """Receives a single record from the socket.  Timeout of 0 means nonblocking,
-        `None` means blocking and otherwise it's a timeout in seconds after which
-        the function just returns with `None`.
+        """Receives a single record from the socket.  Timeout of 0 means
+        nonblocking, `None` means blocking and otherwise it's a timeout in
+        seconds after which the function just returns with `None`.
 
         Subclasses have to override this.
         """
@@ -367,9 +369,9 @@ class MessageQueueSubscriber(SubscriberBase):
         self.queue.close()
 
     def recv(self, timeout=None):
-        """Receives a single record from the socket.  Timeout of 0 means nonblocking,
-        `None` means blocking and otherwise it's a timeout in seconds after which
-        the function just returns with `None`.
+        """Receives a single record from the socket.  Timeout of 0 means
+        nonblocking, `None` means blocking and otherwise it's a timeout in
+        seconds after which the function just returns with `None`.
         """
         if timeout == 0:
             try:
@@ -457,9 +459,9 @@ class ZeroMQSubscriber(SubscriberBase):
         self.socket.close()
 
     def recv(self, timeout=None):
-        """Receives a single record from the socket.  Timeout of 0 means nonblocking,
-        `None` means blocking and otherwise it's a timeout in seconds after which
-        the function just returns with `None`.
+        """Receives a single record from the socket.  Timeout of 0 means
+        nonblocking, `None` means blocking and otherwise it's a timeout in
+        seconds after which the function just returns with `None`.
         """
         if timeout is None:
             rv = self.socket.recv()

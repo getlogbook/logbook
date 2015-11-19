@@ -191,7 +191,8 @@ class SQLAlchemyBackend(BackendBase):
                                  db.Column('occurrence_id',
                                            db.Integer, primary_key=True),
                                  db.Column('ticket_id', db.Integer,
-                                           db.ForeignKey(self.table_prefix + 'tickets.ticket_id')),
+                                           db.ForeignKey(self.table_prefix +
+                                                         'tickets.ticket_id')),
                                  db.Column('time', db.DateTime),
                                  db.Column('data', db.Text),
                                  db.Column('app_id', db.String(80)))
@@ -228,10 +229,10 @@ class SQLAlchemyBackend(BackendBase):
                               app_id=app_id,
                               data=json.dumps(data)))
             s.execute(self.tickets.update()
-             .where(self.tickets.c.ticket_id == ticket_id)
-             .values(occurrence_count=self.tickets.c.occurrence_count + 1,
-                     last_occurrence_time=record.time,
-                     solved=False))
+                      .where(self.tickets.c.ticket_id == ticket_id)
+                      .values(occurrence_count=self.tickets.c.occurrence_count + 1,
+                              last_occurrence_time=record.time,
+                              solved=False))
             s.commit()
         except Exception:
             s.rollback()
@@ -243,7 +244,8 @@ class SQLAlchemyBackend(BackendBase):
         """Returns the number of tickets."""
         return self.engine.execute(self.tickets.count()).fetchone()[0]
 
-    def get_tickets(self, order_by='-last_occurrence_time', limit=50, offset=0):
+    def get_tickets(self, order_by='-last_occurrence_time', limit=50,
+                    offset=0):
         """Selects tickets from the database."""
         return [Ticket(self, row) for row in self.engine.execute(
             self._order(self.tickets.select(), self.tickets, order_by)
@@ -252,15 +254,15 @@ class SQLAlchemyBackend(BackendBase):
     def solve_ticket(self, ticket_id):
         """Marks a ticket as solved."""
         self.engine.execute(self.tickets.update()
-            .where(self.tickets.c.ticket_id == ticket_id)
-            .values(solved=True))
+                            .where(self.tickets.c.ticket_id == ticket_id)
+                            .values(solved=True))
 
     def delete_ticket(self, ticket_id):
         """Deletes a ticket from the database."""
         self.engine.execute(self.occurrences.delete()
-            .where(self.occurrences.c.ticket_id == ticket_id))
+                            .where(self.occurrences.c.ticket_id == ticket_id))
         self.engine.execute(self.tickets.delete()
-            .where(self.tickets.c.ticket_id == ticket_id))
+                            .where(self.tickets.c.ticket_id == ticket_id))
 
     def get_ticket(self, ticket_id):
         """Return a single ticket with all occurrences."""
@@ -273,7 +275,7 @@ class SQLAlchemyBackend(BackendBase):
         """Selects occurrences from the database for a ticket."""
         return [Occurrence(self, row) for row in
                 self.engine.execute(self._order(self.occurrences.select()
-                    .where(self.occurrences.c.ticket_id == ticket),
+                                    .where(self.occurrences.c.ticket_id == ticket),
                     self.occurrences, order_by)
                 .limit(limit).offset(offset)).fetchall()]
 
@@ -360,7 +362,8 @@ class MongoDBBackend(BackendBase):
                 'record_hash':      hash,
                 'level':            record.level,
                 'channel':          record.channel or u(''),
-                'location':         u('%s:%d') % (record.filename, record.lineno),
+                'location':         u('%s:%d') % (record.filename,
+                                                  record.lineno),
                 'module':           record.module or u('<unknown>'),
                 'occurrence_count': 0,
                 'solved':           False,
@@ -458,7 +461,8 @@ class TicketingHandler(TicketingBaseHandler):
                    used to keep multiple application setups apart when logging
                    into the same database.
     :param hash_salt: an optional salt (binary string) for the hashes.
-    :param backend: A backend class that implements the proper database handling.
+    :param backend: A backend class that implements the proper database
+                    handling.
                     Backends available are: :class:`SQLAlchemyBackend`,
                     :class:`MongoDBBackend`.
     """

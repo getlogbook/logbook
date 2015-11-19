@@ -32,14 +32,17 @@ class _SlowContextNotifier(object):
         self.thread.join()
 
 
-def logged_if_slow(message, threshold=1, func=logbook_debug, args=None, kwargs=None):
-    """Logs a message (by default using the global debug logger) if a certain context containing a set of operations is too slow
+def logged_if_slow(message, threshold=1, func=logbook_debug, args=None,
+                   kwargs=None):
+    """Logs a message (by default using the global debug logger) if a certain
+       context containing a set of operations is too slow
 
     >>> with logged_if_slow('too slow!'):
     ...     ...
     """
     full_args = (message, ) if args is None else (message, ) + tuple(args)
     return _SlowContextNotifier(threshold, func, full_args, kwargs)
+
 
 class _Local(threading.local):
     enabled = True
@@ -60,7 +63,6 @@ def suppressed_deprecations():
         yield
     finally:
         _local.enabled = prev_enabled
-
 
 
 _deprecation_logger = Logger("deprecation")
@@ -124,7 +126,8 @@ class _DeprecatedFunction(object):
         return self.bound_to(obj, objtype)
 
     def bound_to(self, obj, objtype):
-        return _DeprecatedFunction(self._func, self._message, obj=obj, objtype=objtype)
+        return _DeprecatedFunction(self._func, self._message, obj=obj,
+                                   objtype=objtype)
 
     @property
     def __name__(self):
@@ -136,7 +139,8 @@ class _DeprecatedFunction(object):
         if returned:  # pylint: disable=no-member
             returned += "\n.. deprecated\n"  # pylint: disable=no-member
             if self._message:
-                returned += "   {0}".format(self._message)  # pylint: disable=no-member
+                returned += "   {0}".format(
+                    self._message)  # pylint: disable=no-member
         return returned
 
     @__doc__.setter
@@ -145,13 +149,15 @@ class _DeprecatedFunction(object):
 
 
 def deprecated(func=None, message=None):
-    """Marks the specified function as deprecated, and emits a warning when it's called
+    """Marks the specified function as deprecated, and emits a warning when
+       it's called
 
     >>> @deprecated(message='No longer supported')
     ... def deprecated_func():
     ...     pass
 
-    This will cause a warning log to be emitted when the function gets called, with the correct filename/lineno
+    This will cause a warning log to be emitted when the function gets called,
+    with the correct filename/lineno
     """
     if isinstance(func, string_types):
         assert message is None
