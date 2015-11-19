@@ -32,10 +32,10 @@ class _SlowContextNotifier(object):
         self.thread.join()
 
 
-def log_if_slow_context(message, threshold=1, func=logbook_debug, args=None, kwargs=None):
+def logged_if_slow(message, threshold=1, func=logbook_debug, args=None, kwargs=None):
     """Logs a message (by default using the global debug logger) if a certain context containing a set of operations is too slow
 
-    >>> with log_if_slow_context('too slow!'):
+    >>> with logged_if_slow('too slow!'):
     ...     ...
     """
     full_args = (message, ) if args is None else (message, ) + tuple(args)
@@ -48,10 +48,10 @@ _local = _Local()
 
 
 @contextmanager
-def get_no_deprecations_context():
+def suppressed_deprecations():
     """Disables deprecation messages temporarily
 
-    >>> with get_no_deprecations_context():
+    >>> with suppressed_deprecations():
     ...    call_some_deprecated_logic()
     """
     prev_enabled = _local.enabled
