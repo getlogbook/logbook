@@ -857,13 +857,14 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
     default_format_string = TEST_FORMAT_STRING
 
     def __init__(self, level=NOTSET, format_string=None, filter=None,
-                 bubble=False):
+                 bubble=False, force_heavy_init=False):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         #: captures the :class:`LogRecord`\s as instances
         self.records = []
         self._formatted_records = []
         self._formatted_record_cache = []
+        self._force_heavy_init = force_heavy_init
 
     def close(self):
         """Close all records down when the handler is closed."""
@@ -875,6 +876,8 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         # call to the emit function.  If we don't do that, the traceback
         # attribute and other things will already be removed.
         record.keep_open = True
+        if self._force_heavy_init:
+            record.heavy_init()
         self.records.append(record)
 
     @property
