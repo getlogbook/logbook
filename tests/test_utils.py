@@ -3,7 +3,7 @@ import logbook
 
 from logbook.utils import (
     logged_if_slow, deprecated, forget_deprecation_locations,
-    suppressed_deprecations, deprecation_message)
+    suppressed_deprecations, log_deprecation_message)
 from time import sleep
 
 _THRESHOLD = 0.1
@@ -109,9 +109,9 @@ def test_deprecation_message_different_sources(capture):
 
     def f(flag):
         if flag:
-            deprecation_message('first message type')
+            log_deprecation_message('first message type')
         else:
-            deprecation_message('second message type')
+            log_deprecation_message('second message type')
 
     f(True)
     f(False)
@@ -122,9 +122,9 @@ def test_deprecation_message_same_sources(capture):
 
     def f(flag):
         if flag:
-            deprecation_message('first message type')
+            log_deprecation_message('first message type')
         else:
-            deprecation_message('second message type')
+            log_deprecation_message('second message type')
 
     f(True)
     f(True)
@@ -133,7 +133,7 @@ def test_deprecation_message_same_sources(capture):
 
 def test_deprecation_message_full_warning(capture):
     def f():
-        deprecation_message('some_message')
+        log_deprecation_message('some_message')
     f()
 
     [record] = capture.records

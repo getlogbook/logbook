@@ -73,17 +73,17 @@ def forget_deprecation_locations():
     _deprecation_locations.clear()
 
 
-def _write_deprecations_if_needed(message, frame_correction=+2):
+def _write_deprecations_if_needed(message, frame_correction):
     if not _local.enabled:
         return
-    caller_location = _get_caller_location()
+    caller_location = _get_caller_location(frame_correction=frame_correction+1)
     if caller_location not in _deprecation_locations:
-        _deprecation_logger.warning(message, frame_correction=frame_correction)
+        _deprecation_logger.warning(message, frame_correction=frame_correction+1)
         _deprecation_locations.add(caller_location)
 
 
-def deprecation_message(message):
-    _write_deprecations_if_needed("Deprecation message: {0}".format(message))
+def log_deprecation_message(message, frame_correction=0):
+    _write_deprecations_if_needed("Deprecation message: {0}".format(message), frame_correction=frame_correction+1)
 
 
 class _DeprecatedFunction(object):
@@ -109,7 +109,7 @@ class _DeprecatedFunction(object):
         warning = "{0} is deprecated.".format(self._get_func_str())
         if self._message is not None:
             warning += " {0}".format(self._message)
-        _write_deprecations_if_needed(warning)
+        _write_deprecations_if_needed(warning, frame_correction=+1)
         if self._obj is not None:
             return func(self._obj, *args, **kwargs)
         elif self._objtype is not None:
@@ -170,8 +170,8 @@ def deprecated(func=None, message=None):
     return _DeprecatedFunction(func, message)
 
 
-def _get_caller_location(stack_climb=3):
-    frame = sys._getframe(stack_climb)  # pylint: disable=protected-access
+def _get_caller_location(frame_correction):
+    frame = sys._getframe(frame_correction + 1)  # pylint: disable=protected-access
     try:
         return (frame.f_code.co_name, frame.f_lineno)
     finally:
