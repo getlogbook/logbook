@@ -33,13 +33,14 @@ This documents general purpose utility functions available in Logbook.
 Slow Operations Logging
 -----------------------
 
-.. autofunction:: logbook.utils.log_if_slow_context
+.. module:: logbook.utils
+.. autofunction:: logged_if_slow_context
 
 
 Deprecations
 ------------
 
-.. autofunction:: logbook.utils.deprecated
+.. autofunction:: deprecated
 
-.. autofunction:: logbook.utils.get_no_deprecations_context
+.. autofunction:: suppressed_deprecations
 
