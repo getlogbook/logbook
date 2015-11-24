@@ -1,50 +1,50 @@
 language: python
-
 services:
-  - redis-server
-
+- redis-server
 python:
-  - "2.6"
-  - "2.7"
-  - "3.2"
-  - "3.3"
-  - "3.4"
-  - "3.5"
-  - "pypy"
-  - "pypy3"
-
+- '2.6'
+- '2.7'
+- '3.2'
+- '3.3'
+- '3.4'
+- '3.5'
+- pypy
+- pypy3
 install:
-  # this fixes SemLock issues on travis
-  - "sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm" 
-  - "sudo apt-add-repository -y ppa:chris-lea/zeromq"
-  - "sudo apt-get update"
-  - "sudo apt-get install -y libzmq3-dev"
-  - "pip install cython redis"
-  - "easy_install pyzmq"
-  - "make test_setup"
-  - "python setup.py develop"
-
+- sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm
+- sudo apt-add-repository -y ppa:chris-lea/zeromq
+- sudo apt-get update
+- sudo apt-get install -y libzmq3-dev
+- pip install cython redis
+- easy_install pyzmq
+- make test_setup
+- python setup.py develop
 env:
-  - COMMAND="make test"
-  - COMMAND="make cybuild test"
-
-script: "$COMMAND"
-
+- COMMAND="make test"
+- COMMAND="make cybuild test"
+script: $COMMAND
 matrix:
   exclude:
-    - python: "pypy"
-      env: COMMAND="make cybuild test"
-    - python: "pypy3"
-      env: COMMAND="make cybuild test"
-
+  - python: pypy
+    env: COMMAND="make cybuild test"
+  - python: pypy3
+    env: COMMAND="make cybuild test"
 notifications:
-  email: 
+  email:
     recipients:
-      - vmalloc@gmail.com
+    - vmalloc@gmail.com
   irc:
     channels:
-      - "chat.freenode.net#pocoo"
+    - chat.freenode.net#pocoo
     on_success: change
     on_failure: always
     use_notice: true
     skip_join: true
+deploy:
+  provider: pypi
+  user: vmalloc
+  password:
+    secure: WFmuAbtBDIkeZArIFQRCwyO1TdvF2PaZpo75r3mFgnY+aWm75cdgjZKoNqVprF/f+v9EsX2kDdQ7ZfuhMLgP8MNziB+ty7579ZDGwh64jGoi+DIoeblAFu5xNAqjvhie540uCE8KySk9s+Pq5EpOA5w18V4zxTw+h6tnBQ0M9cQ=
+  on:
+    tags: true
+    repo: getlogbook/logbook

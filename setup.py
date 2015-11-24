@@ -101,13 +101,17 @@ else:
     speedups = None
 
 
+with open(os.path.join(os.path.dirname(__file__), "logbook", "__version__.py")) as version_file:
+    exec(version_file.read())  # pylint: disable=W0122
+
+
 def run_setup(with_binary):
     features = {}
     if with_binary and speedups is not None:
         features['speedups'] = speedups
     setup(
         name='Logbook',
-        version='0.11.4-dev',
+        version=__version__,
         license='BSD',
         url='http://logbook.pocoo.org/',
         author='Armin Ronacher, Georg Brandl',
