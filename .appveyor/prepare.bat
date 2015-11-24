@@ -3,7 +3,7 @@ nuget install redis-64 -excludeversion
 redis-64\redis-server.exe --service-install
 redis-64\redis-server.exe --service-start
 nuget install ZeroMQ
-%WITH_COMPILER% pip install cython redis pyzmq
+%WITH_COMPILER% pip install cython pyzmq
 python scripts\test_setup.py
 python setup.py develop
 IF DEFINED CYBUILD (
