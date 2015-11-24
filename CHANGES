@@ -6,6 +6,8 @@ Here you can see the full list of changes between each Logbook release.
 Version 0.12.0
 --------------
 
+Released on November 24th 2015
+
 - Added logbook.utils.deprecated to automatically emit warnings when certain functions are called (Thanks Ayala Shachar)
 - Added logbook.utils.suppressed_deprecations context to temporarily suppress deprecations (Thanks Ayala Shachar)
 - Added logbook.utils.logged_if_slow_context to emit logs when certain operations exceed a time threshold (Thanks Ayala Shachar)
