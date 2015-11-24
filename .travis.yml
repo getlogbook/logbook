@@ -50,4 +50,4 @@ deploy:
   on:
     tags: true
     repo: getlogbook/logbook
-  distributions: "sdist bdist_wheel"
+  distributions: "sdist"
