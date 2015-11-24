@@ -21,13 +21,10 @@ vagrant_toxtest:
 bench:
 	@python benchmark/run.py
 
-upload-docs: docs
-	python setup.py upload_docs
-
 docs:
 	make -C docs html SPHINXOPTS=-Aonline=1
 
-release: logbook/_speedups.so upload-docs
+release: logbook/_speedups.so
 	python scripts/make-release.py
 
 logbook/_speedups.so: logbook/_speedups.pyx
