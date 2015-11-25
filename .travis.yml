@@ -49,4 +49,4 @@ deploy:
   on:
     tags: true
     repo: getlogbook/logbook
-  distributions: "sdist bdist_egg"
+  distributions: "sdist"
