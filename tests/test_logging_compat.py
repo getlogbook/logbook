@@ -36,7 +36,10 @@ def test_basic_compat(request, set_root_logger_level):
                 logger.warn('This is from the old %s', 'system')
                 logger.error('This is from the old system')
                 logger.critical('This is from the old system')
+                logger.error('This is a %(what)s %(where)s', {'what': 'mapping', 'where': 'test'})
         assert ('WARNING: %s: This is from the old system' %
+                name) in captured.getvalue()
+        assert ('ERROR: %s: This is a mapping test' %
                 name) in captured.getvalue()
     if set_root_logger_level:
         assert handler.records[0].level == logbook.DEBUG
