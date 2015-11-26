@@ -53,26 +53,34 @@ Works for web apps too
 """
 
 import os
+import platform
 import sys
-from setuptools import setup, Extension, Feature
+from itertools import chain
+
 from distutils.command.build_ext import build_ext
 from distutils.errors import (
     CCompilerError, DistutilsExecError, DistutilsPlatformError)
+from setuptools import Distribution as _Distribution, Extension, setup
+from setuptools.command.test import test as TestCommand
 
-
-extra = {}
 cmdclass = {}
+if sys.version_info < (2, 6):
+    raise Exception('Logbook requires Python 2.6 or higher.')
 
+cpython = platform.python_implementation() == 'CPython'
 
-class BuildFailed(Exception):
-    pass
-
+ext_modules = [Extension('logbook._speedups', sources=['logbook/_speedups.c'])]
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
-if sys.platform == 'win32' and sys.version_info > (2, 6):
+if sys.platform == 'win32':
     # 2.6's distutils.msvc9compiler can raise an IOError when failing to
     # find the compiler
     ext_errors += (IOError,)
+
+
+class BuildFailed(Exception):
+    def __init__(self):
+        self.cause = sys.exc_info()[1]  # work around py 2/3 different syntax
 
 
 class ve_build_ext(build_ext):
@@ -89,26 +97,88 @@ class ve_build_ext(build_ext):
             build_ext.build_extension(self, ext)
         except ext_errors:
             raise BuildFailed()
+        except ValueError:
+            # this can happen on Windows 64 bit, see Python issue 7511
+            if "'path'" in str(sys.exc_info()[1]):  # works with both py 2/3
+                raise BuildFailed()
+            raise
 
 cmdclass['build_ext'] = ve_build_ext
-# Don't try to compile the extension if we're running on PyPy
-if (os.path.isfile('logbook/_speedups.c') and
-        not hasattr(sys, "pypy_translation_info")):
-    speedups = Feature('optional C speed-enhancement module', standard=True,
-                       ext_modules=[Extension('logbook._speedups',
-                                              ['logbook/_speedups.c'])])
-else:
-    speedups = None
 
 
-with open(os.path.join(os.path.dirname(__file__), "logbook", "__version__.py")) as version_file:
+class Distribution(_Distribution):
+
+    def has_ext_modules(self):
+        # We want to always claim that we have ext_modules. This will be fine
+        # if we don't actually have them (such as on PyPy) because nothing
+        # will get built, however we don't want to provide an overally broad
+        # Wheel package when building a wheel without C support. This will
+        # ensure that Wheel knows to treat us as if the build output is
+        # platform specific.
+        return True
+
+
+class PyTest(TestCommand):
+    # from https://pytest.org/latest/goodpractises.html\
+    # #integration-with-setuptools-test-commands
+    user_options = [('pytest-args=', 'a', 'Arguments to pass to py.test')]
+
+    default_options = ['tests']
+
+    def initialize_options(self):
+        TestCommand.initialize_options(self)
+        self.pytest_args = ''
+
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+
+    def run_tests(self):
+        # import here, cause outside the eggs aren't loaded
+        import pytest
+        errno = pytest.main(
+            ' '.join(self.default_options) + ' ' + self.pytest_args)
+        sys.exit(errno)
+
+cmdclass['test'] = PyTest
+
+
+def status_msgs(*msgs):
+    print('*' * 75)
+    for msg in msgs:
+        print(msg)
+    print('*' * 75)
+
+version_file_path = os.path.join(
+    os.path.dirname(__file__), 'logbook', '__version__.py')
+
+with open(version_file_path) as version_file:
     exec(version_file.read())  # pylint: disable=W0122
 
+extras_require = dict()
+extras_require['test'] = set(['pytest'])
+extras_require['execnet'] = set(['execnet>=1.0.9'])
+extras_require['sqlalchemy'] = set(['sqlalchemy'])
+extras_require['redis'] = set(['redis'])
+extras_require['zmq'] = set(['pyzmq'])
+extras_require['dev'] = set(['cython']) | extras_require['test']
 
-def run_setup(with_binary):
-    features = {}
-    if with_binary and speedups is not None:
-        features['speedups'] = speedups
+if (3, 2) <= sys.version_info < (3, 3):
+    extras_require['jinja'] = set(['markupsafe==0.15', 'Jinja2==2.6'])
+else:
+    extras_require['jinja'] = set(['Jinja2'])
+
+extras_require['all'] = set(chain.from_iterable(extras_require.values()))
+
+
+def run_setup(with_cext):
+    kwargs = {}
+    if with_cext:
+        kwargs['ext_modules'] = ext_modules
+    else:
+        kwargs['ext_modules'] = []
+
     setup(
         name='Logbook',
         version=__version__,
@@ -122,41 +192,50 @@ def run_setup(with_binary):
         zip_safe=False,
         platforms='any',
         cmdclass=cmdclass,
+        tests_require=['pytest'],
         classifiers=[
-            "Programming Language :: Python :: 2.6",
-            "Programming Language :: Python :: 2.7",
-            "Programming Language :: Python :: 3.2",
-            "Programming Language :: Python :: 3.3",
-            "Programming Language :: Python :: 3.4",
-            "Programming Language :: Python :: 3.5",
+            'Programming Language :: Python :: 2.6',
+            'Programming Language :: Python :: 2.7',
+            'Programming Language :: Python :: 3.2',
+            'Programming Language :: Python :: 3.3',
+            'Programming Language :: Python :: 3.4',
+            'Programming Language :: Python :: 3.5',
         ],
-        features=features,
-        install_requires=[
-        ],
-        **extra
+        extras_require=extras_require,
+        distclass=Distribution,
+        **kwargs
     )
 
-
-def echo(msg=''):
-    sys.stdout.write(msg + '\n')
-
-
-try:
-    run_setup(True)
-except BuildFailed:
-    LINE = '=' * 74
-    BUILD_EXT_WARNING = ('WARNING: The C extension could not be compiled, '
-                         'speedups are not enabled.')
-
-    echo(LINE)
-    echo(BUILD_EXT_WARNING)
-    echo('Failure information, if any, is above.')
-    echo('Retrying the build without the C extension now.')
-    echo()
-
+if not cpython:
     run_setup(False)
+    status_msgs(
+        'WARNING: C extensions are not supported on ' +
+        'this Python platform, speedups are not enabled.',
+        'Plain-Python build succeeded.'
+    )
+elif os.environ.get('DISABLE_LOGBOOK_CEXT'):
+    run_setup(False)
+    status_msgs(
+        'DISABLE_LOGBOOK_CEXT is set; ' +
+        'not attempting to build C extensions.',
+        'Plain-Python build succeeded.'
+    )
+else:
+    try:
+        run_setup(True)
+    except BuildFailed as exc:
+        status_msgs(
+            exc.cause,
+            'WARNING: The C extension could not be compiled, ' +
+            'speedups are not enabled.',
+            'Failure information, if any, is above.',
+            'Retrying the build without the C extension now.'
+        )
 
-    echo(LINE)
-    echo(BUILD_EXT_WARNING)
-    echo('Plain-Python installation succeeded.')
-    echo(LINE)
+        run_setup(False)
+
+        status_msgs(
+            'WARNING: The C extension could not be compiled, ' +
+            'speedups are not enabled.',
+            'Plain-Python build succeeded.'
+        )
