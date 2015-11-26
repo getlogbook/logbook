@@ -29,8 +29,7 @@ release: logbook/_speedups.so
 
 logbook/_speedups.so: logbook/_speedups.pyx
 	cython logbook/_speedups.pyx
-	python setup.py build
-	cp build/*/logbook/_speedups*.so logbook
+	python setup.py build_ext --inplace
 
 cybuild: logbook/_speedups.so
 
