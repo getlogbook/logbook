@@ -70,11 +70,13 @@ environment:
     - PYTHON: "C:\\Python325-x64"
       PYTHON_VERSION: "3.2.5"
       PYTHON_ARCH: "64"
+      SKIPZMQ: "TRUE"
 
     - PYTHON: "C:\\Python325-x64"
       PYTHON_VERSION: "3.2.5"
       PYTHON_ARCH: "64"
       CYBUILD: "TRUE"
+      SKIPZMQ: "TRUE"
 
     # Pre-installed Python versions, which Appveyor may upgrade to
     # a later point release.
@@ -142,7 +144,6 @@ init:
 install:
   - powershell .appveyor\\install.ps1
   - ".appveyor\\prepare.bat"
-  - ps: if (Test-Path Env:\CYBUILD) {Copy-Item build\*\logbook\*.pyd logbook\}
 
 build: off
 
@@ -154,7 +155,7 @@ after_test:
 
 artifacts:
   # Archive the generated packages in the ci.appveyor.com build report.
-  - path: dist\*
+  - path: dist\*.whl
 
 deploy:
   description: ''
