@@ -7,6 +7,7 @@
     :license: BSD, see LICENSE for more details.
 """
 import functools
+import os
 import sys
 from contextlib import contextmanager
 
@@ -30,6 +31,12 @@ def get_total_delta_seconds(delta):
 
 require_py3 = pytest.mark.skipif(
     sys.version_info[0] < 3, reason="Requires Python 3")
+
+appveyor = pytest.mark.skipif(
+    os.environ.get('APPVEYOR') != 'True', reason='AppVeyor CI test')
+
+travis = pytest.mark.skipif(
+    os.environ.get('TRAVIS') != 'true', reason='Travis CI test')
 
 
 def require_module(module_name):
