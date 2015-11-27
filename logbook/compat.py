@@ -9,12 +9,13 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-import sys
+import collections
 import logging
+import sys
 import warnings
-import logbook
 from datetime import date, datetime
 
+import logbook
 from logbook.helpers import u, string_types, iteritems
 
 _epoch_ord = date(1970, 1, 1).toordinal()
@@ -63,8 +64,12 @@ class redirected_logging(object):
 class LoggingCompatRecord(logbook.LogRecord):
 
     def _format_message(self, msg, *args, **kwargs):
-        assert not kwargs
-        return msg % tuple(args)
+        if kwargs:
+            assert not args
+            return msg % kwargs
+        else:
+            assert not kwargs
+            return msg % tuple(args)
 
 
 class RedirectLoggingHandler(logging.Handler):
@@ -124,10 +129,17 @@ class RedirectLoggingHandler(logging.Handler):
 
     def convert_record(self, old_record):
         """Converts an old logging record into a logbook log record."""
+        args = old_record.args
+        kwargs = None
+
+        # Logging allows passing a mapping object, in which case args will be a mapping.
+        if isinstance(args, collections.Mapping):
+            kwargs = args
+            args = None
         record = LoggingCompatRecord(old_record.name,
                                      self.convert_level(old_record.levelno),
-                                     old_record.msg, old_record.args,
-                                     None, old_record.exc_info,
+                                     old_record.msg, args,
+                                     kwargs, old_record.exc_info,
                                      self.find_extra(old_record),
                                      self.find_caller(old_record))
         record.time = self.convert_time(old_record.created)
