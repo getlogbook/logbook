@@ -9,6 +9,8 @@ python:
 - '3.5'
 - pypy
 - pypy3
+before_install:
+  - pip install coveralls
 install:
 - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm
 - sudo apt-add-repository -y ppa:chris-lea/zeromq
@@ -22,13 +24,15 @@ env:
 - CYBUILD=True
 script:
 - pip install -e .[all]
-- py.test -r s tests
+- py.test --cov=logbook -r s tests
 matrix:
   exclude:
   - python: pypy
     env: CYBUILD=True
   - python: pypy3
     env: CYBUILD=True
+after_success:
+  - coveralls
 notifications:
   email:
     recipients:

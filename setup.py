@@ -157,7 +157,7 @@ with open(version_file_path) as version_file:
     exec(version_file.read())  # pylint: disable=W0122
 
 extras_require = dict()
-extras_require['test'] = set(['pytest'])
+extras_require['test'] = set(['pytest', 'pytest-cov'])
 extras_require['execnet'] = set(['execnet>=1.0.9'])
 extras_require['sqlalchemy'] = set(['sqlalchemy'])
 extras_require['redis'] = set(['redis'])
