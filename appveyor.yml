@@ -11,6 +11,7 @@ environment:
       secure: ixvjwUN/HsSfGkU3OvtQ8Q==
     PYPI_PASSWORD:
       secure: KOr+oEHZJmo1el3bT+ivmQ==
+    ENABLE_LOGBOOK_NTEVENTLOG_TESTS: "TRUE"
 
   matrix:
     # Python 2.6.6 is the latest Python 2.6 with a Windows installer
