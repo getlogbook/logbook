@@ -1431,9 +1431,15 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
         return self._type_map.get(record.level, self._default_type)
 
     def get_event_category(self, record):
+        """Returns the event category for the record. Override this if you want
+        to specify your own categories. This version returns 0.
+        """
         return 0
 
     def get_message_id(self, record):
+        """Returns the message ID (EventID) for the record. Override this if
+        you want to specify your own ID. This version returns 1.
+        """
         return 1
 
     def emit(self, record):
