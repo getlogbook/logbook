@@ -7,6 +7,7 @@
 | Supported Versions | ![Supported Versions][vi]   |
 | Downloads          | ![Downloads][di]            |
 | Latest Version     | [![Latest Version][pi]][pl] |
+| Test Coverage      | [![Test Coverage][co]][co]  |
 
 
 Logbook is a nice logging replacement.
@@ -23,3 +24,4 @@ For more information: http://logbook.readthedocs.org
 [al]: https://ci.appveyor.com/project/vmalloc/logbook
 [pi]: https://img.shields.io/pypi/v/logbook.svg
 [pl]: https://pypi.python.org/pypi/Logbook
+[co]: https://coveralls.io/repos/getlogbook/logbook/badge.svg?branch=master&service=github
