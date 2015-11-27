@@ -7,6 +7,7 @@ Here you can see the full list of changes between each Logbook release.
 Version 1.0.0
 -------------
 
+- Coverage reports using coveralls.io
 - Dropped compatibility for Python 3.2. At this point we did not actually remove any code that supports it, but the continuous integration tests no longer check against it, and we will no longer fix compatibility issues with 3.2.
 - Better coverage and tests on Windows (thanks Frazer McLean)
 - Many cleanups and overall project improvements (thanks Frazer McLean)
