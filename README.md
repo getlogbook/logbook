@@ -1,5 +1,9 @@
 # Welcome to Logbook
 
+<img src="https://raw.githubusercontent.com/getlogbook/logbook/master/docs/_static/logbook-logo.png" width="300"> 
+
+
+
 |                    |                             |
 |--------------------|-----------------------------|
 | Travis             | [![Build Status][ti]][tl]   |
