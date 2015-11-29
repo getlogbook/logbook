@@ -59,7 +59,7 @@ if has_gevent:
 
             # We trust the GIL here so we can do this comparison w/o locking.
             if tid_gid == self._owner:
-                self._count = self._count + 1
+                self._count += 1
                 return True
 
             greenlet_lock = self._get_greenlet_lock()
@@ -100,7 +100,7 @@ if has_gevent:
             if tid_gid != self._owner:
                 raise RuntimeError("cannot release un-acquired lock")
 
-            self._count = self._count - 1
+            self._count -= 1
             if not self._count:
                 self._owner = None
                 gid = self._wait_queue.pop(0)

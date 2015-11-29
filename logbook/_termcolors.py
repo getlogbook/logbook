@@ -11,9 +11,7 @@
 
 esc = "\x1b["
 
-codes = {}
-codes[""] = ""
-codes["reset"] = esc + "39;49;00m"
+codes = {"": "", "reset": esc + "39;49;00m"}
 
 dark_colors = ["black", "darkred", "darkgreen", "brown", "darkblue",
                "purple", "teal", "lightgray"]
