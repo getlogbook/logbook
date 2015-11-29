@@ -158,16 +158,13 @@ with open(version_file_path) as version_file:
 
 extras_require = dict()
 extras_require['test'] = set(['pytest', 'pytest-cov'])
+extras_require['dev'] = set(['cython']) | extras_require['test']
+
 extras_require['execnet'] = set(['execnet>=1.0.9'])
 extras_require['sqlalchemy'] = set(['sqlalchemy'])
 extras_require['redis'] = set(['redis'])
 extras_require['zmq'] = set(['pyzmq'])
-extras_require['dev'] = set(['cython']) | extras_require['test']
-
-if (3, 2) <= sys.version_info < (3, 3):
-    extras_require['jinja'] = set(['markupsafe==0.15', 'Jinja2==2.6'])
-else:
-    extras_require['jinja'] = set(['Jinja2'])
+extras_require['jinja'] = set(['Jinja2'])
 
 extras_require['all'] = set(chain.from_iterable(extras_require.values()))
 

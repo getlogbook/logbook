@@ -1,12 +1,11 @@
 import os
-import sys
+
 try:
     from thread import get_ident
 except ImportError:
     from _thread import get_ident
 
 import logbook
-import pytest
 from logbook.helpers import xrange
 
 from .utils import require_module
@@ -16,9 +15,6 @@ if __file_without_pyc__.endswith(".pyc"):
     __file_without_pyc__ = __file_without_pyc__[:-1]
 
 
-@pytest.mark.xfail(os.getenv('APPVEYOR') == 'True' and
-                   sys.version_info[:2] == (3, 2),
-                   reason='Some problem on AppVeyor')
 @require_module('sqlalchemy')
 def test_basic_ticketing(logger):
     from logbook.ticketing import TicketingHandler
