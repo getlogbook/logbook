@@ -11,7 +11,6 @@
 import re
 import os
 from collections import defaultdict
-from cgi import parse_qsl
 from functools import partial
 
 from logbook.base import (
@@ -26,8 +25,9 @@ from logbook.ticketing import BackendBase
 
 if PY2:
     from urllib import urlencode
+    from urlparse import parse_qsl
 else:
-    from urllib.parse import urlencode
+    from urllib.parse import parse_qsl, urlencode
 
 _ws_re = re.compile(r'(\s+)(?u)')
 TWITTER_FORMAT_STRING = u(
