@@ -43,7 +43,7 @@ class RedisHandler(Handler):
     More info about the default buffer size: wp.me/p3tYJu-3b
     """
     def __init__(self, host='127.0.0.1', port=6379, key='redis',
-                 extra_fields={}, flush_threshold=128, flush_time=1,
+                 extra_fields=None, flush_threshold=128, flush_time=1,
                  level=NOTSET, filter=None, password=False, bubble=True,
                  context=None, push_method='rpush'):
         Handler.__init__(self, level, filter, bubble)
@@ -62,7 +62,7 @@ class RedisHandler(Handler):
             raise ResponseError(
                 'The password provided is apparently incorrect')
         self.key = key
-        self.extra_fields = extra_fields
+        self.extra_fields = extra_fields or {}
         self.flush_threshold = flush_threshold
         self.queue = []
         self.lock = Lock()
