@@ -970,7 +970,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
     def _test_for(self, message=None, channel=None, level=None):
         def _match(needle, haystack):
-            "Matches both compiled regular expressions and strings"
+            """Matches both compiled regular expressions and strings"""
             if isinstance(needle, REGTYPE) and needle.search(haystack):
                 return True
             if needle == haystack:

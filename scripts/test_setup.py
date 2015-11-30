@@ -10,13 +10,9 @@ if __name__ == '__main__':
         "pytest",
         "pyzmq",
         "sqlalchemy",
+        "Jinja2",
     ]
 
-    if (3, 2) <= python_version < (3, 3):
-        deps.append("markupsafe==0.15")
-        deps.append("Jinja2==2.6")
-    else:
-        deps.append("Jinja2")
     print("Setting up dependencies...")
     result = pip.main(["install"] + deps)
     sys.exit(result)

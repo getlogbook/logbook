@@ -57,28 +57,6 @@ environment:
       PYTHON_ARCH: "64"
       CYBUILD: "TRUE"
 
-    # Python 3.2 isn't preinstalled
-
-    - PYTHON: "C:\\Python325"
-      PYTHON_VERSION: "3.2.5"
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Python325"
-      PYTHON_VERSION: "3.2.5"
-      PYTHON_ARCH: "32"
-      CYBUILD: "TRUE"
-
-    - PYTHON: "C:\\Python325-x64"
-      PYTHON_VERSION: "3.2.5"
-      PYTHON_ARCH: "64"
-      SKIPZMQ: "TRUE"
-
-    - PYTHON: "C:\\Python325-x64"
-      PYTHON_VERSION: "3.2.5"
-      PYTHON_ARCH: "64"
-      CYBUILD: "TRUE"
-      SKIPZMQ: "TRUE"
-
     # Pre-installed Python versions, which Appveyor may upgrade to
     # a later point release.
     # See: http://www.appveyor.com/docs/installed-software#python
