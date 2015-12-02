@@ -296,7 +296,10 @@ class ColorizingStreamHandlerMixin(object):
         stream is a tty and we are not executing on windows.
         """
         if os.name == 'nt':
-            return False
+            try:
+                import colorama
+            except ImportError:
+                return False
         isatty = getattr(self.stream, 'isatty', None)
         return isatty and isatty()
 
@@ -324,6 +327,14 @@ class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
 
     .. versionadded:: 0.3
     """
+    def __init__(self, *args, **kwargs):
+        StderrHandler.__init__(self, *args, **kwargs)
+        try:
+            import colorama
+        except ImportError:
+            pass
+        else:
+            colorama.init()
 
 
 # backwards compat.  Should go away in some future releases
