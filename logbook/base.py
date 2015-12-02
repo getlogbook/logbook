@@ -37,6 +37,7 @@ def set_datetime_format(datetime_format):
     :py:class:`LogRecord` instances.
 
     :param datetime_format: Indicates how to generate datetime objects.
+
     Possible values are:
 
          "utc"
