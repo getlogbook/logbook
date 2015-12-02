@@ -20,7 +20,7 @@ Released on November 24th 2015
 
 - Added logbook.utils.deprecated to automatically emit warnings when certain functions are called (Thanks Ayala Shachar)
 - Added logbook.utils.suppressed_deprecations context to temporarily suppress deprecations (Thanks Ayala Shachar)
-- Added logbook.utils.logged_if_slow_context to emit logs when certain operations exceed a time threshold (Thanks Ayala Shachar)
+- Added logbook.utils.logged_if_slow to emit logs when certain operations exceed a time threshold (Thanks Ayala Shachar)
 - Many PEP8 fixes and code cleanups (thanks Taranjeet Singh and Frazer McLean)
 - TestHandler constructor now receives an optional `force_heavy_init=True`, forcing all records to heavy-initialize
 
