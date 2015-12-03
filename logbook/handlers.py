@@ -1205,6 +1205,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
             keyfile = self.secure.get('keyfile', None)
             certfile = self.secure.get('certfile', None)
         elif isinstance(self.secure, collections.Iterable):
+            # Allow empty tuple for backwards compatibility
             if len(self.secure) == 0:
                 keyfile = certfile = None
             else:
@@ -1212,7 +1213,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         else:
             keyfile = certfile = None
 
-        # Allow starttls to be disabled by passing starttls=True.
+        # Allow starttls to be disabled by passing starttls=False.
         if not self.starttls and self.secure:
             con = SMTP_SSL(host, port, keyfile=keyfile, certfile=certfile)
         else:
