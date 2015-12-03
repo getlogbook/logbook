@@ -7,6 +7,11 @@ from logbook.helpers import u
 
 from .utils import capturing_stderr_context, make_fake_mail_handler
 
+try:
+    from unittest.mock import Mock, call, patch
+except ImportError:
+    from mock import Mock, call, patch
+
 __file_without_pyc__ = __file__
 if __file_without_pyc__.endswith('.pyc'):
     __file_without_pyc__ = __file_without_pyc__[:-1]
@@ -104,3 +109,126 @@ def test_group_handler_mail_combo(activation_strategy, logger):
     assert len(related) == 2
     assert re.search('Message type:\s+WARNING', related[0])
     assert re.search('Message type:\s+DEBUG', related[1])
+
+
+def test_mail_handler_arguments():
+    with patch('smtplib.SMTP', autospec=True) as mock_smtp:
+
+        # Test the mail handler with supported arguments before changes to
+        # secure, credentials, and starttls
+        mail_handler = logbook.MailHandler(
+            from_addr='from@example.com',
+            recipients='to@example.com',
+            server_addr=('server.example.com', 465),
+            credentials=('username', 'password'),
+            secure=('keyfile', 'certfile'))
+
+        mail_handler.get_connection()
+
+        assert mock_smtp.call_args == call('server.example.com', 465)
+        assert mock_smtp.method_calls[1] == call().starttls(
+            keyfile='keyfile', certfile='certfile')
+        assert mock_smtp.method_calls[3] == call().login('username', 'password')
+
+        # Test secure=()
+        mail_handler = logbook.MailHandler(
+            from_addr='from@example.com',
+            recipients='to@example.com',
+            server_addr=('server.example.com', 465),
+            credentials=('username', 'password'),
+            secure=())
+
+        mail_handler.get_connection()
+
+        assert mock_smtp.call_args == call('server.example.com', 465)
+        assert mock_smtp.method_calls[5] == call().starttls(
+            certfile=None, keyfile=None)
+        assert mock_smtp.method_calls[7] == call().login('username', 'password')
+
+        # Test implicit port with string server_addr, dictionary credentials,
+        # dictionary secure.
+        mail_handler = logbook.MailHandler(
+            from_addr='from@example.com',
+            recipients='to@example.com',
+            server_addr='server.example.com',
+            credentials={'user': 'username', 'password': 'password'},
+            secure={'certfile': 'certfile2', 'keyfile': 'keyfile2'})
+
+        mail_handler.get_connection()
+
+        assert mock_smtp.call_args == call('server.example.com', 465)
+        assert mock_smtp.method_calls[9] == call().starttls(
+            certfile='certfile2', keyfile='keyfile2')
+        assert mock_smtp.method_calls[11] == call().login(
+            user='username', password='password')
+
+        # Test secure=True
+        mail_handler = logbook.MailHandler(
+            from_addr='from@example.com',
+            recipients='to@example.com',
+            server_addr=('server.example.com', 465),
+            credentials=('username', 'password'),
+            secure=True)
+
+        mail_handler.get_connection()
+
+        assert mock_smtp.call_args == call('server.example.com', 465)
+        assert mock_smtp.method_calls[13] == call().starttls(
+            certfile=None, keyfile=None)
+        assert mock_smtp.method_calls[15] == call().login('username', 'password')
+        assert len(mock_smtp.method_calls) == 16
+
+        # Test secure=False
+        mail_handler = logbook.MailHandler(
+            from_addr='from@example.com',
+            recipients='to@example.com',
+            server_addr=('server.example.com', 465),
+            credentials=('username', 'password'),
+            secure=False)
+
+        mail_handler.get_connection()
+
+        # starttls not called because we check len of method_calls before and
+        # after this test.
+        assert mock_smtp.call_args == call('server.example.com', 465)
+        assert mock_smtp.method_calls[16] == call().login('username', 'password')
+        assert len(mock_smtp.method_calls) == 17
+
+    with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp_ssl:
+        # Test starttls=False
+        mail_handler = logbook.MailHandler(
+            from_addr='from@example.com',
+            recipients='to@example.com',
+            server_addr='server.example.com',
+            credentials={'user': 'username', 'password': 'password'},
+            secure={'certfile': 'certfile', 'keyfile': 'keyfile'},
+            starttls=False)
+
+        mail_handler.get_connection()
+
+        assert mock_smtp_ssl.call_args == call(
+            'server.example.com', 465, keyfile='keyfile', certfile='certfile')
+        assert mock_smtp_ssl.method_calls[0] == call().login(
+            user='username', password='password')
+
+        # Test starttls=False with secure=True
+        mail_handler = logbook.MailHandler(
+            from_addr='from@example.com',
+            recipients='to@example.com',
+            server_addr='server.example.com',
+            credentials={'user': 'username', 'password': 'password'},
+            secure=True,
+            starttls=False)
+
+        mail_handler.get_connection()
+
+        assert mock_smtp_ssl.call_args == call(
+            'server.example.com', 465, keyfile=None, certfile=None)
+        assert mock_smtp_ssl.method_calls[1] == call().login(
+            user='username', password='password')
+
+
+
+
+
+

@@ -158,6 +158,10 @@ with open(version_file_path) as version_file:
 
 extras_require = dict()
 extras_require['test'] = set(['pytest', 'pytest-cov'])
+
+if sys.version_info[:2] < (3, 3):
+    extras_require['test'] |= set(['mock'])
+
 extras_require['dev'] = set(['cython']) | extras_require['test']
 
 extras_require['execnet'] = set(['execnet>=1.0.9'])
