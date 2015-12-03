@@ -20,6 +20,7 @@ try:
 except ImportError:
     from sha import new as sha1
 import traceback
+import collections
 from datetime import datetime, timedelta
 from collections import deque
 from textwrap import dedent
@@ -1014,14 +1015,42 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
 
     The default timedelta is 60 seconds (one minute).
 
-    The mail handler is sending mails in a blocking manner.  If you are not
+    The mail handler sends mails in a blocking manner.  If you are not
     using some centralized system for logging these messages (with the help
     of ZeroMQ or others) and the logging system slows you down you can
     wrap the handler in a :class:`logbook.queues.ThreadedWrapperHandler`
     that will then send the mails in a background thread.
 
+    `server_addr` can be a tuple of host and port, or just a string containing
+    the host to use the default port (25, or 465 if connecting securely.)
+
+    `credentials` can be a tuple or dictionary of arguments that will be passed
+    to :py:meth:`smtplib.SMTP.login`.
+
+    `secure` can be a tuple, dictionary, or boolean. As a boolean, this will
+    simply enable or disable a secure connection. The tuple is unpacked as
+    parameters `keyfile`, `certfile`. As a dictionary, `secure` should contain
+    those keys. For backwards compatibility, ``secure=()`` will enable a secure
+    connection. If `starttls` is enabled (default), these parameters will be
+    passed to :py:meth:`smtplib.SMTP.starttls`, otherwise
+    :py:class:`smtplib.SMTP_SSL`.
+
+
     .. versionchanged:: 0.3
        The handler supports the batching system now.
+
+    .. versionadded:: 1.0
+       `starttls` parameter added to allow disabling STARTTLS for SSL
+       connections.
+
+    .. versionchanged:: 1.0
+       If `server_addr` is a string, the default port will be used.
+
+    .. versionchanged:: 1.0
+       `credentials` parameter can now be a dictionary of keyword arguments.
+
+    .. versionchanged:: 1.0
+       `secure` can now be a dictionary or boolean in addition to to a tuple.
     """
     default_format_string = MAIL_FORMAT_STRING
     default_related_format_string = MAIL_RELATED_FORMAT_STRING
@@ -1039,7 +1068,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
                  server_addr=None, credentials=None, secure=None,
                  record_limit=None, record_delta=None, level=NOTSET,
                  format_string=None, related_format_string=None,
-                 filter=None, bubble=False):
+                 filter=None, bubble=False, starttls=True):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         LimitingHandlerMixin.__init__(self, record_limit, record_delta)
@@ -1054,6 +1083,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         if related_format_string is None:
             related_format_string = self.default_related_format_string
         self.related_format_string = related_format_string
+        self.starttls = starttls
 
     def _get_related_format_string(self):
         if isinstance(self.related_formatter, StringFormatter):
@@ -1148,20 +1178,63 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         """Returns an SMTP connection.  By default it reconnects for
         each sent mail.
         """
-        from smtplib import SMTP, SMTP_PORT, SMTP_SSL_PORT
+        from smtplib import SMTP, SMTP_SSL, SMTP_PORT, SMTP_SSL_PORT
         if self.server_addr is None:
             host = '127.0.0.1'
             port = self.secure and SMTP_SSL_PORT or SMTP_PORT
         else:
-            host, port = self.server_addr
-        con = SMTP()
-        con.connect(host, port)
+            try:
+                host, port = self.server_addr
+            except ValueError:
+                # If server_addr is a string, the tuple unpacking will raise
+                # ValueError, and we can use the default port.
+                host = self.server_addr
+                port = self.secure and SMTP_SSL_PORT or SMTP_PORT
+
+        # Previously, self.secure was passed as con.starttls(*self.secure). This
+        # meant that starttls couldn't be used without a keyfile and certfile
+        # unless an empty tuple was passed. See issue #94.
+        #
+        # The changes below allow passing:
+        # - secure=True for secure connection without checking identity.
+        # - dictionary with keys 'keyfile' and 'certfile'.
+        # - tuple to be unpacked to variables keyfile and certfile.
+        # - secure=() equivalent to secure=True for backwards compatibility.
+        # - secure=False equivalent to secure=None to disable.
+        if isinstance(self.secure, collections.Mapping):
+            keyfile = self.secure.get('keyfile', None)
+            certfile = self.secure.get('certfile', None)
+        elif isinstance(self.secure, collections.Iterable):
+            # Allow empty tuple for backwards compatibility
+            if len(self.secure) == 0:
+                keyfile = certfile = None
+            else:
+                keyfile, certfile = self.secure
+        else:
+            keyfile = certfile = None
+
+        # Allow starttls to be disabled by passing starttls=False.
+        if not self.starttls and self.secure:
+            con = SMTP_SSL(host, port, keyfile=keyfile, certfile=certfile)
+        else:
+            con = SMTP(host, port)
+
         if self.credentials is not None:
-            if self.secure is not None:
+            secure = self.secure
+            if self.starttls and secure is not None and secure is not False:
                 con.ehlo()
-                con.starttls(*self.secure)
+                con.starttls(keyfile=keyfile, certfile=certfile)
                 con.ehlo()
-            con.login(*self.credentials)
+
+            # Allow credentials to be a tuple or dict.
+            if isinstance(self.credentials, collections.Mapping):
+                credentials_args = ()
+                credentials_kwargs = self.credentials
+            else:
+                credentials_args = self.credentials
+                credentials_kwargs = dict()
+
+            con.login(*credentials_args, **credentials_kwargs)
         return con
 
     def close_connection(self, con):
@@ -1175,7 +1248,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
             pass
 
     def deliver(self, msg, recipients):
-        """Delivers the given message to a list of recpients."""
+        """Delivers the given message to a list of recipients."""
         con = self.get_connection()
         try:
             con.sendmail(self.from_addr, recipients, msg.as_string())
@@ -1227,7 +1300,7 @@ class GMailHandler(MailHandler):
 
     def __init__(self, account_id, password, recipients, **kw):
         super(GMailHandler, self).__init__(
-            account_id, recipients, secure=(),
+            account_id, recipients, secure=True,
             server_addr=("smtp.gmail.com", 587),
             credentials=(account_id, password), **kw)
 
