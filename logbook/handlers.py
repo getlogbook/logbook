@@ -1039,17 +1039,17 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
     .. versionchanged:: 0.3
        The handler supports the batching system now.
 
-    .. versionadded:: TODO
+    .. versionadded:: 1.0
        `starttls` parameter added to allow disabling STARTTLS for SSL
        connections.
 
-    .. versionchanged:: TODO
+    .. versionchanged:: 1.0
        If `server_addr` is a string, the default port will be used.
 
-    .. versionchanged:: TODO
+    .. versionchanged:: 1.0
        `credentials` parameter can now be a dictionary of keyword arguments.
 
-    .. versionchanged:: TODO
+    .. versionchanged:: 1.0
        `secure` can now be a dictionary or boolean in addition to to a tuple.
     """
     default_format_string = MAIL_FORMAT_STRING
