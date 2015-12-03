@@ -34,7 +34,7 @@ Slow Operations Logging
 -----------------------
 
 .. module:: logbook.utils
-.. autofunction:: logged_if_slow_context
+.. autofunction:: logged_if_slow
 
 
 Deprecations

@@ -39,6 +39,8 @@ def logged_if_slow(message, threshold=1, func=logbook_debug, args=None,
 
     >>> with logged_if_slow('too slow!'):
     ...     ...
+
+    .. versionadded:: 0.12
     """
     full_args = (message, ) if args is None else (message, ) + tuple(args)
     return _SlowContextNotifier(threshold, func, full_args, kwargs)
@@ -56,6 +58,8 @@ def suppressed_deprecations():
 
     >>> with suppressed_deprecations():
     ...    call_some_deprecated_logic()
+
+    .. versionadded:: 0.12
     """
     prev_enabled = _local.enabled
     _local.enabled = False
@@ -157,7 +161,9 @@ def deprecated(func=None, message=None):
     ...     pass
 
     This will cause a warning log to be emitted when the function gets called,
-    with the correct filename/lineno
+    with the correct filename/lineno.
+
+    .. versionadded:: 0.12
     """
     if isinstance(func, string_types):
         assert message is None

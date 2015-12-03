@@ -288,15 +288,23 @@ class ColorizingStreamHandlerMixin(object):
     """A mixin class that does colorizing.
 
     .. versionadded:: 0.3
+    .. versionchanged:: 1.0.0
+       Added Windows support if `colorama`_ is installed.
+
+    .. _`colorama`: https://pypi.python.org/pypi/colorama
     """
 
     def should_colorize(self, record):
         """Returns `True` if colorizing should be applied to this
         record.  The default implementation returns `True` if the
-        stream is a tty and we are not executing on windows.
+        stream is a tty. If we are executing on Windows, colorama must be
+        installed.
         """
         if os.name == 'nt':
-            return False
+            try:
+                import colorama
+            except ImportError:
+                return False
         isatty = getattr(self.stream, 'isatty', None)
         return isatty and isatty()
 
@@ -323,7 +331,22 @@ class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
     not colorize on Windows systems.
 
     .. versionadded:: 0.3
+    .. versionchanged:: 1.0
+       Added Windows support if `colorama`_ is installed.
+
+    .. _`colorama`: https://pypi.python.org/pypi/colorama
     """
+    def __init__(self, *args, **kwargs):
+        StderrHandler.__init__(self, *args, **kwargs)
+
+        # Try import colorama so that we work on Windows. colorama.init is a
+        # noop on other operating systems.
+        try:
+            import colorama
+        except ImportError:
+            pass
+        else:
+            colorama.init()
 
 
 # backwards compat.  Should go away in some future releases
