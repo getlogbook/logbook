@@ -59,7 +59,7 @@ def suppressed_deprecations():
     >>> with suppressed_deprecations():
     ...    call_some_deprecated_logic()
 
-    .. versionadded:: 12.0
+    .. versionadded:: 0.12
     """
     prev_enabled = _local.enabled
     _local.enabled = False
@@ -163,7 +163,7 @@ def deprecated(func=None, message=None):
     This will cause a warning log to be emitted when the function gets called,
     with the correct filename/lineno.
 
-    .. versionadded:: 12.0
+    .. versionadded:: 0.12
     """
     if isinstance(func, string_types):
         assert message is None

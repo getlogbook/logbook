@@ -288,6 +288,10 @@ class ColorizingStreamHandlerMixin(object):
     """A mixin class that does colorizing.
 
     .. versionadded:: 0.3
+    .. versionchanged:: 1.0.0
+       Added Windows support if `colorama`_ is installed.
+
+    .. _`colorama`: https://pypi.python.org/pypi/colorama
     """
 
     def should_colorize(self, record):
@@ -327,7 +331,7 @@ class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
     not colorize on Windows systems.
 
     .. versionadded:: 0.3
-    .. versionchanged:: TODO
+    .. versionchanged:: 1.0
        Added Windows support if `colorama`_ is installed.
 
     .. _`colorama`: https://pypi.python.org/pypi/colorama
