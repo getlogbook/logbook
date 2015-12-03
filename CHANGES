@@ -7,7 +7,7 @@ Here you can see the full list of changes between each Logbook release.
 Version 1.0.0
 -------------
 
-- Logbook has also been a 0.x long enough to earn its 1.0 bump!
+- Logbook has been a 0.x long enough to earn its 1.0.0 bump!
 - Logbook now uses SemVer for its versioning scheme
 - Various improvements to MailHandler and the usage of TLS/SMTP SSL (thanks Frazer McLean)
 - Fix log colorizing on Windows (thanks Frazer McLean)
