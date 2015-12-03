@@ -7,6 +7,10 @@ Here you can see the full list of changes between each Logbook release.
 Version 1.0.0
 -------------
 
+- Logbook has also been a 0.x long enough to earn its 1.0 bump!
+- Logbook now uses SemVer for its versioning scheme
+- Various improvements to MailHandler and the usage of TLS/SMTP SSL (thanks Frazer McLean)
+- Fix log colorizing on Windows (thanks Frazer McLean)
 - Coverage reports using coveralls.io
 - Dropped compatibility for Python 3.2. At this point we did not actually remove any code that supports it, but the continuous integration tests no longer check against it, and we will no longer fix compatibility issues with 3.2.
 - Better coverage and tests on Windows (thanks Frazer McLean)
