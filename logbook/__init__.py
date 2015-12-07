@@ -24,7 +24,6 @@ from .handlers import (
     FingersCrossedHandler, GroupHandler)
 from . import compat
 
-__version__ = '0.11.4-dev'
 
 # create an anonymous default logger and provide all important
 # methods of that logger as global functions
@@ -48,3 +47,5 @@ del _default_logger
 if os.environ.get('LOGBOOK_INSTALL_DEFAULT_HANDLER'):
     default_handler = StderrHandler()
     default_handler.push_application()
+
+from .__version__ import __version__
