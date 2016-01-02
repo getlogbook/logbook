@@ -47,7 +47,7 @@ The builtin ticketing handler is called
 it will connect to a relational database with the help of `SQLAlchemy`_
 and log into two tables there: tickets go into ``${prefix}tickets`` and
 occurrences go into ``${prefix}occurrences``.  The default table prefix is
-``'logbook_'`` but can be overriden.  If the tables do not exist already,
+``'logbook_'`` but can be overridden.  If the tables do not exist already,
 the handler will create them.
 
 Here an example setup that logs into a postgres database::

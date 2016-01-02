@@ -17,7 +17,7 @@ desktop notification system?  :ref:`Logbook can do that <notifiers>`.
 
 Feedback is appreciated.  The docs here only show a tiny,
 tiny feature set and can be incomplete. We will have better docs
-soon, but until then we hope this gives a sneak peak about how cool
+soon, but until then we hope this gives a sneak peek about how cool
 Logbook is.  If you want more, have a look at the comprehensive suite of tests.
 
 Documentation
