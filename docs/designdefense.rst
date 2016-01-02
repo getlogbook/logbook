@@ -106,7 +106,7 @@ When you are in full control of the context of execution with a stack based
 system like Logbook has, there is a lot more you can do.
 
 For example you could immediately after your application boots up
-instanciate a :class:`~logbook.FingersCrossedHandler`.  This handler
+instantiate a :class:`~logbook.FingersCrossedHandler`.  This handler
 buffers *all* log records in memory and does not emit them at all.  What's
 the point?  That handler activates when a certain threshold is reached.
 For example, when the first warning occurs you can write the buffered
@@ -213,7 +213,7 @@ Logging Compatibility
 The last pillar of logbook's design is the compatibility with the standard
 libraries logging system.  There are many libraries that exist currently
 that log information with the standard libraries logging module.  Having
-two separate logging systems in the same process is countrproductive and
+two separate logging systems in the same process is counterproductive and
 will cause separate logfiles to appear in the best case or complete chaos
 in the worst.
 

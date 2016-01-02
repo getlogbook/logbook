@@ -75,7 +75,7 @@ handler can decide if it wants to process the record, and then it has a
 flag (the :attr:`~logbook.Handler.bubble` flag) which specifies if the
 next handler in the chain is supposed to get this record passed to.
 
-If a handler is bubbeling it will give the record to the next handler,
+If a handler is bubbling it will give the record to the next handler,
 even if it was properly handled.  If it's not, it will stop promoting
 handlers further down the chain.  Additionally there are so-called
 "blackhole" handlers (:class:`~logbook.NullHandler`) which stop processing

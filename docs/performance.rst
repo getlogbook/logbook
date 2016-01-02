@@ -24,7 +24,7 @@ will always be processed, even if the log record ends up being discarded.
 
 This is where the Python ``__debug__`` feature comes in handy.  This
 variable is a special flag that is evaluated at the time where Python
-processes your script.  It can elliminate code completely from your script
+processes your script.  It can eliminate code completely from your script
 so that it does not even exist in the compiled bytecode (requires Python
 to be run with the ``-O`` switch)::
 

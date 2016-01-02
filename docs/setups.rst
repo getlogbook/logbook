@@ -112,7 +112,7 @@ explained using an example::
         # make sure we never bubble up to the stderr handler
         # if we run out of setup handling
         NullHandler(),
-        # then write messages that are at least warnings to to a logfile
+        # then write messages that are at least warnings to a logfile
         FileHandler('application.log', level='WARNING'),
         # errors should then be delivered by mail and also be kept
         # in the application log, so we let them bubble up.
