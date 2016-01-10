@@ -574,6 +574,9 @@ class LogRecord(object):
             frm = frm.f_back
 
         for _ in xrange(self.frame_correction):
+            if frm is None:
+                break
+
             frm = frm.f_back
 
         return frm
