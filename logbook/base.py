@@ -1016,4 +1016,4 @@ def dispatch_record(record):
     _default_dispatcher.call_handlers(record)
 
 # at that point we are safe to import handler
-from logbook.handlers import Handler
+from logbook.handlers import Handler # isort:skip
