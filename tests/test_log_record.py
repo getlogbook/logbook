@@ -25,7 +25,6 @@ def test_extradict(active_handler, logger):
     record.extra['existing'] = 'foo'
     assert record.extra['nonexisting'] == ''
     assert record.extra['existing'] == 'foo'
-    assert repr(record.extra) == "ExtraDict({'existing': 'foo'})"
 
 
 def test_calling_frame(active_handler, logger):
