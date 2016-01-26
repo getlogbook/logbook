@@ -18,8 +18,7 @@ from weakref import ref as weakref
 
 from logbook.concurrency import (greenlet_get_ident, thread_get_ident,
                                  thread_get_name)
-# at that point we are save to import handler
-from logbook.handlers import Handler
+
 from logbook.helpers import (PY2, cached_property, integer_types, iteritems,
                              parse_iso8601, string_types, to_safe_json, u,
                              xrange)
@@ -490,7 +489,7 @@ class LogRecord(object):
         self._channel = None
         if isinstance(self.time, string_types):
             self.time = parse_iso8601(self.time)
-        
+
         # TODO: Replace the lambda with str when we remove support for python 2`
         self.extra = defaultdict(lambda: u'', self.extra)
         return self
@@ -1015,3 +1014,6 @@ def dispatch_record(record):
     information attached and should be dispatched independent of a logger.
     """
     _default_dispatcher.call_handlers(record)
+
+# at that point we are safe to import handler
+from logbook.handlers import Handler
