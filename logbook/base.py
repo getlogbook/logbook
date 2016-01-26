@@ -11,15 +11,18 @@
 import os
 import sys
 import traceback
+from collections import defaultdict
+from datetime import datetime
 from itertools import chain
 from weakref import ref as weakref
-from datetime import datetime
-from logbook.concurrency import (
-    thread_get_name, thread_get_ident, greenlet_get_ident)
 
-from logbook.helpers import (
-    to_safe_json, parse_iso8601, cached_property, PY2, u, string_types,
-    iteritems, integer_types, xrange)
+from logbook.concurrency import (greenlet_get_ident, thread_get_ident,
+                                 thread_get_name)
+
+from logbook.helpers import (PY2, cached_property, integer_types, iteritems,
+                             parse_iso8601, string_types, to_safe_json, u,
+                             xrange)
+
 try:
     from logbook._speedups import (
         group_reflected_property, ContextStackManager, StackedObject)
@@ -143,29 +146,6 @@ def get_level_name(level):
         return _level_names[level]
     except KeyError:
         raise LookupError('unknown level')
-
-
-class ExtraDict(dict):
-    """A dictionary which returns ``u''`` on missing keys."""
-
-    if sys.version_info[:2] < (2, 5):
-        def __getitem__(self, key):
-            try:
-                return dict.__getitem__(self, key)
-            except KeyError:
-                return u('')
-    else:
-        def __missing__(self, key):
-            return u('')
-
-    def copy(self):
-        return self.__class__(self)
-
-    def __repr__(self):
-        return '%s(%s)' % (
-            self.__class__.__name__,
-            dict.__repr__(self)
-        )
 
 
 class _ExceptionCatcher(object):
@@ -406,7 +386,9 @@ class LogRecord(object):
         #: optional extra information as dictionary.  This is the place
         #: where custom log processors can attach custom context sensitive
         #: data.
-        self.extra = ExtraDict(extra or ())
+
+        # TODO: Replace the lambda with str when we remove support for python 2
+        self.extra = defaultdict(lambda: u'', extra or ())
         #: If available, optionally the interpreter frame that pulled the
         #: heavy init.  This usually points to somewhere in the dispatcher.
         #: Might not be available for all calls and is removed when the log
@@ -507,7 +489,9 @@ class LogRecord(object):
         self._channel = None
         if isinstance(self.time, string_types):
             self.time = parse_iso8601(self.time)
-        self.extra = ExtraDict(self.extra)
+
+        # TODO: Replace the lambda with str when we remove support for python 2`
+        self.extra = defaultdict(lambda: u'', self.extra)
         return self
 
     def _format_message(self, msg, *args, **kwargs):
@@ -1031,6 +1015,5 @@ def dispatch_record(record):
     """
     _default_dispatcher.call_handlers(record)
 
-
-# at that point we are save to import handler
-from logbook.handlers import Handler
+# at that point we are safe to import handler
+from logbook.handlers import Handler # isort:skip
