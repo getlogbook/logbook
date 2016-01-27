@@ -19,6 +19,15 @@ from cpython.list cimport PyList_New, PyList_Append, PyList_Sort, \
 from cpython.pythread cimport PyThread_type_lock, PyThread_allocate_lock, \
      PyThread_release_lock, PyThread_acquire_lock, WAIT_LOCK
 
+cdef public unsigned short int CRITICAL = 15
+cdef public unsigned short int ERROR = 14
+cdef public unsigned short int WARNING = 13
+cdef public unsigned short int NOTICE = 12
+cdef public unsigned short int INFO = 11
+cdef public unsigned short int DEBUG = 10
+cdef public unsigned short int TRACE = 9
+cdef public unsigned short int NOTSET = 0
+
 cdef object _missing = object()
 
 cdef enum:
@@ -58,10 +67,10 @@ cdef class _StackItem:
     cdef int id
     cdef readonly object val
 
-    def __init__(self, int id, object val):
+    def __init__(self, const int id, object val):
         self.id = id
         self.val = val
-    def __richcmp__(_StackItem self, _StackItem other, int op):
+    def __richcmp__(_StackItem self, _StackItem other, const unsigned short int op):
         cdef int diff = other.id - self.id # preserving older code
         if op == 0: # <
             return diff < 0
@@ -100,27 +109,27 @@ cdef class StackedObject:
     operations.
     """
 
-    cpdef push_greenlet(self):
+    cpdef void push_greenlet(self):
         """Pushes the stacked object to the greenlet stack."""
         raise NotImplementedError()
 
-    cpdef pop_greenlet(self):
+    cpdef void pop_greenlet(self):
         """Pops the stacked object from the greenlet stack."""
         raise NotImplementedError()
 
-    cpdef push_thread(self):
+    cpdef void push_thread(self):
         """Pushes the stacked object to the thread stack."""
         raise NotImplementedError()
 
-    cpdef pop_thread(self):
+    cpdef void pop_thread(self):
         """Pops the stacked object from the thread stack."""
         raise NotImplementedError()
 
-    cpdef push_application(self):
+    cpdef void push_application(self):
         """Pushes the stacked object to the application stack."""
         raise NotImplementedError()
 
-    cpdef pop_application(self):
+    cpdef void pop_application(self):
         """Pops the stacked object from the application stack."""
         raise NotImplementedError()
 
@@ -137,19 +146,19 @@ cdef class StackedObject:
         else:
             self.pop_thread()
 
-    cpdef greenletbound(self):
+    cpdef _StackBound greenletbound(self):
         """Can be used in combination with the `with` statement to
         execute code while the object is bound to the greenlet.
         """
         return _StackBound(self, self.push_greenlet, self.pop_greenlet)
 
-    cpdef threadbound(self):
+    cpdef _StackBound threadbound(self):
         """Can be used in combination with the `with` statement to
         execute code while the object is bound to the thread.
         """
         return _StackBound(self, self.push_thread, self.pop_thread)
 
-    cpdef applicationbound(self):
+    cpdef _StackBound applicationbound(self):
         """Can be used in combination with the `with` statement to
         execute code while the object is bound to the application.
         """
@@ -163,7 +172,7 @@ cdef class ContextStackManager:
     cdef object _greenlet_context_lock
     cdef object _greenlet_context
     cdef dict _cache
-    cdef int _stackcnt
+    cdef unsigned int _stackcnt
 
     def __init__(self):
         self._global = []
@@ -174,11 +183,12 @@ cdef class ContextStackManager:
         self._cache = {}
         self._stackcnt = 0
 
-    cdef _stackop(self):
+    cdef unsigned int _stackop(self):
         self._stackcnt += 1
         return self._stackcnt
 
     cpdef iter_context_objects(self):
+        cdef bint use_gevent
         use_gevent = is_gevent_enabled()
         tid = greenlet_get_ident() if use_gevent else thread_get_ident()
         objects = self._cache.get(tid)
@@ -194,7 +204,7 @@ cdef class ContextStackManager:
             PyDict_SetItem(self._cache, tid, objects)
         return iter(objects)
 
-    cpdef push_greenlet(self, obj):
+    cpdef void push_greenlet(self, obj):
         self._greenlet_context_lock.acquire()
         try:
             self._cache.pop(greenlet_get_ident(), None)
@@ -217,7 +227,7 @@ cdef class ContextStackManager:
         finally:
             self._greenlet_context_lock.release()
 
-    cpdef push_thread(self, obj):
+    cpdef void push_thread(self, obj):
         PyThread_acquire_lock(self._thread_context_lock, WAIT_LOCK)
         try:
             self._cache.pop(thread_get_ident(), None)
@@ -240,7 +250,7 @@ cdef class ContextStackManager:
         finally:
             PyThread_release_lock(self._thread_context_lock)
 
-    cpdef push_application(self, obj):
+    cpdef void push_application(self, obj):
         self._global.append(_StackItem(self._stackop(), obj))
         PyDict_Clear(self._cache)
 

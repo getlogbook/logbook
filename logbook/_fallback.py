@@ -14,6 +14,15 @@ from logbook.concurrency import (
     thread_get_ident, greenlet_get_ident, thread_local, greenlet_local,
     ThreadLock, GreenletRLock, is_gevent_enabled)
 
+CRITICAL = 15
+ERROR = 14
+WARNING = 13
+NOTICE = 12
+INFO = 11
+DEBUG = 10
+TRACE = 9
+NOTSET = 0
+
 _missing = object()
 _MAX_CONTEXT_OBJECT_CACHE = 256
 
