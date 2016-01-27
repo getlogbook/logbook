@@ -201,8 +201,8 @@ class NestedSetup(StackedObject):
     and processors at once.
     """
 
-    def __init__(self, objects=None):
-        self.objects = list(objects or ())
+    def __init__(self, objects=()):
+        self.objects = objects
 
     def push_application(self):
         for obj in self.objects:
