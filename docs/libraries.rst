@@ -52,6 +52,104 @@ Best Practices
     stack in a function and not reverting it at the end of the function is
     bad.
 
+Example Setup
+-------------
+
+Consider how your logger should be configured by default. Users familiar with
+:mod:`logging` from the standard library probably expect your logger to be
+disabled by default::
+
+    import yourmodule
+    import logbook
+
+    yourmodule.logger.enable()
+
+    def main():
+        ...
+        yourmodule.something()
+        ...
+
+    if __name__ == '__main__':
+        with logbook.StderrHandler():
+            main()
+
+or set to a high level (e.g. `WARNING`) by default, allowing them to opt in to
+more detail if desired::
+
+    import yourmodule
+    import logbook
+
+    yourmodule.logger.level = logbook.WARNING
+
+    def main():
+        ...
+        yourmodule.something()
+        ...
+
+    if __name__ == '__main__':
+        with logbook.StderrHandler():
+            main()
+
+Either way, make sure to document how your users can enable your logger,
+including basic use of logbook handlers. Some users may want to continue using
+:mod:`logging`, so you may want to link to
+:class:`~logbook.compat.LoggingHandler`.
+
+Multiple Logger Example Setup
+-----------------------------
+
+You may want to use multiple loggers in your library. It may be worthwhile to
+add a logger group to allow the level or disabled attributes of all your
+loggers to be set at once.
+
+For example, your library might look something like this:
+
+.. code-block:: python
+   :caption: yourmodule/__init__.py
+
+    from .log import logger_group
+
+.. code-block:: python
+    :caption: yourmodule/log.py
+
+    import logbook
+
+    logger_group = logbook.LoggerGroup()
+    logger_group.level = logbook.WARNING
+
+.. code-block:: python
+    :caption: yourmodule/engine.py
+
+    from logbook import Logger
+    from .log import logger_group
+
+    logger = Logger('yourmodule.engine')
+    logger_group.add_logger(logger)
+
+.. code-block:: python
+    :caption: yourmodule/parser.py
+
+    from logbook import Logger
+    from .log import logger_group
+
+    logger = Logger('yourmodule.parser')
+    logger_group.add_logger(logger)
+
+The library user can then choose what level of logging they would like from
+your library::
+
+    import logbook
+    import yourmodule
+
+    yourmodule.logger_group.level = logbook.INFO
+
+They might only want to see debug messages from one of the loggers::
+
+    import logbook
+    import yourmodule
+
+    yourmodule.engine.logger.level = logbook.DEBUG
+
 Debug Loggers
 -------------
 

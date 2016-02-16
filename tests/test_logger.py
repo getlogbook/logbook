@@ -1,4 +1,5 @@
 import logbook
+import pytest
 
 
 def test_level_properties(logger):
@@ -26,3 +27,18 @@ def test_reflected_properties(logger):
     assert logger.level_name == 'CRITICAL'
     group.remove_logger(logger)
     assert logger.group is None
+
+
+def test_disabled_property():
+    class MyLogger(logbook.Logger):
+        @property
+        def disabled(self):
+            return True
+
+    logger = MyLogger()
+
+    with pytest.raises(AttributeError):
+        logger.enable()
+
+    with pytest.raises(AttributeError):
+        logger.disable()

@@ -25,10 +25,10 @@ from logbook.helpers import (PY2, cached_property, integer_types, iteritems,
 
 try:
     from logbook._speedups import (
-        group_reflected_property, ContextStackManager, StackedObject)
+        _missing, group_reflected_property, ContextStackManager, StackedObject)
 except ImportError:
     from logbook._fallback import (
-        group_reflected_property, ContextStackManager, StackedObject)
+        _missing, group_reflected_property, ContextStackManager, StackedObject)
 
 _datetime_factory = datetime.utcnow
 
@@ -796,6 +796,28 @@ class LoggerMixin(object):
             args = ('Uncaught exception occurred',)
         return _ExceptionCatcher(self, args, kwargs)
 
+    def enable(self):
+        """Convenience method to enable this logger.
+
+        :raises AttributeError: The disabled property is read-only, typically
+                                because it was overridden in a subclass.
+        """
+        try:
+            self.disabled = False
+        except AttributeError:
+            raise AttributeError('The disabled property is read-only.')
+
+    def disable(self):
+        """Convenience method to disable this logger.
+
+        :raises AttributeError: The disabled property is read-only, typically
+                                because it was overridden in a subclass.
+        """
+        try:
+            self.disabled = True
+        except AttributeError:
+            raise AttributeError('The disabled property is read-only.')
+
     def _log(self, level, args, kwargs):
         exc_info = kwargs.pop('exc_info', None)
         extra = kwargs.pop('extra', None)
@@ -1003,6 +1025,38 @@ class LoggerGroup(object):
         """
         if self.processor is not None:
             self.processor(record)
+
+    def enable(self, force=False):
+        """Convenience method to enable this group.
+
+        :param force: Force enable loggers that were explicitly set.
+
+        :raises AttributeError: If ``force=True`` and the disabled property of
+                                a logger is read-only, typically because it was
+                                overridden in a subclass.
+        """
+        self.disabled = False
+        if force:
+            for logger in self.loggers:
+                rv = getattr(logger, '_disabled', _missing)
+                if rv is not _missing:
+                    logger.enable()
+
+    def disable(self, force=False):
+        """Convenience method to disable this group.
+
+        :param force: Force disable loggers that were explicitly set.
+
+        :raises AttributeError: If ``force=True`` and the disabled property of
+                                a logger is read-only, typically because it was
+                                overridden in a subclass.
+        """
+        self.disabled = True
+        if force:
+            for logger in self.loggers:
+                rv = getattr(logger, '_disabled', _missing)
+                if rv is not _missing:
+                    logger.disable()
 
 
 _default_dispatcher = RecordDispatcher()
