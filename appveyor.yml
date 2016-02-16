@@ -6,7 +6,7 @@ environment:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
-    WITH_COMPILER: "cmd /E:ON /V:ON /C .\\.appveyor\\run_with_compiler.cmd"
+    BUILD: "cmd /E:ON /V:ON /C .\\.appveyor\\build.cmd"
     PYPI_USERNAME:
       secure: ixvjwUN/HsSfGkU3OvtQ8Q==
     PYPI_PASSWORD:
@@ -14,114 +14,55 @@ environment:
     ENABLE_LOGBOOK_NTEVENTLOG_TESTS: "TRUE"
 
   matrix:
-    # Python 2.6.6 is the latest Python 2.6 with a Windows installer
-    # See: https://github.com/ogrisel/python-appveyor-demo/issues/10
-
-    - PYTHON: "C:\\Python266"
-      PYTHON_VERSION: "2.6.6"
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Python266"
-      PYTHON_VERSION: "2.6.6"
-      PYTHON_ARCH: "32"
+    - PYTHON: "C:\\Python26"
+    - PYTHON: "C:\\Python26"
       CYBUILD: "TRUE"
 
-    - PYTHON: "C:\\Python266-x64"
-      PYTHON_VERSION: "2.6.6"
-      PYTHON_ARCH: "64"
-
-    - PYTHON: "C:\\Python266-x64"
-      PYTHON_VERSION: "2.6.6"
-      PYTHON_ARCH: "64"
+    - PYTHON: "C:\\Python26-x64"
+    - PYTHON: "C:\\Python26-x64"
       CYBUILD: "TRUE"
 
-    # Pre-installed Python versions, which Appveyor may upgrade to
-    # a later point release.
-    # See: http://www.appveyor.com/docs/installed-software#python
-
     - PYTHON: "C:\\Python27"
-      PYTHON_VERSION: "2.7.x"
-      PYTHON_ARCH: "32"
-
     - PYTHON: "C:\\Python27"
-      PYTHON_VERSION: "2.7.x"
-      PYTHON_ARCH: "32"
       CYBUILD: "TRUE"
 
     - PYTHON: "C:\\Python27-x64"
-      PYTHON_VERSION: "2.7.x"
-      PYTHON_ARCH: "64"
-
     - PYTHON: "C:\\Python27-x64"
-      PYTHON_VERSION: "2.7.x"
-      PYTHON_ARCH: "64"
       CYBUILD: "TRUE"
 
-    # Pre-installed Python versions, which Appveyor may upgrade to
-    # a later point release.
-    # See: http://www.appveyor.com/docs/installed-software#python
-
     - PYTHON: "C:\\Python33"
-      PYTHON_VERSION: "3.3.x"
-      PYTHON_ARCH: "32"
-
     - PYTHON: "C:\\Python33"
-      PYTHON_VERSION: "3.3.x"
-      PYTHON_ARCH: "32"
       CYBUILD: "TRUE"
 
     - PYTHON: "C:\\Python33-x64"
-      PYTHON_VERSION: "3.3.x"
-      PYTHON_ARCH: "64"
-
+      DISTUTILS_USE_SDK: "1"
     - PYTHON: "C:\\Python33-x64"
-      PYTHON_VERSION: "3.3.x"
-      PYTHON_ARCH: "64"
+      DISTUTILS_USE_SDK: "1"
       CYBUILD: "TRUE"
 
     - PYTHON: "C:\\Python34"
-      PYTHON_VERSION: "3.4.x"
-      PYTHON_ARCH: "32"
-
     - PYTHON: "C:\\Python34"
-      PYTHON_VERSION: "3.4.x"
-      PYTHON_ARCH: "32"
       CYBUILD: "TRUE"
 
     - PYTHON: "C:\\Python34-x64"
-      PYTHON_VERSION: "3.4.x"
-      PYTHON_ARCH: "64"
-
+      DISTUTILS_USE_SDK: "1"
     - PYTHON: "C:\\Python34-x64"
-      PYTHON_VERSION: "3.4.x"
-      PYTHON_ARCH: "64"
+      DISTUTILS_USE_SDK: "1"
       CYBUILD: "TRUE"
 
     - PYTHON: "C:\\Python35"
-      PYTHON_VERSION: "3.5.x"
-      PYTHON_ARCH: "32"
-
     - PYTHON: "C:\\Python35"
-      PYTHON_VERSION: "3.5.x"
-      PYTHON_ARCH: "32"
       CYBUILD: "TRUE"
 
     - PYTHON: "C:\\Python35-x64"
-      PYTHON_VERSION: "3.5.x"
-      PYTHON_ARCH: "64"
-
     - PYTHON: "C:\\Python35-x64"
-      PYTHON_VERSION: "3.5.x"
-      PYTHON_ARCH: "64"
       CYBUILD: "TRUE"
-
 
 init:
-  - echo %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%
+  - echo %PYTHON%
   - set PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
 
 install:
-  - powershell .appveyor\\install.ps1
   - ".appveyor\\prepare.bat"
 
 build: off
