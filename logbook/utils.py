@@ -3,17 +3,14 @@ import functools
 import sys
 import threading
 
-from .base import Logger
+from .base import Logger, DEBUG
 from .helpers import string_types
-from logbook import debug as logbook_debug
 
 
 class _SlowContextNotifier(object):
 
-    def __init__(self, threshold, logger_func, args, kwargs):
-        self.logger_func = logger_func
-        self.args = args
-        self.kwargs = kwargs or {}
+    def __init__(self, threshold, func):
+        self.func = func
         self.evt = threading.Event()
         self.threshold = threshold
         self.thread = threading.Thread(target=self._notifier)
@@ -21,7 +18,7 @@ class _SlowContextNotifier(object):
     def _notifier(self):
         self.evt.wait(timeout=self.threshold)
         if not self.evt.is_set():
-            self.logger_func(*self.args, **self.kwargs)
+            self.func()
 
     def __enter__(self):
         self.thread.start()
@@ -32,18 +29,36 @@ class _SlowContextNotifier(object):
         self.thread.join()
 
 
-def logged_if_slow(message, threshold=1, func=logbook_debug, args=None,
-                   kwargs=None):
-    """Logs a message (by default using the global debug logger) if a certain
-       context containing a set of operations is too slow
+_slow_logger = Logger('Slow')
 
-    >>> with logged_if_slow('too slow!'):
-    ...     ...
 
-    .. versionadded:: 0.12
+def logged_if_slow(*args, **kwargs):
+    """Context manager that logs if operations within take longer than
+    `threshold` seconds.
+
+    :param threshold: Number of seconds (or fractions thereof) allwoed before
+                      logging occurs. The default is 1 second.
+    :param logger: :class:`~logbook.Logger` to use. The default is a 'slow'
+                   logger.
+    :param level: Log level. The default is `DEBUG`.
+    :param func: (Deprecated). Function to call to perform logging.
+
+    The remaining parameters are passed to the
+    :meth:`~logbook.base.LoggerMixin.log` method.
     """
-    full_args = (message, ) if args is None else (message, ) + tuple(args)
-    return _SlowContextNotifier(threshold, func, full_args, kwargs)
+    threshold = kwargs.pop('threshold', 1)
+    func = kwargs.pop('func', None)
+    if func is None:
+        logger = kwargs.pop('logger', _slow_logger)
+        level = kwargs.pop('level', DEBUG)
+        func = functools.partial(logger.log, level, *args, **kwargs)
+    else:
+        if 'logger' in kwargs or 'level' in kwargs:
+            raise TypeError("If using deprecated func parameter, 'logger' and"
+                            " 'level' arguments cannot be passed.")
+        func = functools.partial(func, *args, **kwargs)
+
+    return _SlowContextNotifier(threshold, func)
 
 
 class _Local(threading.local):
