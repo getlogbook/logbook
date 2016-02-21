@@ -801,6 +801,8 @@ class LoggerMixin(object):
 
         :raises AttributeError: The disabled property is read-only, typically
                                 because it was overridden in a subclass.
+
+        .. versionadded:: 1.0
         """
         try:
             self.disabled = False
@@ -812,6 +814,8 @@ class LoggerMixin(object):
 
         :raises AttributeError: The disabled property is read-only, typically
                                 because it was overridden in a subclass.
+
+        .. versionadded:: 1.0
         """
         try:
             self.disabled = True
@@ -1034,6 +1038,8 @@ class LoggerGroup(object):
         :raises AttributeError: If ``force=True`` and the disabled property of
                                 a logger is read-only, typically because it was
                                 overridden in a subclass.
+
+        .. versionadded:: 1.0
         """
         self.disabled = False
         if force:
@@ -1050,6 +1056,8 @@ class LoggerGroup(object):
         :raises AttributeError: If ``force=True`` and the disabled property of
                                 a logger is read-only, typically because it was
                                 overridden in a subclass.
+
+        .. versionadded:: 1.0
         """
         self.disabled = True
         if force:
