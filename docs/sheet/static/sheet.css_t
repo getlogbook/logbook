@@ -143,3 +143,9 @@ p.output-caption {
     font-size: small;
     margin: 0px;
 }
+
+a.headerlink {
+    font-size: 0.5em;
+    text-decoration: none;
+    padding-left: 0.2em;
+}
