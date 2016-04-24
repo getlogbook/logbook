@@ -24,7 +24,6 @@ env:
 - CYBUILD=True
 script:
 - pip install -e .[all]
-- py.test --cov=logbook -r s tests
 matrix:
   exclude:
   - python: pypy

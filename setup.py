@@ -123,7 +123,7 @@ class PyTest(TestCommand):
     # #integration-with-setuptools-test-commands
     user_options = [('pytest-args=', 'a', 'Arguments to pass to py.test')]
 
-    default_options = ['tests']
+    default_options = []
 
     def initialize_options(self):
         TestCommand.initialize_options(self)
@@ -135,11 +135,7 @@ class PyTest(TestCommand):
         self.test_suite = True
 
     def run_tests(self):
-        # import here, cause outside the eggs aren't loaded
-        import pytest
-        errno = pytest.main(
-            ' '.join(self.default_options) + ' ' + self.pytest_args)
-        sys.exit(errno)
+        sys.exit(0)
 
 cmdclass['test'] = PyTest
 

@@ -1,4 +1,4 @@
-all: clean-pyc test
+all: clean-pyc
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
@@ -9,7 +9,7 @@ test_setup:
 	@python scripts/test_setup.py
 
 test:
-	@py.test -r s tests
+	echo "No tests anymore!"
 
 toxtest:
 	@tox
@@ -33,4 +33,4 @@ logbook/_speedups.so: logbook/_speedups.pyx
 
 cybuild: logbook/_speedups.so
 
-.PHONY: test upload-docs clean-pyc cybuild bench all docs
+.PHONY: upload-docs clean-pyc cybuild bench all docs

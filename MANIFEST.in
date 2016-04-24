@@ -1,4 +1,3 @@
 include MANIFEST.in Makefile CHANGES logbook/_speedups.c logbook/_speedups.pyx tox.ini 
-include scripts/test_setup.py
-recursive-include tests *
+recursive-include *
 

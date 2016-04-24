@@ -210,8 +210,11 @@ class Handler(with_metaclass(_HandlerType), ContextObject):
         implementation always returns `True`.
         """
         try:
+            record.trace("Preparing to emit")
             self.emit(record)
+            record.trace("Emitted")
         except Exception:
+            record.exception("Failed to emit")
             self.handle_error(record, sys.exc_info())
         return True
 
@@ -295,7 +298,7 @@ class Handler(with_metaclass(_HandlerType), ContextObject):
                 sys.stderr.write('Logged from file %s, line %s\n' % (
                                  record.filename, record.lineno))
         except IOError:
-            pass
+            record.exception("Failed to handle an error")
 
 
 class NullHandler(Handler):

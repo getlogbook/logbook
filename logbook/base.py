@@ -402,6 +402,12 @@ class LogRecord(object):
         #: the PID of the current process
         self.process = None
         if dispatcher is not None:
+            if dispatcher.nested is not None:
+                for attr in ["trace", "debug", "info", "warn", "warning",
+                             "notice", "error", "exception", "critical",
+                             "log"]:
+                    setattr(self, attr, getattr(dispatcher.nested, attr))
+                self.debug("Initialized a record: «%s»" % msg)
             dispatcher = weakref(dispatcher)
         self._dispatcher = dispatcher
 
@@ -490,7 +496,8 @@ class LogRecord(object):
         if isinstance(self.time, string_types):
             self.time = parse_iso8601(self.time)
 
-        # TODO: Replace the lambda with str when we remove support for python 2`
+        # TODO: Replace the lambda with str when we remove support for
+        # python 2`
         self.extra = defaultdict(lambda: u'', self.extra)
         return self
 
@@ -848,6 +855,15 @@ class RecordDispatcher(object):
         self.group = None
         #: the level of the record dispatcher as integer
         self.level = level
+        #: the logger this logger will use for logging
+        self.nested = None
+        if level <= CRITICAL:
+            nestedName = "_"
+            if name is not None:
+                nestedName += name
+            self.nested = Logger(nestedName, level + 1)
+        if level == CRITICAL and self.nested:
+            self.nested.disabled = True
 
     disabled = group_reflected_property('disabled', False)
     level = group_reflected_property('level', NOTSET, fallback=NOTSET)
@@ -861,7 +877,9 @@ class RecordDispatcher(object):
         (:meth:`call_handlers`).
         """
         if not self.disabled and record.level >= self.level:
+            self.nested.trace("Handling a log record")
             self.call_handlers(record)
+            self.nested.trace("Handled a log record")
 
     def make_record_and_handle(self, level, msg, args, kwargs, exc_info,
                                extra, frame_correction):
@@ -910,6 +928,8 @@ class RecordDispatcher(object):
         # level than the record and that handler is not a black hole.
         record_initialized = False
 
+        self.nested.trace("Calling handlers")
+
         # Both logger attached handlers as well as context specific
         # handlers are handled one after another.  The latter also
         # include global handlers.
@@ -945,8 +965,9 @@ class RecordDispatcher(object):
                     and not handler.filter(record, handler)):
                 continue
 
-            # We might have a filter, so now that we know we *should* handle
-            # this record, we should consider the case of us being a black hole...
+            # We might have a filter, so now that we know we *should*
+            # handle this record, we should consider the case of us
+            # being a black hole...
             if handler.blackhole:
                 break
 
@@ -954,6 +975,8 @@ class RecordDispatcher(object):
             # the record is not bubbling we can abort now.
             if handler.handle(record) and not handler.bubble:
                 break
+
+        self.nested.trace("Called handlers")
 
     def process_record(self, record):
         """Processes the record with all context specific processors.  This
@@ -1078,4 +1101,4 @@ def dispatch_record(record):
     _default_dispatcher.call_handlers(record)
 
 # at that point we are safe to import handler
-from logbook.handlers import Handler # isort:skip
+from logbook.handlers import Handler  # isort:skip
