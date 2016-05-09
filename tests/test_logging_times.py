@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, tzinfo
 
 import logbook
 
@@ -45,3 +45,34 @@ def test_timedate_format(activation_strategy, logger):
 
     assert ratio > 0.99
     assert ratio < 1.01
+
+
+def test_tz_aware(activation_strategy, logger):
+    """
+    tests logbook.set_datetime_format() with a time zone aware time factory
+    """
+    class utc(tzinfo):
+        def tzname(self, dt):
+            return 'UTC'
+        def utcoffset(self, dt):
+            return timedelta(seconds=0)
+        def dst(self, dt):
+            return timedelta(seconds=0)
+
+    utc = utc()
+
+    def utc_tz():
+        return datetime.now(tz=utc)
+
+    FORMAT_STRING = '{record.time:%H:%M:%S.%f%z} {record.message}'
+    handler = logbook.TestHandler(format_string=FORMAT_STRING)
+    with activation_strategy(handler):
+        logbook.set_datetime_format(utc_tz)
+        try:
+            logger.warn('this is a warning.')
+            record = handler.records[0]
+        finally:
+            # put back the default time factory
+            logbook.set_datetime_format('utc')
+
+    assert record.time.tzinfo is not None
