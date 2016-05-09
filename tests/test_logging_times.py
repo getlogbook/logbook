@@ -76,3 +76,20 @@ def test_tz_aware(activation_strategy, logger):
             logbook.set_datetime_format('utc')
 
     assert record.time.tzinfo is not None
+
+
+def test_invalid_time_factory():
+    """
+    tests logbook.set_datetime_format() with an invalid time factory callable
+    """
+    def invalid_factory():
+        return False
+
+    with pytest.raises(ValueError) as e:
+        try:
+            logbook.set_datetime_format(invalid_factory)
+        finally:
+            # put back the default time factory
+            logbook.set_datetime_format('utc')
+
+    assert 'Invalid callable value' in str(e.value)
