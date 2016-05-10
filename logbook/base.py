@@ -49,6 +49,9 @@ def set_datetime_format(datetime_format):
          "local"
              :py:attr:`LogRecord.time` will be a datetime in local time zone
              (but not time zone aware)
+         A `callable` returning datetime instances
+            :py:attr:`LogRecord.time` will be a datetime created by
+            :py:param:`datetime_format` (possibly time zone aware)
 
     This function defaults to creating datetime objects in UTC time,
     using `datetime.utcnow()
@@ -69,12 +72,30 @@ def set_datetime_format(datetime_format):
        from datetime import datetime
        logbook.set_datetime_format("local")
 
+    Other uses rely on your supplied :py:param:`datetime_format`.
+    Using `pytz <https://pypi.python.org/pypi/pytz>`_ for example::
+
+        from datetime import datetime
+        import logbook
+        import pytz
+
+        def utc_tz():
+            return datetime.now(tz=pytz.utc)
+
+        logbook.set_datetime_format(utc_tz)
     """
     global _datetime_factory
     if datetime_format == "utc":
         _datetime_factory = datetime.utcnow
     elif datetime_format == "local":
         _datetime_factory = datetime.now
+    elif callable(datetime_format):
+        inst = datetime_format()
+        if not isinstance(inst, datetime):
+            raise ValueError("Invalid callable value, valid callable "
+                             "should return datetime.datetime instances, "
+                             "not %r" % (type(inst),))
+        _datetime_factory = datetime_format
     else:
         raise ValueError("Invalid value %r.  Valid values are 'utc' and "
                          "'local'." % (datetime_format,))

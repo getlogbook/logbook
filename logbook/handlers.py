@@ -34,7 +34,7 @@ from logbook.helpers import (
 from logbook.concurrency import new_fine_grained_lock
 
 DEFAULT_FORMAT_STRING = u(
-    '[{record.time:%Y-%m-%d %H:%M:%S.%f}] '
+    '[{record.time:%Y-%m-%d %H:%M:%S.%f%z}] '
     '{record.level_name}: {record.channel}: {record.message}')
 
 SYSLOG_FORMAT_STRING = u('{record.channel}: {record.message}')
