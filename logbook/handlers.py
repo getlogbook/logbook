@@ -668,7 +668,7 @@ class MonitoringFileHandler(FileHandler):
                 st = os.stat(self._filename)
             except OSError:
                 e = sys.exc_info()[1]
-                if e.errno != 2:
+                if e.errno != errno.ENOENT:
                     raise
                 self._last_stat = None, None
             else:
