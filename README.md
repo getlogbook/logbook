@@ -9,7 +9,6 @@
 | Travis             | [![Build Status][ti]][tl]   |
 | AppVeyor           | [![Build Status][ai]][al]   |
 | Supported Versions | ![Supported Versions][vi]   |
-| Downloads          | ![Downloads][di]            |
 | Latest Version     | [![Latest Version][pi]][pl] |
 | Test Coverage      | [![Test Coverage][co]][co]  |
 
