@@ -167,7 +167,6 @@ if os.name == 'nt':
             os.rename(src, dst)
         except OSError:
             e = sys.exc_info()[1]
-            print(e.errno, errno.EACCES, errno.EPERM)
             if e.errno not in (errno.EEXIST, errno.EACCES):
                 raise
             old = "%s-%08x" % (dst, random.randint(0, 2 ** 31 - 1))
