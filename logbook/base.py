@@ -51,7 +51,7 @@ def set_datetime_format(datetime_format):
              (but not time zone aware)
          A `callable` returning datetime instances
             :py:attr:`LogRecord.time` will be a datetime created by
-            :py:param:`datetime_format` (possibly time zone aware)
+            :py:obj:`datetime_format` (possibly time zone aware)
 
     This function defaults to creating datetime objects in UTC time,
     using `datetime.utcnow()
@@ -72,7 +72,7 @@ def set_datetime_format(datetime_format):
        from datetime import datetime
        logbook.set_datetime_format("local")
 
-    Other uses rely on your supplied :py:param:`datetime_format`.
+    Other uses rely on your supplied :py:obj:`datetime_format`.
     Using `pytz <https://pypi.python.org/pypi/pytz>`_ for example::
 
         from datetime import datetime
