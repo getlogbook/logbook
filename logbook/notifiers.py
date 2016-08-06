@@ -288,19 +288,20 @@ class PushoverHandler(NotificationBaseHandler):
 
         if self.application_name is None:
             self.title = None
-        elif len(self.application_name) > self.max_title_len:
-            self.title = "%s..." % (self.application_name[:self.max_title_len-3],)
         else:
-            self.title = self.application_name
+            self.title = self._crop(self.application_name, self.max_title_len)
 
         if self.priority not in [-2, -1, 0, 1]:
             self.priority = 0
 
-    def emit(self, record):
-        if len(record.message) > self.max_message_len:
-            message = "%s..." % (record.message[:self.max_message_len-3],)
+    def _crop(self, msg, max_len):
+        if max_len is not None and max_len > 0 and len(msg) > max_len:
+            return "%s..." % (msg[:max_len-3],)
         else:
-            message = record.message
+            return msg
+
+    def emit(self, record):
+        message = self._crop(record.message, self.max_message_len)
 
         body_dict = {
             'token': self.apikey,
