@@ -270,7 +270,8 @@ class PushoverHandler(NotificationBaseHandler):
 
     def __init__(self, application_name=None, apikey=None, userkey=None,
                  device=None, priority=0, sound=None, record_limit=None,
-                 record_delta=None, level=NOTSET, filter=None, bubble=False):
+                 record_delta=None, level=NOTSET, filter=None, bubble=False,
+                 max_title_len=100, max_message_len=512):
 
         super(PushoverHandler, self).__init__(None, record_limit, record_delta,
                                               level, filter, bubble)
@@ -282,10 +283,13 @@ class PushoverHandler(NotificationBaseHandler):
         self.priority = priority
         self.sound = sound
 
+        self.max_title_len = max_title_len
+        self.max_message_len = max_message_len
+
         if self.application_name is None:
             self.title = None
-        elif len(self.application_name) > 100:
-            self.title = "%s..." % (self.application_name[:-3],)
+        elif len(self.application_name) > self.max_title_len:
+            self.title = "%s..." % (self.application_name[:self.max_title_len-3],)
         else:
             self.title = self.application_name
 
@@ -293,9 +297,8 @@ class PushoverHandler(NotificationBaseHandler):
             self.priority = 0
 
     def emit(self, record):
-
-        if len(record.message) > 512:
-            message = "%s..." % (record.message[:-3],)
+        if len(record.message) > self.max_message_len:
+            message = "%s..." % (record.message[:self.max_message_len-3],)
         else:
             message = record.message
 
