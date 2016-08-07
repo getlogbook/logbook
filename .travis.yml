@@ -11,6 +11,7 @@ python:
 - pypy3
 before_install:
   - pip install coveralls
+  - pip install flake8
 install:
 - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm
 - sudo apt-add-repository -y ppa:chris-lea/zeromq
@@ -25,6 +26,7 @@ env:
 script:
 - pip install -e .[all]
 - py.test --cov=logbook -r s tests
+- flake8 --ignore E501 logbook benchmark scripts tests
 matrix:
   exclude:
   - python: pypy
