@@ -270,7 +270,8 @@ class PushoverHandler(NotificationBaseHandler):
 
     def __init__(self, application_name=None, apikey=None, userkey=None,
                  device=None, priority=0, sound=None, record_limit=None,
-                 record_delta=None, level=NOTSET, filter=None, bubble=False):
+                 record_delta=None, level=NOTSET, filter=None, bubble=False,
+                 max_title_len=100, max_message_len=512):
 
         super(PushoverHandler, self).__init__(None, record_limit, record_delta,
                                               level, filter, bubble)
@@ -282,22 +283,25 @@ class PushoverHandler(NotificationBaseHandler):
         self.priority = priority
         self.sound = sound
 
+        self.max_title_len = max_title_len
+        self.max_message_len = max_message_len
+
         if self.application_name is None:
             self.title = None
-        elif len(self.application_name) > 100:
-            self.title = "%s..." % (self.application_name[:-3],)
         else:
-            self.title = self.application_name
+            self.title = self._crop(self.application_name, self.max_title_len)
 
         if self.priority not in [-2, -1, 0, 1]:
             self.priority = 0
 
-    def emit(self, record):
-
-        if len(record.message) > 512:
-            message = "%s..." % (record.message[:-3],)
+    def _crop(self, msg, max_len):
+        if max_len is not None and max_len > 0 and len(msg) > max_len:
+            return "%s..." % (msg[:max_len-3],)
         else:
-            message = record.message
+            return msg
+
+    def emit(self, record):
+        message = self._crop(record.message, self.max_message_len)
 
         body_dict = {
             'token': self.apikey,
