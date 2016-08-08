@@ -502,6 +502,6 @@ class TicketingHandler(TicketingBaseHandler):
 
     def emit(self, record):
         """Emits a single record and writes it to the database."""
-        hash = self.hash_record(record)
+        hash = self.hash_record(record).encode('utf-8')
         data = self.process_record(record, hash)
         self.record_ticket(record, data, hash)
