@@ -481,7 +481,7 @@ class RiemannHandler(Handler):
         else:
             msg = ("Currently supported message types for RiemannHandler are: {0}. \
                     {1} is not supported."
-                   .format(",".join(["tcp", "udp", "test"], message_type)))
+                   .format(",".join(["tcp", "udp", "test"]), message_type))
             raise RuntimeError(msg)
 
     def record_to_event(self, record):
