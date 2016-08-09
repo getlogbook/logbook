@@ -145,3 +145,22 @@ def test_dedup_handler(logger):
     assert 2 == len(test_handler.records)
     assert 'message repeated 2 times: foo' in test_handler.records[0].message
     assert 'message repeated 1 times: bar' in test_handler.records[1].message
+
+
+def test_riemann_handler(activation_strategy, logger):
+    from logbook.more import RiemannHandler
+    riemann_handler = RiemannHandler("127.0.0.1", 5555, message_type="test")
+    handler = logbook.FingersCrossedHandler(riemann_handler, reset=True)
+    with activation_strategy(handler):
+        logger.error("Something bad has happened")
+        try:
+            raise RuntimeError("For example, a RuntimeError")
+        except Exception as ex:
+            logger.exception(ex)
+
+    q = riemann_handler.queue
+    assert len(q) == 2
+    error_event = q[0]
+    assert error_event["state"] == "error"
+    exc_event = q[1]
+    assert exc_event["description"] == "For example, a RuntimeError"

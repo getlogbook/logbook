@@ -479,7 +479,7 @@ class RiemannHandler(Handler):
     def record_to_event(self, record):
         from time import time
         tags = ["log", record.level_name]
-        msg = record.exc_info if record.exc_info else record.msg
+        msg = str(record.exc_info[1]) if record.exc_info else record.msg
         channel_name = str(record.channel) if record.channel else "unknown"
         if any([record.level_name == keywords
                 for keywords in ["ERROR", "EXCEPTION"]]):
