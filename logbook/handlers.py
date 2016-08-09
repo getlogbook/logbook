@@ -21,9 +21,6 @@ except ImportError:
     from sha import new as sha1
 import traceback
 import collections
-
-import platform
-
 from datetime import datetime, timedelta
 from collections import deque
 from textwrap import dedent
@@ -35,7 +32,6 @@ from logbook.helpers import (
     rename, b, _is_text_stream, is_unicode, PY2, zip, xrange, string_types,
     integer_types, reraise, u, with_metaclass)
 from logbook.concurrency import new_fine_grained_lock
-from riemann_client import client as riemann, transport
 
 
 DEFAULT_FORMAT_STRING = u(
@@ -991,55 +987,6 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
                 continue
             return True
         return False
-
-
-class RiemannHandler(Handler):
-
-    """
-    A handler that sends logs as events to Riemann.
-    """
-
-    def __init__(self, host, port, message_type="tcp", ttl=60, bubble=False):
-        self.host = host
-        self.port = port
-        self.ttl = ttl
-        if message_type == "tcp":
-            self.transport = transport.TCPTransport
-        elif message_type == "udp":
-            self.transport = transport.UDPTransport
-        else:
-            msg = ("Currently supported message types for RiemannHandler are: {0}. \
-                    {1} is not supported."
-                   .format(",".join(["tcp", "udp"], message_type)))
-            raise RuntimeError(msg)
-
-    def record_to_event(self, record):
-        tags = ["log", record.level_name]
-        msg = record.exc_info if record.exc_info else record.msg
-        channel_name = str(record.channel) if record.channel else "unknown"
-        if any([record.level_name == keywords
-                for keywords in ["ERROR", "EXCEPTION"]]):
-            state = "error"
-        else:
-            state = "ok"
-        return {"metric_f": 1.0,
-                "tags": tags,
-                "description": msg,
-                "time": record.time.isoformat(),
-                "ttl": self.ttl,
-                "host": platform.node(),
-                "service": "{0}.{1}".format(channel_name, os.getpid()),
-                "state": state
-                }
-
-    def emit(self, record):
-        self.emit_batch([record])
-
-    def emit_batch(self, records):
-        with riemann.QueuedClient(self.transport(self.host, self.port)) as cl:
-            for record in records:
-                cl.event(**self.record_to_event(record))
-            cl.flush()
 
 
 class MailHandler(Handler, StringFormatterHandlerMixin,
