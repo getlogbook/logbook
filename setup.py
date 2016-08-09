@@ -169,7 +169,7 @@ extras_require['sqlalchemy'] = set(['sqlalchemy'])
 extras_require['redis'] = set(['redis'])
 extras_require['zmq'] = set(['pyzmq'])
 extras_require['jinja'] = set(['Jinja2'])
-extras_require['riemann'] = set(['python-riemann-client'])
+extras_require['riemann'] = set(['riemann-client'])
 
 extras_require['all'] = set(chain.from_iterable(extras_require.values()))
 
