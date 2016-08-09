@@ -177,3 +177,22 @@ class TestRiemannHandler(object):
         from logbook.more import RiemannHandler
         with pytest.raises(RuntimeError):
             RiemannHandler("127.0.0.1", 5555, message_type="fancy_type")
+
+    @require_module("riemann_client")
+    def test_flush(self, logger):
+        from logbook.more import RiemannHandler
+        riemann_handler = RiemannHandler("127.0.0.1",
+                                         5555,
+                                         message_type="test",
+                                         flush_threshold=2,
+                                         level=logbook.INFO)
+        null_handler = logbook.NullHandler()
+        with null_handler.applicationbound():
+            with riemann_handler:
+                logger.info("Msg #1")
+                logger.info("Msg #2")
+                logger.info("Msg #3")
+
+        q = riemann_handler.queue
+        assert len(q) == 1
+        assert q[0]["description"] == "Msg #3"
