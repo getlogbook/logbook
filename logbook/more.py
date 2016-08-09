@@ -11,6 +11,9 @@
 import re
 import os
 import platform
+
+import riemann_client
+
 from collections import defaultdict
 from functools import partial
 
@@ -20,10 +23,8 @@ from logbook.handlers import (
     Handler, StringFormatter, StringFormatterHandlerMixin, StderrHandler)
 from logbook._termcolors import colorize
 from logbook.helpers import PY2, string_types, iteritems, u
-
 from logbook.ticketing import TicketingHandler as DatabaseHandler
 from logbook.ticketing import BackendBase
-from riemann_client import client as riemann, transport
 
 if PY2:
     from urllib import urlencode
@@ -462,9 +463,9 @@ class RiemannHandler(Handler):
         self.port = port
         self.ttl = ttl
         if message_type == "tcp":
-            self.transport = transport.TCPTransport
+            self.transport = riemann_client.transport.TCPTransport
         elif message_type == "udp":
-            self.transport = transport.UDPTransport
+            self.transport = riemann_client.transport.UDPTransport
         else:
             msg = ("Currently supported message types for RiemannHandler are: {0}. \
                     {1} is not supported."
@@ -494,7 +495,7 @@ class RiemannHandler(Handler):
         self.emit_batch([record])
 
     def emit_batch(self, records):
-        with riemann.QueuedClient(self.transport(self.host, self.port)) as cl:
+        with riemann_client.client.QueuedClient(self.transport(self.host, self.port)) as cl:
             for record in records:
                 cl.event(**self.record_to_event(record))
             cl.flush()
