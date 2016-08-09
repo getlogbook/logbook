@@ -458,7 +458,15 @@ class RiemannHandler(Handler):
     A handler that sends logs as events to Riemann.
     """
 
-    def __init__(self, host, port, message_type="tcp", ttl=60, flush_threshold=10, bubble=False):
+    def __init__(self,
+                 host,
+                 port,
+                 message_type="tcp",
+                 ttl=60,
+                 flush_threshold=10,
+                 bubble=False,
+                 filter=None,
+                 level=NOTSET):
         """
         :param host: riemann host
         :param port: riemann port
@@ -466,10 +474,10 @@ class RiemannHandler(Handler):
         :param ttl: defines time to live in riemann
         :param flush_threshold: count of events after which we send to riemann
         """
+        Handler.__init__(self, level, filter, bubble)
         self.host = host
         self.port = port
         self.ttl = ttl
-        self.bubble = bubble
         self.queue = []
         self.flush_threshold = flush_threshold
         if message_type == "tcp":
