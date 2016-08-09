@@ -473,6 +473,7 @@ class RiemannHandler(Handler):
             raise RuntimeError(msg)
 
     def record_to_event(self, record):
+        from time import time
         tags = ["log", record.level_name]
         msg = record.exc_info if record.exc_info else record.msg
         channel_name = str(record.channel) if record.channel else "unknown"
@@ -484,7 +485,7 @@ class RiemannHandler(Handler):
         return {"metric_f": 1.0,
                 "tags": tags,
                 "description": msg,
-                "time": record.time.isoformat(),
+                "time": int(time()),
                 "ttl": self.ttl,
                 "host": platform.node(),
                 "service": "{0}.{1}".format(channel_name, os.getpid()),
