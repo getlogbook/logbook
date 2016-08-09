@@ -24,7 +24,7 @@ from logbook.helpers import PY2, string_types, iteritems, u
 from logbook.ticketing import TicketingHandler as DatabaseHandler
 from logbook.ticketing import BackendBase
 from riemann_client.client import QueuedClient
-from riemann_client.transport import TCPTransport, UDPTransport
+from riemann_client.transport import TCPTransport, UDPTransport, BlankTransport
 
 if PY2:
     from urllib import urlencode
@@ -466,10 +466,12 @@ class RiemannHandler(Handler):
             self.transport = TCPTransport
         elif message_type == "udp":
             self.transport = UDPTransport
+        elif message_type == "test":
+            self.transport = BlankTransport
         else:
             msg = ("Currently supported message types for RiemannHandler are: {0}. \
                     {1} is not supported."
-                   .format(",".join(["tcp", "udp"], message_type)))
+                   .format(",".join(["tcp", "udp", "test"], message_type)))
             raise RuntimeError(msg)
 
     def record_to_event(self, record):
