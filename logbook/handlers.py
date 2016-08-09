@@ -32,6 +32,8 @@ from logbook.helpers import (
     rename, b, _is_text_stream, is_unicode, PY2, zip, xrange, string_types,
     integer_types, reraise, u, with_metaclass)
 from logbook.concurrency import new_fine_grained_lock
+from riemann_client import client, transport
+
 
 DEFAULT_FORMAT_STRING = u(
     '[{record.time:%Y-%m-%d %H:%M:%S.%f%z}] '
@@ -986,6 +988,29 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
                 continue
             return True
         return False
+
+
+class RiemannHandler(Handler):
+
+    """
+    A handler that sends logs as events to Riemann.
+    """
+
+    def __init__(self, host, port, message_type="tcp", tls_key=None, bubble=False):
+        self.host = host
+        self.port = port
+        if message_type == "tcp":
+            self.transport = transport.TCPTransport
+        elif message_type == "udp":
+            self.transport = transport.UDPTransport
+        else:
+            msg = ("Currently supported message types for RiemannHandler are: {0}. \
+                    {1} is not supported."
+                   .format(",".join(["tcp", "udp"], message_type)))
+            raise RuntimeError(msg)
+
+    def emit(self, record):
+        pass
 
 
 class MailHandler(Handler, StringFormatterHandlerMixin,
