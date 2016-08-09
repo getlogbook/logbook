@@ -459,9 +459,17 @@ class RiemannHandler(Handler):
     """
 
     def __init__(self, host, port, message_type="tcp", ttl=60, flush_threshold=10, bubble=False):
+        """
+        :param host: riemann host
+        :param port: riemann port
+        :param message_type: selects transport. Currently available 'tcp' and 'udp'
+        :param ttl: defines time to live in riemann
+        :param flush_threshold: count of events after which we send to riemann
+        """
         self.host = host
         self.port = port
         self.ttl = ttl
+        self.bubble = bubble
         self.queue = []
         self.flush_threshold = flush_threshold
         if message_type == "tcp":
