@@ -458,10 +458,12 @@ class RiemannHandler(Handler):
     A handler that sends logs as events to Riemann.
     """
 
-    def __init__(self, host, port, message_type="tcp", ttl=60, bubble=False):
+    def __init__(self, host, port, message_type="tcp", ttl=60, flush_threshold=10, bubble=False):
         self.host = host
         self.port = port
         self.ttl = ttl
+        self.queue = []
+        self.flush_threshold = flush_threshold
         if message_type == "tcp":
             self.transport = TCPTransport
         elif message_type == "udp":
@@ -494,11 +496,15 @@ class RiemannHandler(Handler):
                 "state": state
                 }
 
-    def emit(self, record):
-        self.emit_batch([record], "")
-
-    def emit_batch(self, records, reason):
+    def _flush_events(self):
         with QueuedClient(self.transport(self.host, self.port)) as cl:
-            for record in records:
-                cl.event(**self.record_to_event(record))
+            for event in self.queue:
+                cl.event(**event)
             cl.flush()
+        self.queue = []
+
+    def emit(self, record):
+        self.queue.append(self.record_to_event(record))
+
+        if len(self.queue) == self.flush_threshold:
+            self._flush_events()
