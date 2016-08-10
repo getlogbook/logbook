@@ -145,3 +145,54 @@ def test_dedup_handler(logger):
     assert 2 == len(test_handler.records)
     assert 'message repeated 2 times: foo' in test_handler.records[0].message
     assert 'message repeated 1 times: bar' in test_handler.records[1].message
+
+
+class TestRiemannHandler(object):
+
+    @require_module("riemann_client")
+    def test_happy_path(self, logger):
+        from logbook.more import RiemannHandler
+        riemann_handler = RiemannHandler("127.0.0.1", 5555, message_type="test", level=logbook.INFO)
+        null_handler = logbook.NullHandler()
+        with null_handler.applicationbound():
+            with riemann_handler:
+                logger.error("Something bad has happened")
+                try:
+                    raise RuntimeError("For example, a RuntimeError")
+                except Exception as ex:
+                    logger.exception(ex)
+                logger.info("But now it is ok")
+
+        q = riemann_handler.queue
+        assert len(q) == 3
+        error_event = q[0]
+        assert error_event["state"] == "error"
+        exc_event = q[1]
+        assert exc_event["description"] == "For example, a RuntimeError"
+        info_event = q[2]
+        assert info_event["state"] == "ok"
+
+    @require_module("riemann_client")
+    def test_incorrect_type(self):
+        from logbook.more import RiemannHandler
+        with pytest.raises(RuntimeError):
+            RiemannHandler("127.0.0.1", 5555, message_type="fancy_type")
+
+    @require_module("riemann_client")
+    def test_flush(self, logger):
+        from logbook.more import RiemannHandler
+        riemann_handler = RiemannHandler("127.0.0.1",
+                                         5555,
+                                         message_type="test",
+                                         flush_threshold=2,
+                                         level=logbook.INFO)
+        null_handler = logbook.NullHandler()
+        with null_handler.applicationbound():
+            with riemann_handler:
+                logger.info("Msg #1")
+                logger.info("Msg #2")
+                logger.info("Msg #3")
+
+        q = riemann_handler.queue
+        assert len(q) == 1
+        assert q[0]["description"] == "Msg #3"

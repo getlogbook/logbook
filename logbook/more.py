@@ -10,6 +10,8 @@
 """
 import re
 import os
+import platform
+
 from collections import defaultdict
 from functools import partial
 
@@ -19,9 +21,10 @@ from logbook.handlers import (
     Handler, StringFormatter, StringFormatterHandlerMixin, StderrHandler)
 from logbook._termcolors import colorize
 from logbook.helpers import PY2, string_types, iteritems, u
-
 from logbook.ticketing import TicketingHandler as DatabaseHandler
 from logbook.ticketing import BackendBase
+from riemann_client.client import QueuedClient
+from riemann_client.transport import TCPTransport, UDPTransport, BlankTransport
 
 if PY2:
     from urllib import urlencode
@@ -447,3 +450,77 @@ class DedupHandler(Handler):
                 dispatch = dispatch_record
             dispatch(record)
         self.clear()
+
+
+class RiemannHandler(Handler):
+
+    """
+    A handler that sends logs as events to Riemann.
+    """
+
+    def __init__(self,
+                 host,
+                 port,
+                 message_type="tcp",
+                 ttl=60,
+                 flush_threshold=10,
+                 bubble=False,
+                 filter=None,
+                 level=NOTSET):
+        """
+        :param host: riemann host
+        :param port: riemann port
+        :param message_type: selects transport. Currently available 'tcp' and 'udp'
+        :param ttl: defines time to live in riemann
+        :param flush_threshold: count of events after which we send to riemann
+        """
+        Handler.__init__(self, level, filter, bubble)
+        self.host = host
+        self.port = port
+        self.ttl = ttl
+        self.queue = []
+        self.flush_threshold = flush_threshold
+        if message_type == "tcp":
+            self.transport = TCPTransport
+        elif message_type == "udp":
+            self.transport = UDPTransport
+        elif message_type == "test":
+            self.transport = BlankTransport
+        else:
+            msg = ("Currently supported message types for RiemannHandler are: {0}. \
+                    {1} is not supported."
+                   .format(",".join(["tcp", "udp", "test"]), message_type))
+            raise RuntimeError(msg)
+
+    def record_to_event(self, record):
+        from time import time
+        tags = ["log", record.level_name]
+        msg = str(record.exc_info[1]) if record.exc_info else record.msg
+        channel_name = str(record.channel) if record.channel else "unknown"
+        if any([record.level_name == keywords
+                for keywords in ["ERROR", "EXCEPTION"]]):
+            state = "error"
+        else:
+            state = "ok"
+        return {"metric_f": 1.0,
+                "tags": tags,
+                "description": msg,
+                "time": int(time()),
+                "ttl": self.ttl,
+                "host": platform.node(),
+                "service": "{0}.{1}".format(channel_name, os.getpid()),
+                "state": state
+                }
+
+    def _flush_events(self):
+        with QueuedClient(self.transport(self.host, self.port)) as cl:
+            for event in self.queue:
+                cl.event(**event)
+            cl.flush()
+        self.queue = []
+
+    def emit(self, record):
+        self.queue.append(self.record_to_event(record))
+
+        if len(self.queue) == self.flush_threshold:
+            self._flush_events()
