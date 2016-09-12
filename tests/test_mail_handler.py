@@ -61,7 +61,7 @@ def test_mail_handler_batching(activation_strategy, logger):
         logger.warn('Testing')
         logger.debug('Even more')
         logger.error('And this triggers it')
-        logger.info('Aha')
+        logger.info(u('Viva la Espa\xf1a'))
         logger.error('And this triggers it again!')
 
     assert len(mail_handler.mails) == 2
@@ -80,8 +80,13 @@ def test_mail_handler_batching(activation_strategy, logger):
     assert len(related) == 2
     assert re.search('Message type:\s+WARNING', related[0])
     assert re.search('Message type:\s+DEBUG', related[1])
-
-    assert 'And this triggers it again' in mail_handler.mails[1][2]
+    
+    mail = mail_handler.mails[1][2]
+    header, data = mail.split('\n\n', 1)
+    if 'Content-Transfer-Encoding: base64' in header:
+        data = base64.b64decode(data).decode('utf-8')
+    print(data)
+    assert 'And this triggers it again' in data
 
 
 def test_group_handler_mail_combo(activation_strategy, logger):

@@ -61,7 +61,10 @@ def make_fake_mail_handler(**kwargs):
             pass
 
         def sendmail(self, fromaddr, recipients, mail):
-            self.mails.append((fromaddr, recipients, mail))
+            # The smtp lib always does an ascii encode on the mail, emulate this by doing
+            # an encode aswell. This catches utf-8 encoding issues in mails.
+            # The decode is there to not break the existing unit test code.
+            self.mails.append((fromaddr, recipients, mail.encode('ascii').decode('ascii')))
 
     kwargs.setdefault('level', logbook.ERROR)
     return FakeMailHandler('foo@example.com', ['bar@example.com'], **kwargs)
