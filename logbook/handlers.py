@@ -1171,7 +1171,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
             mail.get_payload(),
             title,
             '\r\n\r\n'.join(body.rstrip() for body in related)
-        ))
+        ), 'UTF-8')
         return mail
 
     def get_connection(self):
