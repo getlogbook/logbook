@@ -10,23 +10,14 @@ from .helpers import string_types
 class _SlowContextNotifier(object):
 
     def __init__(self, threshold, func):
-        self.func = func
-        self.evt = threading.Event()
-        self.threshold = threshold
-        self.thread = threading.Thread(target=self._notifier)
-
-    def _notifier(self):
-        self.evt.wait(timeout=self.threshold)
-        if not self.evt.is_set():
-            self.func()
+        self.timer = threading.Timer(threshold, func)
 
     def __enter__(self):
-        self.thread.start()
+        self.timer.start()
         return self
 
     def __exit__(self, *_):
-        self.evt.set()
-        self.thread.join()
+        self.timer.cancel()
 
 
 _slow_logger = Logger('Slow')
