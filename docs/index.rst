@@ -38,6 +38,7 @@ Documentation
    api/index
    designexplained
    designdefense
+   cookbook
    changelog
 
 Project Information
