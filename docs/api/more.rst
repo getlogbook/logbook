@@ -24,6 +24,9 @@ Special Handlers
 .. autoclass:: TwitterHandler
    :members:
 
+.. autoclass:: SlackHandler
+   :members:
+
 .. autoclass:: ExternalApplicationHandler
    :members:
 

@@ -223,6 +223,33 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
         self.tweet(self.format(record))
 
 
+class SlackHandler(Handler, StringFormatterHandlerMixin):
+
+    """A handler that logs to slack.  Requires that you sign up an
+    application on slack and request an api token.  Furthermore the
+    slacker library has to be installed.
+    """
+
+    def __init__(self, api_token, channel, level=NOTSET, format_string=None, filter=None,
+                 bubble=False):
+
+        Handler.__init__(self, level, filter, bubble)
+        StringFormatterHandlerMixin.__init__(self, format_string)
+        self.api_token = api_token
+
+        try:
+            from slacker import Slacker
+        except ImportError:
+            raise RuntimeError('The slacker library is required for '
+                               'the SlackHandler.')
+
+        self.channel = channel
+        self.slack = Slacker(api_token)
+
+    def emit(self, record):
+        self.slack.chat.post_message(channel=self.channel, text=self.format(record))
+
+
 class JinjaFormatter(object):
     """A formatter object that makes it easy to format using a Jinja 2
     template instead of a format string.
