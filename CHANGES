@@ -7,6 +7,7 @@ Version 1.1.0
 -------------
 
 - Added a handler for Riemann (thanks Šarūnas Navickas)
+- Added a handler for Slack (thanks @jonathanng)
 
 
 Version 1.0.1
