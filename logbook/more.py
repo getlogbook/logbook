@@ -23,8 +23,14 @@ from logbook._termcolors import colorize
 from logbook.helpers import PY2, string_types, iteritems, u
 from logbook.ticketing import TicketingHandler as DatabaseHandler
 from logbook.ticketing import BackendBase
-from riemann_client.client import QueuedClient
-from riemann_client.transport import TCPTransport, UDPTransport, BlankTransport
+
+try:
+    import riemann_client.client
+    import riemann_client.transport
+except ImportError:
+    riemann_client = None
+    #from riemann_client.transport import TCPTransport, UDPTransport, BlankTransport
+
 
 if PY2:
     from urllib import urlencode
@@ -501,6 +507,8 @@ class RiemannHandler(Handler):
         :param ttl: defines time to live in riemann
         :param flush_threshold: count of events after which we send to riemann
         """
+        if riemann_client is None:
+            raise NotImplementedError("The Riemann handler requires the riemann_client package") # pragma: no cover
         Handler.__init__(self, level, filter, bubble)
         self.host = host
         self.port = port
@@ -508,11 +516,11 @@ class RiemannHandler(Handler):
         self.queue = []
         self.flush_threshold = flush_threshold
         if message_type == "tcp":
-            self.transport = TCPTransport
+            self.transport = riemann_client.transport.TCPTransport
         elif message_type == "udp":
-            self.transport = UDPTransport
+            self.transport = riemann_client.transport.UDPTransport
         elif message_type == "test":
-            self.transport = BlankTransport
+            self.transport = riemann_client.transport.BlankTransport
         else:
             msg = ("Currently supported message types for RiemannHandler are: {0}. \
                     {1} is not supported."
@@ -540,7 +548,7 @@ class RiemannHandler(Handler):
                 }
 
     def _flush_events(self):
-        with QueuedClient(self.transport(self.host, self.port)) as cl:
+        with riemann_client.client.QueuedClient(self.transport(self.host, self.port)) as cl:
             for event in self.queue:
                 cl.event(**event)
             cl.flush()
