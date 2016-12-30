@@ -1,6 +1,6 @@
 # Welcome to Logbook
 
-<img src="https://raw.githubusercontent.com/getlogbook/logbook/master/docs/_static/logbook-logo.png" width="300"> 
+<img src="https://raw.githubusercontent.com/getlogbook/logbook/master/docs/_static/logbook-logo.png" width="300">
 
 
 
@@ -10,7 +10,7 @@
 | AppVeyor           | [![Build Status][ai]][al]   |
 | Supported Versions | ![Supported Versions][vi]   |
 | Latest Version     | [![Latest Version][pi]][pl] |
-| Test Coverage      | [![Test Coverage][co]][co]  |
+| Test Coverage      | [![Test Coverage][ci]][cl]  |
 
 
 Logbook is a nice logging replacement.
@@ -27,4 +27,5 @@ For more information: http://logbook.readthedocs.org
 [al]: https://ci.appveyor.com/project/vmalloc/logbook
 [pi]: https://img.shields.io/pypi/v/logbook.svg
 [pl]: https://pypi.python.org/pypi/Logbook
-[co]: https://coveralls.io/repos/getlogbook/logbook/badge.svg?branch=master&service=github
+[ci]: https://coveralls.io/repos/getlogbook/logbook/badge.svg?branch=master&service=github
+[cl]: https://coveralls.io/github/getlogbook/logbook?branch=master
