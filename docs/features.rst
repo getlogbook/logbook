@@ -7,8 +7,8 @@ consider having a look at Logbook for your applications.
 We think it will work out for you and be fun to use :)
 
 Logbook leverages some features of Python that are not available in older Python releases.
-Logbook currently requires Python 2.7 or higher including Python 3 (3.1 or
-higher, 3.0 is not supported).
+Logbook currently requires Python 2.7 or higher including Python 3 (3.3 or
+higher, 3.2 and lower is not supported).
 
 Core Features
 -------------
