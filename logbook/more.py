@@ -329,6 +329,17 @@ class ColorizingStreamHandlerMixin(object):
 
     .. _`colorama`: https://pypi.python.org/pypi/colorama
     """
+    _use_color = None
+
+    def force_color(self):
+        """Force colorizing the stream (`should_colorize` will return True)
+        """
+        self._use_color = True
+
+    def forbid_color(self):
+        """Forbid colorizing the stream (`should_colorize` will return False)
+        """
+        self._use_color = False
 
     def should_colorize(self, record):
         """Returns `True` if colorizing should be applied to this
@@ -341,6 +352,8 @@ class ColorizingStreamHandlerMixin(object):
                 import colorama
             except ImportError:
                 return False
+        if self._use_color is not None:
+            return self._use_color
         isatty = getattr(self.stream, 'isatty', None)
         return isatty and isatty()
 
