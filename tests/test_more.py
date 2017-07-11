@@ -31,11 +31,16 @@ def test_colorizing_support(logger):
     from logbook.more import ColorizedStderrHandler
 
     class TestColorizingHandler(ColorizedStderrHandler):
+        def __init__(self, *args, **kwargs):
+            super(TestColorizingHandler, self).__init__(*args, **kwargs)
+            self._obj_stream = StringIO()
 
-        def should_colorize(self, record):
-            return True
-        stream = StringIO()
+        @property
+        def stream(self):
+            return self._obj_stream
+
     with TestColorizingHandler(format_string='{record.message}') as handler:
+        handler.force_color()
         logger.error('An error')
         logger.warn('A warning')
         logger.debug('A debug message')
@@ -44,6 +49,15 @@ def test_colorizing_support(logger):
             '\x1b[31;01mAn error\x1b[39;49;00m',
             '\x1b[33;01mA warning\x1b[39;49;00m',
             '\x1b[37mA debug message\x1b[39;49;00m']
+
+    with TestColorizingHandler(format_string='{record.message}') as handler:
+        handler.forbid_color()
+        logger.error('An error')
+        logger.warn('A warning')
+        logger.debug('A debug message')
+        lines = handler.stream.getvalue().rstrip('\n').splitlines()
+        assert lines == ['An error', 'A warning', 'A debug message']
+
 
 
 def test_tagged(default_handler):
