@@ -6,6 +6,8 @@ Here you can see the full list of changes between each Logbook release.
 Version 1.1.0
 -------------
 
+Released on July 13th 2017
+
 - Added a handler for Riemann (thanks Šarūnas Navickas)
 - Added a handler for Slack (thanks @jonathanng)
 - Colorizing mixin can now force coloring on or off (thanks @ayalash)
