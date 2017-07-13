@@ -8,6 +8,7 @@ Version 1.1.0
 
 - Added a handler for Riemann (thanks Šarūnas Navickas)
 - Added a handler for Slack (thanks @jonathanng)
+- Colorizing mixin can now force coloring on or off (thanks @ayalash)
 
 
 Version 1.0.1
