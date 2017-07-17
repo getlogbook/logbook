@@ -1546,7 +1546,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
             else:
                 address = '/dev/log'
 
-        self.address = address
+        self.remote_address = self.address = address
         self.facility = facility
         self.socktype = socktype
 
@@ -1559,6 +1559,9 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
         self.record_delimiter = default_delimiter \
             if record_delimiter is None else record_delimiter
+
+        self.connection_exception = getattr(
+            __builtins__, 'BrokenPipeError', socket.error)
 
     def _connect_unixsocket(self):
         self.unixsocket = True
@@ -1574,7 +1577,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         self.unixsocket = False
         self.socket = socket.socket(socket.AF_INET, self.socktype)
         if self.socktype == socket.SOCK_STREAM:
-            self.socket.connect(self.address)
+            self.socket.connect(self.remote_address)
             self.address = self.socket.getsockname()
 
     def encode_priority(self, record):
@@ -1605,7 +1608,11 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
             # the flags are no longer optional on Python 3
             self.socket.sendto(data, 0, self.address)
         else:
-            self.socket.sendall(data)
+            try:
+                self.socket.sendall(data)
+            except self.connection_exception:
+                self._connect_netsocket()
+                self.socket.send(data)
 
     def close(self):
         self.socket.close()
