@@ -1,6 +1,10 @@
 Logbook Changelog
 =================
 
+Not yet released
+
+- Use correct record delimiters (null for UNIX, newline for network) in SyslogHandler (thanks Jonathan Kamens)
+
 Here you can see the full list of changes between each Logbook release.
 
 Version 1.4.1

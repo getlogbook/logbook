@@ -1535,7 +1535,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
     def __init__(self, application_name=None, address=None,
                  facility='user', socktype=socket.SOCK_DGRAM,
                  level=NOTSET, format_string=None, filter=None,
-                 bubble=False):
+                 bubble=False, record_delimiter=None):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.application_name = application_name
@@ -1552,8 +1552,13 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
         if isinstance(address, string_types):
             self._connect_unixsocket()
+            default_delimiter = '\x00'
         else:
             self._connect_netsocket()
+            default_delimiter = '\n'
+
+        self.record_delimiter = default_delimiter \
+            if record_delimiter is None else record_delimiter
 
     def _connect_unixsocket(self):
         self.unixsocket = True
@@ -1582,10 +1587,11 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         prefix = u('')
         if self.application_name is not None:
             prefix = self.application_name + u(':')
-        self.send_to_socket((u('<%d>%s%s\x00') % (
+        self.send_to_socket((u('<%d>%s%s%s') % (
             self.encode_priority(record),
             prefix,
-            self.format(record)
+            self.format(record),
+            self.record_delimiter
         )).encode('utf-8'))
 
     def send_to_socket(self, data):
