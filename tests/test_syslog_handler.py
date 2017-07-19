@@ -1,4 +1,5 @@
 import os
+import re
 import socket
 from contextlib import closing
 
@@ -28,6 +29,17 @@ def test_syslog_handler(logger, activation_strategy,
             inc.listen(0)
         inc.settimeout(1)
         for app_name in [None, 'Testing']:
+            if sock_family == socket.AF_UNIX:
+                expected = (r'^<12>%stestlogger: Syslog is weird%s$' %
+                            (app_name + ':' if app_name else '',
+                             delimiter))
+            else:
+                expected = (r'^<12>1 \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ %s %s %d '
+                            '- - testlogger: Syslog is weird%s$' %
+                            (socket.gethostname(),
+                             app_name if app_name else '-',
+                             os.getpid(), delimiter))
+
             handler = logbook.SyslogHandler(app_name, inc.getsockname(),
                                             socktype=socktype)
             with activation_strategy(handler):
@@ -40,9 +52,9 @@ def test_syslog_handler(logger, activation_strategy,
                     rv = inc.recvfrom(1024)[0]
             except socket.error:
                 assert False, 'got timeout on socket'
-            assert rv == (
-                u('<12>%stestlogger: Syslog is weird%s') %
-                ((app_name and (app_name + u(':'))) or u(''), delimiter)).encode('utf-8')
+            rv = rv.decode('utf-8')
+            assert re.match(expected, rv), \
+                'expected {}, got {}'.format(expected, rv)
 
 
 @pytest.fixture

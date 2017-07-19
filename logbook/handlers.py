@@ -1553,9 +1553,22 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         if isinstance(address, string_types):
             self._connect_unixsocket()
             default_delimiter = '\x00'
+            self.format_string = \
+                u('<{record.encoded_priority}>%s%s{record.delimiter}') % \
+                (self.application_name + ':' if self.application_name else '',
+                 self.format_string)
         else:
             self._connect_netsocket()
             default_delimiter = '\n'
+            # RFC 5424: <PRIVAL>version timestamp hostname app-name procid
+            #           msgid structured-data message
+            self.format_string = \
+                u('<{record.encoded_priority}>1 '
+                  '{record.time:%%Y-%%m-%%dT%%H:%%M:%%SZ} %s %s '
+                  '{record.process} - - %s{record.delimiter}') % \
+                (socket.gethostname(),
+                 self.application_name if self.application_name else '-',
+                 self.format_string)
 
         self.record_delimiter = default_delimiter \
             if record_delimiter is None else record_delimiter
@@ -1584,18 +1597,13 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         facility = self.facility_names[self.facility]
         priority = self.level_priority_map.get(record.level,
                                                self.LOG_WARNING)
-        return (facility << 3) | priority
+        record.encoded_priority = (facility << 3) | priority
 
     def emit(self, record):
-        prefix = u('')
-        if self.application_name is not None:
-            prefix = self.application_name + u(':')
-        self.send_to_socket((u('<%d>%s%s%s') % (
-            self.encode_priority(record),
-            prefix,
-            self.format(record),
-            self.record_delimiter
-        )).encode('utf-8'))
+        self.encode_priority(record)
+        record.delimiter = self.record_delimiter
+        formatted = self.format(record)
+        self.send_to_socket(formatted.encode('utf-8'))
 
     def send_to_socket(self, data):
         if self.unixsocket:

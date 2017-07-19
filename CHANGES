@@ -5,6 +5,7 @@ Not yet released
 
 - Use correct record delimiters (null for UNIX, newline for network) in SyslogHandler (thanks Jonathan Kamens)
 - Try to reconnect to SyslogHandler TCP sockets when they are disconnected (thanks Jonathan Kamens)
+- Use RFC 5424 format for networking logging in SyslogHandler (thanks Jonathan Kamens)
 
 Here you can see the full list of changes between each Logbook release.
 
