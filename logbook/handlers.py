@@ -1552,23 +1552,12 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
         if isinstance(address, string_types):
             self._connect_unixsocket()
-            default_delimiter = '\x00'
-            self.format_string = \
-                u('<{record.encoded_priority}>%s%s{record.delimiter}') % \
-                (self.application_name + ':' if self.application_name else '',
-                 self.format_string)
+            self.enveloper = self.unix_envelope
+            default_delimiter = u'\x00'
         else:
             self._connect_netsocket()
-            default_delimiter = '\n'
-            # RFC 5424: <PRIVAL>version timestamp hostname app-name procid
-            #           msgid structured-data message
-            self.format_string = \
-                u('<{record.encoded_priority}>1 '
-                  '{record.time:%%Y-%%m-%%dT%%H:%%M:%%SZ} %s %s '
-                  '{record.process} - - %s{record.delimiter}') % \
-                (socket.gethostname(),
-                 self.application_name if self.application_name else '-',
-                 self.format_string)
+            self.enveloper = self.net_envelope
+            default_delimiter = u'\n'
 
         self.record_delimiter = default_delimiter \
             if record_delimiter is None else record_delimiter
@@ -1597,13 +1586,34 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         facility = self.facility_names[self.facility]
         priority = self.level_priority_map.get(record.level,
                                                self.LOG_WARNING)
-        record.encoded_priority = (facility << 3) | priority
+        return (facility << 3) | priority
+
+    def wrap_segments(self, record, before):
+        msg = self.format(record)
+        segments = [segment for segment in msg.split(self.record_delimiter)]
+        return (before + segment + self.record_delimiter
+                for segment in segments)
+        
+    def unix_envelope(self, record):
+        before = u'<{}>{}'.format(
+            self.encode_priority(record),
+            self.application_name + ':' if self.application_name else '')
+        return self.wrap_segments(record, before)
+
+    def net_envelope(self, record):
+        # RFC 5424: <PRIVAL>version timestamp hostname app-name procid
+        #           msgid structured-data message
+        before = u'<{}>1 {}Z {} {} {} - - '.format(
+            self.encode_priority(record),
+            record.time.isoformat(),
+            socket.gethostname(),
+            self.application_name if self.application_name else '-',
+            record.process)
+        return self.wrap_segments(record, before)
 
     def emit(self, record):
-        self.encode_priority(record)
-        record.delimiter = self.record_delimiter
-        formatted = self.format(record)
-        self.send_to_socket(formatted.encode('utf-8'))
+        for segment in self.enveloper(record):
+            self.send_to_socket(segment.encode('utf-8'))
 
     def send_to_socket(self, data):
         if self.unixsocket:
