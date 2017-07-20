@@ -34,11 +34,12 @@ def test_syslog_handler(logger, activation_strategy,
                             (app_name + ':' if app_name else '',
                              delimiter))
             else:
-                expected = (r'^<12>1 \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ %s %s %d '
-                            '- - testlogger: Syslog is weird%s$' %
+                expected = (r'^<12>1 \d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z %s %s %d '
+                            '- - %sSyslog is weird%s$' %
                             (socket.gethostname(),
-                             app_name if app_name else '-',
-                             os.getpid(), delimiter))
+                             app_name if app_name else 'testlogger',
+                             os.getpid(), 'testlogger: ' if app_name else '',
+                             delimiter))
 
             handler = logbook.SyslogHandler(app_name, inc.getsockname(),
                                             socktype=socktype)

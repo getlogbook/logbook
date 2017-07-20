@@ -1601,15 +1601,27 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         return self.wrap_segments(record, before)
 
     def net_envelope(self, record):
-        # RFC 5424: <PRIVAL>version timestamp hostname app-name procid
-        #           msgid structured-data message
-        before = u'<{}>1 {}Z {} {} {} - - '.format(
-            self.encode_priority(record),
-            record.time.isoformat(),
-            socket.gethostname(),
-            self.application_name if self.application_name else '-',
-            record.process)
-        return self.wrap_segments(record, before)
+        # Gross but effective
+        try:
+            format_string = self.format_string
+            application_name = self.application_name
+            if not application_name and record.channel and \
+               '{record.channel}: ' in format_string:
+                self.format_string = format_string.replace(
+                    '{record.channel}: ', '')
+                self.application_name = record.channel
+            # RFC 5424: <PRIVAL>version timestamp hostname app-name procid
+            #           msgid structured-data message
+            before = u'<{}>1 {}Z {} {} {} - - '.format(
+                self.encode_priority(record),
+                record.time.isoformat(),
+                socket.gethostname(),
+                self.application_name if self.application_name else '-',
+                record.process)
+            return self.wrap_segments(record, before)
+        finally:
+            self.format_string = format_string
+            self.application_name = application_name
 
     def emit(self, record):
         for segment in self.enveloper(record):
