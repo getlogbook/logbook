@@ -23,16 +23,6 @@ environment:
     - PYTHON: "C:\\Python27-x64"
       CYBUILD: "TRUE"
 
-    - PYTHON: "C:\\Python33"
-    - PYTHON: "C:\\Python33"
-      CYBUILD: "TRUE"
-
-    - PYTHON: "C:\\Python33-x64"
-      DISTUTILS_USE_SDK: "1"
-    - PYTHON: "C:\\Python33-x64"
-      DISTUTILS_USE_SDK: "1"
-      CYBUILD: "TRUE"
-
     - PYTHON: "C:\\Python34"
     - PYTHON: "C:\\Python34"
       CYBUILD: "TRUE"
