@@ -14,13 +14,6 @@ environment:
     ENABLE_LOGBOOK_NTEVENTLOG_TESTS: "TRUE"
 
   matrix:
-    - PYTHON: "C:\\Python26"
-    - PYTHON: "C:\\Python26"
-      CYBUILD: "TRUE"
-
-    - PYTHON: "C:\\Python26-x64"
-    - PYTHON: "C:\\Python26-x64"
-      CYBUILD: "TRUE"
 
     - PYTHON: "C:\\Python27"
     - PYTHON: "C:\\Python27"
