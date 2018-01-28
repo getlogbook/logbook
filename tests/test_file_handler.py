@@ -4,7 +4,8 @@ from datetime import datetime
 
 import logbook
 from logbook.helpers import u, xrange
-
+import gzip
+import brotli
 from .utils import capturing_stderr_context, LETTERS
 
 
@@ -127,3 +128,20 @@ def test_timed_rotating_file_handler(tmpdir, activation_strategy, backup_count):
         with open(str(tmpdir.join('trot-2010-01-07.log'))) as f:
             assert f.readline().rstrip() == '[01:00] Third One'
             assert f.readline().rstrip() == '[02:00] Third One'
+
+def _decompress(input_file_name, use_gzip=True):
+    if use_gzip:
+        with gzip.open(input_file_name, 'rb') as in_f:
+            return in_f.read().decode()
+    else:
+        with open(input_file_name, 'rb') as in_f:
+            return brotli.decompress(in_f.read()).decode()
+
+@pytest.mark.parametrize("use_gzip", [True, False])
+def test_compression_file_handler(logfile, activation_strategy, logger, use_gzip):
+    handler = logbook.GZIPCompressionHandler(logfile) if use_gzip else logbook.BrotliCompressionHandler(logfile)
+    handler.format_string = '{record.level_name}:{record.channel}:{record.message}'
+    with activation_strategy(handler):
+        logger.warn('warning message')
+    handler.close()
+    assert  _decompress(logfile, use_gzip) == 'WARNING:testlogger:warning message\n'
