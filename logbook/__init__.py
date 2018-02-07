@@ -21,7 +21,7 @@ from .handlers import (
     GMailHandler, SyslogHandler, NullHandler, NTEventLogHandler,
     create_syshandler, StringFormatter, StringFormatterHandlerMixin,
     HashingHandlerMixin, LimitingHandlerMixin, WrapperHandler,
-    FingersCrossedHandler, GroupHandler)
+    FingersCrossedHandler, GroupHandler, GZIPCompressionHandler, BrotliCompressionHandler)
 from . import compat
 
 

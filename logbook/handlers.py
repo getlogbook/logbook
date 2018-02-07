@@ -15,6 +15,8 @@ import sys
 import stat
 import errno
 import socket
+import gzip
+import math
 try:
     from hashlib import sha1
 except ImportError:
@@ -582,9 +584,13 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         try:
             self.ensure_stream_is_open()
             self.write(self.encode(msg))
-            self.flush()
+            if self.should_flush():
+                self.flush()
         finally:
             self.lock.release()
+
+    def should_flush(self):
+        return True
 
 
 class FileHandler(StreamHandler):
@@ -640,6 +646,84 @@ class FileHandler(StreamHandler):
     def ensure_stream_is_open(self):
         if self.stream is None:
             self._open()
+
+
+class GZIPCompressionHandler(FileHandler):
+    def __init__(self, filename, encoding=None, level=NOTSET,
+                 format_string=None, delay=False, filter=None, bubble=False,
+                 compression_window_size=4*1024**2, compression_quality=9):
+        self._compression_quality = compression_quality
+        self._compression_window_size = compression_window_size
+        self._num_unflushed_bytes = 0
+        super(GZIPCompressionHandler, self).__init__(filename, mode='wb', encoding=encoding, level=level,
+                             format_string=format_string, delay=delay, filter=filter, bubble=bubble)
+
+    def _open(self, mode=None):
+        if mode is None:
+            mode = self._mode
+        self.stream = gzip.open(self._filename, mode, compresslevel=self._compression_quality)
+
+    def write(self, item):
+        if isinstance(item, str):
+            item = item.encode(encoding=self.encoding)
+        self.ensure_stream_is_open()
+        self.stream.write(item)
+        self._num_unflushed_bytes += len(item)
+
+    def should_flush(self):
+        return self._num_unflushed_bytes >= self._compression_window_size
+
+    def flush(self):
+        super(GZIPCompressionHandler, self).flush()
+        self._num_unflushed_bytes = 0
+
+
+class BrotliCompressionHandler(FileHandler):
+    def __init__(self, filename, encoding=None, level=NOTSET,
+                 format_string=None, delay=False, filter=None, bubble=False,
+                 compression_window_size=4*1024**2, compression_quality=11):
+        super(BrotliCompressionHandler, self).__init__(filename, mode='wb', encoding=encoding, level=level,
+                             format_string=format_string, delay=delay, filter=filter, bubble=bubble)
+        try:
+            from brotli import Compressor
+        except ImportError:
+            raise RuntimeError('The brotli library is required for '
+                               'the BrotliCompressionHandler.')
+
+        max_window_size = int(math.log(compression_window_size, 2))
+        self._compressor = Compressor(quality=compression_quality, lgwin=max_window_size)
+
+    def _open(self, mode=None):
+        if mode is None:
+            mode = self._mode
+        self.stream = io.open(self._filename, mode)
+
+    def write(self, item):
+        if isinstance(item, str):
+            item = item.encode(encoding=self.encoding)
+        ret = self._compressor.process(item)
+        if ret:
+            self.ensure_stream_is_open()
+            self.stream.write(ret)
+            super(BrotliCompressionHandler, self).flush()
+
+    def should_flush(self):
+        return False
+
+    def flush(self):
+        if self._compressor is not None:
+            ret = self._compressor.flush()
+            if ret:
+                self.ensure_stream_is_open()
+                self.stream.write(ret)
+        super(BrotliCompressionHandler, self).flush()
+
+    def close(self):
+        if self._compressor is not None:
+            self.ensure_stream_is_open()
+            self.stream.write(self._compressor.finish())
+            self._compressor = None
+        super(BrotliCompressionHandler, self).close()
 
 
 class MonitoringFileHandler(FileHandler):
