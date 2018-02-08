@@ -3,6 +3,15 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 1.2.0
+-------------
+
+Released on February 8th, 2018
+
+- Added support for compressed log files, supporting both gzip and brotli compression methods (thanks Maor Marcus)
+- Fixed CPU usage for queuing handlers (thanks Adam Urbańczyk)
+
+
 Version 1.1.0
 -------------
 
