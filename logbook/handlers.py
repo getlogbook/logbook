@@ -905,8 +905,8 @@ class TimedRotatingFileHandler(FileHandler):
         self.basename, self.ext = os.path.splitext(os.path.abspath(filename))
         self.timed_filename_for_current = timed_filename_for_current
 
-        self._timestamp = self.get_timestamp(_datetime_factory())
-        timed_filename = self.compute_name(self._timestamp)
+        self._timestamp = self._get_timestamp(_datetime_factory())
+        timed_filename = self.generate_timed_filename(self._timestamp)
 
         if self.timed_filename_for_current:
             filename = timed_filename
@@ -914,10 +914,17 @@ class TimedRotatingFileHandler(FileHandler):
         FileHandler.__init__(self, filename, mode, encoding, level,
                              format_string, True, filter, bubble)
 
-    def get_timestamp(self, datetime):
+    def _get_timestamp(self, datetime):
+        """
+        Fetches a formatted string witha timestamp of the given datetime
+        """
         return datetime.strftime(self.date_format)
 
-    def compute_name(self, timestamp):
+    def generate_timed_filename(self, timestamp):
+        """
+        Produces a filename that includes a timestamp in the format supplied
+        to the handler at init time.
+        """
         timed_filename = self.rollover_format.format(
             basename=self.basename,
             timestamp=timestamp,
@@ -954,9 +961,9 @@ class TimedRotatingFileHandler(FileHandler):
                 os.remove(filename)
 
         if self.timed_filename_for_current:
-            self._filename = self.compute_name(new_timestamp)
+            self._filename = self.generate_timed_filename(new_timestamp)
         else:
-            filename = self.compute_name(self._timestamp)
+            filename = self.generate_timed_filename(self._timestamp)
             os.rename(self._filename, filename)
         self._timestamp = new_timestamp
 
@@ -966,7 +973,7 @@ class TimedRotatingFileHandler(FileHandler):
         msg = self.format(record)
         self.lock.acquire()
         try:
-            new_timestamp = self.get_timestamp(record.time)
+            new_timestamp = self._get_timestamp(record.time)
             if new_timestamp != self._timestamp:
                 self.perform_rollover(new_timestamp)
             self.write(self.encode(msg))

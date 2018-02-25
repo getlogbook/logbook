@@ -175,7 +175,7 @@ def test_timed_rotating_file_handler__not_timed_filename_for_current(tmpdir, act
         rollover_format='{basename}{ext}.{timestamp}',
         timed_filename_for_current=False,
     )
-    handler._timestamp = handler.get_timestamp(datetime(2010, 1, 5))
+    handler._timestamp = handler._get_timestamp(datetime(2010, 1, 5))
     handler.format_string = '[{record.time:%H:%M}] {record.message}'
 
     def fake_record(message, year, month, day, hour=0,
