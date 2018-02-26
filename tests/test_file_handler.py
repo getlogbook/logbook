@@ -129,6 +129,84 @@ def test_timed_rotating_file_handler(tmpdir, activation_strategy, backup_count):
             assert f.readline().rstrip() == '[01:00] Third One'
             assert f.readline().rstrip() == '[02:00] Third One'
 
+@pytest.mark.parametrize("backup_count", [1, 3])
+def test_timed_rotating_file_handler__rollover_format(tmpdir, activation_strategy, backup_count):
+    basename = str(tmpdir.join('trot.log'))
+    handler = logbook.TimedRotatingFileHandler(
+        basename, backup_count=backup_count,
+        rollover_format='{basename}{ext}.{timestamp}',
+    )
+    handler.format_string = '[{record.time:%H:%M}] {record.message}'
+
+    def fake_record(message, year, month, day, hour=0,
+                    minute=0, second=0):
+        lr = logbook.LogRecord('Test Logger', logbook.WARNING,
+                               message)
+        lr.time = datetime(year, month, day, hour, minute, second)
+        return lr
+
+    with activation_strategy(handler):
+        for x in xrange(10):
+            handler.handle(fake_record('First One', 2010, 1, 5, x + 1))
+        for x in xrange(20):
+            handler.handle(fake_record('Second One', 2010, 1, 6, x + 1))
+        for x in xrange(10):
+            handler.handle(fake_record('Third One', 2010, 1, 7, x + 1))
+        for x in xrange(20):
+            handler.handle(fake_record('Last One', 2010, 1, 8, x + 1))
+
+    files = sorted(x for x in os.listdir(str(tmpdir)) if x.startswith('trot'))
+
+    assert files == ['trot.log.2010-01-0{0}'.format(i)
+                     for i in xrange(5, 9)][-backup_count:]
+    with open(str(tmpdir.join('trot.log.2010-01-08'))) as f:
+        assert f.readline().rstrip() == '[01:00] Last One'
+        assert f.readline().rstrip() == '[02:00] Last One'
+    if backup_count > 1:
+        with open(str(tmpdir.join('trot.log.2010-01-07'))) as f:
+            assert f.readline().rstrip() == '[01:00] Third One'
+            assert f.readline().rstrip() == '[02:00] Third One'
+
+@pytest.mark.parametrize("backup_count", [1, 3])
+def test_timed_rotating_file_handler__not_timed_filename_for_current(tmpdir, activation_strategy, backup_count):
+    basename = str(tmpdir.join('trot.log'))
+    handler = logbook.TimedRotatingFileHandler(
+        basename, backup_count=backup_count,
+        rollover_format='{basename}{ext}.{timestamp}',
+        timed_filename_for_current=False,
+    )
+    handler._timestamp = handler._get_timestamp(datetime(2010, 1, 5))
+    handler.format_string = '[{record.time:%H:%M}] {record.message}'
+
+    def fake_record(message, year, month, day, hour=0,
+                    minute=0, second=0):
+        lr = logbook.LogRecord('Test Logger', logbook.WARNING,
+                               message)
+        lr.time = datetime(year, month, day, hour, minute, second)
+        return lr
+
+    with activation_strategy(handler):
+        for x in xrange(10):
+            handler.handle(fake_record('First One', 2010, 1, 5, x + 1))
+        for x in xrange(20):
+            handler.handle(fake_record('Second One', 2010, 1, 6, x + 1))
+        for x in xrange(10):
+            handler.handle(fake_record('Third One', 2010, 1, 7, x + 1))
+        for x in xrange(20):
+            handler.handle(fake_record('Last One', 2010, 1, 8, x + 1))
+
+    files = sorted(x for x in os.listdir(str(tmpdir)) if x.startswith('trot'))
+
+    assert files == ['trot.log'] + ['trot.log.2010-01-0{0}'.format(i)
+                     for i in xrange(5, 8)][-backup_count:]
+    with open(str(tmpdir.join('trot.log'))) as f:
+        assert f.readline().rstrip() == '[01:00] Last One'
+        assert f.readline().rstrip() == '[02:00] Last One'
+    if backup_count > 1:
+        with open(str(tmpdir.join('trot.log.2010-01-07'))) as f:
+            assert f.readline().rstrip() == '[01:00] Third One'
+            assert f.readline().rstrip() == '[02:00] Third One'
+
 def _decompress(input_file_name, use_gzip=True):
     if use_gzip:
         with gzip.open(input_file_name, 'rb') as in_f:

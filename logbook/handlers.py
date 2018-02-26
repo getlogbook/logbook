@@ -29,7 +29,8 @@ from textwrap import dedent
 
 from logbook.base import (
     CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET, level_name_property,
-    _missing, lookup_level, Flags, ContextObject, ContextStackManager)
+    _missing, lookup_level, Flags, ContextObject, ContextStackManager,
+    _datetime_factory)
 from logbook.helpers import (
     rename, b, _is_text_stream, is_unicode, PY2, zip, xrange, string_types,
     integer_types, reraise, u, with_metaclass)
@@ -867,29 +868,68 @@ class TimedRotatingFileHandler(FileHandler):
 
     By default it will keep all these files around, if you want to limit
     them, you can specify a `backup_count`.
+
+    You may supply an optional `rollover_format`. This allows you to specify
+    the format for the filenames of rolled-over files.
+    the format as
+
+    So for example if you configure your handler like this::
+
+        handler = TimedRotatingFileHandler(
+            '/var/log/foo.log',
+            date_format='%Y-%m-%d',
+            rollover_format='{basename}{ext}.{timestamp}')
+
+    The filenames for the logfiles will look like this::
+
+        /var/log/foo.log.2010-01-10
+        /var/log/foo.log.2010-01-11
+        ...
+
+    Finally, an optional argument `timed_filename_for_current` may be set to
+    false if you wish to have the current log file match the supplied filename
+    until it is rolled over
     """
 
     def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
                  format_string=None, date_format='%Y-%m-%d',
-                 backup_count=0, filter=None, bubble=False):
-        FileHandler.__init__(self, filename, mode, encoding, level,
-                             format_string, True, filter, bubble)
+                 backup_count=0, filter=None, bubble=False,
+                 timed_filename_for_current=True,
+                 rollover_format='{basename}-{timestamp}{ext}'):
         self.date_format = date_format
         self.backup_count = backup_count
-        self._fn_parts = os.path.splitext(os.path.abspath(filename))
-        self._filename = None
 
-    def _get_timed_filename(self, datetime):
-        return (datetime.strftime('-' + self.date_format)
-                .join(self._fn_parts))
+        self.rollover_format = rollover_format
 
-    def should_rollover(self, record):
-        fn = self._get_timed_filename(record.time)
-        rv = self._filename is not None and self._filename != fn
-        # remember the current filename.  In case rv is True, the rollover
-        # performing function will already have the new filename
-        self._filename = fn
-        return rv
+        self.original_filename = filename
+        self.basename, self.ext = os.path.splitext(os.path.abspath(filename))
+        self.timed_filename_for_current = timed_filename_for_current
+
+        self._timestamp = self._get_timestamp(_datetime_factory())
+        timed_filename = self.generate_timed_filename(self._timestamp)
+
+        if self.timed_filename_for_current:
+            filename = timed_filename
+
+        FileHandler.__init__(self, filename, mode, encoding, level,
+                             format_string, True, filter, bubble)
+
+    def _get_timestamp(self, datetime):
+        """
+        Fetches a formatted string witha timestamp of the given datetime
+        """
+        return datetime.strftime(self.date_format)
+
+    def generate_timed_filename(self, timestamp):
+        """
+        Produces a filename that includes a timestamp in the format supplied
+        to the handler at init time.
+        """
+        timed_filename = self.rollover_format.format(
+            basename=self.basename,
+            timestamp=timestamp,
+            ext=self.ext)
+        return timed_filename
 
     def files_to_delete(self):
         """Returns a list with the files that have to be deleted when
@@ -899,8 +939,12 @@ class TimedRotatingFileHandler(FileHandler):
         files = []
         for filename in os.listdir(directory):
             filename = os.path.join(directory, filename)
-            if (filename.startswith(self._fn_parts[0] + '-') and
-                    filename.endswith(self._fn_parts[1])):
+            regex = self.rollover_format.format(
+                basename=re.escape(self.basename),
+                timestamp='.+',
+                ext=re.escape(self.ext),
+            )
+            if re.match(regex, filename):
                 files.append((os.path.getmtime(filename), filename))
         files.sort()
         if self.backup_count > 1:
@@ -908,19 +952,30 @@ class TimedRotatingFileHandler(FileHandler):
         else:
             return files[:]
 
-    def perform_rollover(self):
-        self.stream.close()
+    def perform_rollover(self, new_timestamp):
+        if self.stream is not None:
+            self.stream.close()
+
         if self.backup_count > 0:
             for time, filename in self.files_to_delete():
                 os.remove(filename)
+
+        if self.timed_filename_for_current:
+            self._filename = self.generate_timed_filename(new_timestamp)
+        else:
+            filename = self.generate_timed_filename(self._timestamp)
+            os.rename(self._filename, filename)
+        self._timestamp = new_timestamp
+
         self._open('w')
 
     def emit(self, record):
         msg = self.format(record)
         self.lock.acquire()
         try:
-            if self.should_rollover(record):
-                self.perform_rollover()
+            new_timestamp = self._get_timestamp(record.time)
+            if new_timestamp != self._timestamp:
+                self.perform_rollover(new_timestamp)
             self.write(self.encode(msg))
             self.flush()
         finally:
