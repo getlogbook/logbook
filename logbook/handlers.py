@@ -650,11 +650,9 @@ class FileHandler(StreamHandler):
 
 class GZIPCompressionHandler(FileHandler):
     def __init__(self, filename, encoding=None, level=NOTSET,
-                 format_string=None, delay=False, filter=None, bubble=False,
-                 compression_window_size=4*1024**2, compression_quality=9):
+                 format_string=None, delay=False, filter=None, bubble=False, compression_quality=9):
+
         self._compression_quality = compression_quality
-        self._compression_window_size = compression_window_size
-        self._num_unflushed_bytes = 0
         super(GZIPCompressionHandler, self).__init__(filename, mode='wb', encoding=encoding, level=level,
                              format_string=format_string, delay=delay, filter=filter, bubble=bubble)
 
@@ -668,14 +666,11 @@ class GZIPCompressionHandler(FileHandler):
             item = item.encode(encoding=self.encoding)
         self.ensure_stream_is_open()
         self.stream.write(item)
-        self._num_unflushed_bytes += len(item)
 
     def should_flush(self):
-        return self._num_unflushed_bytes >= self._compression_window_size
-
-    def flush(self):
-        super(GZIPCompressionHandler, self).flush()
-        self._num_unflushed_bytes = 0
+        # gzip manages writes independently. Flushing prematurely could mean
+        # duplicate flushes and thus bloated files
+        return False
 
 
 class BrotliCompressionHandler(FileHandler):
