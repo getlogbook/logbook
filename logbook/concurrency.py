@@ -28,10 +28,12 @@ except ImportError:
 
 
 if has_gevent:
-    from gevent._threading import (Lock as ThreadLock,
-                                   RLock as ThreadRLock,
-                                   get_ident as thread_get_ident,
-                                   local as thread_local)
+    from gevent.monkey import get_original as _get_original
+    Lock = _get_original('threading', 'Lock')
+    RLock = _get_original('threading', 'RLock')
+    get_ident = _get_original('threading', 'get_ident')
+    local = _get_original('threading', 'local')
+
     from gevent.thread import get_ident as greenlet_get_ident
     from gevent.local import local as greenlet_local
     from gevent.lock import BoundedSemaphore
