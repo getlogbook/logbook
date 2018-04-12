@@ -29,10 +29,10 @@ except ImportError:
 
 if has_gevent:
     from gevent.monkey import get_original as _get_original
-    Lock = _get_original('threading', 'Lock')
-    RLock = _get_original('threading', 'RLock')
-    get_ident = _get_original('threading', 'get_ident')
-    local = _get_original('threading', 'local')
+    ThreadLock = _get_original('threading', 'Lock')
+    ThreadRLock = _get_original('threading', 'RLock')
+    thread_get_ident = _get_original('threading', 'get_ident')
+    thread_local = _get_original('threading', 'local')
 
     from gevent.thread import get_ident as greenlet_get_ident
     from gevent.local import local as greenlet_local
