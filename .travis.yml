@@ -34,6 +34,8 @@ matrix:
   include:
   - python: "3.6"
     env: GEVENT=True CYBUILD=True
+  - python: "2.7"
+    env: GEVENT=True CYBUILD=True
 
 after_success:
   - coveralls
