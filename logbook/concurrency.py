@@ -31,7 +31,11 @@ if has_gevent:
     from gevent.monkey import get_original as _get_original
     ThreadLock = _get_original('threading', 'Lock')
     ThreadRLock = _get_original('threading', 'RLock')
-    thread_get_ident = _get_original('threading', 'get_ident')
+    try:
+        thread_get_ident = _get_original('threading', 'get_ident')
+    except AttributeError:
+        # In 2.7, this is called _get_ident
+        thread_get_ident = _get_original('threading', '_get_ident')
     thread_local = _get_original('threading', 'local')
 
     from gevent.thread import get_ident as greenlet_get_ident
