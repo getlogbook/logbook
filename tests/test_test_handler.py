@@ -15,7 +15,7 @@ import pytest
 def test_has_level(active_handler, logger, level, method):
     log = getattr(logger, level)
     log('Hello World')
-    assert getattr(active_handler, method)()
+    assert getattr(active_handler, method)
 
 
 @pytest.mark.parametrize("level, method", [
