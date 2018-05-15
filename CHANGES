@@ -3,6 +3,14 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 1.4.0
+-------------
+
+Released on May 15th, 2018
+
+- Added support for checking if trace logs have been emitted in TestHandler (thanks @thedrow)
+
+
 Version 1.3.0
 -------------
 
