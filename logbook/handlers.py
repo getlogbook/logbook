@@ -28,7 +28,7 @@ from collections import deque
 from textwrap import dedent
 
 from logbook.base import (
-    CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET, level_name_property,
+    CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, TRACE, NOTSET, level_name_property,
     _missing, lookup_level, Flags, ContextObject, ContextStackManager,
     _datetime_factory)
 from logbook.helpers import (
@@ -1054,6 +1054,11 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
     def has_debugs(self):
         """`True` if any :data:`DEBUG` records were found."""
         return any(r.level == DEBUG for r in self.records)
+    
+    @property
+    def has_traces(self):
+        """`True` if any :data:`TRACE` records were found."""
+        return any(r.level == TRACE for r in self.records)
 
     def has_critical(self, *args, **kwargs):
         """`True` if a specific :data:`CRITICAL` log record exists.
@@ -1101,6 +1106,14 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         See :ref:`probe-log-records` for more information.
         """
         kwargs['level'] = DEBUG
+        return self._test_for(*args, **kwargs)
+    
+    def has_trace(self, *args, **kwargs):
+        """`True` if a specific :data:`TRACE` log record exists.
+
+        See :ref:`probe-log-records` for more information.
+        """
+        kwargs['level'] = TRACE
         return self._test_for(*args, **kwargs)
 
     def _test_for(self, message=None, channel=None, level=None):
