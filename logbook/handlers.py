@@ -28,7 +28,7 @@ from collections import deque
 from textwrap import dedent
 
 from logbook.base import (
-    CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, NOTSET, level_name_property,
+    CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, TRACE, NOTSET, level_name_property,
     _missing, lookup_level, Flags, ContextObject, ContextStackManager,
     _datetime_factory)
 from logbook.helpers import (
