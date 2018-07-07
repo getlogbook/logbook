@@ -12,7 +12,8 @@ from itertools import count
 from logbook.helpers import get_iterator_next_method
 from logbook.concurrency import (
     thread_get_ident, greenlet_get_ident, thread_local, greenlet_local,
-    ThreadLock, GreenletRLock, is_gevent_enabled)
+    ThreadLock, GreenletRLock, is_gevent_enabled, ContextVar, context_get_ident,
+    is_context_enabled)
 
 _missing = object()
 _MAX_CONTEXT_OBJECT_CACHE = 256
@@ -67,6 +68,14 @@ class StackedObject(object):
         """Pops the stacked object from the greenlet stack."""
         raise NotImplementedError()
 
+    def push_context(self):
+        """Pushes the stacked object to the context stack."""
+        raise NotImplementedError()
+
+    def pop_context(self):
+        """Pops the stacked object from the context stack."""
+        raise NotImplementedError()
+
     def push_thread(self):
         """Pushes the stacked object to the thread stack."""
         raise NotImplementedError()
@@ -102,6 +111,13 @@ class StackedObject(object):
         """
         return _cls(self, self.push_greenlet, self.pop_greenlet)
 
+    def contextbound(self, _cls=_StackBound):
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the concurrent
+        context.
+        """
+        return _cls(self, self.push_context, self.pop_context)
+
     def threadbound(self, _cls=_StackBound):
         """Can be used in combination with the `with` statement to
         execute code while the object is bound to the thread.
@@ -126,6 +142,9 @@ class ContextStackManager(object):
         self._thread_context = thread_local()
         self._greenlet_context_lock = GreenletRLock()
         self._greenlet_context = greenlet_local()
+        self._context_var = ContextVar('stack')
+        self._context_var_lock = ThreadLock()
+        self._context_var = ContextVar('stack')
         self._cache = {}
         self._stackop = get_iterator_next_method(count())
 
@@ -134,7 +153,13 @@ class ContextStackManager(object):
         application and context cache.
         """
         use_gevent = is_gevent_enabled()
-        tid = greenlet_get_ident() if use_gevent else thread_get_ident()
+        use_context = is_context_enabled()
+        if use_gevent:
+            tid = greenlet_get_ident()
+        elif use_context:
+            tid = context_get_ident()
+        else:
+            tid = thread_get_ident()
         objects = self._cache.get(tid)
         if objects is None:
             if len(self._cache) > _MAX_CONTEXT_OBJECT_CACHE:
@@ -143,6 +168,7 @@ class ContextStackManager(object):
             objects.extend(getattr(self._thread_context, 'stack', ()))
             if use_gevent:
                 objects.extend(getattr(self._greenlet_context, 'stack', ()))
+            objects.extend(self._context_var.get([]))
             objects.sort(reverse=True)
             objects = [x[1] for x in objects]
             self._cache[tid] = objects
@@ -172,6 +198,36 @@ class ContextStackManager(object):
             return stack.pop()[1]
         finally:
             self._greenlet_context_lock.release()
+
+    def push_context(self, obj):
+        if not ContextVar:
+            self.push_thread(obj)
+
+        self._context_var_lock.acquire()
+        try:
+            self._cache.pop(context_get_ident(), None)
+            item = (self._stackop(), obj)
+            stack = self._context_var.get(None)
+            if stack is None:
+                stack = [item]
+                self._context_var.set(stack)
+            else:
+                stack.append(item)
+        finally:
+            self._context_var_lock.release()
+
+    def pop_context(self):
+        if not ContextVar:
+            self.pop_thread()
+
+        self._context_var_lock.acquire()
+        try:
+            self._cache.pop(context_get_ident(), None)
+            stack = self._context_var.get(None)
+            assert stack, 'no objects on stack'
+            return stack.pop()[1]
+        finally:
+            self._context_var_lock.release()
 
     def push_thread(self, obj):
         self._thread_context_lock.acquire()

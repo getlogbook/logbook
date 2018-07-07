@@ -164,3 +164,39 @@ def new_fine_grained_lock():
         return GreenletRLock()
     else:
         return ThreadRLock()
+
+
+has_contextvars = True
+try:
+    import contextvars
+except ImportError:
+    has_contextvars = False
+
+if has_contextvars:
+    from contextvars import ContextVar
+    from itertools import count
+
+    contextident_counter = count()
+    context_ident = ContextVar('context_ident')
+
+    def context_get_ident():
+        try:
+            return context_ident.get()
+        except LookupError:
+            ident = 'context-%s' % next(contextident_counter)
+            context_ident.set(ident)
+            return ident
+
+    def is_context_enabled():
+        try:
+            context_ident.get()
+            return True
+        except LookupError:
+            return False
+
+else:
+    ContextVar = None
+    context_get_ident = None
+
+    def is_context_enabled():
+        return False
