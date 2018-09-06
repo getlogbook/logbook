@@ -1,5 +1,6 @@
 import os
 import pytest
+import time
 from datetime import datetime
 
 import logbook
@@ -176,7 +177,7 @@ def test_timed_rotating_file_handler__not_timed_filename_for_current(
 
     with open(basename, 'w') as file:
         file.write('contents')
-    jan_first = datetime(2010, 1, 1).timestamp()
+    jan_first = time.mktime(datetime(2010, 1, 1).timetuple())
     os.utime(basename, times=(jan_first, jan_first))
 
     handler = logbook.TimedRotatingFileHandler(
