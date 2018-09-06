@@ -167,16 +167,25 @@ def test_timed_rotating_file_handler__rollover_format(tmpdir, activation_strateg
             assert f.readline().rstrip() == '[01:00] Third One'
             assert f.readline().rstrip() == '[02:00] Third One'
 
+
 @pytest.mark.parametrize("backup_count", [1, 3])
-def test_timed_rotating_file_handler__not_timed_filename_for_current(tmpdir, activation_strategy, backup_count):
+def test_timed_rotating_file_handler__not_timed_filename_for_current(
+        tmpdir, activation_strategy, backup_count
+):
     basename = str(tmpdir.join('trot.log'))
+
+    with open(basename, 'w') as file:
+        file.write('contents')
+    jan_first = datetime(2010, 1, 1).timestamp()
+    os.utime(basename, times=(jan_first, jan_first))
+
     handler = logbook.TimedRotatingFileHandler(
-        basename, backup_count=backup_count,
+        basename,
+        format_string='[{record.time:%H:%M}] {record.message}',
+        backup_count=backup_count,
         rollover_format='{basename}{ext}.{timestamp}',
         timed_filename_for_current=False,
     )
-    handler._timestamp = handler._get_timestamp(datetime(2010, 1, 5))
-    handler.format_string = '[{record.time:%H:%M}] {record.message}'
 
     def fake_record(message, year, month, day, hour=0,
                     minute=0, second=0):
@@ -195,10 +204,18 @@ def test_timed_rotating_file_handler__not_timed_filename_for_current(tmpdir, act
         for x in xrange(20):
             handler.handle(fake_record('Last One', 2010, 1, 8, x + 1))
 
-    files = sorted(x for x in os.listdir(str(tmpdir)) if x.startswith('trot'))
+    computed_files = sorted(
+        x for x in os.listdir(str(tmpdir)) if x.startswith('trot')
+    )
 
-    assert files == ['trot.log'] + ['trot.log.2010-01-0{0}'.format(i)
-                     for i in xrange(5, 8)][-backup_count:]
+    expected_files = sorted((
+        ['trot.log.2010-01-01'] +
+        ['trot.log.2010-01-0{0}'.format(i) for i in xrange(5, 8)] +
+        ['trot.log']
+    )[-backup_count:])
+
+    assert computed_files == expected_files
+
     with open(str(tmpdir.join('trot.log'))) as f:
         assert f.readline().rstrip() == '[01:00] Last One'
         assert f.readline().rstrip() == '[02:00] Last One'
