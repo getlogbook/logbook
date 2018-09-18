@@ -1,5 +1,6 @@
 import os
 import pytest
+import time
 from datetime import datetime
 
 import logbook
@@ -167,16 +168,27 @@ def test_timed_rotating_file_handler__rollover_format(tmpdir, activation_strateg
             assert f.readline().rstrip() == '[01:00] Third One'
             assert f.readline().rstrip() == '[02:00] Third One'
 
+
 @pytest.mark.parametrize("backup_count", [1, 3])
-def test_timed_rotating_file_handler__not_timed_filename_for_current(tmpdir, activation_strategy, backup_count):
+@pytest.mark.parametrize("preexisting_file", [True, False])
+def test_timed_rotating_file_handler__not_timed_filename_for_current(
+        tmpdir, activation_strategy, backup_count, preexisting_file
+):
     basename = str(tmpdir.join('trot.log'))
+
+    if preexisting_file:
+        with open(basename, 'w') as file:
+            file.write('contents')
+        jan_first = time.mktime(datetime(2010, 1, 1).timetuple())
+        os.utime(basename, (jan_first, jan_first))
+
     handler = logbook.TimedRotatingFileHandler(
-        basename, backup_count=backup_count,
+        basename,
+        format_string='[{record.time:%H:%M}] {record.message}',
+        backup_count=backup_count,
         rollover_format='{basename}{ext}.{timestamp}',
         timed_filename_for_current=False,
     )
-    handler._timestamp = handler._get_timestamp(datetime(2010, 1, 5))
-    handler.format_string = '[{record.time:%H:%M}] {record.message}'
 
     def fake_record(message, year, month, day, hour=0,
                     minute=0, second=0):
@@ -195,10 +207,15 @@ def test_timed_rotating_file_handler__not_timed_filename_for_current(tmpdir, act
         for x in xrange(20):
             handler.handle(fake_record('Last One', 2010, 1, 8, x + 1))
 
-    files = sorted(x for x in os.listdir(str(tmpdir)) if x.startswith('trot'))
+    computed_files = [x for x in os.listdir(str(tmpdir)) if x.startswith('trot')]
 
-    assert files == ['trot.log'] + ['trot.log.2010-01-0{0}'.format(i)
-                     for i in xrange(5, 8)][-backup_count:]
+    expected_files = ['trot.log.2010-01-01'] if preexisting_file else []
+    expected_files += ['trot.log.2010-01-0{0}'.format(i) for i in xrange(5, 8)]
+    expected_files += ['trot.log']
+    expected_files = expected_files[-backup_count:]
+
+    assert sorted(computed_files) == sorted(expected_files)
+
     with open(str(tmpdir.join('trot.log'))) as f:
         assert f.readline().rstrip() == '[01:00] Last One'
         assert f.readline().rstrip() == '[02:00] Last One'
