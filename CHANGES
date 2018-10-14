@@ -3,6 +3,13 @@ Logbook Changelog
 
 Here you can see the full list of changes between each Logbook release.
 
+Version 1.4.1
+
+Released on October 14th, 2018
+
+- Fixed deprecated regular expression pattern (thanks Tsuyoshi Hombashi)
+- Fixed TimedRotatingFileHandler rotation (thanks Tucker Beck)
+
 Version 1.4.0
 -------------
 
