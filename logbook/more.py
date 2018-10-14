@@ -38,7 +38,7 @@ if PY2:
 else:
     from urllib.parse import parse_qsl, urlencode
 
-_ws_re = re.compile(r'(\s+)(?u)')
+_ws_re = re.compile(r'(\s+)', re.UNICODE)
 TWITTER_FORMAT_STRING = u(
     '[{record.channel}] {record.level_name}: {record.message}')
 TWITTER_ACCESS_TOKEN_URL = 'https://twitter.com/oauth/access_token'

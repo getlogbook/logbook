@@ -901,10 +901,14 @@ class TimedRotatingFileHandler(FileHandler):
         self.timed_filename_for_current = timed_filename_for_current
 
         self._timestamp = self._get_timestamp(_datetime_factory())
-        timed_filename = self.generate_timed_filename(self._timestamp)
-
         if self.timed_filename_for_current:
-            filename = timed_filename
+            filename = self.generate_timed_filename(self._timestamp)
+        elif os.path.exists(filename):
+            self._timestamp = self._get_timestamp(
+                datetime.fromtimestamp(
+                    os.stat(filename).st_mtime
+                )
+            )
 
         FileHandler.__init__(self, filename, mode, encoding, level,
                              format_string, True, filter, bubble)
@@ -932,14 +936,14 @@ class TimedRotatingFileHandler(FileHandler):
         """
         directory = os.path.dirname(self._filename)
         files = []
+        rollover_regex = re.compile(self.rollover_format.format(
+            basename=re.escape(self.basename),
+            timestamp='.+',
+            ext=re.escape(self.ext),
+        ))
         for filename in os.listdir(directory):
             filename = os.path.join(directory, filename)
-            regex = self.rollover_format.format(
-                basename=re.escape(self.basename),
-                timestamp='.+',
-                ext=re.escape(self.ext),
-            )
-            if re.match(regex, filename):
+            if rollover_regex.match(filename):
                 files.append((os.path.getmtime(filename), filename))
         files.sort()
         if self.backup_count > 1:
@@ -951,15 +955,19 @@ class TimedRotatingFileHandler(FileHandler):
         if self.stream is not None:
             self.stream.close()
 
+        if (
+                not self.timed_filename_for_current
+                and os.path.exists(self._filename)
+        ):
+            filename = self.generate_timed_filename(self._timestamp)
+            os.rename(self._filename, filename)
+
         if self.backup_count > 0:
             for time, filename in self.files_to_delete():
                 os.remove(filename)
 
         if self.timed_filename_for_current:
             self._filename = self.generate_timed_filename(new_timestamp)
-        else:
-            filename = self.generate_timed_filename(self._timestamp)
-            os.rename(self._filename, filename)
         self._timestamp = new_timestamp
 
         self._open('w')
@@ -1054,7 +1062,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
     def has_debugs(self):
         """`True` if any :data:`DEBUG` records were found."""
         return any(r.level == DEBUG for r in self.records)
-    
+
     @property
     def has_traces(self):
         """`True` if any :data:`TRACE` records were found."""
@@ -1107,7 +1115,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         """
         kwargs['level'] = DEBUG
         return self._test_for(*args, **kwargs)
-    
+
     def has_trace(self, *args, **kwargs):
         """`True` if a specific :data:`TRACE` log record exists.
 
