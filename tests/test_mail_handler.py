@@ -40,11 +40,11 @@ def test_mail_handler(activation_strategy, logger):
         header, data = mail.split('\n\n', 1)
         if 'Content-Transfer-Encoding: base64' in header:
             data = base64.b64decode(data).decode('utf-8')
-        assert re.search('Message type:\s+ERROR', data)
-        assert re.search('Location:.*%s' %
+        assert re.search(r'Message type:\s+ERROR', data)
+        assert re.search(r'Location:.*%s' %
                          re.escape(__file_without_pyc__), data)
-        assert re.search('Module:\s+%s' % __name__, data)
-        assert re.search('Function:\s+test_mail_handler', data)
+        assert re.search(r'Module:\s+%s' % __name__, data)
+        assert re.search(r'Function:\s+test_mail_handler', data)
         body = u('Viva la Espa\xf1a')
         if sys.version_info < (3, 0):
             body = body.encode('utf-8')
@@ -72,14 +72,14 @@ def test_mail_handler_batching(activation_strategy, logger):
     body, rest = pieces
     rest = rest.replace('\r', '')
 
-    assert re.search('Message type:\s+ERROR', body)
-    assert re.search('Module:\s+%s' % __name__, body)
-    assert re.search('Function:\s+test_mail_handler_batching', body)
+    assert re.search(r'Message type:\s+ERROR', body)
+    assert re.search(r'Module:\s+%s' % __name__, body)
+    assert re.search(r'Function:\s+test_mail_handler_batching', body)
 
     related = rest.strip().split('\n\n')
     assert len(related) == 2
-    assert re.search('Message type:\s+WARNING', related[0])
-    assert re.search('Message type:\s+DEBUG', related[1])
+    assert re.search(r'Message type:\s+WARNING', related[0])
+    assert re.search(r'Message type:\s+DEBUG', related[1])
 
     assert 'And this triggers it again' in mail_handler.mails[1][2]
 
@@ -101,14 +101,14 @@ def test_group_handler_mail_combo(activation_strategy, logger):
     body, rest = pieces
     rest = rest.replace('\r', '')
 
-    assert re.search('Message type:\\s+ERROR', body)
-    assert re.search('Module:\s+' + __name__, body)
-    assert re.search('Function:\s+test_group_handler_mail_combo', body)
+    assert re.search(r'Message type:\s+ERROR', body)
+    assert re.search(r'Module:\s+' + __name__, body)
+    assert re.search(r'Function:\s+test_group_handler_mail_combo', body)
 
     related = rest.strip().split('\n\n')
     assert len(related) == 2
-    assert re.search('Message type:\s+WARNING', related[0])
-    assert re.search('Message type:\s+DEBUG', related[1])
+    assert re.search(r'Message type:\s+WARNING', related[0])
+    assert re.search(r'Message type:\s+DEBUG', related[1])
 
 
 def test_mail_handler_arguments():
