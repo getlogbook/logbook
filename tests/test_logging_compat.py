@@ -33,7 +33,7 @@ def test_basic_compat(request, set_root_logger_level):
             with redirected_logging(set_root_logger_level):
                 logger.debug('This is from the old system')
                 logger.info('This is from the old system')
-                logger.warn('This is from the old %s', 'system')
+                logger.warning('This is from the old %s', 'system')
                 logger.error('This is from the old system')
                 logger.critical('This is from the old system')
                 logger.error('This is a %(what)s %(where)s', {'what': 'mapping', 'where': 'test'})
