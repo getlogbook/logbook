@@ -498,8 +498,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
 
             if (not suppression_count and
                     len(self._record_limits) >= self.max_record_cache):
-                cache_items = self._record_limits.items()
-                cache_items.sort()
+                cache_items = sorted(self._record_limits.items())
                 del cache_items[:int(self._record_limits)
                                 * self.record_cache_prune]
                 self._record_limits = dict(cache_items)
