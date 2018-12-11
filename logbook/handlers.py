@@ -498,8 +498,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
 
             if (not suppression_count and
                     len(self._record_limits) >= self.max_record_cache):
-                cache_items = self._record_limits.items()
-                cache_items.sort()
+                cache_items = sorted(self._record_limits.items())
                 del cache_items[:int(self._record_limits)
                                 * self.record_cache_prune]
                 self._record_limits = dict(cache_items)
@@ -1535,7 +1534,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
     def __init__(self, application_name=None, address=None,
                  facility='user', socktype=socket.SOCK_DGRAM,
                  level=NOTSET, format_string=None, filter=None,
-                 bubble=False):
+                 bubble=False, record_delimiter=None):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.application_name = application_name
@@ -1546,14 +1545,24 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
             else:
                 address = '/dev/log'
 
-        self.address = address
+        self.remote_address = self.address = address
         self.facility = facility
         self.socktype = socktype
 
         if isinstance(address, string_types):
             self._connect_unixsocket()
+            self.enveloper = self.unix_envelope
+            default_delimiter = u'\x00'
         else:
             self._connect_netsocket()
+            self.enveloper = self.net_envelope
+            default_delimiter = u'\n'
+
+        self.record_delimiter = default_delimiter \
+            if record_delimiter is None else record_delimiter
+
+        self.connection_exception = getattr(
+            __builtins__, 'BrokenPipeError', socket.error)
 
     def _connect_unixsocket(self):
         self.unixsocket = True
@@ -1569,7 +1578,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         self.unixsocket = False
         self.socket = socket.socket(socket.AF_INET, self.socktype)
         if self.socktype == socket.SOCK_STREAM:
-            self.socket.connect(self.address)
+            self.socket.connect(self.remote_address)
             self.address = self.socket.getsockname()
 
     def encode_priority(self, record):
@@ -1578,15 +1587,44 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
                                                self.LOG_WARNING)
         return (facility << 3) | priority
 
-    def emit(self, record):
-        prefix = u('')
-        if self.application_name is not None:
-            prefix = self.application_name + u(':')
-        self.send_to_socket((u('<%d>%s%s\x00') % (
+    def wrap_segments(self, record, before):
+        msg = self.format(record)
+        segments = [segment for segment in msg.split(self.record_delimiter)]
+        return (before + segment + self.record_delimiter
+                for segment in segments)
+        
+    def unix_envelope(self, record):
+        before = u'<{}>{}'.format(
             self.encode_priority(record),
-            prefix,
-            self.format(record)
-        )).encode('utf-8'))
+            self.application_name + ':' if self.application_name else '')
+        return self.wrap_segments(record, before)
+
+    def net_envelope(self, record):
+        # Gross but effective
+        try:
+            format_string = self.format_string
+            application_name = self.application_name
+            if not application_name and record.channel and \
+               '{record.channel}: ' in format_string:
+                self.format_string = format_string.replace(
+                    '{record.channel}: ', '')
+                self.application_name = record.channel
+            # RFC 5424: <PRIVAL>version timestamp hostname app-name procid
+            #           msgid structured-data message
+            before = u'<{}>1 {}Z {} {} {} - - '.format(
+                self.encode_priority(record),
+                record.time.isoformat(),
+                socket.gethostname(),
+                self.application_name if self.application_name else '-',
+                record.process)
+            return self.wrap_segments(record, before)
+        finally:
+            self.format_string = format_string
+            self.application_name = application_name
+
+    def emit(self, record):
+        for segment in self.enveloper(record):
+            self.send_to_socket(segment.encode('utf-8'))
 
     def send_to_socket(self, data):
         if self.unixsocket:
@@ -1599,7 +1637,11 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
             # the flags are no longer optional on Python 3
             self.socket.sendto(data, 0, self.address)
         else:
-            self.socket.sendall(data)
+            try:
+                self.socket.sendall(data)
+            except self.connection_exception:
+                self._connect_netsocket()
+                self.socket.send(data)
 
     def close(self):
         self.socket.close()
