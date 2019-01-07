@@ -89,9 +89,24 @@ def test_multi_processing_handler():
         assert test_handler.has_warning('Hello World')
 
 
+class BatchTestHandler(logbook.TestHandler):
+    def __init__(self, *args, **kwargs):
+        super(BatchTestHandler, self).__init__(*args, **kwargs)
+        self.batches = []
+
+    def emit(self, record):
+        super(BatchTestHandler, self).emit(record)
+        self.batches.append([record])
+
+    def emit_batch(self, records, reason):
+        for record in records:
+            super(BatchTestHandler, self).emit(record)
+        self.batches.append(records)
+
+
 def test_threaded_wrapper_handler(logger):
     from logbook.queues import ThreadedWrapperHandler
-    test_handler = logbook.TestHandler()
+    test_handler = BatchTestHandler()
     with ThreadedWrapperHandler(test_handler) as handler:
         logger.warn('Just testing')
         logger.error('More testing')
@@ -100,6 +115,50 @@ def test_threaded_wrapper_handler(logger):
     handler.close()
 
     assert (not handler.controller.running)
+    assert len(test_handler.records) == 2
+    assert len(test_handler.batches) == 2
+    assert all((len(records) == 1 for records in test_handler.batches))
+    assert test_handler.has_warning('Just testing')
+    assert test_handler.has_error('More testing')
+
+
+def test_threaded_wrapper_handler_emit():
+    from logbook.queues import ThreadedWrapperHandler
+    test_handler = BatchTestHandler()
+    with ThreadedWrapperHandler(test_handler) as handler:
+        lr = logbook.LogRecord('Test Logger', logbook.WARNING, 'Just testing')
+        test_handler.emit(lr)
+        lr = logbook.LogRecord('Test Logger', logbook.ERROR, 'More testing')
+        test_handler.emit(lr)
+
+    # give it some time to sync up
+    handler.close()
+
+    assert (not handler.controller.running)
+    assert len(test_handler.records) == 2
+    assert len(test_handler.batches) == 2
+    assert all((len(records) == 1 for records in test_handler.batches))
+    assert test_handler.has_warning('Just testing')
+    assert test_handler.has_error('More testing')
+
+
+def test_threaded_wrapper_handler_emit_batched():
+    from logbook.queues import ThreadedWrapperHandler
+    test_handler = BatchTestHandler()
+    with ThreadedWrapperHandler(test_handler) as handler:
+        test_handler.emit_batch([
+            logbook.LogRecord('Test Logger', logbook.WARNING, 'Just testing'),
+            logbook.LogRecord('Test Logger', logbook.ERROR, 'More testing'),
+        ], 'group')
+
+    # give it some time to sync up
+    handler.close()
+
+    assert (not handler.controller.running)
+    assert len(test_handler.records) == 2
+    assert len(test_handler.batches) == 1
+    (records, ) = test_handler.batches
+    assert len(records) == 2
     assert test_handler.has_warning('Just testing')
     assert test_handler.has_error('More testing')
 
