@@ -604,7 +604,10 @@ class TWHThreadController(object):
     queue and sends it to a handler.  Both queue and handler are
     taken from the passed :class:`ThreadedWrapperHandler`.
     """
-    _sentinel = object()
+    class Command(object):
+        stop = object()
+        emit = object()
+        emit_batch = object()
 
     def __init__(self, wrapper_handler):
         self.wrapper_handler = wrapper_handler
@@ -621,17 +624,23 @@ class TWHThreadController(object):
     def stop(self):
         """Stops the task thread."""
         if self.running:
-            self.wrapper_handler.queue.put_nowait(self._sentinel)
+            self.wrapper_handler.queue.put_nowait((self.Command.stop, ))
             self._thread.join()
             self._thread = None
 
     def _target(self):
         while 1:
-            record = self.wrapper_handler.queue.get()
-            if record is self._sentinel:
+            item = self.wrapper_handler.queue.get()
+            command, data = item[0], item[1:]
+            if command is self.Command.stop:
                 self.running = False
                 break
-            self.wrapper_handler.handler.handle(record)
+            elif command is self.Command.emit:
+                (record, ) = data
+                self.wrapper_handler.handler.emit(record)
+            elif command is self.Command.emit_batch:
+                record, reason = data
+                self.wrapper_handler.handler.emit_batch(record, reason)
 
 
 class ThreadedWrapperHandler(WrapperHandler):
@@ -663,8 +672,17 @@ class ThreadedWrapperHandler(WrapperHandler):
         self.handler.close()
 
     def emit(self, record):
+        item = (TWHThreadController.Command.emit, record)
         try:
-            self.queue.put_nowait(record)
+            self.queue.put_nowait(item)
+        except Full:
+            # silently drop
+            pass
+
+    def emit_batch(self, records, reason):
+        item = (TWHThreadController.Command.emit_batch, records, reason)
+        try:
+            self.queue.put_nowait(item)
         except Full:
             # silently drop
             pass
