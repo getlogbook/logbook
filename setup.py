@@ -157,7 +157,10 @@ with open(version_file_path) as version_file:
     exec(version_file.read())  # pylint: disable=W0122
 
 extras_require = dict()
-extras_require['test'] = set(['pytest', 'pytest-cov'])
+if sys.version_info[:2] < (3, 0):
+    extras_require['test'] = set(['pytest', 'pytest-cov<2.6'])
+else:
+    extras_require['test'] = set(['pytest>4.0', 'pytest-cov>=2.6'])
 
 if sys.version_info[:2] < (3, 3):
     extras_require['test'] |= set(['mock'])

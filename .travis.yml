@@ -23,7 +23,7 @@ env:
 script:
 - pip install -e .[all]
 - if [[ $GEVENT == 'True' ]] ; then pip install gevent; fi
-- py.test --cov=logbook -r s tests
+- pytest --cov=logbook -r s tests
 
 matrix:
   exclude:
