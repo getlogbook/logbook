@@ -5,7 +5,6 @@ python:
 - '2.7'
 - '3.5'
 - '3.6'
-- pypy
 before_install:
   - pip install coveralls
 install:
@@ -23,14 +22,10 @@ env:
 script:
 - pip install -e .[all]
 - if [[ $GEVENT == 'True' ]] ; then pip install gevent; fi
-- py.test --cov=logbook -r s tests
+- pytest --cov=logbook -r s tests
 
 matrix:
   exclude:
-  - python: pypy
-    env: CYBUILD=True
-  - python: pypy3
-    env: CYBUILD=True
   include:
   - python: "3.6"
     env: GEVENT=True CYBUILD=True
