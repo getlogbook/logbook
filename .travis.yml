@@ -11,6 +11,7 @@ before_install:
   - pip install coveralls
 install:
 - sudo apt-add-repository -y ppa:chris-lea/zeromq
+- sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B05F25D762E3157
 - sudo apt-get update
 - sudo apt-get install -y libzmq3-dev
 - pip install -U pip
