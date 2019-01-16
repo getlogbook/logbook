@@ -1,7 +1,17 @@
 Logbook Changelog
 =================
 
-Not yet released
+Version 1.4.3
+-------------
+
+Released on January 16th, 2019
+
+- Fixed Pypi release for 1.4.2
+
+Version 1.4.2
+-------------
+
+Released on December 11th, 2018
 
 - Use correct record delimiters (null for UNIX, newline for network) in SyslogHandler (thanks Jonathan Kamens)
 - Try to reconnect to SyslogHandler TCP sockets when they are disconnected (thanks Jonathan Kamens)
@@ -10,6 +20,7 @@ Not yet released
 Here you can see the full list of changes between each Logbook release.
 
 Version 1.4.1
+-------------
 
 Released on October 14th, 2018
 
