@@ -10,17 +10,17 @@
     :license: BSD, see LICENSE for more details.
 """
 
-import platform
+
 from logbook.concurrency import (is_gevent_enabled, thread_get_ident, greenlet_get_ident, thread_local,
                                  GreenletRLock, greenlet_local, ContextVar, context_get_ident, is_context_enabled)
 
 from cpython.dict cimport PyDict_Clear, PyDict_SetItem
-from cpython.list cimport PyList_New, PyList_Append, PyList_Sort, \
-     PyList_SET_ITEM, PyList_GET_SIZE
+from cpython.list cimport PyList_Append, PyList_Sort, PyList_GET_SIZE
+
 from cpython.pythread cimport PyThread_type_lock, PyThread_allocate_lock, \
      PyThread_release_lock, PyThread_acquire_lock, WAIT_LOCK
 
-cdef object _missing = object()
+_missing = object()
 
 cdef enum:
     _MAX_CONTEXT_OBJECT_CACHE = 256
@@ -41,7 +41,7 @@ cdef class group_reflected_property:
     def __get__(self, obj, type):
         if obj is None:
             return self
-        rv = getattr3(obj, self._name, _missing)
+        rv = getattr(obj, self._name, _missing)
         if rv is not _missing and rv != self.fallback:
             return rv
         if obj.group is None:
@@ -97,7 +97,7 @@ cdef class _StackBound:
 
 
 cdef class StackedObject:
-    """Baseclass for all objects that provide stack manipulation
+    """Base class for all objects that provide stack manipulation
     operations.
     """
     cpdef push_context(self):
@@ -228,7 +228,7 @@ cdef class ContextStackManager:
         try:
             self._cache.pop(greenlet_get_ident(), None)
             item = _StackItem(self._stackop(), obj)
-            stack = getattr3(self._greenlet_context, 'stack', None)
+            stack = getattr(self._greenlet_context, 'stack', None)
             if stack is None:
                 self._greenlet_context.stack = [item]
             else:
@@ -240,7 +240,7 @@ cdef class ContextStackManager:
         self._greenlet_context_lock.acquire()
         try:
             self._cache.pop(greenlet_get_ident(), None)
-            stack = getattr3(self._greenlet_context, 'stack', None)
+            stack = getattr(self._greenlet_context, 'stack', None)
             assert stack, 'no objects on stack'
             return (<_StackItem>stack.pop()).val
         finally:
@@ -268,7 +268,7 @@ cdef class ContextStackManager:
         try:
             self._cache.pop(thread_get_ident(), None)
             item = _StackItem(self._stackop(), obj)
-            stack = getattr3(self._thread_context, 'stack', None)
+            stack = getattr(self._thread_context, 'stack', None)
             if stack is None:
                 self._thread_context.stack = [item]
             else:
@@ -280,7 +280,7 @@ cdef class ContextStackManager:
         PyThread_acquire_lock(self._thread_context_lock, WAIT_LOCK)
         try:
             self._cache.pop(thread_get_ident(), None)
-            stack = getattr3(self._thread_context, 'stack', None)
+            stack = getattr(self._thread_context, 'stack', None)
             assert stack, 'no objects on stack'
             return (<_StackItem>stack.pop()).val
         finally:
