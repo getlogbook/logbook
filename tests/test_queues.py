@@ -223,10 +223,10 @@ def test_redis_handler():
     import redis
     from logbook.queues import RedisHandler
 
-    KEY = 'redis'
+    KEY = 'redis-{}'.format(os.getpid())
     FIELDS = ['message', 'host']
     r = redis.Redis(decode_responses=True)
-    redis_handler = RedisHandler(level=logbook.INFO, bubble=True)
+    redis_handler = RedisHandler(key=KEY, level=logbook.INFO, bubble=True)
     # We don't want output for the tests, so we can wrap everything in a
     # NullHandler
     null_handler = logbook.NullHandler()
@@ -244,7 +244,7 @@ def test_redis_handler():
     assert message.find(LETTERS)
 
     # Change the key of the handler and check on redis
-    KEY = 'test_another_key'
+    KEY = 'test_another_key-{}'.format(os.getpid())
     redis_handler.key = KEY
 
     with null_handler.applicationbound():
@@ -293,7 +293,8 @@ def test_redis_handler_lpush():
     from logbook.queues import RedisHandler
     null_handler = logbook.NullHandler()
 
-    redis_handler = RedisHandler(key='lpushed', push_method='lpush',
+    KEY = 'lpushed-'.format(os.getpid())
+    redis_handler = RedisHandler(key=KEY, push_method='lpush',
                                  level=logbook.INFO, bubble=True)
 
     with null_handler.applicationbound():
@@ -304,10 +305,10 @@ def test_redis_handler_lpush():
     time.sleep(1.5)
 
     r = redis.Redis(decode_responses=True)
-    logs = r.lrange('lpushed', 0, -1)
+    logs = r.lrange(KEY, 0, -1)
     assert logs
     assert "new item" in logs[0]
-    r.delete('lpushed')
+    r.delete(KEY)
 
 
 @require_module('redis')
@@ -320,7 +321,8 @@ def test_redis_handler_rpush():
     from logbook.queues import RedisHandler
     null_handler = logbook.NullHandler()
 
-    redis_handler = RedisHandler(key='rpushed', push_method='rpush',
+    KEY = 'rpushed-' + str(os.getpid())
+    redis_handler = RedisHandler(key=KEY, push_method='rpush',
                                  level=logbook.INFO, bubble=True)
 
     with null_handler.applicationbound():
@@ -331,10 +333,10 @@ def test_redis_handler_rpush():
     time.sleep(1.5)
 
     r = redis.Redis(decode_responses=True)
-    logs = r.lrange('rpushed', 0, -1)
+    logs = r.lrange(KEY, 0, -1)
     assert logs
     assert "old item" in logs[0]
-    r.delete('rpushed')
+    r.delete(KEY)
 
 
 @pytest.fixture
