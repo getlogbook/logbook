@@ -23,9 +23,15 @@ from logbook.helpers import (PY2, cached_property, integer_types, iteritems,
                              parse_iso8601, string_types, to_safe_json, u,
                              xrange)
 
+_has_speedups = False
 try:
+    if os.environ.get('DISABLE_LOGBOOK_CEXT_AT_RUNTIME'):
+        raise ImportError("Speedups disabled via DISABLE_LOGBOOK_CEXT_AT_RUNTIME")
+
     from logbook._speedups import (
         _missing, group_reflected_property, ContextStackManager, StackedObject)
+
+    _has_speedups = True
 except ImportError:
     from logbook._fallback import (
         _missing, group_reflected_property, ContextStackManager, StackedObject)
