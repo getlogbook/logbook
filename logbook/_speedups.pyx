@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# cython: language_level=2
 """
     logbook._speedups
     ~~~~~~~~~~~~~~~~~
@@ -11,7 +12,7 @@
 
 import platform
 from logbook.concurrency import (is_gevent_enabled, thread_get_ident, greenlet_get_ident, thread_local,
-                                 GreenletRLock, greenlet_local)
+                                 GreenletRLock, greenlet_local, ContextVar, context_get_ident, is_context_enabled)
 
 from cpython.dict cimport PyDict_Clear, PyDict_SetItem
 from cpython.list cimport PyList_New, PyList_Append, PyList_Sort, \
@@ -99,6 +100,13 @@ cdef class StackedObject:
     """Baseclass for all objects that provide stack manipulation
     operations.
     """
+    cpdef push_context(self):
+        """Pushes the stacked object to the asyncio (via contextvar) stack."""
+        raise NotImplementedError()
+
+    cpdef pop_context(self):
+        """Pops the stacked object from the asyncio (via contextvar) stack."""
+        raise NotImplementedError()
 
     cpdef push_greenlet(self):
         """Pushes the stacked object to the greenlet stack."""
@@ -155,6 +163,12 @@ cdef class StackedObject:
         """
         return _StackBound(self, self.push_application, self.pop_application)
 
+    cpdef contextbound(self):
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the asyncio context.
+        """
+        return _StackBound(self, self.push_context, self.pop_context)
+
 
 cdef class ContextStackManager:
     cdef list _global
@@ -162,6 +176,7 @@ cdef class ContextStackManager:
     cdef object _thread_context
     cdef object _greenlet_context_lock
     cdef object _greenlet_context
+    cdef object _context_stack
     cdef dict _cache
     cdef int _stackcnt
 
@@ -171,6 +186,7 @@ cdef class ContextStackManager:
         self._thread_context = thread_local()
         self._greenlet_context_lock = GreenletRLock()
         self._greenlet_context = greenlet_local()
+        self._context_stack = ContextVar('stack')
         self._cache = {}
         self._stackcnt = 0
 
@@ -180,15 +196,28 @@ cdef class ContextStackManager:
 
     cpdef iter_context_objects(self):
         use_gevent = is_gevent_enabled()
-        tid = greenlet_get_ident() if use_gevent else thread_get_ident()
+        use_context = is_context_enabled()
+
+        if use_gevent:
+            tid = greenlet_get_ident()
+        elif use_context:
+            tid = context_get_ident()
+        else:
+            tid = thread_get_ident()
+
         objects = self._cache.get(tid)
         if objects is None:
             if PyList_GET_SIZE(self._cache) > _MAX_CONTEXT_OBJECT_CACHE:
                 PyDict_Clear(self._cache)
             objects = self._global[:]
-            objects.extend(getattr3(self._thread_context, 'stack', ()))
+            objects.extend(getattr(self._thread_context, 'stack', ()))
+
             if use_gevent:
-                objects.extend(getattr3(self._greenlet_context, 'stack', ()))
+                objects.extend(getattr(self._greenlet_context, 'stack', ()))
+
+            if use_context:
+                objects.extend(self._context_stack.get([]))
+
             PyList_Sort(objects)
             objects = [(<_StackItem>x).val for x in objects]
             PyDict_SetItem(self._cache, tid, objects)
@@ -216,6 +245,23 @@ cdef class ContextStackManager:
             return (<_StackItem>stack.pop()).val
         finally:
             self._greenlet_context_lock.release()
+
+    cpdef push_context(self, obj):
+        self._cache.pop(context_get_ident(), None)
+        item = _StackItem(self._stackop(), obj)
+        stack = self._context_stack.get(None)
+
+        if stack is None:
+            stack = [item]
+            self._context_stack.set(stack)
+        else:
+            PyList_Append(stack, item)
+
+    cpdef pop_context(self):
+        self._cache.pop(context_get_ident(), None)
+        stack = self._context_stack.get(None)
+        assert stack, 'no objects on stack'
+        return (<_StackItem>stack.pop()).val
 
     cpdef push_thread(self, obj):
         PyThread_acquire_lock(self._thread_context_lock, WAIT_LOCK)

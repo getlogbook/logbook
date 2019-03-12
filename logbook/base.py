@@ -206,6 +206,15 @@ class ContextObject(StackedObject):
         popped = self.stack_manager.pop_greenlet()
         assert popped is self, 'popped unexpected object'
 
+    def push_context(self):
+        """Pushes the context object to the context stack."""
+        self.stack_manager.push_context(self)
+
+    def pop_context(self):
+        """Pops the context object from the stack."""
+        popped = self.stack_manager.pop_context()
+        assert popped is self, 'popped unexpected object'
+
     def push_thread(self):
         """Pushes the context object to the thread stack."""
         self.stack_manager.push_thread(self)
@@ -256,6 +265,14 @@ class NestedSetup(StackedObject):
     def pop_greenlet(self):
         for obj in reversed(self.objects):
             obj.pop_greenlet()
+
+    def push_context(self):
+        for obj in self.objects:
+            obj.push_context()
+
+    def pop_context(self):
+        for obj in reversed(self.objects):
+            obj.pop_context()
 
 
 class Processor(ContextObject):
