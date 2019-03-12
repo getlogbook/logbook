@@ -65,3 +65,4 @@ env*
 .vagrant
 flycheck-*
 .idea
+.python-version

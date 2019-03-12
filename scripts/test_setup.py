@@ -1,5 +1,5 @@
 #! /usr/bin/python
-import pip
+from pip._internal import main as pip_main
 import sys
 
 if __name__ == '__main__':
@@ -14,5 +14,5 @@ if __name__ == '__main__':
     ]
 
     print("Setting up dependencies...")
-    result = pip.main(["install"] + deps)
+    result = pip_main(["install"] + deps)
     sys.exit(result)
