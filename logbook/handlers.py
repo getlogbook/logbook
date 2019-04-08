@@ -644,7 +644,7 @@ class FileHandler(StreamHandler):
         return StreamHandler.encode(self, record)
 
     def ensure_stream_is_open(self):
-        if self.stream is None:
+        if self.stream is None or self.stream.closed:
             self._open()
 
 
@@ -815,11 +815,12 @@ class RotatingFileHandler(FileHandler):
                                   'specified')
 
     def should_rollover(self, record, bytes):
+        self.ensure_stream_is_open()
         self.stream.seek(0, 2)
         return self.stream.tell() + bytes >= self.max_size
 
     def perform_rollover(self):
-        self.stream.close()
+        self.close()
         for x in xrange(self.backup_count - 1, 0, -1):
             src = '%s.%d' % (self._filename, x)
             dst = '%s.%d' % (self._filename, x + 1)
