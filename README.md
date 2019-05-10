@@ -26,6 +26,6 @@ For more information: http://logbook.readthedocs.org
 [di]: https://img.shields.io/pypi/dm/logbook.svg
 [al]: https://ci.appveyor.com/project/vmalloc/logbook
 [pi]: https://img.shields.io/pypi/v/logbook.svg
-[pl]: https://pypi.python.org/pypi/Logbook
+[pl]: https://pypi.org/pypi/Logbook
 [ci]: https://coveralls.io/repos/getlogbook/logbook/badge.svg?branch=master&service=github
 [cl]: https://coveralls.io/github/getlogbook/logbook?branch=master
