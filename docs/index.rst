@@ -51,6 +51,6 @@ Project Information
 * `Mailing list`_
 * IRC: ``#pocoo`` on freenode
 
-.. _Download from PyPI: http://pypi.python.org/pypi/Logbook
+.. _Download from PyPI: https://pypi.org/pypi/Logbook
 .. _Master repository on GitHub: https://github.com/getlogbook/logbook
 .. _Mailing list: http://groups.google.com/group/pocoo-libs
