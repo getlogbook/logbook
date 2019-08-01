@@ -74,6 +74,7 @@ def test_redirect_logbook_respect_specific_configuration():
     out2 = StringIO()
     config = {
         'version': 1,
+        'disable_existing_loggers': False,
         'formatters': {
             'brief': {
                 'format': '%(name)s:%(levelname)s:%(message)s'
