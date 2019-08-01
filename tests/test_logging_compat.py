@@ -67,6 +67,58 @@ def test_redirect_logbook():
         logger.handlers[:] = old_handlers
 
 
+def test_redirect_logbook_respect_specific_configuration():
+    import logging
+    import logging.config
+    out1 = StringIO()
+    out2 = StringIO()
+    config = {
+        'version': 1,
+        'formatters': {
+            'brief': {
+                'format': '%(name)s:%(levelname)s:%(message)s'
+            }
+        },
+        'handlers': {
+            'console_1': {
+                'class': 'logging.StreamHandler',
+                'stream': out1,
+                'level': 'INFO',
+            },
+            'console_2': {
+                'class': 'logging.StreamHandler',
+                'stream': out2,
+                'level': 'INFO',
+                'formatter': 'brief'
+            },
+        },
+        'root': {
+            'level': 'INFO',
+            'handlers': ['console_1'],
+        },
+        'loggers': {
+            'module_2': {
+                'handlers': ['console_2'],
+                'propagate': False
+            }
+        },
+    }
+    logger = logging.getLogger()
+    logbook_logger = logbook.Logger('module_2')
+    old_handlers = logger.handlers[:]
+    logging.config.dictConfig(config)
+    try:
+        with logbook.compat.LoggingHandler():
+            logbook_logger.warn("This goes to logging")
+            pieces = out2.getvalue().strip().split(':')
+            # Check if our message goes to console_2
+            assert pieces == ['module_2', 'WARNING', 'This goes to logging']
+            # Check that our message doesn't go to console_1
+            assert out1.getvalue() == ''
+    finally:
+        logger.handlers[:] = old_handlers
+
+
 from itertools import count
 test_warning_redirections_i = count()
 

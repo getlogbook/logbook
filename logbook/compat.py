@@ -172,12 +172,22 @@ class LoggingHandler(logbook.Handler):
         elif isinstance(logger, string_types):
             logger = logging.getLogger(logger)
         self.logger = logger
+        # Cache loggers of specific name
+        self.sublogs = {}
 
     def get_logger(self, record):
         """Returns the logger to use for this record.  This implementation
         always return :attr:`logger`.
         """
-        return self.logger
+        name = record.channel
+        if name == self.logger.name or not name:
+            return self.logger
+        # Look up in cache
+        logger = self.sublogs.get(name)
+        if not logger:
+            logger = logging.getLogger(name)
+            self.sublogs[name] = logger
+        return logger
 
     def convert_level(self, level):
         """Converts a logbook level into a logging level."""
