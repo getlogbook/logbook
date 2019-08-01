@@ -1,10 +1,13 @@
 Logbook Changelog
 =================
 
+Here you can see the full list of changes between each Logbook release.
+
 Version 1.5.0
 -------------
 
 - Added support for asyncio
+- Respect configuration of specific logger in compatibility mode
 
 Version 1.4.3
 -------------
@@ -21,8 +24,6 @@ Released on December 11th, 2018
 - Use correct record delimiters (null for UNIX, newline for network) in SyslogHandler (thanks Jonathan Kamens)
 - Try to reconnect to SyslogHandler TCP sockets when they are disconnected (thanks Jonathan Kamens)
 - Use RFC 5424 format for networking logging in SyslogHandler (thanks Jonathan Kamens)
-
-Here you can see the full list of changes between each Logbook release.
 
 Version 1.4.1
 -------------
@@ -72,7 +73,7 @@ Version 1.0.1
 - Fix PushOver handler cropping (thanks Sébastien Celles)
 
 
-VERSION 1.0.0
+Version 1.0.0
 -------------
 
 Released on June 26th 2016
