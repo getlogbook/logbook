@@ -327,7 +327,7 @@ class ColorizingStreamHandlerMixin(object):
     .. versionchanged:: 1.0.0
        Added Windows support if `colorama`_ is installed.
 
-    .. _`colorama`: https://pypi.python.org/pypi/colorama
+    .. _`colorama`: https://pypi.org/pypi/colorama
     """
     _use_color = None
 
@@ -383,7 +383,7 @@ class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
     .. versionchanged:: 1.0
        Added Windows support if `colorama`_ is installed.
 
-    .. _`colorama`: https://pypi.python.org/pypi/colorama
+    .. _`colorama`: https://pypi.org/pypi/colorama
     """
     def __init__(self, *args, **kwargs):
         StderrHandler.__init__(self, *args, **kwargs)
@@ -471,6 +471,10 @@ class DedupHandler(Handler):
 
     def pop_thread(self):
         Handler.pop_thread(self)
+        self.flush()
+
+    def pop_context(self):
+        Handler.pop_context(self)
         self.flush()
 
     def pop_greenlet(self):

@@ -1900,6 +1900,10 @@ class GroupHandler(WrapperHandler):
         Handler.pop_thread(self)
         self.rollover()
 
+    def pop_context(self):
+        Handler.pop_context(self)
+        self.rollover()
+
     def pop_greenlet(self):
         Handler.pop_greenlet(self)
         self.rollover()

@@ -23,9 +23,15 @@ from logbook.helpers import (PY2, cached_property, integer_types, iteritems,
                              parse_iso8601, string_types, to_safe_json, u,
                              xrange)
 
+_has_speedups = False
 try:
+    if os.environ.get('DISABLE_LOGBOOK_CEXT_AT_RUNTIME'):
+        raise ImportError("Speedups disabled via DISABLE_LOGBOOK_CEXT_AT_RUNTIME")
+
     from logbook._speedups import (
         _missing, group_reflected_property, ContextStackManager, StackedObject)
+
+    _has_speedups = True
 except ImportError:
     from logbook._fallback import (
         _missing, group_reflected_property, ContextStackManager, StackedObject)
@@ -73,7 +79,7 @@ def set_datetime_format(datetime_format):
        logbook.set_datetime_format("local")
 
     Other uses rely on your supplied :py:obj:`datetime_format`.
-    Using `pytz <https://pypi.python.org/pypi/pytz>`_ for example::
+    Using `pytz <https://pypi.org/pypi/pytz>`_ for example::
 
         from datetime import datetime
         import logbook
@@ -206,6 +212,15 @@ class ContextObject(StackedObject):
         popped = self.stack_manager.pop_greenlet()
         assert popped is self, 'popped unexpected object'
 
+    def push_context(self):
+        """Pushes the context object to the context stack."""
+        self.stack_manager.push_context(self)
+
+    def pop_context(self):
+        """Pops the context object from the stack."""
+        popped = self.stack_manager.pop_context()
+        assert popped is self, 'popped unexpected object'
+
     def push_thread(self):
         """Pushes the context object to the thread stack."""
         self.stack_manager.push_thread(self)
@@ -256,6 +271,14 @@ class NestedSetup(StackedObject):
     def pop_greenlet(self):
         for obj in reversed(self.objects):
             obj.pop_greenlet()
+
+    def push_context(self):
+        for obj in self.objects:
+            obj.push_context()
+
+    def pop_context(self):
+        for obj in reversed(self.objects):
+            obj.pop_context()
 
 
 class Processor(ContextObject):

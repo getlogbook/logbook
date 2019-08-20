@@ -64,3 +64,5 @@ logbook/_speedups.c
 env*
 .vagrant
 flycheck-*
+.idea
+.python-version
