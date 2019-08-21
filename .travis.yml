@@ -57,6 +57,8 @@ deploy:
     password:
       secure: WFmuAbtBDIkeZArIFQRCwyO1TdvF2PaZpo75r3mFgnY+aWm75cdgjZKoNqVprF/f+v9EsX2kDdQ7ZfuhMLgP8MNziB+ty7579ZDGwh64jGoi+DIoeblAFu5xNAqjvhie540uCE8KySk9s+Pq5EpOA5w18V4zxTw+h6tnBQ0M9cQ=
     on:
+      python: "3.7"
+      condition: $CYBUILD = 'true'
       tags: true
       repo: getlogbook/logbook
     distributions: "sdist"
