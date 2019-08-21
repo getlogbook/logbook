@@ -4,9 +4,6 @@ Logbook Changelog
 Version 1.5.1
 -------------
 
-Version 1.5.0
--------------
-
 Released on August 20th, 2019
 
 - Added support for asyncio and contextvars
