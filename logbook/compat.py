@@ -133,7 +133,7 @@ class RedirectLoggingHandler(logging.Handler):
         kwargs = None
 
         # Logging allows passing a mapping object, in which case args will be a mapping.
-        if isinstance(args, collections.Mapping):
+        if isinstance(args, collections.abc.Mapping):
             kwargs = args
             args = None
         record = LoggingCompatRecord(old_record.name,
