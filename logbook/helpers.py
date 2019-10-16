@@ -20,8 +20,10 @@ PY2 = sys.version_info[0] == 2
 
 if PY2:
     import __builtin__ as _builtins
+    import collections as collections_abc
 else:
     import builtins as _builtins
+    import collections.abc as collections_abc
 
 try:
     import json
