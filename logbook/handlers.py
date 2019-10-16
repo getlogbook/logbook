@@ -32,7 +32,7 @@ from logbook.base import (
     _missing, lookup_level, Flags, ContextObject, ContextStackManager,
     _datetime_factory)
 from logbook.helpers import (
-    rename, b, _is_text_stream, is_unicode, PY2, zip, xrange, string_types,
+    rename, b, _is_text_stream, is_unicode, PY2, zip, xrange, string_types, collections_abc,
     integer_types, reraise, u, with_metaclass)
 from logbook.concurrency import new_fine_grained_lock
 
@@ -1355,10 +1355,10 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         # - tuple to be unpacked to variables keyfile and certfile.
         # - secure=() equivalent to secure=True for backwards compatibility.
         # - secure=False equivalent to secure=None to disable.
-        if isinstance(self.secure, collections.Mapping):
+        if isinstance(self.secure, collections_abc.Mapping):
             keyfile = self.secure.get('keyfile', None)
             certfile = self.secure.get('certfile', None)
-        elif isinstance(self.secure, collections.Iterable):
+        elif isinstance(self.secure, collections_abc.Iterable):
             # Allow empty tuple for backwards compatibility
             if len(self.secure) == 0:
                 keyfile = certfile = None
@@ -1381,7 +1381,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
                 con.ehlo()
 
             # Allow credentials to be a tuple or dict.
-            if isinstance(self.credentials, collections.Mapping):
+            if isinstance(self.credentials, collections_abc.Mapping):
                 credentials_args = ()
                 credentials_kwargs = self.credentials
             else:

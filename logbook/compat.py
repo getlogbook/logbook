@@ -16,7 +16,7 @@ import warnings
 from datetime import date, datetime
 
 import logbook
-from logbook.helpers import u, string_types, iteritems
+from logbook.helpers import u, string_types, iteritems, collections_abc
 
 _epoch_ord = date(1970, 1, 1).toordinal()
 
@@ -133,7 +133,7 @@ class RedirectLoggingHandler(logging.Handler):
         kwargs = None
 
         # Logging allows passing a mapping object, in which case args will be a mapping.
-        if isinstance(args, collections.Mapping):
+        if isinstance(args, collections_abc.Mapping):
             kwargs = args
             args = None
         record = LoggingCompatRecord(old_record.name,
