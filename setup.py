@@ -188,7 +188,10 @@ def run_setup(with_cext):
         name='Logbook',
         version=__version__,
         license='BSD',
-        url='http://logbook.pocoo.org/',
+        url='https://logbook.readthedocs.io/en/stable/',
+        project_urls={
+            'Code': 'https://github.com/getlogbook/logbook',
+        },
         author='Armin Ronacher, Georg Brandl',
         author_email='armin.ronacher@active-4.com',
         description='A logging replacement for Python',
