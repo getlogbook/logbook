@@ -190,7 +190,7 @@ def run_setup(with_cext):
         license='BSD',
         url='https://logbook.readthedocs.io/en/stable/',
         project_urls={
-            'Code': 'https://github.com/getlogbook/logbook',
+            'Source': 'https://github.com/getlogbook/logbook',
         },
         author='Armin Ronacher, Georg Brandl',
         author_email='armin.ronacher@active-4.com',
