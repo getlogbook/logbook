@@ -19,6 +19,19 @@ def test_exc_info_false():
     assert not record.formatted_exception
 
 
+def test_exc_info_exception_instance(logger):
+    with logbook.handlers.TestHandler() as handler:
+        try:
+            raise ValueError('error here')
+        except Exception as e:
+            error = e
+        logger.exception(exc_info=error)
+    [record] = handler.records
+    assert isinstance(record.exc_info, tuple)
+    assert len(record.exc_info) == 3
+    assert 'Traceback' in record.formatted_exception
+
+
 def test_extradict(active_handler, logger):
     logger.warn('Test warning')
     record = active_handler.records[0]
