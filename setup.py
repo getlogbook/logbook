@@ -176,6 +176,9 @@ extras_require['compression'] = set(['brotli'])
 
 extras_require['all'] = set(chain.from_iterable(extras_require.values()))
 
+# sort items to make requires.txt reproducible
+extras_require = { key: sorted(value) for key, value in extras_require.items() }
+
 
 def run_setup(with_cext):
     kwargs = {}
