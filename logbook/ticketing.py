@@ -243,7 +243,10 @@ class SQLAlchemyBackend(BackendBase):
 
     def count_tickets(self):
         """Returns the number of tickets."""
-        return self.engine.execute(self.tickets.count()).fetchone()[0]
+        from sqlalchemy import select, func
+
+        count_stmt = select([func.count()]).select_from(self.tickets)
+        return self.engine.execute(count_stmt).fetchone()[0]
 
     def get_tickets(self, order_by='-last_occurrence_time', limit=50,
                     offset=0):
