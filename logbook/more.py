@@ -233,7 +233,7 @@ class SlackHandler(Handler, StringFormatterHandlerMixin):
 
     """A handler that logs to slack.  Requires that you sign up an
     application on slack and request an api token.  Furthermore the
-    slacker library has to be installed.
+    Python Slack SDK has to be installed.
     """
 
     def __init__(self, api_token, channel, level=NOTSET, format_string=None, filter=None,
@@ -244,16 +244,16 @@ class SlackHandler(Handler, StringFormatterHandlerMixin):
         self.api_token = api_token
 
         try:
-            from slacker import Slacker
+            import slack_sdk
         except ImportError:
-            raise RuntimeError('The slacker library is required for '
+            raise RuntimeError('The Python Slack SDK library is required for '
                                'the SlackHandler.')
 
         self.channel = channel
-        self.slack = Slacker(api_token)
+        self.slack = slack_sdk.WebClient(token=api_token)
 
     def emit(self, record):
-        self.slack.chat.post_message(channel=self.channel, text=self.format(record))
+        self.slack.chat_postMessage(channel=self.channel, text=self.format(record))
 
 
 class JinjaFormatter(object):
