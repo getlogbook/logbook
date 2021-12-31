@@ -44,7 +44,7 @@ if has_gevent:
     from gevent.threading import __threading__
 
     def thread_get_name():
-        return __threading__.currentThread().getName()
+        return __threading__.current_thread().name
 
     class GreenletRLock(object):
         def __init__(self):
@@ -129,7 +129,7 @@ if has_gevent:
             return self._owner == (thread_get_ident(), greenlet_get_ident())
 else:
     from threading import (
-        Lock as ThreadLock, RLock as ThreadRLock, currentThread)
+        Lock as ThreadLock, RLock as ThreadRLock, current_thread)
     try:
         from thread import (
             get_ident as thread_get_ident, _local as thread_local)
@@ -138,7 +138,7 @@ else:
             get_ident as thread_get_ident, _local as thread_local)
 
     def thread_get_name():
-        return currentThread().getName()
+        return current_thread().name
 
     greenlet_get_ident = thread_get_ident
 
