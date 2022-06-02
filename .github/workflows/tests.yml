@@ -13,13 +13,23 @@ jobs:
       matrix:
         include:
           - image: "python:3.7"
-            tox_envs: "py37,py37-speedups"
+            tox_envs: "py37"
           - image: "python:3.8"
-            tox_envs: "py38,py38-speedups"
+            tox_envs: "py38"
           - image: "python:3.9"
-            tox_envs: "py39,py39-speedups,py39-docs"
+            tox_envs: "py39,py39-docs"
           - image: "python:3.10"
-            tox_envs: "py310,py310-speedups"
+            tox_envs: "py310"
+          - image: "python:3.7"
+            tox_envs: "py37-speedups"
+          - image: "python:3.8"
+            tox_envs: "py38-speedups"
+          - image: "python:3.9"
+            tox_envs: "py39-speedups"
+          - image: "python:3.10"
+            tox_envs: "py310-speedups"
+          - image: "python:3.9"
+            tox_envs: "py39-docs"
 
     container:
       image: "${{ matrix.image }}"
