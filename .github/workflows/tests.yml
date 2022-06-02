@@ -9,7 +9,9 @@ jobs:
   linux-container-tests:
     name: "Linux Container ${{ matrix.image }} ${{ matrix.tox_envs }}"
     runs-on: ubuntu-latest
+    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         include:
           - image: "python:3.7"
