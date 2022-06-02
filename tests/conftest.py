@@ -1,3 +1,4 @@
+import os
 import sys
 
 import logbook
@@ -115,3 +116,13 @@ def pytest_ignore_collect(path, config):
         return True
 
     return False
+
+
+@pytest.fixture
+def redis_connection_details():
+    redis_host = os.environ.get("REDIS_HOST")
+    if redis_host is None:
+        return None
+    return {
+        "host": redis_host
+    }

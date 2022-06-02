@@ -28,6 +28,8 @@ jobs:
       redis:
         # Docker Hub image
         image: redis
+    env:
+      REDIS_HOST: redis
     steps:
       - uses: "actions/checkout@v2"
       - name: "Install dependencies"
