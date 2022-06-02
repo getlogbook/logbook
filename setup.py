@@ -69,8 +69,6 @@ if sys.version_info < (2, 6):
 
 cpython = platform.python_implementation() == 'CPython'
 
-ext_modules = [Extension('logbook._speedups', sources=['logbook/_speedups.c'])]
-
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
 if sys.platform == 'win32':
     # 2.6's distutils.msvc9compiler can raise an IOError when failing to
@@ -180,7 +178,10 @@ extras_require['all'] = set(chain.from_iterable(extras_require.values()))
 def run_setup(with_cext):
     kwargs = {}
     if with_cext:
-        kwargs['ext_modules'] = ext_modules
+        from Cython.Build import cythonize
+        kwargs['ext_modules'] = cythonize([
+            Extension('logbook._speedups', sources=['logbook/_speedups.pyx'])
+        ])
     else:
         kwargs['ext_modules'] = []
 
