@@ -1,0 +1,42 @@
+name: tox
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux-container-tests:
+    name: "Linux Container ${{ matrix.image }} ${{ matrix.tox_envs }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - image: "python:3.7"
+            tox_envs: "py37,py37-speedups"
+          - image: "python:3.8"
+            tox_envs: "py38,py38-speedups"
+          - image: "python:3.9"
+            tox_envs: "py39,py39-speedups,py39-docs"
+          - image: "python:3.10"
+            tox_envs: "py310,py310-speedups"
+
+    container:
+      image: "${{ matrix.image }}"
+    services:
+      # Label used to access the service container
+      redis:
+        # Docker Hub image
+        image: redis
+    env:
+      REDIS_HOST: redis
+    steps:
+      - uses: "actions/checkout@v2"
+      - name: "Install dependencies"
+        run: |
+          python -VV
+          python -m site
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade tox
+      - name: "Run tox targets for ${{ matrix.tox_envs }}"
+        run: "python -m tox -e ${{ matrix.tox_envs }}"

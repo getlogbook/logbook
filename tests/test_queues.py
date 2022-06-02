@@ -219,14 +219,19 @@ def test_subscriber_group():
 
 
 @require_module('redis')
-def test_redis_handler():
+def test_redis_handler(redis_connection_details):
+    if redis_connection_details is None:
+        pytest.skip("No redis database configured")
+
     import redis
     from logbook.queues import RedisHandler
 
     KEY = 'redis-{}'.format(os.getpid())
     FIELDS = ['message', 'host']
-    r = redis.Redis(decode_responses=True)
-    redis_handler = RedisHandler(key=KEY, level=logbook.INFO, bubble=True)
+    r = redis.Redis(decode_responses=True, **redis_connection_details)
+    redis_handler = RedisHandler(
+        key=KEY, level=logbook.INFO, bubble=True, **redis_connection_details
+    )
     # We don't want output for the tests, so we can wrap everything in a
     # NullHandler
     null_handler = logbook.NullHandler()
@@ -258,8 +263,10 @@ def test_redis_handler():
     FIELDS.append('type')
     extra_fields = {'type': 'test'}
     del(redis_handler)
-    redis_handler = RedisHandler(key=KEY, level=logbook.INFO,
-                                 extra_fields=extra_fields, bubble=True)
+    redis_handler = RedisHandler(
+        key=KEY, level=logbook.INFO, extra_fields=extra_fields, bubble=True,
+        **redis_connection_details
+    )
 
     with null_handler.applicationbound():
         with redis_handler:
@@ -284,18 +291,23 @@ def test_redis_handler():
 
 
 @require_module('redis')
-def test_redis_handler_lpush():
+def test_redis_handler_lpush(redis_connection_details):
     """
     Test if lpush stores messages in the right order
     new items should be first on list
     """
+    if redis_connection_details is None:
+        pytest.skip("No redis database configured")
+
     import redis
     from logbook.queues import RedisHandler
     null_handler = logbook.NullHandler()
 
     KEY = 'lpushed-'.format(os.getpid())
-    redis_handler = RedisHandler(key=KEY, push_method='lpush',
-                                 level=logbook.INFO, bubble=True)
+    redis_handler = RedisHandler(
+        key=KEY, push_method='lpush', level=logbook.INFO, bubble=True,
+        **redis_connection_details
+    )
 
     with null_handler.applicationbound():
         with redis_handler:
@@ -304,7 +316,7 @@ def test_redis_handler_lpush():
 
     time.sleep(1.5)
 
-    r = redis.Redis(decode_responses=True)
+    r = redis.Redis(decode_responses=True, **redis_connection_details)
     logs = r.lrange(KEY, 0, -1)
     assert logs
     assert "new item" in logs[0]
@@ -312,18 +324,23 @@ def test_redis_handler_lpush():
 
 
 @require_module('redis')
-def test_redis_handler_rpush():
+def test_redis_handler_rpush(redis_connection_details):
     """
     Test if rpush stores messages in the right order
     old items should be first on list
     """
+    if redis_connection_details is None:
+        pytest.skip("No redis database configured")
+
     import redis
     from logbook.queues import RedisHandler
     null_handler = logbook.NullHandler()
 
     KEY = 'rpushed-' + str(os.getpid())
-    redis_handler = RedisHandler(key=KEY, push_method='rpush',
-                                 level=logbook.INFO, bubble=True)
+    redis_handler = RedisHandler(
+        key=KEY, push_method='rpush', level=logbook.INFO, bubble=True, 
+        **redis_connection_details
+    )
 
     with null_handler.applicationbound():
         with redis_handler:
@@ -332,7 +349,7 @@ def test_redis_handler_rpush():
 
     time.sleep(1.5)
 
-    r = redis.Redis(decode_responses=True)
+    r = redis.Redis(decode_responses=True, **redis_connection_details)
     logs = r.lrange(KEY, 0, -1)
     assert logs
     assert "old item" in logs[0]

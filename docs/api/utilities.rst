@@ -6,7 +6,7 @@ Misc. Utilities
 
 This documents general purpose utility functions available in Logbook.
 
-.. module:: logbook
+.. py:currentmodule:: logbook
 
 .. autofunction:: debug
 
