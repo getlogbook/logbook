@@ -30,12 +30,15 @@ Documentation = "https://logbook.readthedocs.io"
 "Source Code" = "https://github.com/getlogbook/logbook"
 
 [project.optional-dependencies]
-test = ["pytest>4", "pytest-cov>=2.6"]
-dev = ["Logbook[test]"]
+test = ["pytest>=6"]
+dev = ["Logbook[test]", "tox>=4"]
 execnet = ["execnet>=1.0.9"]
 sqlalchemy = ["sqlalchemy"]
 redis = ["redis"]
 zmq = ["pyzmq"]
 jinja = ["Jinja2"]
 compression = ["brotli"]
-all = ["Logbook[test,dev,execnet,sqlalchemy,redis,zmq,jinja,compression]"]
+all = ["Logbook[execnet,sqlalchemy,redis,zmq,jinja,compression]"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
