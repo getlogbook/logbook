@@ -9,8 +9,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  tests:
-    name: "Python ${{ matrix.python-version }}"
+  linux:
+    name: "Linux (${{ matrix.python-version }})"
     runs-on: "ubuntu-latest"
 
     services:
@@ -44,3 +44,54 @@ jobs:
 
       - name: "Run tox targets for ${{ matrix.python-version }}"
         run: "python -m tox"
+
+  windows:
+    name: "Windows (${{ matrix.python-version }}, ${{ matrix.arch }})"
+    runs-on: "windows-latest"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        arch: ["x86", "x64"]
+
+    steps:
+      - uses: "actions/checkout@v3"
+      - uses: "actions/setup-python@v4"
+        with:
+          python-version: "${{ matrix.python-version }}"
+          architecture: "${{ matrix.arch }}"
+
+      - run: python -VV
+      - run: python -m site
+      - run: python -m pip install --upgrade pip setuptools wheel
+      - run: python -m pip install --upgrade tox tox-gh-actions
+
+      - name: "Run tox targets for ${{ matrix.python-version }} on ${{ matrix.arch }}"
+        run: "python -m tox -- -k 'not redis'"
+
+  macos:
+    name: "macOS (${{ matrix.python-version }})"
+    runs-on: "macos-latest"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+
+    steps:
+      - uses: "actions/checkout@v3"
+      - uses: "actions/setup-python@v4"
+        with:
+          python-version: "${{ matrix.python-version }}"
+          architecture: "${{ matrix.arch }}"
+      - name: "Install dependencies"
+        run: |
+          set -xe
+          python -VV
+          python -m site
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade tox tox-gh-actions
+
+      - name: "Run tox targets for ${{ matrix.python-version }}"
+        run: "python -m tox -- -k 'not redis'"
