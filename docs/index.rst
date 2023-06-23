@@ -7,7 +7,7 @@ in mind and the idea to make logging fun:
 
 >>> from logbook import Logger, StreamHandler
 >>> import sys
->>> StreamHandler(sys.stdout).push_application() 
+>>> StreamHandler(sys.stdout).push_application()
 >>> log = Logger('Logbook')
 >>> log.info('Hello, World!')
 [2015-10-05 18:55:56.937141] INFO: Logbook: Hello, World!
@@ -51,6 +51,6 @@ Project Information
 * `Mailing list`_
 * IRC: ``#pocoo`` on freenode
 
-.. _Download from PyPI: https://pypi.org/pypi/Logbook
+.. _Download from PyPI: https://pypi.org/project/Logbook
 .. _Master repository on GitHub: https://github.com/getlogbook/logbook
-.. _Mailing list: http://groups.google.com/group/pocoo-libs
+.. _Mailing list: https://groups.google.com/g/pocoo-libs

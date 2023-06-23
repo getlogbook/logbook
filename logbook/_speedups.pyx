@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# cython: language_level=2
 """
     logbook._speedups
     ~~~~~~~~~~~~~~~~~

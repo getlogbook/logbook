@@ -17,7 +17,7 @@ Logbook is a nice logging replacement.
 
 It should be easy to setup, use and configure and support web applications :)
 
-For more information: http://logbook.readthedocs.org
+For more information: https://logbook.readthedocs.org
 
 [ti]: https://secure.travis-ci.org/getlogbook/logbook.svg?branch=master
 [tl]: https://travis-ci.org/getlogbook/logbook

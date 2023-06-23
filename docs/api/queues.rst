@@ -6,7 +6,7 @@ system.  This is useful for distributed setups where you want multiple
 processes to log to the same backend.  Currently supported are ZeroMQ as
 well as the :mod:`multiprocessing` :class:`~multiprocessing.Queue` class.
 
-.. module:: logbook.queues
+.. currentmodule:: logbook.queues
 
 ZeroMQ
 ------

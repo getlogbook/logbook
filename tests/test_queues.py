@@ -10,6 +10,9 @@ from logbook.helpers import u
 
 import pytest
 
+REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
+REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
+
 
 @require_module('zmq')
 def test_zeromq_handler(logger, handlers, subscriber):
@@ -225,7 +228,7 @@ def test_redis_handler():
 
     KEY = 'redis-{}'.format(os.getpid())
     FIELDS = ['message', 'host']
-    r = redis.Redis(decode_responses=True)
+    r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
     redis_handler = RedisHandler(key=KEY, level=logbook.INFO, bubble=True)
     # We don't want output for the tests, so we can wrap everything in a
     # NullHandler
@@ -304,7 +307,7 @@ def test_redis_handler_lpush():
 
     time.sleep(1.5)
 
-    r = redis.Redis(decode_responses=True)
+    r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
     logs = r.lrange(KEY, 0, -1)
     assert logs
     assert "new item" in logs[0]
@@ -332,7 +335,7 @@ def test_redis_handler_rpush():
 
     time.sleep(1.5)
 
-    r = redis.Redis(decode_responses=True)
+    r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
     logs = r.lrange(KEY, 0, -1)
     assert logs
     assert "old item" in logs[0]

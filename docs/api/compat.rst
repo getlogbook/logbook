@@ -4,7 +4,7 @@ Compatibility
 This documents compatibility support with existing systems such as
 :mod:`logging` and :mod:`warnings`.
 
-.. module:: logbook.compat
+.. currentmodule:: logbook.compat
 
 Logging Compatibility
 ---------------------
