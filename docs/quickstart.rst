@@ -8,7 +8,7 @@ class, create yourself a logger and you are set:
 
 >>> from logbook import Logger, StreamHandler
 >>> import sys
->>> StreamHandler(sys.stdout).push_application() 
+>>> StreamHandler(sys.stdout).push_application()
 >>> log = Logger('My Awesome Logger')
 >>> log.warn('This is too cool for stdlib')
 [2015-10-05 19:02:03.575723] WARNING: My Awesome Logger: This is too cool for stdlib
@@ -71,14 +71,12 @@ On top of those there are a couple of handlers for special use cases:
 * :class:`logbook.notifiers.GrowlHandler` and
   :class:`logbook.notifiers.LibNotifyHandler` for logging to the OS X Growl
   or the linux notification daemon.
-* :class:`logbook.notifiers.BoxcarHandler` for logging to `boxcar`_.
+* :class:`logbook.notifiers.BoxcarHandler` for logging to boxcar.io.
 * :class:`logbook.more.TwitterHandler` for logging to twitter.
 * :class:`logbook.more.ExternalApplicationHandler` for logging to an
   external application such as the OS X ``say`` command.
 * :class:`logbook.ticketing.TicketingHandler` for creating tickets from
   log records in a database or other data store.
-
-.. _boxcar: http://boxcar.io/
 
 Registering Handlers
 --------------------

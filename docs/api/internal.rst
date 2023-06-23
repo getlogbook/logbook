@@ -4,7 +4,7 @@ Internal API
 This documents the internal API that might be useful for more advanced
 setups or custom handlers.
 
-.. module:: logbook.base
+.. currentmodule:: logbook.base
 
 .. autofunction:: dispatch_record
 
@@ -18,7 +18,7 @@ setups or custom handlers.
    :members:
    :inherited-members:
 
-.. module:: logbook.handlers
+.. currentmodule:: logbook.handlers
 
 .. autoclass:: StringFormatterHandlerMixin
    :members:

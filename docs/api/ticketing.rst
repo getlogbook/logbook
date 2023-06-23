@@ -6,7 +6,7 @@ log records are categorized by location and for every emitted log record a
 count is added.  That way you know how often certain messages are
 triggered, at what times and when the last occurrence was.
 
-.. module:: logbook.ticketing
+.. currentmodule:: logbook.ticketing
 
 .. autoclass:: TicketingBaseHandler
    :members:

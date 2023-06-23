@@ -149,7 +149,7 @@ class MessageQueueHandler(Handler):
     Several other backends are also supported.
     Refer to the `kombu`_ documentation
 
-    .. _kombu: http://kombu.readthedocs.org/en/latest/introduction.html
+    .. _kombu: https://docs.celeryq.dev/projects/kombu/en/latest/introduction.html
     """
 
     def __init__(self, uri=None, queue='logging', level=NOTSET,

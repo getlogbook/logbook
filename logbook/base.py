@@ -60,8 +60,7 @@ def set_datetime_format(datetime_format):
             :py:obj:`datetime_format` (possibly time zone aware)
 
     This function defaults to creating datetime objects in UTC time,
-    using `datetime.utcnow()
-    <http://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow>`_,
+    using :func:`datetime.utcnow`,
     so that logbook logs all times in UTC time by default.  This is
     recommended in case you have multiple software modules or
     instances running in different servers in different time zones, as
@@ -79,7 +78,7 @@ def set_datetime_format(datetime_format):
        logbook.set_datetime_format("local")
 
     Other uses rely on your supplied :py:obj:`datetime_format`.
-    Using `pytz <https://pypi.org/pypi/pytz>`_ for example::
+    Using `pytz <https://pypi.org/project/pytz>`_ for example::
 
         from datetime import datetime
         import logbook

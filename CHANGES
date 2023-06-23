@@ -223,7 +223,7 @@ Version 0.4.1
 Released on December 12th. Codename "121212"
 
 - Fixed several outstanding encoding problems, thanks to @dvarazzo.
-- Merged in minor pull requests (see https://github.com/mitsuhiko/logbook/pulls?&state=closed)
+- Merged in minor pull requests (see https://github.com/getlogbook/logbook/pulls?q=is%3Aclosed)
 
 Version 0.4
 -----------

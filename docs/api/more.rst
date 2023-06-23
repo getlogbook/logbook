@@ -6,7 +6,7 @@ beyond the scope of Logbook itself or depend on external libraries.
 Additionally there are some handlers in :mod:`logbook.ticketing`,
 :mod:`logbook.queues` and :mod:`logbook.notifiers`.
 
-.. module:: logbook.more
+.. currentmodule:: logbook.more
 
 Tagged Logging
 --------------
