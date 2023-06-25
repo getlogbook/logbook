@@ -1,7 +1,7 @@
 """Tests with a filter disabling a handler for comparsion in logging"""
-from logging import getLogger, StreamHandler, Filter
-from cStringIO import StringIO
+from logging import Filter, StreamHandler, getLogger
 
+from cStringIO import StringIO
 
 log = getLogger('Testlogger')
 

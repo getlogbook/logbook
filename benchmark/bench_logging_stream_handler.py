@@ -1,7 +1,7 @@
 """Tests the stream handler in logging"""
 from logging import Logger, StreamHandler
-from cStringIO import StringIO
 
+from cStringIO import StringIO
 
 log = Logger('Test logger')
 

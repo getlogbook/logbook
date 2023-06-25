@@ -10,10 +10,10 @@ import os
 import sys
 from contextlib import contextmanager
 
+import pytest
+
 import logbook
 from logbook.helpers import StringIO
-
-import pytest
 
 _missing = object()
 

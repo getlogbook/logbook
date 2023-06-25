@@ -1,7 +1,7 @@
 """Like the filter test, but with the should_handle implemented"""
-from logbook import Logger, StreamHandler, NullHandler
 from cStringIO import StringIO
 
+from logbook import Logger, NullHandler, StreamHandler
 
 log = Logger('Test logger')
 

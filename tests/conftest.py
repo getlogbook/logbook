@@ -1,7 +1,8 @@
 import sys
 
-import logbook
 import pytest
+
+import logbook
 
 logbook.StderrHandler().push_application()
 
@@ -102,7 +103,7 @@ else:
         module_name = getattr(request.module, '__name__', '')
         if (not any(s in module_name for s in ('queues', 'processors'))
                 and request.param):
-            from logbook.concurrency import enable_gevent, _disable_gevent
+            from logbook.concurrency import _disable_gevent, enable_gevent
             enable_gevent()
 
             @request.addfinalizer

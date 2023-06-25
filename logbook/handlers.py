@@ -7,33 +7,60 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
+import errno
+import gzip
 import io
+import math
 import os
 import re
-import sys
-import stat
-import errno
 import socket
-import gzip
-import math
+import stat
+import sys
+
 try:
     from hashlib import sha1
 except ImportError:
     from sha import new as sha1
-import traceback
+
 import collections
-from datetime import datetime, timedelta
+import traceback
 from collections import deque
+from datetime import datetime, timedelta
 from textwrap import dedent
 
 from logbook.base import (
-    CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, TRACE, NOTSET, level_name_property,
-    _missing, lookup_level, Flags, ContextObject, ContextStackManager,
-    _datetime_factory)
-from logbook.helpers import (
-    rename, b, _is_text_stream, is_unicode, PY2, zip, xrange, string_types, collections_abc,
-    integer_types, reraise, u, with_metaclass)
+    CRITICAL,
+    DEBUG,
+    ERROR,
+    INFO,
+    NOTICE,
+    NOTSET,
+    TRACE,
+    WARNING,
+    ContextObject,
+    ContextStackManager,
+    Flags,
+    _datetime_factory,
+    _missing,
+    level_name_property,
+    lookup_level,
+)
 from logbook.concurrency import new_fine_grained_lock
+from logbook.helpers import (
+    PY2,
+    _is_text_stream,
+    b,
+    collections_abc,
+    integer_types,
+    is_unicode,
+    rename,
+    reraise,
+    string_types,
+    u,
+    with_metaclass,
+    xrange,
+    zip,
+)
 
 DEFAULT_FORMAT_STRING = u(
     '[{record.time:%Y-%m-%d %H:%M:%S.%f%z}] '
@@ -1262,8 +1289,8 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         (:class:`email.message.Message`).  `suppressed` is the number
         of mails not sent if the `record_limit` feature is active.
         """
-        from email.message import Message
         from email.header import Header
+        from email.message import Message
         msg = Message()
         msg.set_charset('utf-8')
         lineiter = iter(self.format(record).splitlines())
@@ -1331,7 +1358,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         """Returns an SMTP connection.  By default it reconnects for
         each sent mail.
         """
-        from smtplib import SMTP, SMTP_SSL, SMTP_PORT, SMTP_SSL_PORT
+        from smtplib import SMTP, SMTP_PORT, SMTP_SSL, SMTP_SSL_PORT
         if self.server_addr is None:
             host = '127.0.0.1'
             port = self.secure and SMTP_SSL_PORT or SMTP_PORT
@@ -1662,8 +1689,8 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
                                'operating system.')
 
         try:
-            import win32evtlogutil
             import win32evtlog
+            import win32evtlogutil
         except ImportError:
             raise RuntimeError('The pywin32 library is required '
                                'for the NTEventLogHandler.')

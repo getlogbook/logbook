@@ -3,7 +3,6 @@ import platform
 
 from setuptools import Extension, setup
 
-
 IS_CPYTHON = platform.python_implementation() == "CPython"
 DISABLE_EXTENSION = bool(os.environ.get("DISABLE_LOGBOOK_CEXT"))
 

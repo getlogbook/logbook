@@ -1,7 +1,8 @@
 import os
 
-import logbook
 import pytest
+
+import logbook
 
 from .utils import require_module
 
@@ -13,10 +14,16 @@ from .utils import require_module
                     reason="Don't clutter NT Event Log unless enabled.")
 def test_nteventlog_handler():
     from win32con import (
-        EVENTLOG_ERROR_TYPE, EVENTLOG_INFORMATION_TYPE, EVENTLOG_WARNING_TYPE)
+        EVENTLOG_ERROR_TYPE,
+        EVENTLOG_INFORMATION_TYPE,
+        EVENTLOG_WARNING_TYPE,
+    )
     from win32evtlog import (
-        EVENTLOG_BACKWARDS_READ, EVENTLOG_SEQUENTIAL_READ, OpenEventLog,
-        ReadEventLog)
+        EVENTLOG_BACKWARDS_READ,
+        EVENTLOG_SEQUENTIAL_READ,
+        OpenEventLog,
+        ReadEventLog,
+    )
     from win32evtlogutil import SafeFormatMessage
 
     logger = logbook.Logger('Test Logger')

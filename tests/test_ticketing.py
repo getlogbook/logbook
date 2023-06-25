@@ -6,8 +6,9 @@ try:
 except ImportError:
     from _thread import get_ident
 
-import logbook
 import pytest
+
+import logbook
 from logbook.helpers import xrange
 
 from .utils import require_module
@@ -24,8 +25,9 @@ python_version = sys.version_info[:2]
     reason='Problem with in-memory sqlite on Python 3.2, 3.3 and Windows')
 @require_module('sqlalchemy')
 def test_basic_ticketing(logger):
-    from logbook.ticketing import TicketingHandler
     from time import sleep
+
+    from logbook.ticketing import TicketingHandler
     with TicketingHandler('sqlite:///') as handler:
         for x in xrange(5):
             logger.warn('A warning')

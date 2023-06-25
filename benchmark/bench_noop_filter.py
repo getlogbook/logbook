@@ -1,6 +1,6 @@
-from logbook import Logger, StreamHandler, NullHandler
 from cStringIO import StringIO
 
+from logbook import Logger, NullHandler, StreamHandler
 
 log = Logger('Test logger')
 

@@ -1,10 +1,10 @@
 import pickle
 import sys
 
-import logbook
-from logbook.helpers import iteritems, xrange, u
-
 import pytest
+
+import logbook
+from logbook.helpers import iteritems, u, xrange
 
 
 def test_basic_logging(active_handler, logger):

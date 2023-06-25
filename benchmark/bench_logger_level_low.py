@@ -1,7 +1,7 @@
 """Benchmarks too low logger levels"""
-from logbook import Logger, StreamHandler, ERROR
 from cStringIO import StringIO
 
+from logbook import ERROR, Logger, StreamHandler
 
 log = Logger('Test logger')
 log.level = ERROR

@@ -1,13 +1,15 @@
+import gzip
 import os
-import pytest
 import time
 from datetime import datetime
 
+import brotli
+import pytest
+
 import logbook
 from logbook.helpers import u, xrange
-import gzip
-import brotli
-from .utils import capturing_stderr_context, LETTERS
+
+from .utils import LETTERS, capturing_stderr_context
 
 
 def test_file_handler(logfile, activation_strategy, logger):

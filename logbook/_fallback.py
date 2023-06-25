@@ -8,11 +8,20 @@
     :license: BSD, see LICENSE for more details.
 """
 from itertools import count
-from logbook.helpers import get_iterator_next_method
+
 from logbook.concurrency import (
-    thread_get_ident, greenlet_get_ident, thread_local, greenlet_local,
-    ThreadLock, GreenletRLock, is_gevent_enabled, ContextVar, context_get_ident,
-    is_context_enabled)
+    ContextVar,
+    GreenletRLock,
+    ThreadLock,
+    context_get_ident,
+    greenlet_get_ident,
+    greenlet_local,
+    is_context_enabled,
+    is_gevent_enabled,
+    thread_get_ident,
+    thread_local,
+)
+from logbook.helpers import get_iterator_next_method
 
 _missing = object()
 _MAX_CONTEXT_OBJECT_CACHE = 256

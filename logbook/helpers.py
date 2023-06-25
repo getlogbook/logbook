@@ -7,19 +7,20 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
+import errno
 import os
+import random
 import re
 import sys
-import errno
 import time
-import random
 from datetime import datetime, timedelta
 
 PY2 = sys.version_info[0] == 2
 
 if PY2:
-    import __builtin__ as _builtins
     import collections as collections_abc
+
+    import __builtin__ as _builtins
 else:
     import builtins as _builtins
     import collections.abc as collections_abc

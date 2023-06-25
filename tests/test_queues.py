@@ -2,12 +2,12 @@ import os
 import socket
 import time
 
-from .utils import require_module, missing, LETTERS
+import pytest
 
 import logbook
 from logbook.helpers import u
 
-import pytest
+from .utils import LETTERS, missing, require_module
 
 REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
@@ -77,6 +77,7 @@ def test_multi_processing_handler():
     if os.getenv('APPVEYOR') == 'True':
         pytest.skip('Test hangs on AppVeyor CI')
     from multiprocessing import Process, Queue
+
     from logbook.queues import MultiProcessingSubscriber
     queue = Queue(-1)
     test_handler = logbook.TestHandler()
@@ -201,6 +202,7 @@ def test_subscriber_group():
     if os.getenv('APPVEYOR') == 'True':
         pytest.skip('Test hangs on AppVeyor CI')
     from multiprocessing import Process, Queue
+
     from logbook.queues import MultiProcessingSubscriber, SubscriberGroup
     a_queue = Queue(-1)
     b_queue = Queue(-1)
@@ -223,6 +225,7 @@ def test_subscriber_group():
 @require_module('redis')
 def test_redis_handler():
     import redis
+
     from logbook.queues import RedisHandler
 
     KEY = f'redis-{os.getpid()}'
@@ -292,6 +295,7 @@ def test_redis_handler_lpush():
     new items should be first on list
     """
     import redis
+
     from logbook.queues import RedisHandler
     null_handler = logbook.NullHandler()
 
@@ -320,6 +324,7 @@ def test_redis_handler_rpush():
     old items should be first on list
     """
     import redis
+
     from logbook.queues import RedisHandler
     null_handler = logbook.NullHandler()
 

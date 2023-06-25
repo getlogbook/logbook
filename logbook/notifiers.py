@@ -7,14 +7,14 @@
     :copyright: (c) 2010 by Armin Ronacher, Christopher Grebs.
     :license: BSD, see LICENSE for more details.
 """
+import base64
 import os
 import sys
-import base64
 from time import time
 
-from logbook.base import NOTSET, ERROR, WARNING
+from logbook.base import ERROR, NOTSET, WARNING
 from logbook.handlers import Handler, LimitingHandlerMixin
-from logbook.helpers import get_application_name, PY2, http_client, u
+from logbook.helpers import PY2, get_application_name, http_client, u
 
 if PY2:
     from urllib import urlencode

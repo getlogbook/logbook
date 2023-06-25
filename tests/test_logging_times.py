@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta, tzinfo
 
-import logbook
-
 import pytest
+
+import logbook
 
 from .utils import get_total_delta_seconds
 

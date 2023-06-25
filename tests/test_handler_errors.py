@@ -1,9 +1,9 @@
 import re
 import sys
 
-import logbook
-
 import pytest
+
+import logbook
 
 from .utils import capturing_stderr_context
 

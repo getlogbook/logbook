@@ -8,11 +8,12 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-from time import time
 import json
-from logbook.base import NOTSET, level_name_property, LogRecord
+from time import time
+
+from logbook.base import NOTSET, LogRecord, level_name_property
 from logbook.handlers import Handler, HashingHandlerMixin
-from logbook.helpers import cached_property, b, PY2, u
+from logbook.helpers import PY2, b, cached_property, u
 
 
 class Ticket:
@@ -131,8 +132,8 @@ class SQLAlchemyBackend(BackendBase):
     """
 
     def setup_backend(self):
-        from sqlalchemy import create_engine, MetaData
-        from sqlalchemy.orm import sessionmaker, scoped_session
+        from sqlalchemy import MetaData, create_engine
+        from sqlalchemy.orm import scoped_session, sessionmaker
         engine_or_uri = self.options.pop('uri', None)
         metadata = self.options.pop('metadata', None)
         table_prefix = self.options.pop('table_prefix', 'logbook_')

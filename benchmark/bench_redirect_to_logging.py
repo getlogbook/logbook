@@ -1,8 +1,9 @@
 """Tests redirects from logging to logbook"""
-from logging import getLogger, StreamHandler
-from logbook.compat import LoggingHandler
+from logging import StreamHandler, getLogger
+
 from cStringIO import StringIO
 
+from logbook.compat import LoggingHandler
 
 log = getLogger('Test logger')
 

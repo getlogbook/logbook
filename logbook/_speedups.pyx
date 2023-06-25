@@ -9,14 +9,27 @@
 """
 
 
-from logbook.concurrency import (is_gevent_enabled, thread_get_ident, greenlet_get_ident, thread_local,
-                                 GreenletRLock, greenlet_local, ContextVar, context_get_ident, is_context_enabled)
+from logbook.concurrency import (
+    ContextVar,
+    GreenletRLock,
+    context_get_ident,
+    greenlet_get_ident,
+    greenlet_local,
+    is_context_enabled,
+    is_gevent_enabled,
+    thread_get_ident,
+    thread_local,
+)
 
 from cpython.dict cimport PyDict_Clear, PyDict_SetItem
-from cpython.list cimport PyList_Append, PyList_Sort, PyList_GET_SIZE
-
-from cpython.pythread cimport PyThread_type_lock, PyThread_allocate_lock, \
-     PyThread_release_lock, PyThread_acquire_lock, WAIT_LOCK
+from cpython.list cimport PyList_Append, PyList_GET_SIZE, PyList_Sort
+from cpython.pythread cimport (
+    WAIT_LOCK,
+    PyThread_acquire_lock,
+    PyThread_allocate_lock,
+    PyThread_release_lock,
+    PyThread_type_lock,
+)
 
 _missing = object()
 

@@ -1,6 +1,8 @@
-import pytest
-import logbook
 import asyncio
+
+import pytest
+
+import logbook
 from logbook.concurrency import has_contextvars
 
 ITERATIONS = 100

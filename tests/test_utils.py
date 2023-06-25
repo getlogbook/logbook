@@ -1,10 +1,15 @@
-import pytest
-import logbook
-
-from logbook.utils import (
-    logged_if_slow, deprecated, forget_deprecation_locations,
-    suppressed_deprecations, log_deprecation_message)
 from time import sleep
+
+import pytest
+
+import logbook
+from logbook.utils import (
+    deprecated,
+    forget_deprecation_locations,
+    log_deprecation_message,
+    logged_if_slow,
+    suppressed_deprecations,
+)
 
 _THRESHOLD = 0.1
 

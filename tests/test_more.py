@@ -1,9 +1,9 @@
 import sys
 
+import pytest
+
 import logbook
 from logbook.helpers import StringIO
-
-import pytest
 
 from .utils import capturing_stderr_context, missing, require_module
 
@@ -22,6 +22,7 @@ def test_jinja_formatter(logger):
 @missing('jinja2')
 def test_missing_jinja2():
     from logbook.more import JinjaFormatter
+
     # check the RuntimeError is raised
     with pytest.raises(RuntimeError):
         JinjaFormatter('dummy')
@@ -61,7 +62,7 @@ def test_colorizing_support(logger):
 
 
 def test_tagged(default_handler):
-    from logbook.more import TaggingLogger, TaggingHandler
+    from logbook.more import TaggingHandler, TaggingLogger
     stream = StringIO()
     second_handler = logbook.StreamHandler(stream)
 

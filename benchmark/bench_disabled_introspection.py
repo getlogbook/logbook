@@ -1,6 +1,5 @@
 """Tests with frame introspection disabled"""
-from logbook import Logger, NullHandler, Flags
-
+from logbook import Flags, Logger, NullHandler
 
 log = Logger('Test logger')
 

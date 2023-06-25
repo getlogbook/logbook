@@ -38,9 +38,9 @@ if has_gevent:
         thread_get_ident = _get_original('threading', '_get_ident')
     thread_local = _get_original('threading', 'local')
 
-    from gevent.thread import get_ident as greenlet_get_ident
     from gevent.local import local as greenlet_local
     from gevent.lock import BoundedSemaphore
+    from gevent.thread import get_ident as greenlet_get_ident
     from gevent.threading import __threading__
 
     def thread_get_name():
@@ -128,14 +128,15 @@ if has_gevent:
         def _is_owned(self):
             return self._owner == (thread_get_ident(), greenlet_get_ident())
 else:
-    from threading import (
-        Lock as ThreadLock, RLock as ThreadRLock, currentThread)
+    from threading import Lock as ThreadLock
+    from threading import RLock as ThreadRLock
+    from threading import currentThread
     try:
-        from thread import (
-            get_ident as thread_get_ident, _local as thread_local)
+        from thread import _local as thread_local
+        from thread import get_ident as thread_get_ident
     except ImportError:
-        from _thread import (
-            get_ident as thread_get_ident, _local as thread_local)
+        from _thread import _local as thread_local
+        from _thread import get_ident as thread_get_ident
 
     def thread_get_name():
         return currentThread().getName()

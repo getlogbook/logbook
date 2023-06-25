@@ -15,7 +15,7 @@ import warnings
 from datetime import date, datetime
 
 import logbook
-from logbook.helpers import u, string_types, iteritems, collections_abc
+from logbook.helpers import collections_abc, iteritems, string_types, u
 
 _epoch_ord = date(1970, 1, 1).toordinal()
 

@@ -1,14 +1,13 @@
 import functools
 from random import randrange
 
+import pytest
+
 import logbook
 import logbook.compat
 from logbook.helpers import StringIO
 
-import pytest
-
 from .utils import capturing_stderr_context
-
 
 __file_without_pyc__ = __file__
 if __file_without_pyc__.endswith(".pyc"):
@@ -18,6 +17,7 @@ if __file_without_pyc__.endswith(".pyc"):
 @pytest.mark.parametrize('set_root_logger_level', [True, False])
 def test_basic_compat(request, set_root_logger_level):
     import logging
+
     from logbook.compat import redirected_logging
 
     # mimic the default logging setting
@@ -68,6 +68,7 @@ def test_redirect_logbook():
 
 
 from itertools import count
+
 test_warning_redirections_i = count()
 
 
@@ -77,7 +78,7 @@ def test_warning_redirections():
         redirector = redirected_warnings()
         redirector.start()
         try:
-            from warnings import warn, resetwarnings
+            from warnings import resetwarnings, warn
             resetwarnings()
             warn(RuntimeWarning('Testing' + str(next(test_warning_redirections_i))))
         finally:

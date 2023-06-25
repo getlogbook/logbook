@@ -4,6 +4,7 @@ import pytest
 
 from .utils import appveyor, travis
 
+
 @appveyor
 def test_appveyor_speedups():
     if os.environ.get('CYBUILD'):

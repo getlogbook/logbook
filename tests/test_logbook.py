@@ -1,6 +1,6 @@
-import logbook
-
 import pytest
+
+import logbook
 
 
 def test_global_functions(activation_strategy):

@@ -1,5 +1,6 @@
-import logbook
 import pytest
+
+import logbook
 
 
 def test_level_properties(logger):

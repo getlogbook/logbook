@@ -1,9 +1,9 @@
-from contextlib import contextmanager
 import functools
 import sys
 import threading
+from contextlib import contextmanager
 
-from .base import Logger, DEBUG
+from .base import DEBUG, Logger
 from .helpers import string_types
 
 

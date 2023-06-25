@@ -1,7 +1,7 @@
 """Tests with a logging handler becoming a noop for comparison"""
-from logging import getLogger, StreamHandler, ERROR
-from cStringIO import StringIO
+from logging import ERROR, StreamHandler, getLogger
 
+from cStringIO import StringIO
 
 log = getLogger('Testlogger')
 log.setLevel(ERROR)

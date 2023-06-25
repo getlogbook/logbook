@@ -1,7 +1,8 @@
-from logbook.helpers import u
 from datetime import datetime
 
 import pytest
+
+from logbook.helpers import u
 
 
 def test_jsonhelper():

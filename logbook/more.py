@@ -7,21 +7,23 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-import re
 import os
 import platform
-
+import re
 from collections import defaultdict
 from functools import partial
 
-from logbook.base import (
-    RecordDispatcher, dispatch_record, NOTSET, ERROR, NOTICE)
-from logbook.handlers import (
-    Handler, StringFormatter, StringFormatterHandlerMixin, StderrHandler)
 from logbook._termcolors import colorize
-from logbook.helpers import PY2, string_types, iteritems, u
-from logbook.ticketing import TicketingHandler as DatabaseHandler
+from logbook.base import ERROR, NOTICE, NOTSET, RecordDispatcher, dispatch_record
+from logbook.handlers import (
+    Handler,
+    StderrHandler,
+    StringFormatter,
+    StringFormatterHandlerMixin,
+)
+from logbook.helpers import PY2, iteritems, string_types, u
 from logbook.ticketing import BackendBase
+from logbook.ticketing import TicketingHandler as DatabaseHandler
 
 try:
     import riemann_client.client
@@ -33,6 +35,7 @@ except ImportError:
 
 if PY2:
     from urllib import urlencode
+
     from urlparse import parse_qsl
 else:
     from urllib.parse import parse_qsl, urlencode
@@ -398,8 +401,7 @@ class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
 
 
 # backwards compat.  Should go away in some future releases
-from logbook.handlers import (
-    FingersCrossedHandler as FingersCrossedHandlerBase)
+from logbook.handlers import FingersCrossedHandler as FingersCrossedHandlerBase
 
 
 class FingersCrossedHandler(FingersCrossedHandlerBase):

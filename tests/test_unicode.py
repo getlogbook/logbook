@@ -1,6 +1,6 @@
-from .utils import require_py3, capturing_stderr_context
-
 import logbook
+
+from .utils import capturing_stderr_context, require_py3
 
 
 @require_py3

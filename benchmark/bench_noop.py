@@ -1,7 +1,7 @@
 """Test with no handler active"""
-from logbook import Logger, StreamHandler, NullHandler, ERROR
 from cStringIO import StringIO
 
+from logbook import ERROR, Logger, NullHandler, StreamHandler
 
 log = Logger('Test logger')
 

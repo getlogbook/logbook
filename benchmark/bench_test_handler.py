@@ -1,7 +1,6 @@
 """Tests the test handler"""
 from logbook import Logger, TestHandler
 
-
 log = Logger('Test logger')
 
 

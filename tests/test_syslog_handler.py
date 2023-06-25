@@ -3,8 +3,9 @@ import re
 import socket
 from contextlib import closing
 
-import logbook
 import pytest
+
+import logbook
 
 UNIX_SOCKET = "/tmp/__unixsock_logbook.test"
 

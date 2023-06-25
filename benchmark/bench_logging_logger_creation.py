@@ -1,7 +1,6 @@
 """Test with no handler active"""
 from logging import getLogger
 
-
 root_logger = getLogger()
 
 

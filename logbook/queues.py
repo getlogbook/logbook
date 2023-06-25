@@ -8,17 +8,20 @@
     :license: BSD, see LICENSE for more details.
 """
 import json
-import threading
-from threading import Thread, Lock
 import platform
+import threading
+from threading import Lock, Thread
+
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler, WrapperHandler
 from logbook.helpers import PY2, u
 
 if PY2:
-    from Queue import Empty, Full, Queue as ThreadQueue
+    from Queue import Empty, Full
+    from Queue import Queue as ThreadQueue
 else:
-    from queue import Empty, Full, Queue as ThreadQueue
+    from queue import Empty, Full
+    from queue import Queue as ThreadQueue
 
 
 class RedisHandler(Handler):

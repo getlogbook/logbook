@@ -2,9 +2,9 @@
 """
     Runs the benchmarks
 """
-import sys
 import os
 import re
+import sys
 from subprocess import Popen
 
 try:
