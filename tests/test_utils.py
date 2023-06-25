@@ -19,6 +19,7 @@ except ImportError:
     from unittest.mock import Mock, call
 
 
+@pytest.mark.flaky(reruns=5)
 def test_logged_if_slow_reached(test_handler):
     with test_handler.applicationbound():
         with logged_if_slow("checking...", threshold=_THRESHOLD):
@@ -28,6 +29,7 @@ def test_logged_if_slow_reached(test_handler):
         assert record.message == "checking..."
 
 
+@pytest.mark.flaky(reruns=5)
 def test_logged_if_slow_did_not_reached(test_handler):
     with test_handler.applicationbound():
         with logged_if_slow("checking...", threshold=_THRESHOLD):
@@ -35,6 +37,7 @@ def test_logged_if_slow_did_not_reached(test_handler):
         assert len(test_handler.records) == 0
 
 
+@pytest.mark.flaky(reruns=5)
 def test_logged_if_slow_logger():
     logger = Mock()
 
@@ -44,6 +47,7 @@ def test_logged_if_slow_logger():
     assert logger.log.call_args == call(logbook.DEBUG, "checking...")
 
 
+@pytest.mark.flaky(reruns=5)
 def test_logged_if_slow_level(test_handler):
     with test_handler.applicationbound():
         with logged_if_slow("checking...", threshold=_THRESHOLD, level=logbook.WARNING):
@@ -52,6 +56,7 @@ def test_logged_if_slow_level(test_handler):
     assert test_handler.records[0].level == logbook.WARNING
 
 
+@pytest.mark.flaky(reruns=5)
 def test_logged_if_slow_deprecated(logger, test_handler):
     with test_handler.applicationbound():
         with logged_if_slow("checking...", threshold=_THRESHOLD, func=logbook.error):

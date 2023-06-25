@@ -30,7 +30,7 @@ Documentation = "https://logbook.readthedocs.io"
 "Source Code" = "https://github.com/getlogbook/logbook"
 
 [project.optional-dependencies]
-test = ["pytest>=6"]
+test = ["pytest>=6", "pytest-rerunfailures"]
 dev = ["Logbook[test]", "tox>=4"]
 execnet = ["execnet>=1.0.9"]
 sqlalchemy = ["sqlalchemy"]
