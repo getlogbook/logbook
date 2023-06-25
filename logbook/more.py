@@ -30,7 +30,7 @@ try:
     import riemann_client.transport
 except ImportError:
     riemann_client = None
-    #from riemann_client.transport import TCPTransport, UDPTransport, BlankTransport
+    # from riemann_client.transport import TCPTransport, UDPTransport, BlankTransport
 
 
 if PY2:
@@ -40,27 +40,25 @@ if PY2:
 else:
     from urllib.parse import parse_qsl, urlencode
 
-_ws_re = re.compile(r'(\s+)', re.UNICODE)
-TWITTER_FORMAT_STRING = u(
-    '[{record.channel}] {record.level_name}: {record.message}')
-TWITTER_ACCESS_TOKEN_URL = 'https://twitter.com/oauth/access_token'
-NEW_TWEET_URL = 'https://api.twitter.com/1/statuses/update.json'
+_ws_re = re.compile(r"(\s+)", re.UNICODE)
+TWITTER_FORMAT_STRING = u("[{record.channel}] {record.level_name}: {record.message}")
+TWITTER_ACCESS_TOKEN_URL = "https://twitter.com/oauth/access_token"
+NEW_TWEET_URL = "https://api.twitter.com/1/statuses/update.json"
 
 
 class CouchDBBackend(BackendBase):
-    """Implements a backend that writes into a CouchDB database.
-    """
+    """Implements a backend that writes into a CouchDB database."""
+
     def setup_backend(self):
         from couchdb import Server
 
-        uri = self.options.pop('uri', u(''))
+        uri = self.options.pop("uri", u(""))
         couch = Server(uri)
-        db_name = self.options.pop('db')
+        db_name = self.options.pop("db")
         self.database = couch[db_name]
 
     def record_ticket(self, record, data, hash, app_id):
-        """Records a log record as ticket.
-        """
+        """Records a log record as ticket."""
         db = self.database
 
         ticket = record.to_dict()
@@ -74,11 +72,11 @@ class TwitterFormatter(StringFormatter):
     """Works like the standard string formatter and is used by the
     :class:`TwitterHandler` unless changed.
     """
+
     max_length = 140
 
     def format_exception(self, record):
-        return u('%s: %s') % (record.exception_shortname,
-                              record.exception_message)
+        return u("%s: %s") % (record.exception_shortname, record.exception_message)
 
     def __call__(self, record, handler):
         formatted = StringFormatter.__call__(self, record, handler)
@@ -88,10 +86,10 @@ class TwitterFormatter(StringFormatter):
             length += len(piece)
             if length > self.max_length:
                 if length - len(piece) < self.max_length:
-                    rv.append(u('…'))
+                    rv.append(u("…"))
                 break
             rv.append(piece)
-        return u('').join(rv)
+        return u("").join(rv)
 
 
 class TaggingLogger(RecordDispatcher):
@@ -117,18 +115,19 @@ class TaggingLogger(RecordDispatcher):
     def __init__(self, name=None, tags=None):
         RecordDispatcher.__init__(self, name)
         # create a method for each tag named
-        for tag in (tags or ()):
+        for tag in tags or ():
             setattr(self, tag, partial(self.log, tag))
 
     def log(self, tags, msg, *args, **kwargs):
         if isinstance(tags, string_types):
             tags = [tags]
-        exc_info = kwargs.pop('exc_info', None)
-        extra = kwargs.pop('extra', {})
-        extra['tags'] = list(tags)
-        frame_correction = kwargs.pop('frame_correction', 0)
-        return self.make_record_and_handle(NOTSET, msg, args, kwargs,
-                                           exc_info, extra, frame_correction)
+        exc_info = kwargs.pop("exc_info", None)
+        extra = kwargs.pop("extra", {})
+        extra["tags"] = list(tags)
+        frame_correction = kwargs.pop("frame_correction", 0)
+        return self.make_record_and_handle(
+            NOTSET, msg, args, kwargs, exc_info, extra, frame_correction
+        )
 
 
 class TaggingHandler(Handler):
@@ -150,10 +149,11 @@ class TaggingHandler(Handler):
         assert isinstance(handlers, dict)
         self._handlers = {
             tag: isinstance(handler, Handler) and [handler] or handler
-            for (tag, handler) in iteritems(handlers)}
+            for (tag, handler) in iteritems(handlers)
+        }
 
     def emit(self, record):
-        for tag in record.extra.get('tags', ()):
+        for tag in record.extra.get("tags", ()):
             for handler in self._handlers.get(tag, ()):
                 handler.handle(record)
 
@@ -168,12 +168,21 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
     pairs from application explicitly whitelisted at Twitter
     (`leaked secrets <https://bit.ly/leaked-secrets>`_).
     """
+
     default_format_string = TWITTER_FORMAT_STRING
     formatter_class = TwitterFormatter
 
-    def __init__(self, consumer_key, consumer_secret, username,
-                 password, level=NOTSET, format_string=None, filter=None,
-                 bubble=False):
+    def __init__(
+        self,
+        consumer_key,
+        consumer_secret,
+        username,
+        password,
+        level=NOTSET,
+        format_string=None,
+        filter=None,
+        bubble=False,
+    ):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.consumer_key = consumer_key
@@ -184,35 +193,37 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
         try:
             import oauth2
         except ImportError:
-            raise RuntimeError('The python-oauth2 library is required for '
-                               'the TwitterHandler.')
+            raise RuntimeError(
+                "The python-oauth2 library is required for " "the TwitterHandler."
+            )
 
         self._oauth = oauth2
         self._oauth_token = None
         self._oauth_token_secret = None
-        self._consumer = oauth2.Consumer(consumer_key,
-                                         consumer_secret)
+        self._consumer = oauth2.Consumer(consumer_key, consumer_secret)
         self._client = oauth2.Client(self._consumer)
 
     def get_oauth_token(self):
         """Returns the oauth access token."""
         if self._oauth_token is None:
             resp, content = self._client.request(
-                TWITTER_ACCESS_TOKEN_URL + '?', 'POST',
-                body=urlencode({
-                    'x_auth_username':  self.username.encode('utf-8'),
-                    'x_auth_password':  self.password.encode('utf-8'),
-                    'x_auth_mode':      'client_auth'
-                }),
-                headers={'Content-Type': 'application/x-www-form-urlencoded'}
+                TWITTER_ACCESS_TOKEN_URL + "?",
+                "POST",
+                body=urlencode(
+                    {
+                        "x_auth_username": self.username.encode("utf-8"),
+                        "x_auth_password": self.password.encode("utf-8"),
+                        "x_auth_mode": "client_auth",
+                    }
+                ),
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
-            if resp['status'] != '200':
-                raise RuntimeError('unable to login to Twitter')
+            if resp["status"] != "200":
+                raise RuntimeError("unable to login to Twitter")
             data = dict(parse_qsl(content))
-            self._oauth_token = data['oauth_token']
-            self._oauth_token_secret = data['oauth_token_secret']
-        return self._oauth.Token(self._oauth_token,
-                                 self._oauth_token_secret)
+            self._oauth_token = data["oauth_token"]
+            self._oauth_token_secret = data["oauth_token_secret"]
+        return self._oauth.Token(self._oauth_token, self._oauth_token_secret)
 
     def make_client(self):
         """Creates a new oauth client auth a new access token."""
@@ -222,10 +233,12 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
         """Tweets a given status.  Status must not exceed 140 chars."""
         client = self.make_client()
         resp, content = client.request(
-            NEW_TWEET_URL, 'POST',
-            body=urlencode({'status': status.encode('utf-8')}),
-            headers={'Content-Type': 'application/x-www-form-urlencoded'})
-        return resp['status'] == '200'
+            NEW_TWEET_URL,
+            "POST",
+            body=urlencode({"status": status.encode("utf-8")}),
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        return resp["status"] == "200"
 
     def emit(self, record):
         self.tweet(self.format(record))
@@ -238,9 +251,15 @@ class SlackHandler(Handler, StringFormatterHandlerMixin):
     slacker library has to be installed.
     """
 
-    def __init__(self, api_token, channel, level=NOTSET, format_string=None, filter=None,
-                 bubble=False):
-
+    def __init__(
+        self,
+        api_token,
+        channel,
+        level=NOTSET,
+        format_string=None,
+        filter=None,
+        bubble=False,
+    ):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.api_token = api_token
@@ -248,8 +267,9 @@ class SlackHandler(Handler, StringFormatterHandlerMixin):
         try:
             from slacker import Slacker
         except ImportError:
-            raise RuntimeError('The slacker library is required for '
-                               'the SlackHandler.')
+            raise RuntimeError(
+                "The slacker library is required for " "the SlackHandler."
+            )
 
         self.channel = channel
         self.slack = Slacker(api_token)
@@ -267,8 +287,9 @@ class JinjaFormatter:
         try:
             from jinja2 import Template
         except ImportError:
-            raise RuntimeError('The jinja2 library is required for '
-                               'the JinjaFormatter.')
+            raise RuntimeError(
+                "The jinja2 library is required for " "the JinjaFormatter."
+            )
         self.template = Template(template)
 
     def __call__(self, record, handler):
@@ -295,9 +316,15 @@ class ExternalApplicationHandler(Handler):
     .. versionadded:: 0.3
     """
 
-    def __init__(self, arguments, stdin_format=None,
-                 encoding='utf-8', level=NOTSET, filter=None,
-                 bubble=False):
+    def __init__(
+        self,
+        arguments,
+        stdin_format=None,
+        encoding="utf-8",
+        level=NOTSET,
+        filter=None,
+        bubble=False,
+    ):
         Handler.__init__(self, level, filter, bubble)
         self.encoding = encoding
         self._arguments = list(arguments)
@@ -305,14 +332,13 @@ class ExternalApplicationHandler(Handler):
             stdin_format = stdin_format
         self._stdin_format = stdin_format
         import subprocess
+
         self._subprocess = subprocess
 
     def emit(self, record):
-        args = [arg.format(record=record)
-                for arg in self._arguments]
+        args = [arg.format(record=record) for arg in self._arguments]
         if self._stdin_format is not None:
-            stdin_data = (self._stdin_format.format(record=record)
-                          .encode(self.encoding))
+            stdin_data = self._stdin_format.format(record=record).encode(self.encoding)
             stdin = self._subprocess.PIPE
         else:
             stdin = None
@@ -331,16 +357,15 @@ class ColorizingStreamHandlerMixin:
 
     .. _`colorama`: https://pypi.org/project/colorama
     """
+
     _use_color = None
 
     def force_color(self):
-        """Force colorizing the stream (`should_colorize` will return True)
-        """
+        """Force colorizing the stream (`should_colorize` will return True)"""
         self._use_color = True
 
     def forbid_color(self):
-        """Forbid colorizing the stream (`should_colorize` will return False)
-        """
+        """Forbid colorizing the stream (`should_colorize` will return False)"""
         self._use_color = False
 
     def should_colorize(self, record):
@@ -349,23 +374,23 @@ class ColorizingStreamHandlerMixin:
         stream is a tty. If we are executing on Windows, colorama must be
         installed.
         """
-        if os.name == 'nt':
+        if os.name == "nt":
             try:
                 import colorama
             except ImportError:
                 return False
         if self._use_color is not None:
             return self._use_color
-        isatty = getattr(self.stream, 'isatty', None)
+        isatty = getattr(self.stream, "isatty", None)
         return isatty and isatty()
 
     def get_color(self, record):
         """Returns the color for this record."""
         if record.level >= ERROR:
-            return 'red'
+            return "red"
         elif record.level >= NOTICE:
-            return 'yellow'
-        return 'lightgray'
+            return "yellow"
+        return "lightgray"
 
     def format(self, record):
         rv = super().format(record)
@@ -387,6 +412,7 @@ class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
 
     .. _`colorama`: https://pypi.org/project/colorama
     """
+
     def __init__(self, *args, **kwargs):
         StderrHandler.__init__(self, *args, **kwargs)
 
@@ -408,8 +434,13 @@ class FingersCrossedHandler(FingersCrossedHandlerBase):
     def __init__(self, *args, **kwargs):
         FingersCrossedHandlerBase.__init__(self, *args, **kwargs)
         from warnings import warn
-        warn(PendingDeprecationWarning('fingers crossed handler changed '
-             'location.  It\'s now a core component of Logbook.'))
+
+        warn(
+            PendingDeprecationWarning(
+                "fingers crossed handler changed "
+                "location.  It's now a core component of Logbook."
+            )
+        )
 
 
 class ExceptionHandler(Handler, StringFormatterHandlerMixin):
@@ -426,8 +457,10 @@ class ExceptionHandler(Handler, StringFormatterHandlerMixin):
 
     .. versionadded:: 0.3
     """
-    def __init__(self, exc_type, level=NOTSET, format_string=None,
-                 filter=None, bubble=False):
+
+    def __init__(
+        self, exc_type, level=NOTSET, format_string=None, filter=None, bubble=False
+    ):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.exc_type = exc_type
@@ -455,9 +488,10 @@ class DedupHandler(Handler):
        message repeated 2 times: foo
        message repeated 1 times: bar
     """
-    def __init__(self,
-                 format_string='message repeated {count} times: {message}',
-                 *args, **kwargs):
+
+    def __init__(
+        self, format_string="message repeated {count} times: {message}", *args, **kwargs
+    ):
         Handler.__init__(self, bubble=False, *args, **kwargs)
         self._format_string = format_string
         self.clear()
@@ -491,8 +525,8 @@ class DedupHandler(Handler):
     def flush(self):
         for record in self._unique_ordered_records:
             record.message = self._format_string.format(
-                message=record.message,
-                count=self._message_to_count[record.message])
+                message=record.message, count=self._message_to_count[record.message]
+            )
             # record.dispatcher is the logger who created the message,
             # it's sometimes supressed (by logbook.info for example)
             if record.dispatcher is not None:
@@ -509,15 +543,17 @@ class RiemannHandler(Handler):
     A handler that sends logs as events to Riemann.
     """
 
-    def __init__(self,
-                 host,
-                 port,
-                 message_type="tcp",
-                 ttl=60,
-                 flush_threshold=10,
-                 bubble=False,
-                 filter=None,
-                 level=NOTSET):
+    def __init__(
+        self,
+        host,
+        port,
+        message_type="tcp",
+        ttl=60,
+        flush_threshold=10,
+        bubble=False,
+        filter=None,
+        level=NOTSET,
+    ):
         """
         :param host: riemann host
         :param port: riemann port
@@ -526,7 +562,9 @@ class RiemannHandler(Handler):
         :param flush_threshold: count of events after which we send to riemann
         """
         if riemann_client is None:
-            raise NotImplementedError("The Riemann handler requires the riemann_client package") # pragma: no cover
+            raise NotImplementedError(
+                "The Riemann handler requires the riemann_client package"
+            )  # pragma: no cover
         Handler.__init__(self, level, filter, bubble)
         self.host = host
         self.port = port
@@ -540,33 +578,37 @@ class RiemannHandler(Handler):
         elif message_type == "test":
             self.transport = riemann_client.transport.BlankTransport
         else:
-            msg = ("Currently supported message types for RiemannHandler are: {}. \
-                    {} is not supported."
-                   .format(",".join(["tcp", "udp", "test"]), message_type))
+            msg = "Currently supported message types for RiemannHandler are: {}. \
+                    {} is not supported.".format(
+                ",".join(["tcp", "udp", "test"]), message_type
+            )
             raise RuntimeError(msg)
 
     def record_to_event(self, record):
         from time import time
+
         tags = ["log", record.level_name]
         msg = str(record.exc_info[1]) if record.exc_info else record.msg
         channel_name = str(record.channel) if record.channel else "unknown"
-        if any([record.level_name == keywords
-                for keywords in ["ERROR", "EXCEPTION"]]):
+        if any([record.level_name == keywords for keywords in ["ERROR", "EXCEPTION"]]):
             state = "error"
         else:
             state = "ok"
-        return {"metric_f": 1.0,
-                "tags": tags,
-                "description": msg,
-                "time": int(time()),
-                "ttl": self.ttl,
-                "host": platform.node(),
-                "service": f"{channel_name}.{os.getpid()}",
-                "state": state
-                }
+        return {
+            "metric_f": 1.0,
+            "tags": tags,
+            "description": msg,
+            "time": int(time()),
+            "ttl": self.ttl,
+            "host": platform.node(),
+            "service": f"{channel_name}.{os.getpid()}",
+            "state": state,
+        }
 
     def _flush_events(self):
-        with riemann_client.client.QueuedClient(self.transport(self.host, self.port)) as cl:
+        with riemann_client.client.QueuedClient(
+            self.transport(self.host, self.port)
+        ) as cl:
             for event in self.queue:
                 cl.event(**event)
             cl.flush()

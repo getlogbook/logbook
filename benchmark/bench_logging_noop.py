@@ -3,7 +3,7 @@ from logging import ERROR, StreamHandler, getLogger
 
 from cStringIO import StringIO
 
-log = getLogger('Testlogger')
+log = getLogger("Testlogger")
 
 
 def run():
@@ -12,4 +12,4 @@ def run():
     handler.setLevel(ERROR)
     log.addHandler(handler)
     for x in xrange(500):
-        log.warning('this is not handled')
+        log.warning("this is not handled")

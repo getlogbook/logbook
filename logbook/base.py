@@ -30,7 +30,7 @@ from logbook.helpers import (
 
 _has_speedups = False
 try:
-    if os.environ.get('DISABLE_LOGBOOK_CEXT_AT_RUNTIME'):
+    if os.environ.get("DISABLE_LOGBOOK_CEXT_AT_RUNTIME"):
         raise ImportError("Speedups disabled via DISABLE_LOGBOOK_CEXT_AT_RUNTIME")
 
     from logbook._speedups import (
@@ -110,13 +110,18 @@ def set_datetime_format(datetime_format):
     elif callable(datetime_format):
         inst = datetime_format()
         if not isinstance(inst, datetime):
-            raise ValueError("Invalid callable value, valid callable "
-                             "should return datetime.datetime instances, "
-                             "not %r" % (type(inst),))
+            raise ValueError(
+                "Invalid callable value, valid callable "
+                "should return datetime.datetime instances, "
+                "not %r" % (type(inst),)
+            )
         _datetime_factory = datetime_format
     else:
-        raise ValueError("Invalid value %r.  Valid values are 'utc' and "
-                         "'local'." % (datetime_format,))
+        raise ValueError(
+            "Invalid value %r.  Valid values are 'utc' and "
+            "'local'." % (datetime_format,)
+        )
+
 
 # make sure to sync these up with _speedups.pyx
 CRITICAL = 15
@@ -129,14 +134,14 @@ TRACE = 9
 NOTSET = 0
 
 _level_names = {
-    CRITICAL:   'CRITICAL',
-    ERROR:      'ERROR',
-    WARNING:    'WARNING',
-    NOTICE:     'NOTICE',
-    INFO:       'INFO',
-    DEBUG:      'DEBUG',
-    TRACE:      'TRACE',
-    NOTSET:     'NOTSET'
+    CRITICAL: "CRITICAL",
+    ERROR: "ERROR",
+    WARNING: "WARNING",
+    NOTICE: "NOTICE",
+    INFO: "INFO",
+    DEBUG: "DEBUG",
+    TRACE: "TRACE",
+    NOTSET: "NOTSET",
 }
 _reverse_level_names = {v: k for (k, v) in iteritems(_level_names)}
 _missing = object()
@@ -145,12 +150,14 @@ _missing = object()
 # on python 3 we can savely assume that frame filenames will be in
 # unicode, on Python 2 we have to apply a trick.
 if PY2:
+
     def _convert_frame_filename(fn):
         if isinstance(fn, unicode):
-            fn = fn.decode(sys.getfilesystemencoding() or 'utf-8',
-                           'replace')
+            fn = fn.decode(sys.getfilesystemencoding() or "utf-8", "replace")
         return fn
+
 else:
+
     def _convert_frame_filename(fn):
         return fn
 
@@ -165,8 +172,8 @@ def level_name_property():
 
     def _set_level_name(self, level):
         self.level = lookup_level(level)
-    return property(_get_level_name, _set_level_name,
-                    doc='The level as unicode string')
+
+    return property(_get_level_name, _set_level_name, doc="The level as unicode string")
 
 
 def lookup_level(level):
@@ -176,7 +183,7 @@ def lookup_level(level):
     try:
         return _reverse_level_names[level]
     except KeyError:
-        raise LookupError('unknown level name %s' % level)
+        raise LookupError("unknown level name %s" % level)
 
 
 def get_level_name(level):
@@ -184,7 +191,7 @@ def get_level_name(level):
     try:
         return _level_names[level]
     except KeyError:
-        raise LookupError('unknown level')
+        raise LookupError("unknown level")
 
 
 class _ExceptionCatcher:
@@ -201,7 +208,7 @@ class _ExceptionCatcher:
     def __exit__(self, exc_type, exc_value, tb):
         if exc_type is not None:
             kwargs = self.kwargs.copy()
-            kwargs['exc_info'] = (exc_type, exc_value, tb)
+            kwargs["exc_info"] = (exc_type, exc_value, tb)
             self.logger.exception(*self.args, **kwargs)
         return True
 
@@ -222,7 +229,7 @@ class ContextObject(StackedObject):
     def pop_greenlet(self):
         """Pops the context object from the stack."""
         popped = self.stack_manager.pop_greenlet()
-        assert popped is self, 'popped unexpected object'
+        assert popped is self, "popped unexpected object"
 
     def push_context(self):
         """Pushes the context object to the context stack."""
@@ -231,7 +238,7 @@ class ContextObject(StackedObject):
     def pop_context(self):
         """Pops the context object from the stack."""
         popped = self.stack_manager.pop_context()
-        assert popped is self, 'popped unexpected object'
+        assert popped is self, "popped unexpected object"
 
     def push_thread(self):
         """Pushes the context object to the thread stack."""
@@ -240,7 +247,7 @@ class ContextObject(StackedObject):
     def pop_thread(self):
         """Pops the context object from the stack."""
         popped = self.stack_manager.pop_thread()
-        assert popped is self, 'popped unexpected object'
+        assert popped is self, "popped unexpected object"
 
     def push_application(self):
         """Pushes the context object to the application stack."""
@@ -249,7 +256,7 @@ class ContextObject(StackedObject):
     def pop_application(self):
         """Pops the context object from the stack."""
         popped = self.stack_manager.pop_application()
-        assert popped is self, 'popped unexpected object'
+        assert popped is self, "popped unexpected object"
 
 
 class NestedSetup(StackedObject):
@@ -322,10 +329,12 @@ class _InheritedType:
     __slots__ = ()
 
     def __repr__(self):
-        return 'Inherit'
+        return "Inherit"
 
     def __reduce__(self):
-        return 'Inherit'
+        return "Inherit"
+
+
 Inherit = _InheritedType()
 
 
@@ -358,6 +367,7 @@ class Flags(ContextObject):
         with Flags(errors='silent'):
             ...
     """
+
     stack_manager = ContextStackManager()
 
     def __init__(self, **flags):
@@ -387,12 +397,24 @@ class LogRecord:
     contain all the information pertinent to the event being logged. The
     main information passed in is in msg and args
     """
-    _pullable_information = frozenset((
-        'func_name', 'module', 'filename', 'lineno', 'process_name', 'thread',
-        'thread_name', 'greenlet', 'formatted_exception', 'message',
-        'exception_name', 'exception_message'
-    ))
-    _noned_on_close = frozenset(('exc_info', 'frame', 'calling_frame'))
+
+    _pullable_information = frozenset(
+        (
+            "func_name",
+            "module",
+            "filename",
+            "lineno",
+            "process_name",
+            "thread",
+            "thread_name",
+            "greenlet",
+            "formatted_exception",
+            "message",
+            "exception_name",
+            "exception_message",
+        )
+    )
+    _noned_on_close = frozenset(("exc_info", "frame", "calling_frame"))
 
     #: can be overriden by a handler to not close the record.  This could
     #: lead to memory leaks so it should be used carefully.
@@ -414,9 +436,19 @@ class LogRecord:
     #: information that becomes unavailable on close.
     information_pulled = False
 
-    def __init__(self, channel, level, msg, args=None, kwargs=None,
-                 exc_info=None, extra=None, frame=None, dispatcher=None,
-                 frame_correction=0):
+    def __init__(
+        self,
+        channel,
+        level,
+        msg,
+        args=None,
+        kwargs=None,
+        exc_info=None,
+        extra=None,
+        frame=None,
+        dispatcher=None,
+        frame_correction=0,
+    ):
         #: the name of the logger that created it or any other textual
         #: channel description.  This is a descriptive name and can be
         #: used for filtering.
@@ -444,7 +476,7 @@ class LogRecord:
         #: data.
 
         # TODO: Replace the lambda with str when we remove support for python 2
-        self.extra = defaultdict(lambda: '', extra or ())
+        self.extra = defaultdict(lambda: "", extra or ())
         #: If available, optionally the interpreter frame that pulled the
         #: heavy init.  This usually points to somewhere in the dispatcher.
         #: Might not be available for all calls and is removed when the log
@@ -472,11 +504,11 @@ class LogRecord:
         """
         if self.heavy_initialized:
             return
-        assert not self.late, 'heavy init is no longer possible'
+        assert not self.late, "heavy init is no longer possible"
         self.heavy_initialized = True
         self.process = os.getpid()
         self.time = _datetime_factory()
-        if self.frame is None and Flags.get_flag('introspection', True):
+        if self.frame is None and Flags.get_flag("introspection", True):
             self.frame = sys._getframe(1)
         if self.exc_info is True:
             self.exc_info = sys.exc_info()
@@ -517,10 +549,10 @@ class LogRecord:
         self.pull_information()
         rv = {}
         for key, value in iteritems(self.__dict__):
-            if key[:1] != '_' and key not in self._noned_on_close:
+            if key[:1] != "_" and key not in self._noned_on_close:
                 rv[key] = value
         # the extra dict is exported as regular dict
-        rv['extra'] = dict(rv['extra'])
+        rv["extra"] = dict(rv["extra"])
         if json_safe:
             return to_safe_json(rv)
         return rv
@@ -547,7 +579,7 @@ class LogRecord:
             self.time = parse_iso8601(self.time)
 
         # TODO: Replace the lambda with str when we remove support for python 2`
-        self.extra = defaultdict(lambda: '', self.extra)
+        self.extra = defaultdict(lambda: "", self.extra)
         return self
 
     def _format_message(self, msg, *args, **kwargs):
@@ -563,24 +595,24 @@ class LogRecord:
             return self.msg
         try:
             try:
-                return self._format_message(self.msg, *self.args,
-                                            **self.kwargs)
+                return self._format_message(self.msg, *self.args, **self.kwargs)
             except UnicodeDecodeError:
                 # Assume an unicode message but mixed-up args
-                msg = self.msg.encode('utf-8', 'replace')
+                msg = self.msg.encode("utf-8", "replace")
                 return self._format_message(msg, *self.args, **self.kwargs)
             except (UnicodeEncodeError, AttributeError):
                 # we catch AttributeError since if msg is bytes,
                 # it won't have the 'format' method
-                if (sys.exc_info()[0] is AttributeError
-                        and (PY2 or not isinstance(self.msg, bytes))):
+                if sys.exc_info()[0] is AttributeError and (
+                    PY2 or not isinstance(self.msg, bytes)
+                ):
                     # this is not the case we thought it is...
                     raise
                 # Assume encoded message with unicode args.
                 # The assumption of utf8 as input encoding is just a guess,
                 # but this codepath is unlikely (if the message is a constant
                 # string in the caller's source file)
-                msg = self.msg.decode('utf-8', 'replace')
+                msg = self.msg.decode("utf-8", "replace")
                 return self._format_message(msg, *self.args, **self.kwargs)
 
         except Exception:
@@ -589,16 +621,21 @@ class LogRecord:
             # access to the frame.  But there is not much we can do about
             # that.
             e = sys.exc_info()[1]
-            errormsg = ('Could not format message with provided '
-                        'arguments: {err}\n  msg={msg!r}\n  '
-                        'args={args!r} \n  kwargs={kwargs!r}.\n'
-                        'Happened in file {file}, line {lineno}').format(
-                err=e, msg=self.msg, args=self.args,
-                kwargs=self.kwargs, file=self.filename,
-                lineno=self.lineno
+            errormsg = (
+                "Could not format message with provided "
+                "arguments: {err}\n  msg={msg!r}\n  "
+                "args={args!r} \n  kwargs={kwargs!r}.\n"
+                "Happened in file {file}, line {lineno}"
+            ).format(
+                err=e,
+                msg=self.msg,
+                args=self.args,
+                kwargs=self.kwargs,
+                file=self.filename,
+                lineno=self.lineno,
             )
             if PY2:
-                errormsg = errormsg.encode('utf-8')
+                errormsg = errormsg.encode("utf-8")
             raise TypeError(errormsg)
 
     level_name = level_name_property()
@@ -639,7 +676,7 @@ class LogRecord:
         """
         cf = self.calling_frame
         if cf is not None:
-            return cf.f_globals.get('__name__')
+            return cf.f_globals.get("__name__")
 
     @cached_property
     def filename(self):
@@ -649,7 +686,7 @@ class LogRecord:
         cf = self.calling_frame
         if cf is not None:
             fn = cf.f_code.co_filename
-            if fn[:1] == '<' and fn[-1:] == '>':
+            if fn[:1] == "<" and fn[-1:] == ">":
                 return fn
             return _convert_frame_filename(os.path.abspath(fn))
 
@@ -693,7 +730,7 @@ class LogRecord:
         # yet - e.g. if a custom import hook causes third-party code
         # to run when multiprocessing calls import. See issue 8200
         # for an example
-        mp = sys.modules.get('multiprocessing')
+        mp = sys.modules.get("multiprocessing")
         if mp is not None:  # pragma: no cover
             try:
                 return mp.current_process().name
@@ -706,9 +743,9 @@ class LogRecord:
         in case there was any.
         """
         if self.exc_info is not None and self.exc_info != (None, None, None):
-            rv = ''.join(traceback.format_exception(*self.exc_info))
+            rv = "".join(traceback.format_exception(*self.exc_info))
             if PY2:
-                rv = rv.decode('utf-8', 'replace')
+                rv = rv.decode("utf-8", "replace")
             return rv.rstrip()
 
     @cached_property
@@ -716,12 +753,12 @@ class LogRecord:
         """The name of the exception."""
         if self.exc_info is not None:
             cls = self.exc_info[0]
-            return u(cls.__module__ + '.' + cls.__name__)
+            return u(cls.__module__ + "." + cls.__name__)
 
     @property
     def exception_shortname(self):
         """An abbreviated exception name (no import path)"""
-        return self.exception_name.rsplit('.')[-1]
+        return self.exception_name.rsplit(".")[-1]
 
     @cached_property
     def exception_message(self):
@@ -734,7 +771,7 @@ class LogRecord:
                 else:
                     return str(val)
             except UnicodeError:
-                return str(val).decode('utf-8', 'replace')
+                return str(val).decode("utf-8", "replace")
 
     @property
     def dispatcher(self):
@@ -814,11 +851,11 @@ class LoggerMixin:
         if self.disabled or ERROR < self.level:
             return
         if not args:
-            args = ('Uncaught exception occurred',)
-        if 'exc_info' not in kwargs:
+            args = ("Uncaught exception occurred",)
+        if "exc_info" not in kwargs:
             exc_info = sys.exc_info()
-            assert exc_info[0] is not None, 'no exception occurred'
-            kwargs.setdefault('exc_info', sys.exc_info())
+            assert exc_info[0] is not None, "no exception occurred"
+            kwargs.setdefault("exc_info", sys.exc_info())
         return self.error(*args, **kwargs)
 
     def critical(self, *args, **kwargs):
@@ -849,7 +886,7 @@ class LoggerMixin:
                 execute_code_that_might_fail()
         """
         if not args:
-            args = ('Uncaught exception occurred',)
+            args = ("Uncaught exception occurred",)
         return _ExceptionCatcher(self, args, kwargs)
 
     def enable(self):
@@ -863,7 +900,7 @@ class LoggerMixin:
         try:
             self.disabled = False
         except AttributeError:
-            raise AttributeError('The disabled property is read-only.')
+            raise AttributeError("The disabled property is read-only.")
 
     def disable(self):
         """Convenience method to disable this logger.
@@ -876,14 +913,15 @@ class LoggerMixin:
         try:
             self.disabled = True
         except AttributeError:
-            raise AttributeError('The disabled property is read-only.')
+            raise AttributeError("The disabled property is read-only.")
 
     def _log(self, level, args, kwargs):
-        exc_info = kwargs.pop('exc_info', None)
-        extra = kwargs.pop('extra', None)
-        frame_correction = kwargs.pop('frame_correction', 0)
-        self.make_record_and_handle(level, args[0], args[1:], kwargs,
-                                    exc_info, extra, frame_correction)
+        exc_info = kwargs.pop("exc_info", None)
+        extra = kwargs.pop("extra", None)
+        frame_correction = kwargs.pop("frame_correction", 0)
+        self.make_record_and_handle(
+            level, args[0], args[1:], kwargs, exc_info, extra, frame_correction
+        )
 
 
 class RecordDispatcher:
@@ -905,8 +943,8 @@ class RecordDispatcher:
         #: the level of the record dispatcher as integer
         self.level = level
 
-    disabled = group_reflected_property('disabled', False)
-    level = group_reflected_property('level', NOTSET, fallback=NOTSET)
+    disabled = group_reflected_property("disabled", False)
+    level = group_reflected_property("level", NOTSET, fallback=NOTSET)
 
     def handle(self, record):
         """Call the handlers for the specified record.  This is
@@ -919,8 +957,9 @@ class RecordDispatcher:
         if not self.disabled and record.level >= self.level:
             self.call_handlers(record)
 
-    def make_record_and_handle(self, level, msg, args, kwargs, exc_info,
-                               extra, frame_correction):
+    def make_record_and_handle(
+        self, level, msg, args, kwargs, exc_info, extra, frame_correction
+    ):
         """Creates a record from some given arguments and heads it
         over to the handling system.
         """
@@ -933,8 +972,18 @@ class RecordDispatcher:
         if not self.suppress_dispatcher:
             channel = self
 
-        record = LogRecord(self.name, level, msg, args, kwargs, exc_info,
-                           extra, None, channel, frame_correction)
+        record = LogRecord(
+            self.name,
+            level,
+            msg,
+            args,
+            kwargs,
+            exc_info,
+            extra,
+            None,
+            channel,
+            frame_correction,
+        )
 
         # after handling the log record is closed which will remove some
         # referenes that would require a GC run on cpython.  This includes
@@ -969,8 +1018,9 @@ class RecordDispatcher:
         # Both logger attached handlers as well as context specific
         # handlers are handled one after another.  The latter also
         # include global handlers.
-        for handler in chain(self.handlers,
-                             Handler.stack_manager.iter_context_objects()):
+        for handler in chain(
+            self.handlers, Handler.stack_manager.iter_context_objects()
+        ):
             # skip records that this handler is not interested in based
             # on the record and handler level or in case this method was
             # overridden on some custom logic.
@@ -997,8 +1047,7 @@ class RecordDispatcher:
             # record.  The impact is that filters are slower than the
             # handler's should_handle function in case there is no default
             # handler that would handle the record (delayed init).
-            if (handler.filter is not None
-                    and not handler.filter(record, handler)):
+            if handler.filter is not None and not handler.filter(record, handler):
                 continue
 
             # We might have a filter, so now that we know we *should* handle
@@ -1069,7 +1118,7 @@ class LoggerGroup:
 
     def add_logger(self, logger):
         """Adds a logger to this group."""
-        assert logger.group is None, 'Logger already belongs to a group'
+        assert logger.group is None, "Logger already belongs to a group"
         logger.group = self
         self.loggers.append(logger)
 
@@ -1100,7 +1149,7 @@ class LoggerGroup:
         self.disabled = False
         if force:
             for logger in self.loggers:
-                rv = getattr(logger, '_disabled', _missing)
+                rv = getattr(logger, "_disabled", _missing)
                 if rv is not _missing:
                     logger.enable()
 
@@ -1118,7 +1167,7 @@ class LoggerGroup:
         self.disabled = True
         if force:
             for logger in self.loggers:
-                rv = getattr(logger, '_disabled', _missing)
+                rv = getattr(logger, "_disabled", _missing)
                 if rv is not _missing:
                     logger.disable()
 
@@ -1133,5 +1182,6 @@ def dispatch_record(record):
     """
     _default_dispatcher.call_handlers(record)
 
+
 # at that point we are safe to import handler
-from logbook.handlers import Handler # isort:skip
+from logbook.handlers import Handler  # isort:skip

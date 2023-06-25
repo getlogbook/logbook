@@ -4,4 +4,4 @@ from logbook import Logger
 
 def run():
     for x in xrange(500):
-        Logger('Test')
+        Logger("Test")

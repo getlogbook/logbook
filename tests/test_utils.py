@@ -21,16 +21,16 @@ except ImportError:
 
 def test_logged_if_slow_reached(test_handler):
     with test_handler.applicationbound():
-        with logged_if_slow('checking...', threshold=_THRESHOLD):
+        with logged_if_slow("checking...", threshold=_THRESHOLD):
             sleep(2 * _THRESHOLD)
         assert len(test_handler.records) == 1
         [record] = test_handler.records
-        assert record.message == 'checking...'
+        assert record.message == "checking..."
 
 
 def test_logged_if_slow_did_not_reached(test_handler):
     with test_handler.applicationbound():
-        with logged_if_slow('checking...', threshold=_THRESHOLD):
+        with logged_if_slow("checking...", threshold=_THRESHOLD):
             sleep(_THRESHOLD / 2)
         assert len(test_handler.records) == 0
 
@@ -38,16 +38,15 @@ def test_logged_if_slow_did_not_reached(test_handler):
 def test_logged_if_slow_logger():
     logger = Mock()
 
-    with logged_if_slow('checking...', threshold=_THRESHOLD, logger=logger):
+    with logged_if_slow("checking...", threshold=_THRESHOLD, logger=logger):
         sleep(2 * _THRESHOLD)
 
-    assert logger.log.call_args == call(logbook.DEBUG, 'checking...')
+    assert logger.log.call_args == call(logbook.DEBUG, "checking...")
 
 
 def test_logged_if_slow_level(test_handler):
     with test_handler.applicationbound():
-        with logged_if_slow('checking...', threshold=_THRESHOLD,
-                            level=logbook.WARNING):
+        with logged_if_slow("checking...", threshold=_THRESHOLD, level=logbook.WARNING):
             sleep(2 * _THRESHOLD)
 
     assert test_handler.records[0].level == logbook.WARNING
@@ -55,15 +54,14 @@ def test_logged_if_slow_level(test_handler):
 
 def test_logged_if_slow_deprecated(logger, test_handler):
     with test_handler.applicationbound():
-        with logged_if_slow('checking...', threshold=_THRESHOLD,
-                            func=logbook.error):
+        with logged_if_slow("checking...", threshold=_THRESHOLD, func=logbook.error):
             sleep(2 * _THRESHOLD)
 
     assert test_handler.records[0].level == logbook.ERROR
-    assert test_handler.records[0].message == 'checking...'
+    assert test_handler.records[0].message == "checking..."
 
     with pytest.raises(TypeError):
-        logged_if_slow('checking...', logger=logger, func=logger.error)
+        logged_if_slow("checking...", logger=logger, func=logger.error)
 
 
 def test_deprecated_func_called(capture):
@@ -75,11 +73,10 @@ def test_deprecation_message(capture):
 
     [record] = capture.records
     assert "deprecated" in record.message
-    assert 'deprecated_func' in record.message
+    assert "deprecated_func" in record.message
 
 
 def test_deprecation_with_message(capture):
-
     @deprecated("use something else instead")
     def func(a, b):
         return a + b
@@ -92,8 +89,7 @@ def test_deprecation_with_message(capture):
 
 
 def test_no_deprecations(capture):
-
-    @deprecated('msg')
+    @deprecated("msg")
     def func(a, b):
         return a + b
 
@@ -106,12 +102,10 @@ def _no_decorator(func):
     return func
 
 
-@pytest.mark.parametrize('decorator', [_no_decorator, classmethod])
+@pytest.mark.parametrize("decorator", [_no_decorator, classmethod])
 def test_class_deprecation(capture, decorator):
-
     class Bla:
-
-        @deprecated('reason')
+        @deprecated("reason")
         @classmethod
         def func(self, a, b):
             assert isinstance(self, Bla)
@@ -120,11 +114,10 @@ def test_class_deprecation(capture, decorator):
     assert Bla().func(2, 4) == 6
 
     [record] = capture.records
-    assert 'Bla.func is deprecated' in record.message
+    assert "Bla.func is deprecated" in record.message
 
 
 def test_deprecations_different_sources(capture):
-
     def f():
         deprecated_func(1, 2)
 
@@ -137,7 +130,6 @@ def test_deprecations_different_sources(capture):
 
 
 def test_deprecations_same_sources(capture):
-
     def f():
         deprecated_func(1, 2)
 
@@ -147,12 +139,11 @@ def test_deprecations_same_sources(capture):
 
 
 def test_deprecation_message_different_sources(capture):
-
     def f(flag):
         if flag:
-            log_deprecation_message('first message type')
+            log_deprecation_message("first message type")
         else:
-            log_deprecation_message('second message type')
+            log_deprecation_message("second message type")
 
     f(True)
     f(False)
@@ -160,12 +151,11 @@ def test_deprecation_message_different_sources(capture):
 
 
 def test_deprecation_message_same_sources(capture):
-
     def f(flag):
         if flag:
-            log_deprecation_message('first message type')
+            log_deprecation_message("first message type")
         else:
-            log_deprecation_message('second message type')
+            log_deprecation_message("second message type")
 
     f(True)
     f(True)
@@ -174,11 +164,12 @@ def test_deprecation_message_same_sources(capture):
 
 def test_deprecation_message_full_warning(capture):
     def f():
-        log_deprecation_message('some_message')
+        log_deprecation_message("some_message")
+
     f()
 
     [record] = capture.records
-    assert record.message == 'Deprecation message: some_message'
+    assert record.message == "Deprecation message: some_message"
 
 
 def test_name_doc():
@@ -187,36 +178,33 @@ def test_name_doc():
         """docstring here"""
         pass
 
-    assert some_func.__name__ == 'some_func'
-    assert 'docstring here' in some_func.__doc__
+    assert some_func.__name__ == "some_func"
+    assert "docstring here" in some_func.__doc__
 
 
 def test_doc_update():
-    @deprecated('some_message')
+    @deprecated("some_message")
     def some_func():
         """docstring here"""
         pass
 
-    some_func.__doc__ = 'new_docstring'
+    some_func.__doc__ = "new_docstring"
 
-    assert 'docstring here' not in some_func.__doc__
-    assert 'new_docstring' in some_func.__doc__
-    assert 'some_message' in some_func.__doc__
+    assert "docstring here" not in some_func.__doc__
+    assert "new_docstring" in some_func.__doc__
+    assert "some_message" in some_func.__doc__
 
 
 def test_deprecatd_docstring():
-
     message = "Use something else instead"
 
     @deprecated()
     def some_func():
-        """This is a function
-        """
+        """This is a function"""
 
     @deprecated(message)
     def other_func():
-        """This is another function
-        """
+        """This is another function"""
 
     assert ".. deprecated" in some_func.__doc__
     assert f".. deprecated\n   {message}" in other_func.__doc__
@@ -230,6 +218,7 @@ def capture(request):
     @request.addfinalizer
     def pop():
         handler.pop_application()
+
     return handler
 
 

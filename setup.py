@@ -27,6 +27,7 @@ elif DISABLE_EXTENSION:
     ext_modules = []
 else:
     from Cython.Build import cythonize
+
     ext_modules = cythonize(
         [Extension("logbook._speedups", sources=["logbook/_speedups.pyx"])],
         language_level=3,

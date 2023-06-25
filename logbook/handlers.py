@@ -63,11 +63,14 @@ from logbook.helpers import (
 )
 
 DEFAULT_FORMAT_STRING = u(
-    '[{record.time:%Y-%m-%d %H:%M:%S.%f%z}] '
-    '{record.level_name}: {record.channel}: {record.message}')
+    "[{record.time:%Y-%m-%d %H:%M:%S.%f%z}] "
+    "{record.level_name}: {record.channel}: {record.message}"
+)
 
-SYSLOG_FORMAT_STRING = u('{record.channel}: {record.message}')
-NTLOG_FORMAT_STRING = dedent(u('''
+SYSLOG_FORMAT_STRING = u("{record.channel}: {record.message}")
+NTLOG_FORMAT_STRING = dedent(
+    u(
+        """
     Message Level: {record.level_name}
     Location: {record.filename}:{record.lineno}
     Module: {record.module}
@@ -77,10 +80,14 @@ NTLOG_FORMAT_STRING = dedent(u('''
     Event provided Message:
 
     {record.message}
-    ''')).lstrip()
+    """
+    )
+).lstrip()
 
-TEST_FORMAT_STRING = u('[{record.level_name}] {record.channel}: {record.message}')
-MAIL_FORMAT_STRING = dedent(u('''
+TEST_FORMAT_STRING = u("[{record.level_name}] {record.channel}: {record.message}")
+MAIL_FORMAT_STRING = dedent(
+    u(
+        """
     Subject: {handler.subject}
 
     Message type:       {record.level_name}
@@ -92,15 +99,21 @@ MAIL_FORMAT_STRING = dedent(u('''
     Message:
 
     {record.message}
-    ''')).lstrip()
+    """
+    )
+).lstrip()
 
-MAIL_RELATED_FORMAT_STRING = dedent(u('''
+MAIL_RELATED_FORMAT_STRING = dedent(
+    u(
+        """
     Message type:       {record.level_name}
     Location:           {record.filename}:{record.lineno}
     Module:             {record.module}
     Function:           {record.func_name}
     {record.message}
-    ''')).lstrip()
+    """
+    )
+).lstrip()
 
 SYSLOG_PORT = 514
 
@@ -112,7 +125,7 @@ def create_syshandler(application_name, level=NOTSET):
     this creates a :class:`SyslogHandler`, on Windows sytems it will
     create a :class:`NTEventLogHandler`.
     """
-    if os.name == 'nt':
+    if os.name == "nt":
         return NTEventLogHandler(application_name, level=level)
     return SyslogHandler(application_name, level=level)
 
@@ -127,8 +140,13 @@ class _HandlerType(type):
     def __new__(cls, name, bases, d):
         # aha, that thing has a custom close method.  We will need a magic
         # __del__ for it to be called on cleanup.
-        if (bases != (ContextObject,) and 'close' in d and '__del__' not in d
-                and not any(hasattr(x, '__del__') for x in bases)):
+        if (
+            bases != (ContextObject,)
+            and "close" in d
+            and "__del__" not in d
+            and not any(hasattr(x, "__del__") for x in bases)
+        ):
+
             def _magic_del(self):
                 try:
                     self.close()
@@ -136,7 +154,8 @@ class _HandlerType(type):
                     # del is also invoked when init fails, so we better just
                     # ignore any exception that might be raised here
                     pass
-            d['__del__'] = _magic_del
+
+            d["__del__"] = _magic_del
         return type.__new__(cls, name, bases, d)
 
 
@@ -183,6 +202,7 @@ class Handler(with_metaclass(_HandlerType), ContextObject):
 
     If gevent is enabled, the handler is aliased to `greenletbound`.
     """
+
     stack_manager = ContextStackManager()
 
     #: a flag for this handler that can be set to `True` for handlers that
@@ -316,13 +336,16 @@ class Handler(with_metaclass(_HandlerType), ContextObject):
         Check :class:`Flags` for more information.
         """
         try:
-            behaviour = Flags.get_flag('errors', 'print')
-            if behaviour == 'raise':
+            behaviour = Flags.get_flag("errors", "print")
+            if behaviour == "raise":
                 reraise(exc_info[0], exc_info[1], exc_info[2])
-            elif behaviour == 'print':
+            elif behaviour == "print":
                 traceback.print_exception(*(exc_info + (None, sys.stderr)))
-                sys.stderr.write('Logged from file {}, line {}\n'.format(
-                                 record.filename, record.lineno))
+                sys.stderr.write(
+                    "Logged from file {}, line {}\n".format(
+                        record.filename, record.lineno
+                    )
+                )
         except OSError:
             pass
 
@@ -338,11 +361,11 @@ class NullHandler(Handler):
     NullHandlers swallow all logs sent to them, and do not bubble them onwards.
 
     """
+
     blackhole = True
 
     def __init__(self, level=NOTSET, filter=None):
-        super().__init__(level=level, filter=filter,
-                                          bubble=False)
+        super().__init__(level=level, filter=filter, bubble=False)
 
 
 class WrapperHandler(Handler):
@@ -357,7 +380,7 @@ class WrapperHandler(Handler):
 
     #: a set of direct attributes that are not forwarded to the inner
     #: handler.  This has to be extended as necessary.
-    _direct_attrs = frozenset(['handler'])
+    _direct_attrs = frozenset(["handler"])
 
     def __init__(self, handler):
         self.handler = handler
@@ -398,12 +421,12 @@ class StringFormatter:
         except UnicodeEncodeError:
             # self._formatter is a str, but some of the record items
             # are unicode
-            fmt = self._formatter.decode('ascii', 'replace')
+            fmt = self._formatter.decode("ascii", "replace")
             return fmt.format(record=record, handler=handler)
         except UnicodeDecodeError:
             # self._formatter is unicode, but some of the record items
             # are non-ascii str
-            fmt = self._formatter.encode('ascii', 'replace')
+            fmt = self._formatter.encode("ascii", "replace")
             return fmt.format(record=record, handler=handler)
 
     def format_exception(self, record):
@@ -413,7 +436,7 @@ class StringFormatter:
         line = self.format_record(record, handler)
         exc = self.format_exception(record)
         if exc:
-            line += u('\n') + exc
+            line += u("\n") + exc
         return line
 
 
@@ -458,9 +481,9 @@ class HashingHandlerMixin:
     def hash_record_raw(self, record):
         """Returns a hashlib object with the hash of the record."""
         hash = sha1()
-        hash.update(('%d\x00' % record.level).encode('ascii'))
-        hash.update((record.channel or u('')).encode('utf-8') + b('\x00'))
-        hash.update(record.filename.encode('utf-8') + b('\x00'))
+        hash.update(("%d\x00" % record.level).encode("ascii"))
+        hash.update((record.channel or u("")).encode("utf-8") + b("\x00"))
+        hash.update(record.filename.encode("utf-8") + b("\x00"))
         hash.update(b(str(record.lineno)))
         return hash
 
@@ -472,6 +495,7 @@ class HashingHandlerMixin:
         Calls into :meth:`hash_record_raw`.
         """
         return self.hash_record_raw(record).hexdigest()
+
 
 _NUMBER_TYPES = integer_types + (float,)
 
@@ -522,11 +546,12 @@ class LimitingHandlerMixin(HashingHandlerMixin):
                     first_count = last_count
                     old_count = suppression_count
 
-            if (not suppression_count and
-                    len(self._record_limits) >= self.max_record_cache):
+            if (
+                not suppression_count
+                and len(self._record_limits) >= self.max_record_cache
+            ):
                 cache_items = sorted(self._record_limits.items())
-                del cache_items[:int(self._record_limits)
-                                * self.record_cache_prune]
+                del cache_items[: int(self._record_limits) * self.record_cache_prune]
                 self._record_limits = dict(cache_items)
 
             self._record_limits[hash] = (first_count, old_count + 1)
@@ -555,8 +580,15 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
        passed that was opened in binary mode.
     """
 
-    def __init__(self, stream, level=NOTSET, format_string=None,
-                 encoding=None, filter=None, bubble=False):
+    def __init__(
+        self,
+        stream,
+        level=NOTSET,
+        format_string=None,
+        encoding=None,
+        filter=None,
+        bubble=False,
+    ):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.encoding = encoding
@@ -585,19 +617,20 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
 
     def flush(self):
         """Flushes the inner stream."""
-        if self.stream is not None and hasattr(self.stream, 'flush'):
+        if self.stream is not None and hasattr(self.stream, "flush"):
             self.stream.flush()
 
     def encode(self, msg):
         """Encodes the message to the stream encoding."""
         stream = self.stream
-        rv = msg + '\n'
-        if ((PY2 and is_unicode(rv)) or
-                not (PY2 or is_unicode(rv) or _is_text_stream(stream))):
+        rv = msg + "\n"
+        if (PY2 and is_unicode(rv)) or not (
+            PY2 or is_unicode(rv) or _is_text_stream(stream)
+        ):
             enc = self.encoding
             if enc is None:
-                enc = getattr(stream, 'encoding', None) or 'utf-8'
-            rv = rv.encode(enc, 'replace')
+                enc = getattr(stream, "encoding", None) or "utf-8"
+            rv = rv.encode(enc, "replace")
         return rv
 
     def write(self, item):
@@ -628,12 +661,22 @@ class FileHandler(StreamHandler):
     :class:`~logbook.FingersCrossedHandler` or something similar.
     """
 
-    def __init__(self, filename, mode='a', encoding=None, level=NOTSET,
-                 format_string=None, delay=False, filter=None, bubble=False):
+    def __init__(
+        self,
+        filename,
+        mode="a",
+        encoding=None,
+        level=NOTSET,
+        format_string=None,
+        delay=False,
+        filter=None,
+        bubble=False,
+    ):
         if encoding is None:
-            encoding = 'utf-8'
-        StreamHandler.__init__(self, None, level, format_string,
-                               encoding, filter, bubble)
+            encoding = "utf-8"
+        StreamHandler.__init__(
+            self, None, level, format_string, encoding, filter, bubble
+        )
         self._filename = filename
         self._mode = mode
         if delay:
@@ -675,17 +718,35 @@ class FileHandler(StreamHandler):
 
 
 class GZIPCompressionHandler(FileHandler):
-    def __init__(self, filename, encoding=None, level=NOTSET,
-                 format_string=None, delay=False, filter=None, bubble=False, compression_quality=9):
-
+    def __init__(
+        self,
+        filename,
+        encoding=None,
+        level=NOTSET,
+        format_string=None,
+        delay=False,
+        filter=None,
+        bubble=False,
+        compression_quality=9,
+    ):
         self._compression_quality = compression_quality
-        super().__init__(filename, mode='wb', encoding=encoding, level=level,
-                             format_string=format_string, delay=delay, filter=filter, bubble=bubble)
+        super().__init__(
+            filename,
+            mode="wb",
+            encoding=encoding,
+            level=level,
+            format_string=format_string,
+            delay=delay,
+            filter=filter,
+            bubble=bubble,
+        )
 
     def _open(self, mode=None):
         if mode is None:
             mode = self._mode
-        self.stream = gzip.open(self._filename, mode, compresslevel=self._compression_quality)
+        self.stream = gzip.open(
+            self._filename, mode, compresslevel=self._compression_quality
+        )
 
     def write(self, item):
         if isinstance(item, str):
@@ -700,19 +761,39 @@ class GZIPCompressionHandler(FileHandler):
 
 
 class BrotliCompressionHandler(FileHandler):
-    def __init__(self, filename, encoding=None, level=NOTSET,
-                 format_string=None, delay=False, filter=None, bubble=False,
-                 compression_window_size=4*1024**2, compression_quality=11):
-        super().__init__(filename, mode='wb', encoding=encoding, level=level,
-                             format_string=format_string, delay=delay, filter=filter, bubble=bubble)
+    def __init__(
+        self,
+        filename,
+        encoding=None,
+        level=NOTSET,
+        format_string=None,
+        delay=False,
+        filter=None,
+        bubble=False,
+        compression_window_size=4 * 1024**2,
+        compression_quality=11,
+    ):
+        super().__init__(
+            filename,
+            mode="wb",
+            encoding=encoding,
+            level=level,
+            format_string=format_string,
+            delay=delay,
+            filter=filter,
+            bubble=bubble,
+        )
         try:
             from brotli import Compressor
         except ImportError:
-            raise RuntimeError('The brotli library is required for '
-                               'the BrotliCompressionHandler.')
+            raise RuntimeError(
+                "The brotli library is required for " "the BrotliCompressionHandler."
+            )
 
         max_window_size = int(math.log(compression_window_size, 2))
-        self._compressor = Compressor(quality=compression_quality, lgwin=max_window_size)
+        self._compressor = Compressor(
+            quality=compression_quality, lgwin=max_window_size
+        )
 
     def _open(self, mode=None):
         if mode is None:
@@ -756,13 +837,22 @@ class MonitoringFileHandler(FileHandler):
     work on a windows system.
     """
 
-    def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
-                 format_string=None, delay=False, filter=None, bubble=False):
-        FileHandler.__init__(self, filename, mode, encoding, level,
-                             format_string, delay, filter, bubble)
-        if os.name == 'nt':
-            raise RuntimeError('MonitoringFileHandler '
-                               'does not support Windows')
+    def __init__(
+        self,
+        filename,
+        mode="a",
+        encoding="utf-8",
+        level=NOTSET,
+        format_string=None,
+        delay=False,
+        filter=None,
+        bubble=False,
+    ):
+        FileHandler.__init__(
+            self, filename, mode, encoding, level, format_string, delay, filter, bubble
+        )
+        if os.name == "nt":
+            raise RuntimeError("MonitoringFileHandler " "does not support Windows")
         self._query_fd()
 
     def _query_fd(self):
@@ -806,10 +896,10 @@ class StderrHandler(StreamHandler):
     point to the old one.
     """
 
-    def __init__(self, level=NOTSET, format_string=None, filter=None,
-                 bubble=False):
-        StreamHandler.__init__(self, _missing, level, format_string,
-                               None, filter, bubble)
+    def __init__(self, level=NOTSET, format_string=None, filter=None, bubble=False):
+        StreamHandler.__init__(
+            self, _missing, level, format_string, None, filter, bubble
+        )
 
     @property
     def stream(self):
@@ -830,15 +920,25 @@ class RotatingFileHandler(FileHandler):
     asking on rollover.
     """
 
-    def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
-                 format_string=None, delay=False, max_size=1024 * 1024,
-                 backup_count=5, filter=None, bubble=False):
-        FileHandler.__init__(self, filename, mode, encoding, level,
-                             format_string, delay, filter, bubble)
+    def __init__(
+        self,
+        filename,
+        mode="a",
+        encoding="utf-8",
+        level=NOTSET,
+        format_string=None,
+        delay=False,
+        max_size=1024 * 1024,
+        backup_count=5,
+        filter=None,
+        bubble=False,
+    ):
+        FileHandler.__init__(
+            self, filename, mode, encoding, level, format_string, delay, filter, bubble
+        )
         self.max_size = max_size
         self.backup_count = backup_count
-        assert backup_count > 0, ('at least one backup file has to be '
-                                  'specified')
+        assert backup_count > 0, "at least one backup file has to be " "specified"
 
     def should_rollover(self, record, bytes):
         self.stream.seek(0, 2)
@@ -847,16 +947,16 @@ class RotatingFileHandler(FileHandler):
     def perform_rollover(self):
         self.stream.close()
         for x in xrange(self.backup_count - 1, 0, -1):
-            src = '%s.%d' % (self._filename, x)
-            dst = '%s.%d' % (self._filename, x + 1)
+            src = "%s.%d" % (self._filename, x)
+            dst = "%s.%d" % (self._filename, x + 1)
             try:
                 rename(src, dst)
             except OSError:
                 e = sys.exc_info()[1]
                 if e.errno != errno.ENOENT:
                     raise
-        rename(self._filename, self._filename + '.1')
-        self._open('w')
+        rename(self._filename, self._filename + ".1")
+        self._open("w")
 
     def emit(self, record):
         msg = self.format(record)
@@ -911,11 +1011,20 @@ class TimedRotatingFileHandler(FileHandler):
     until it is rolled over
     """
 
-    def __init__(self, filename, mode='a', encoding='utf-8', level=NOTSET,
-                 format_string=None, date_format='%Y-%m-%d',
-                 backup_count=0, filter=None, bubble=False,
-                 timed_filename_for_current=True,
-                 rollover_format='{basename}-{timestamp}{ext}'):
+    def __init__(
+        self,
+        filename,
+        mode="a",
+        encoding="utf-8",
+        level=NOTSET,
+        format_string=None,
+        date_format="%Y-%m-%d",
+        backup_count=0,
+        filter=None,
+        bubble=False,
+        timed_filename_for_current=True,
+        rollover_format="{basename}-{timestamp}{ext}",
+    ):
         self.date_format = date_format
         self.backup_count = backup_count
 
@@ -930,13 +1039,12 @@ class TimedRotatingFileHandler(FileHandler):
             filename = self.generate_timed_filename(self._timestamp)
         elif os.path.exists(filename):
             self._timestamp = self._get_timestamp(
-                datetime.fromtimestamp(
-                    os.stat(filename).st_mtime
-                )
+                datetime.fromtimestamp(os.stat(filename).st_mtime)
             )
 
-        FileHandler.__init__(self, filename, mode, encoding, level,
-                             format_string, True, filter, bubble)
+        FileHandler.__init__(
+            self, filename, mode, encoding, level, format_string, True, filter, bubble
+        )
 
     def _get_timestamp(self, datetime):
         """
@@ -950,9 +1058,8 @@ class TimedRotatingFileHandler(FileHandler):
         to the handler at init time.
         """
         timed_filename = self.rollover_format.format(
-            basename=self.basename,
-            timestamp=timestamp,
-            ext=self.ext)
+            basename=self.basename, timestamp=timestamp, ext=self.ext
+        )
         return timed_filename
 
     def files_to_delete(self):
@@ -961,18 +1068,20 @@ class TimedRotatingFileHandler(FileHandler):
         """
         directory = os.path.dirname(self._filename)
         files = []
-        rollover_regex = re.compile(self.rollover_format.format(
-            basename=re.escape(self.basename),
-            timestamp='.+',
-            ext=re.escape(self.ext),
-        ))
+        rollover_regex = re.compile(
+            self.rollover_format.format(
+                basename=re.escape(self.basename),
+                timestamp=".+",
+                ext=re.escape(self.ext),
+            )
+        )
         for filename in os.listdir(directory):
             filename = os.path.join(directory, filename)
             if rollover_regex.match(filename):
                 files.append((os.path.getmtime(filename), filename))
         files.sort()
         if self.backup_count > 1:
-            return files[:-self.backup_count + 1]
+            return files[: -self.backup_count + 1]
         else:
             return files[:]
 
@@ -980,10 +1089,7 @@ class TimedRotatingFileHandler(FileHandler):
         if self.stream is not None:
             self.stream.close()
 
-        if (
-                not self.timed_filename_for_current
-                and os.path.exists(self._filename)
-        ):
+        if not self.timed_filename_for_current and os.path.exists(self._filename):
             filename = self.generate_timed_filename(self._timestamp)
             os.rename(self._filename, filename)
 
@@ -995,7 +1101,7 @@ class TimedRotatingFileHandler(FileHandler):
             self._filename = self.generate_timed_filename(new_timestamp)
         self._timestamp = new_timestamp
 
-        self._open('w')
+        self._open("w")
 
     def emit(self, record):
         msg = self.format(record)
@@ -1022,10 +1128,17 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
                 assert logger.has_warning('A warning')
                 ...
     """
+
     default_format_string = TEST_FORMAT_STRING
 
-    def __init__(self, level=NOTSET, format_string=None, filter=None,
-                 bubble=False, force_heavy_init=False):
+    def __init__(
+        self,
+        level=NOTSET,
+        format_string=None,
+        filter=None,
+        bubble=False,
+        force_heavy_init=False,
+    ):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         #: captures the :class:`LogRecord`\s as instances
@@ -1051,9 +1164,9 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
     @property
     def formatted_records(self):
         """Captures the formatted log records as unicode strings."""
-        if (len(self._formatted_record_cache) != len(self.records) or
-                any(r1 != r2 for r1, r2 in
-                    zip(self.records, self._formatted_record_cache))):
+        if len(self._formatted_record_cache) != len(self.records) or any(
+            r1 != r2 for r1, r2 in zip(self.records, self._formatted_record_cache)
+        ):
             self._formatted_records = [self.format(r) for r in self.records]
             self._formatted_record_cache = list(self.records)
         return self._formatted_records
@@ -1098,7 +1211,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
         See :ref:`probe-log-records` for more information.
         """
-        kwargs['level'] = CRITICAL
+        kwargs["level"] = CRITICAL
         return self._test_for(*args, **kwargs)
 
     def has_error(self, *args, **kwargs):
@@ -1106,7 +1219,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
         See :ref:`probe-log-records` for more information.
         """
-        kwargs['level'] = ERROR
+        kwargs["level"] = ERROR
         return self._test_for(*args, **kwargs)
 
     def has_warning(self, *args, **kwargs):
@@ -1114,7 +1227,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
         See :ref:`probe-log-records` for more information.
         """
-        kwargs['level'] = WARNING
+        kwargs["level"] = WARNING
         return self._test_for(*args, **kwargs)
 
     def has_notice(self, *args, **kwargs):
@@ -1122,7 +1235,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
         See :ref:`probe-log-records` for more information.
         """
-        kwargs['level'] = NOTICE
+        kwargs["level"] = NOTICE
         return self._test_for(*args, **kwargs)
 
     def has_info(self, *args, **kwargs):
@@ -1130,7 +1243,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
         See :ref:`probe-log-records` for more information.
         """
-        kwargs['level'] = INFO
+        kwargs["level"] = INFO
         return self._test_for(*args, **kwargs)
 
     def has_debug(self, *args, **kwargs):
@@ -1138,7 +1251,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
         See :ref:`probe-log-records` for more information.
         """
-        kwargs['level'] = DEBUG
+        kwargs["level"] = DEBUG
         return self._test_for(*args, **kwargs)
 
     def has_trace(self, *args, **kwargs):
@@ -1146,7 +1259,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
         See :ref:`probe-log-records` for more information.
         """
-        kwargs['level'] = TRACE
+        kwargs["level"] = TRACE
         return self._test_for(*args, **kwargs)
 
     def _test_for(self, message=None, channel=None, level=None):
@@ -1157,6 +1270,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
             if needle == haystack:
                 return True
             return False
+
         for record in self.records:
             if level is not None and record.level != level:
                 continue
@@ -1168,8 +1282,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         return False
 
 
-class MailHandler(Handler, StringFormatterHandlerMixin,
-                  LimitingHandlerMixin):
+class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
     """A handler that sends error mails.  The format string used by this
     handler are the contents of the mail plus the headers.  This is handy
     if you want to use a custom subject or ``X-`` header::
@@ -1232,9 +1345,10 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
     .. versionchanged:: 1.0
        `secure` can now be a dictionary or boolean in addition to to a tuple.
     """
+
     default_format_string = MAIL_FORMAT_STRING
     default_related_format_string = MAIL_RELATED_FORMAT_STRING
-    default_subject = u('Server Error in Application')
+    default_subject = u("Server Error in Application")
 
     #: the maximum number of record hashes in the cache for the limiting
     #: feature.  Afterwards, record_cache_prune percent of the oldest
@@ -1244,11 +1358,23 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
     #: the number of items to prune on a cache overflow in percent.
     record_cache_prune = 0.333
 
-    def __init__(self, from_addr, recipients, subject=None,
-                 server_addr=None, credentials=None, secure=None,
-                 record_limit=None, record_delta=None, level=NOTSET,
-                 format_string=None, related_format_string=None,
-                 filter=None, bubble=False, starttls=True):
+    def __init__(
+        self,
+        from_addr,
+        recipients,
+        subject=None,
+        server_addr=None,
+        credentials=None,
+        secure=None,
+        record_limit=None,
+        record_delta=None,
+        level=NOTSET,
+        format_string=None,
+        related_format_string=None,
+        filter=None,
+        bubble=False,
+        starttls=True,
+    ):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         LimitingHandlerMixin.__init__(self, record_limit, record_delta)
@@ -1274,8 +1400,10 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
             self.related_formatter = None
         else:
             self.related_formatter = self.formatter_class(value)
-    related_format_string = property(_get_related_format_string,
-                                     _set_related_format_string)
+
+    related_format_string = property(
+        _get_related_format_string, _set_related_format_string
+    )
     del _get_related_format_string, _set_related_format_string
 
     def get_recipients(self, record):
@@ -1291,35 +1419,38 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         """
         from email.header import Header
         from email.message import Message
+
         msg = Message()
-        msg.set_charset('utf-8')
+        msg.set_charset("utf-8")
         lineiter = iter(self.format(record).splitlines())
         for line in lineiter:
             if not line:
                 break
-            h, v = line.split(':', 1)
+            h, v = line.split(":", 1)
             # We could probably just encode everything. For the moment encode
             # only what really needed to avoid breaking a couple of tests.
             try:
-                v.encode('ascii')
+                v.encode("ascii")
             except UnicodeEncodeError:
-                msg[h.strip()] = Header(v.strip(), 'utf-8')
+                msg[h.strip()] = Header(v.strip(), "utf-8")
             else:
                 msg[h.strip()] = v.strip()
 
-        msg.replace_header('Content-Transfer-Encoding', '8bit')
+        msg.replace_header("Content-Transfer-Encoding", "8bit")
 
-        body = '\r\n'.join(lineiter)
+        body = "\r\n".join(lineiter)
         if suppressed:
-            body += ('\r\n\r\nThis message occurred additional %d '
-                     'time(s) and was suppressed' % suppressed)
+            body += (
+                "\r\n\r\nThis message occurred additional %d "
+                "time(s) and was suppressed" % suppressed
+            )
 
         # inconsistency in Python 2.5
         # other versions correctly return msg.get_payload() as str
         if sys.version_info < (2, 6) and isinstance(body, unicode):
-            body = body.encode('utf-8')
+            body = body.encode("utf-8")
 
-        msg.set_payload(body, 'UTF-8')
+        msg.set_payload(body, "UTF-8")
         return msg
 
     def format_related_record(self, record):
@@ -1334,24 +1465,28 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         that were not send if the `record_limit` feature is active.
         """
         from email.utils import formatdate
+
         msg = self.message_from_record(record, suppressed)
-        msg['From'] = self.from_addr
-        msg['Date'] = formatdate()
+        msg["From"] = self.from_addr
+        msg["Date"] = formatdate()
         return msg
 
     def collapse_mails(self, mail, related, reason):
-        """When escaling or grouped mails are """
+        """When escaling or grouped mails are"""
         if not related:
             return mail
-        if reason == 'group':
-            title = 'Other log records in the same group'
+        if reason == "group":
+            title = "Other log records in the same group"
         else:
-            title = 'Log records that led up to this one'
-        mail.set_payload('{}\r\n\r\n\r\n{}:\r\n\r\n{}'.format(
-            mail.get_payload(),
-            title,
-            '\r\n\r\n'.join(body.rstrip() for body in related)
-        ), 'UTF-8')
+            title = "Log records that led up to this one"
+        mail.set_payload(
+            "{}\r\n\r\n\r\n{}:\r\n\r\n{}".format(
+                mail.get_payload(),
+                title,
+                "\r\n\r\n".join(body.rstrip() for body in related),
+            ),
+            "UTF-8",
+        )
         return mail
 
     def get_connection(self):
@@ -1359,8 +1494,9 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         each sent mail.
         """
         from smtplib import SMTP, SMTP_PORT, SMTP_SSL, SMTP_SSL_PORT
+
         if self.server_addr is None:
-            host = '127.0.0.1'
+            host = "127.0.0.1"
             port = self.secure and SMTP_SSL_PORT or SMTP_PORT
         else:
             try:
@@ -1382,8 +1518,8 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
         # - secure=() equivalent to secure=True for backwards compatibility.
         # - secure=False equivalent to secure=None to disable.
         if isinstance(self.secure, collections_abc.Mapping):
-            keyfile = self.secure.get('keyfile', None)
-            certfile = self.secure.get('certfile', None)
+            keyfile = self.secure.get("keyfile", None)
+            certfile = self.secure.get("certfile", None)
         elif isinstance(self.secure, collections_abc.Iterable):
             # Allow empty tuple for backwards compatibility
             if len(self.secure) == 0:
@@ -1441,17 +1577,18 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
             suppressed, allow_delivery = self.check_delivery(record)
             if not allow_delivery:
                 return
-        self.deliver(self.generate_mail(record, suppressed),
-                     self.get_recipients(record))
+        self.deliver(
+            self.generate_mail(record, suppressed), self.get_recipients(record)
+        )
 
     def emit_batch(self, records, reason):
-        if reason not in ('escalation', 'group'):
+        if reason not in ("escalation", "group"):
             raise RuntimeError("reason must be either 'escalation' or 'group'")
         records = list(records)
         if not records:
             return
 
-        trigger = records.pop(reason == 'escalation' and -1 or 0)
+        trigger = records.pop(reason == "escalation" and -1 or 0)
         suppressed = 0
         if self.record_limit is not None:
             suppressed, allow_delivery = self.check_delivery(trigger)
@@ -1459,11 +1596,12 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
                 return
 
         trigger_mail = self.generate_mail(trigger, suppressed)
-        related = [self.format_related_record(record)
-                   for record in records]
+        related = [self.format_related_record(record) for record in records]
 
-        self.deliver(self.collapse_mails(trigger_mail, related, reason),
-                     self.get_recipients(trigger))
+        self.deliver(
+            self.collapse_mails(trigger_mail, related, reason),
+            self.get_recipients(trigger),
+        )
 
 
 class GMailHandler(MailHandler):
@@ -1480,96 +1618,109 @@ class GMailHandler(MailHandler):
 
     def __init__(self, account_id, password, recipients, **kw):
         super().__init__(
-            account_id, recipients, secure=True,
+            account_id,
+            recipients,
+            secure=True,
             server_addr=("smtp.gmail.com", 587),
-            credentials=(account_id, password), **kw)
+            credentials=(account_id, password),
+            **kw,
+        )
 
 
 class SyslogHandler(Handler, StringFormatterHandlerMixin):
     """A handler class which sends formatted logging records to a
     syslog server.  By default it will send to it via unix socket.
     """
+
     default_format_string = SYSLOG_FORMAT_STRING
 
     # priorities
-    LOG_EMERG = 0       # system is unusable
-    LOG_ALERT = 1       # action must be taken immediately
-    LOG_CRIT = 2       # critical conditions
-    LOG_ERR = 3       # error conditions
-    LOG_WARNING = 4       # warning conditions
-    LOG_NOTICE = 5       # normal but significant condition
-    LOG_INFO = 6       # informational
-    LOG_DEBUG = 7       # debug-level messages
+    LOG_EMERG = 0  # system is unusable
+    LOG_ALERT = 1  # action must be taken immediately
+    LOG_CRIT = 2  # critical conditions
+    LOG_ERR = 3  # error conditions
+    LOG_WARNING = 4  # warning conditions
+    LOG_NOTICE = 5  # normal but significant condition
+    LOG_INFO = 6  # informational
+    LOG_DEBUG = 7  # debug-level messages
 
     # facility codes
-    LOG_KERN = 0       # kernel messages
-    LOG_USER = 1       # random user-level messages
-    LOG_MAIL = 2       # mail system
-    LOG_DAEMON = 3       # system daemons
-    LOG_AUTH = 4       # security/authorization messages
-    LOG_SYSLOG = 5       # messages generated internally by syslogd
-    LOG_LPR = 6       # line printer subsystem
-    LOG_NEWS = 7       # network news subsystem
-    LOG_UUCP = 8       # UUCP subsystem
-    LOG_CRON = 9       # clock daemon
-    LOG_AUTHPRIV = 10      # security/authorization messages (private)
-    LOG_FTP = 11      # FTP daemon
+    LOG_KERN = 0  # kernel messages
+    LOG_USER = 1  # random user-level messages
+    LOG_MAIL = 2  # mail system
+    LOG_DAEMON = 3  # system daemons
+    LOG_AUTH = 4  # security/authorization messages
+    LOG_SYSLOG = 5  # messages generated internally by syslogd
+    LOG_LPR = 6  # line printer subsystem
+    LOG_NEWS = 7  # network news subsystem
+    LOG_UUCP = 8  # UUCP subsystem
+    LOG_CRON = 9  # clock daemon
+    LOG_AUTHPRIV = 10  # security/authorization messages (private)
+    LOG_FTP = 11  # FTP daemon
 
     # other codes through 15 reserved for system use
-    LOG_LOCAL0 = 16      # reserved for local use
-    LOG_LOCAL1 = 17      # reserved for local use
-    LOG_LOCAL2 = 18      # reserved for local use
-    LOG_LOCAL3 = 19      # reserved for local use
-    LOG_LOCAL4 = 20      # reserved for local use
-    LOG_LOCAL5 = 21      # reserved for local use
-    LOG_LOCAL6 = 22      # reserved for local use
-    LOG_LOCAL7 = 23      # reserved for local use
+    LOG_LOCAL0 = 16  # reserved for local use
+    LOG_LOCAL1 = 17  # reserved for local use
+    LOG_LOCAL2 = 18  # reserved for local use
+    LOG_LOCAL3 = 19  # reserved for local use
+    LOG_LOCAL4 = 20  # reserved for local use
+    LOG_LOCAL5 = 21  # reserved for local use
+    LOG_LOCAL6 = 22  # reserved for local use
+    LOG_LOCAL7 = 23  # reserved for local use
 
     facility_names = {
-        'auth':     LOG_AUTH,
-        'authpriv': LOG_AUTHPRIV,
-        'cron':     LOG_CRON,
-        'daemon':   LOG_DAEMON,
-        'ftp':      LOG_FTP,
-        'kern':     LOG_KERN,
-        'lpr':      LOG_LPR,
-        'mail':     LOG_MAIL,
-        'news':     LOG_NEWS,
-        'syslog':   LOG_SYSLOG,
-        'user':     LOG_USER,
-        'uucp':     LOG_UUCP,
-        'local0':   LOG_LOCAL0,
-        'local1':   LOG_LOCAL1,
-        'local2':   LOG_LOCAL2,
-        'local3':   LOG_LOCAL3,
-        'local4':   LOG_LOCAL4,
-        'local5':   LOG_LOCAL5,
-        'local6':   LOG_LOCAL6,
-        'local7':   LOG_LOCAL7,
+        "auth": LOG_AUTH,
+        "authpriv": LOG_AUTHPRIV,
+        "cron": LOG_CRON,
+        "daemon": LOG_DAEMON,
+        "ftp": LOG_FTP,
+        "kern": LOG_KERN,
+        "lpr": LOG_LPR,
+        "mail": LOG_MAIL,
+        "news": LOG_NEWS,
+        "syslog": LOG_SYSLOG,
+        "user": LOG_USER,
+        "uucp": LOG_UUCP,
+        "local0": LOG_LOCAL0,
+        "local1": LOG_LOCAL1,
+        "local2": LOG_LOCAL2,
+        "local3": LOG_LOCAL3,
+        "local4": LOG_LOCAL4,
+        "local5": LOG_LOCAL5,
+        "local6": LOG_LOCAL6,
+        "local7": LOG_LOCAL7,
     }
 
     level_priority_map = {
-        DEBUG:      LOG_DEBUG,
-        INFO:       LOG_INFO,
-        NOTICE:     LOG_NOTICE,
-        WARNING:    LOG_WARNING,
-        ERROR:      LOG_ERR,
-        CRITICAL:   LOG_CRIT
+        DEBUG: LOG_DEBUG,
+        INFO: LOG_INFO,
+        NOTICE: LOG_NOTICE,
+        WARNING: LOG_WARNING,
+        ERROR: LOG_ERR,
+        CRITICAL: LOG_CRIT,
     }
 
-    def __init__(self, application_name=None, address=None,
-                 facility='user', socktype=socket.SOCK_DGRAM,
-                 level=NOTSET, format_string=None, filter=None,
-                 bubble=False, record_delimiter=None):
+    def __init__(
+        self,
+        application_name=None,
+        address=None,
+        facility="user",
+        socktype=socket.SOCK_DGRAM,
+        level=NOTSET,
+        format_string=None,
+        filter=None,
+        bubble=False,
+        record_delimiter=None,
+    ):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.application_name = application_name
 
         if address is None:
-            if sys.platform == 'darwin':
-                address = '/var/run/syslog'
+            if sys.platform == "darwin":
+                address = "/var/run/syslog"
             else:
-                address = '/dev/log'
+                address = "/dev/log"
 
         self.remote_address = self.address = address
         self.facility = facility
@@ -1578,17 +1729,19 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         if isinstance(address, string_types):
             self._connect_unixsocket()
             self.enveloper = self.unix_envelope
-            default_delimiter = '\x00'
+            default_delimiter = "\x00"
         else:
             self._connect_netsocket()
             self.enveloper = self.net_envelope
-            default_delimiter = '\n'
+            default_delimiter = "\n"
 
-        self.record_delimiter = default_delimiter \
-            if record_delimiter is None else record_delimiter
+        self.record_delimiter = (
+            default_delimiter if record_delimiter is None else record_delimiter
+        )
 
         self.connection_exception = getattr(
-            __builtins__, 'BrokenPipeError', socket.error)
+            __builtins__, "BrokenPipeError", socket.error
+        )
 
     def _connect_unixsocket(self):
         self.unixsocket = True
@@ -1609,20 +1762,19 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
     def encode_priority(self, record):
         facility = self.facility_names[self.facility]
-        priority = self.level_priority_map.get(record.level,
-                                               self.LOG_WARNING)
+        priority = self.level_priority_map.get(record.level, self.LOG_WARNING)
         return (facility << 3) | priority
 
     def wrap_segments(self, record, before):
         msg = self.format(record)
         segments = [segment for segment in msg.split(self.record_delimiter)]
-        return (before + segment + self.record_delimiter
-                for segment in segments)
+        return (before + segment + self.record_delimiter for segment in segments)
 
     def unix_envelope(self, record):
-        before = '<{}>{}'.format(
+        before = "<{}>{}".format(
             self.encode_priority(record),
-            self.application_name + ':' if self.application_name else '')
+            self.application_name + ":" if self.application_name else "",
+        )
         return self.wrap_segments(record, before)
 
     def net_envelope(self, record):
@@ -1630,19 +1782,22 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         try:
             format_string = self.format_string
             application_name = self.application_name
-            if not application_name and record.channel and \
-               '{record.channel}: ' in format_string:
-                self.format_string = format_string.replace(
-                    '{record.channel}: ', '')
+            if (
+                not application_name
+                and record.channel
+                and "{record.channel}: " in format_string
+            ):
+                self.format_string = format_string.replace("{record.channel}: ", "")
                 self.application_name = record.channel
             # RFC 5424: <PRIVAL>version timestamp hostname app-name procid
             #           msgid structured-data message
-            before = '<{}>1 {}Z {} {} {} - - '.format(
+            before = "<{}>1 {}Z {} {} {} - - ".format(
                 self.encode_priority(record),
                 record.time.isoformat(),
                 socket.gethostname(),
-                self.application_name if self.application_name else '-',
-                record.process)
+                self.application_name if self.application_name else "-",
+                record.process,
+            )
             return self.wrap_segments(record, before)
         finally:
             self.format_string = format_string
@@ -1650,7 +1805,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
     def emit(self, record):
         for segment in self.enveloper(record):
-            self.send_to_socket(segment.encode('utf-8'))
+            self.send_to_socket(segment.encode("utf-8"))
 
     def send_to_socket(self, data):
         if self.unixsocket:
@@ -1675,44 +1830,53 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
 class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
     """A handler that sends to the NT event log system."""
+
     dllname = None
     default_format_string = NTLOG_FORMAT_STRING
 
-    def __init__(self, application_name, log_type='Application',
-                 level=NOTSET, format_string=None, filter=None,
-                 bubble=False):
+    def __init__(
+        self,
+        application_name,
+        log_type="Application",
+        level=NOTSET,
+        format_string=None,
+        filter=None,
+        bubble=False,
+    ):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
 
-        if os.name != 'nt':
-            raise RuntimeError('NTLogEventLogHandler requires a Windows '
-                               'operating system.')
+        if os.name != "nt":
+            raise RuntimeError(
+                "NTLogEventLogHandler requires a Windows " "operating system."
+            )
 
         try:
             import win32evtlog
             import win32evtlogutil
         except ImportError:
-            raise RuntimeError('The pywin32 library is required '
-                               'for the NTEventLogHandler.')
+            raise RuntimeError(
+                "The pywin32 library is required " "for the NTEventLogHandler."
+            )
 
         self.application_name = application_name
         self._welu = win32evtlogutil
         dllname = self.dllname
         if not dllname:
-            dllname = os.path.join(os.path.dirname(self._welu.__file__),
-                                   '../win32service.pyd')
+            dllname = os.path.join(
+                os.path.dirname(self._welu.__file__), "../win32service.pyd"
+            )
         self.log_type = log_type
-        self._welu.AddSourceToRegistry(self.application_name, dllname,
-                                       log_type)
+        self._welu.AddSourceToRegistry(self.application_name, dllname, log_type)
 
         self._default_type = win32evtlog.EVENTLOG_INFORMATION_TYPE
         self._type_map = {
-            DEBUG:      win32evtlog.EVENTLOG_INFORMATION_TYPE,
-            INFO:       win32evtlog.EVENTLOG_INFORMATION_TYPE,
-            NOTICE:     win32evtlog.EVENTLOG_INFORMATION_TYPE,
-            WARNING:    win32evtlog.EVENTLOG_WARNING_TYPE,
-            ERROR:      win32evtlog.EVENTLOG_ERROR_TYPE,
-            CRITICAL:   win32evtlog.EVENTLOG_ERROR_TYPE
+            DEBUG: win32evtlog.EVENTLOG_INFORMATION_TYPE,
+            INFO: win32evtlog.EVENTLOG_INFORMATION_TYPE,
+            NOTICE: win32evtlog.EVENTLOG_INFORMATION_TYPE,
+            WARNING: win32evtlog.EVENTLOG_WARNING_TYPE,
+            ERROR: win32evtlog.EVENTLOG_ERROR_TYPE,
+            CRITICAL: win32evtlog.EVENTLOG_ERROR_TYPE,
         }
 
     def unregister_logger(self):
@@ -1720,8 +1884,7 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
         this, the log viewer will no longer be able to provide any
         information about the message.
         """
-        self._welu.RemoveSourceFromRegistry(self.application_name,
-                                            self.log_type)
+        self._welu.RemoveSourceFromRegistry(self.application_name, self.log_type)
 
     def get_event_type(self, record):
         return self._type_map.get(record.level, self._default_type)
@@ -1742,8 +1905,9 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
         id = self.get_message_id(record)
         cat = self.get_event_category(record)
         type = self.get_event_type(record)
-        self._welu.ReportEvent(self.application_name, id, cat, type,
-                               [self.format(record)])
+        self._welu.ReportEvent(
+            self.application_name, id, cat, type, [self.format(record)]
+        )
 
 
 class FingersCrossedHandler(Handler):
@@ -1814,11 +1978,18 @@ class FingersCrossedHandler(Handler):
     #: ``'escalation'``.
     #:
     #: .. versionadded:: 0.3
-    batch_emit_reason = 'escalation'
+    batch_emit_reason = "escalation"
 
-    def __init__(self, handler, action_level=ERROR, buffer_size=0,
-                 pull_information=True, reset=False, filter=None,
-                 bubble=False):
+    def __init__(
+        self,
+        handler,
+        action_level=ERROR,
+        buffer_size=0,
+        pull_information=True,
+        reset=False,
+        filter=None,
+        bubble=False,
+    ):
         Handler.__init__(self, NOTSET, filter, bubble)
         self.lock = new_fine_grained_lock()
         self._level = action_level
@@ -1854,8 +2025,7 @@ class FingersCrossedHandler(Handler):
             self.buffered_records.append(record)
             if self._buffer_full:
                 self.buffered_records.popleft()
-            elif (self.buffer_size and
-                    len(self.buffered_records) >= self.buffer_size):
+            elif self.buffer_size and len(self.buffered_records) >= self.buffer_size:
                 self._buffer_full = True
             return record.level >= self._level
         return False
@@ -1863,7 +2033,7 @@ class FingersCrossedHandler(Handler):
     def rollover(self, record):
         if self._handler is None:
             self._handler = self._handler_factory(record, self)
-        self._handler.emit_batch(iter(self.buffered_records), 'escalation')
+        self._handler.emit_batch(iter(self.buffered_records), "escalation")
         self.buffered_records.clear()
         self._action_triggered = not self._reset
 
@@ -1906,8 +2076,8 @@ class GroupHandler(WrapperHandler):
 
     .. versionadded:: 0.3
     """
-    _direct_attrs = frozenset(['handler', 'pull_information',
-                               'buffered_records'])
+
+    _direct_attrs = frozenset(["handler", "pull_information", "buffered_records"])
 
     def __init__(self, handler, pull_information=True):
         WrapperHandler.__init__(self, handler)
@@ -1915,7 +2085,7 @@ class GroupHandler(WrapperHandler):
         self.buffered_records = []
 
     def rollover(self):
-        self.handler.emit_batch(self.buffered_records, 'group')
+        self.handler.emit_batch(self.buffered_records, "group")
         self.buffered_records = []
 
     def pop_application(self):

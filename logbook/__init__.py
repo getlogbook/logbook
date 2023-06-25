@@ -60,7 +60,7 @@ from .handlers import (
 
 # create an anonymous default logger and provide all important
 # methods of that logger as global functions
-_default_logger = Logger('Generic')
+_default_logger = Logger("Generic")
 _default_logger.suppress_dispatcher = True
 trace = _default_logger.trace
 debug = _default_logger.debug
@@ -77,7 +77,7 @@ del _default_logger
 
 
 # install a default global handler
-if os.environ.get('LOGBOOK_INSTALL_DEFAULT_HANDLER'):
+if os.environ.get("LOGBOOK_INSTALL_DEFAULT_HANDLER"):
     default_handler = StderrHandler()
     default_handler.push_application()
 
