@@ -1592,7 +1592,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         segments = [segment for segment in msg.split(self.record_delimiter)]
         return (before + segment + self.record_delimiter
                 for segment in segments)
-        
+
     def unix_envelope(self, record):
         before = u'<{}>{}'.format(
             self.encode_priority(record),
