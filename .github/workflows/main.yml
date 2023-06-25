@@ -43,7 +43,7 @@ jobs:
           python -m pip install --upgrade tox tox-gh-actions
 
       - name: "Run tox targets for ${{ matrix.python-version }}"
-        run: "python -m tox"
+        run: "python -m tox -- -r aR"
 
   windows:
     name: "Windows (${{ matrix.python-version }}, ${{ matrix.arch }})"
@@ -71,7 +71,7 @@ jobs:
       - run: python -m pip install --upgrade tox tox-gh-actions
 
       - name: "Run tox targets for ${{ matrix.python-version }} on ${{ matrix.arch }}"
-        run: "python -m tox -- -k 'not redis'"
+        run: "python -m tox -- -r aR -k 'not redis'"
 
   macos:
     name: "macOS (${{ matrix.python-version }})"
@@ -97,7 +97,7 @@ jobs:
           python -m pip install --upgrade tox tox-gh-actions
 
       - name: "Run tox targets for ${{ matrix.python-version }}"
-        run: "python -m tox -- -k 'not redis'"
+        run: "python -m tox -- -r aR -k 'not redis'"
 
   pre-commit:
     runs-on: ubuntu-latest
