@@ -787,7 +787,7 @@ class BrotliCompressionHandler(FileHandler):
             from brotli import Compressor
         except ImportError:
             raise RuntimeError(
-                "The brotli library is required for " "the BrotliCompressionHandler."
+                "The brotli library is required for the BrotliCompressionHandler."
             )
 
         max_window_size = int(math.log(compression_window_size, 2))
@@ -852,7 +852,7 @@ class MonitoringFileHandler(FileHandler):
             self, filename, mode, encoding, level, format_string, delay, filter, bubble
         )
         if os.name == "nt":
-            raise RuntimeError("MonitoringFileHandler " "does not support Windows")
+            raise RuntimeError("MonitoringFileHandler does not support Windows")
         self._query_fd()
 
     def _query_fd(self):
@@ -938,7 +938,7 @@ class RotatingFileHandler(FileHandler):
         )
         self.max_size = max_size
         self.backup_count = backup_count
-        assert backup_count > 0, "at least one backup file has to be " "specified"
+        assert backup_count > 0, "at least one backup file has to be specified"
 
     def should_rollover(self, record, bytes):
         self.stream.seek(0, 2)
@@ -1848,7 +1848,7 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
 
         if os.name != "nt":
             raise RuntimeError(
-                "NTLogEventLogHandler requires a Windows " "operating system."
+                "NTLogEventLogHandler requires a Windows operating system."
             )
 
         try:
@@ -1856,7 +1856,7 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
             import win32evtlogutil
         except ImportError:
             raise RuntimeError(
-                "The pywin32 library is required " "for the NTEventLogHandler."
+                "The pywin32 library is required for the NTEventLogHandler."
             )
 
         self.application_name = application_name

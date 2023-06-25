@@ -65,7 +65,7 @@ class RedisHandler(Handler):
             import redis
             from redis import ResponseError
         except ImportError:
-            raise RuntimeError("The redis library is required for " "the RedisHandler")
+            raise RuntimeError("The redis library is required for the RedisHandler")
 
         self.redis = redis.Redis(
             host=host, port=port, password=password, decode_responses=True
@@ -174,7 +174,7 @@ class MessageQueueHandler(Handler):
             import kombu
         except ImportError:
             raise RuntimeError(
-                "The kombu library is required for " "the RabbitMQSubscriber."
+                "The kombu library is required for the RabbitMQSubscriber."
             )
         if uri:
             connection = kombu.Connection(uri)
@@ -226,9 +226,7 @@ class ZeroMQHandler(Handler):
         try:
             import zmq
         except ImportError:
-            raise RuntimeError(
-                "The pyzmq library is required for " "the ZeroMQHandler."
-            )
+            raise RuntimeError("The pyzmq library is required for the ZeroMQHandler.")
         #: the zero mq context
         self.context = context or zmq.Context()
 
@@ -452,7 +450,7 @@ class ZeroMQSubscriber(SubscriberBase):
             import zmq
         except ImportError:
             raise RuntimeError(
-                "The pyzmq library is required for " "the ZeroMQSubscriber."
+                "The pyzmq library is required for the ZeroMQSubscriber."
             )
         self._zmq = zmq
 

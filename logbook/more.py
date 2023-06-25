@@ -194,7 +194,7 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
             import oauth2
         except ImportError:
             raise RuntimeError(
-                "The python-oauth2 library is required for " "the TwitterHandler."
+                "The python-oauth2 library is required for the TwitterHandler."
             )
 
         self._oauth = oauth2
@@ -267,9 +267,7 @@ class SlackHandler(Handler, StringFormatterHandlerMixin):
         try:
             from slacker import Slacker
         except ImportError:
-            raise RuntimeError(
-                "The slacker library is required for " "the SlackHandler."
-            )
+            raise RuntimeError("The slacker library is required for the SlackHandler.")
 
         self.channel = channel
         self.slack = Slacker(api_token)
@@ -287,9 +285,7 @@ class JinjaFormatter:
         try:
             from jinja2 import Template
         except ImportError:
-            raise RuntimeError(
-                "The jinja2 library is required for " "the JinjaFormatter."
-            )
+            raise RuntimeError("The jinja2 library is required for the JinjaFormatter.")
         self.template = Template(template)
 
     def __call__(self, record, handler):
