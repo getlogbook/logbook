@@ -1,8 +1,9 @@
 import sys
+
 import logbook
 
 
-class MyObject(object):
+class MyObject:
     def __init__(self, logger_func):
         self._logger_func = logger_func
 
@@ -11,7 +12,7 @@ class MyObject(object):
         return "<complex object>"
 
 
-class FakeLock(object):
+class FakeLock:
     def __init__(self):
         self._acquired = False
         self._deadlock_occurred = False
@@ -28,8 +29,7 @@ class FakeLock(object):
 def test_deadlock_in_emit():
     logbook_logger = logbook.Logger("logbook")
     obj = MyObject(logbook_logger.info)
-    stream_handler = logbook.StreamHandler(stream=sys.stderr,
-                                           level=logbook.DEBUG)
+    stream_handler = logbook.StreamHandler(stream=sys.stderr, level=logbook.DEBUG)
     stream_handler.lock = FakeLock()
     with stream_handler.applicationbound():
         logbook_logger.info("format this: {}", obj)

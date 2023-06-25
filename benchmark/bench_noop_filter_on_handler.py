@@ -1,9 +1,9 @@
 """Like the filter test, but with the should_handle implemented"""
-from logbook import Logger, StreamHandler, NullHandler
 from cStringIO import StringIO
 
+from logbook import Logger, NullHandler, StreamHandler
 
-log = Logger('Test logger')
+log = Logger("Test logger")
 
 
 class CustomStreamHandler(StreamHandler):
@@ -16,5 +16,5 @@ def run():
     with NullHandler():
         with CustomStreamHandler(out) as handler:
             for x in xrange(500):
-                log.warning('this is not handled')
+                log.warning("this is not handled")
     assert not out.getvalue()

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook
     ~~~~~~~
@@ -11,23 +10,57 @@
 """
 
 import os
-from .base import (
-    LogRecord, Logger, LoggerGroup, NestedSetup,  Processor, Flags,
-    get_level_name, lookup_level, dispatch_record, CRITICAL, ERROR, WARNING,
-    NOTICE, INFO, DEBUG, TRACE, NOTSET, set_datetime_format)
-from .handlers import (
-    Handler, StreamHandler, FileHandler, MonitoringFileHandler, StderrHandler,
-    RotatingFileHandler, TimedRotatingFileHandler, TestHandler, MailHandler,
-    GMailHandler, SyslogHandler, NullHandler, NTEventLogHandler,
-    create_syshandler, StringFormatter, StringFormatterHandlerMixin,
-    HashingHandlerMixin, LimitingHandlerMixin, WrapperHandler,
-    FingersCrossedHandler, GroupHandler, GZIPCompressionHandler, BrotliCompressionHandler)
-from . import compat
 
+from . import compat
+from .base import (
+    CRITICAL,
+    DEBUG,
+    ERROR,
+    INFO,
+    NOTICE,
+    NOTSET,
+    TRACE,
+    WARNING,
+    Flags,
+    Logger,
+    LoggerGroup,
+    LogRecord,
+    NestedSetup,
+    Processor,
+    dispatch_record,
+    get_level_name,
+    lookup_level,
+    set_datetime_format,
+)
+from .handlers import (
+    BrotliCompressionHandler,
+    FileHandler,
+    FingersCrossedHandler,
+    GMailHandler,
+    GroupHandler,
+    GZIPCompressionHandler,
+    Handler,
+    HashingHandlerMixin,
+    LimitingHandlerMixin,
+    MailHandler,
+    MonitoringFileHandler,
+    NTEventLogHandler,
+    NullHandler,
+    RotatingFileHandler,
+    StderrHandler,
+    StreamHandler,
+    StringFormatter,
+    StringFormatterHandlerMixin,
+    SyslogHandler,
+    TestHandler,
+    TimedRotatingFileHandler,
+    WrapperHandler,
+    create_syshandler,
+)
 
 # create an anonymous default logger and provide all important
 # methods of that logger as global functions
-_default_logger = Logger('Generic')
+_default_logger = Logger("Generic")
 _default_logger.suppress_dispatcher = True
 trace = _default_logger.trace
 debug = _default_logger.debug
@@ -44,7 +77,7 @@ del _default_logger
 
 
 # install a default global handler
-if os.environ.get('LOGBOOK_INSTALL_DEFAULT_HANDLER'):
+if os.environ.get("LOGBOOK_INSTALL_DEFAULT_HANDLER"):
     default_handler = StderrHandler()
     default_handler.push_application()
 

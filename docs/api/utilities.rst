@@ -43,4 +43,3 @@ Deprecations
 .. autofunction:: deprecated
 
 .. autofunction:: suppressed_deprecations
-

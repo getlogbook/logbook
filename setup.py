@@ -3,7 +3,6 @@ import platform
 
 from setuptools import Extension, setup
 
-
 IS_CPYTHON = platform.python_implementation() == "CPython"
 DISABLE_EXTENSION = bool(os.environ.get("DISABLE_LOGBOOK_CEXT"))
 
@@ -28,6 +27,7 @@ elif DISABLE_EXTENSION:
     ext_modules = []
 else:
     from Cython.Build import cythonize
+
     ext_modules = cythonize(
         [Extension("logbook._speedups", sources=["logbook/_speedups.pyx"])],
         language_level=3,

@@ -1,6 +1,8 @@
-import pytest
-import logbook
 import asyncio
+
+import pytest
+
+import logbook
 from logbook.concurrency import has_contextvars
 
 ITERATIONS = 100
@@ -18,10 +20,12 @@ def test_asyncio_context_management(logger):
 
             await asyncio.sleep(0)  # allow for context switch
 
-    asyncio.get_event_loop().run_until_complete(asyncio.gather(task(h1, 'task1'), task(h2, 'task2')))
+    asyncio.get_event_loop().run_until_complete(
+        asyncio.gather(task(h1, "task1"), task(h2, "task2"))
+    )
 
     assert len(h1.records) == ITERATIONS
-    assert all(['task1' == r.msg for r in h1.records])
+    assert all(["task1" == r.msg for r in h1.records])
 
     assert len(h2.records) == ITERATIONS
-    assert all(['task2' == r.msg for r in h2.records])
+    assert all(["task2" == r.msg for r in h2.records])

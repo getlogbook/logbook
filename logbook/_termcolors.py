@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook._termcolors
     ~~~~~~~~~~~~~~~~~~~
@@ -13,10 +12,26 @@ esc = "\x1b["
 
 codes = {"": "", "reset": esc + "39;49;00m"}
 
-dark_colors = ["black", "darkred", "darkgreen", "brown", "darkblue",
-               "purple", "teal", "lightgray"]
-light_colors = ["darkgray", "red", "green", "yellow", "blue",
-                "fuchsia", "turquoise", "white"]
+dark_colors = [
+    "black",
+    "darkred",
+    "darkgreen",
+    "brown",
+    "darkblue",
+    "purple",
+    "teal",
+    "lightgray",
+]
+light_colors = [
+    "darkgray",
+    "red",
+    "green",
+    "yellow",
+    "blue",
+    "fuchsia",
+    "turquoise",
+    "white",
+]
 
 x = 30
 for d, l in zip(dark_colors, light_colors):
@@ -35,10 +50,11 @@ def _str_to_type(obj, strtype):
     """Helper for ansiformat and colorize"""
     if isinstance(obj, type(strtype)):
         return obj
-    return obj.encode('ascii')
+    return obj.encode("ascii")
 
 
 def colorize(color_key, text):
     """Returns an ANSI formatted text with the given color."""
-    return (_str_to_type(codes[color_key], text) + text +
-            _str_to_type(codes["reset"], text))
+    return (
+        _str_to_type(codes[color_key], text) + text + _str_to_type(codes["reset"], text)
+    )
