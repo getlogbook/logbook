@@ -226,9 +226,3 @@ def test_mail_handler_arguments():
             'server.example.com', 465, keyfile=None, certfile=None)
         assert mock_smtp_ssl.method_calls[1] == call().login(
             user='username', password='password')
-
-
-
-
-
-
