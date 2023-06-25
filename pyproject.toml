@@ -38,7 +38,9 @@ redis = ["redis"]
 zmq = ["pyzmq"]
 jinja = ["Jinja2"]
 compression = ["brotli"]
-all = ["Logbook[execnet,sqlalchemy,redis,zmq,jinja,compression]"]
+all = ["Logbook[execnet,sqlalchemy,redis,zmq,jinja,compression,nteventlog]"]
+nteventlog = ["pywin32; platform_system == 'Windows'"]
+
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
