@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     test utils for logbook
     ~~~~~~~~~~~~~~~~~~~~~~
@@ -47,7 +46,7 @@ def require_module(module_name):
         found = False
 
     return pytest.mark.skipif(
-        not found, reason='Module {0} is required'.format(module_name))
+        not found, reason=f'Module {module_name} is required')
 
 
 def make_fake_mail_handler(**kwargs):

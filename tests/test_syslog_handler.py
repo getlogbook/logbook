@@ -38,7 +38,7 @@ def test_syslog_handler(logger, activation_strategy, sock_family, socktype, addr
         inc.settimeout(1)
 
         if UNIX_SOCKET_AVAILABLE and sock_family == socket.AF_UNIX:
-            expected = (r'^<12>%stestlogger: Syslog is weird%s$' % (app_name + ':' if app_name else '', delimiter))
+            expected = (r'^<12>{}testlogger: Syslog is weird{}$'.format(app_name + ':' if app_name else '', delimiter))
         else:
             expected = (r'^<12>1 \d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z %s %s %d - - %sSyslog is weird%s$' % (
                 socket.gethostname(),
@@ -59,7 +59,7 @@ def test_syslog_handler(logger, activation_strategy, sock_family, socktype, addr
 
         rv = rv.decode('utf-8')
         assert re.match(expected, rv), \
-            'expected {}, got {}'.format(expected, rv)
+            f'expected {expected}, got {rv}'
 
 
 @pytest.fixture

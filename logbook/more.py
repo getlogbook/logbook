@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook.more
     ~~~~~~~~~~~~
@@ -146,9 +145,9 @@ class TaggingHandler(Handler):
     def __init__(self, handlers, filter=None, bubble=False):
         Handler.__init__(self, NOTSET, filter, bubble)
         assert isinstance(handlers, dict)
-        self._handlers = dict(
-            (tag, isinstance(handler, Handler) and [handler] or handler)
-            for (tag, handler) in iteritems(handlers))
+        self._handlers = {
+            tag: isinstance(handler, Handler) and [handler] or handler
+            for (tag, handler) in iteritems(handlers)}
 
     def emit(self, record):
         for tag in record.extra.get('tags', ()):
@@ -256,7 +255,7 @@ class SlackHandler(Handler, StringFormatterHandlerMixin):
         self.slack.chat.post_message(channel=self.channel, text=self.format(record))
 
 
-class JinjaFormatter(object):
+class JinjaFormatter:
     """A formatter object that makes it easy to format using a Jinja 2
     template instead of a format string.
     """
@@ -320,7 +319,7 @@ class ExternalApplicationHandler(Handler):
         c.wait()
 
 
-class ColorizingStreamHandlerMixin(object):
+class ColorizingStreamHandlerMixin:
     """A mixin class that does colorizing.
 
     .. versionadded:: 0.3
@@ -366,7 +365,7 @@ class ColorizingStreamHandlerMixin(object):
         return 'lightgray'
 
     def format(self, record):
-        rv = super(ColorizingStreamHandlerMixin, self).format(record)
+        rv = super().format(record)
         if self.should_colorize(record):
             color = self.get_color(record)
             if color:
@@ -539,8 +538,8 @@ class RiemannHandler(Handler):
         elif message_type == "test":
             self.transport = riemann_client.transport.BlankTransport
         else:
-            msg = ("Currently supported message types for RiemannHandler are: {0}. \
-                    {1} is not supported."
+            msg = ("Currently supported message types for RiemannHandler are: {}. \
+                    {} is not supported."
                    .format(",".join(["tcp", "udp", "test"]), message_type))
             raise RuntimeError(msg)
 
@@ -560,7 +559,7 @@ class RiemannHandler(Handler):
                 "time": int(time()),
                 "ttl": self.ttl,
                 "host": platform.node(),
-                "service": "{0}.{1}".format(channel_name, os.getpid()),
+                "service": f"{channel_name}.{os.getpid()}",
                 "state": state
                 }
 

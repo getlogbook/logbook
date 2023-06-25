@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import socket
 import time
@@ -59,7 +58,7 @@ def test_missing_zeromq():
         ZeroMQSubscriber('tcp://127.0.0.1:42000')
 
 
-class MultiProcessingHandlerSendBack(object):
+class MultiProcessingHandlerSendBack:
     def __init__(self, queue):
         self.queue = queue
 
@@ -94,16 +93,16 @@ def test_multi_processing_handler():
 
 class BatchTestHandler(logbook.TestHandler):
     def __init__(self, *args, **kwargs):
-        super(BatchTestHandler, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.batches = []
 
     def emit(self, record):
-        super(BatchTestHandler, self).emit(record)
+        super().emit(record)
         self.batches.append([record])
 
     def emit_batch(self, records, reason):
         for record in records:
-            super(BatchTestHandler, self).emit(record)
+            super().emit(record)
         self.batches.append(records)
 
 
@@ -120,7 +119,7 @@ def test_threaded_wrapper_handler(logger):
     assert (not handler.controller.running)
     assert len(test_handler.records) == 2
     assert len(test_handler.batches) == 2
-    assert all((len(records) == 1 for records in test_handler.batches))
+    assert all(len(records) == 1 for records in test_handler.batches)
     assert test_handler.has_warning('Just testing')
     assert test_handler.has_error('More testing')
 
@@ -140,7 +139,7 @@ def test_threaded_wrapper_handler_emit():
     assert (not handler.controller.running)
     assert len(test_handler.records) == 2
     assert len(test_handler.batches) == 2
-    assert all((len(records) == 1 for records in test_handler.batches))
+    assert all(len(records) == 1 for records in test_handler.batches)
     assert test_handler.has_warning('Just testing')
     assert test_handler.has_error('More testing')
 
@@ -186,7 +185,7 @@ def test_execnet_handler():
     gw.exit()
 
 
-class SubscriberGroupSendBack(object):
+class SubscriberGroupSendBack:
     def __init__(self, message, queue):
         self.message = message
         self.queue = queue
@@ -226,7 +225,7 @@ def test_redis_handler():
     import redis
     from logbook.queues import RedisHandler
 
-    KEY = 'redis-{}'.format(os.getpid())
+    KEY = f'redis-{os.getpid()}'
     FIELDS = ['message', 'host']
     r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
     redis_handler = RedisHandler(key=KEY, level=logbook.INFO, bubble=True)
@@ -247,7 +246,7 @@ def test_redis_handler():
     assert message.find(LETTERS)
 
     # Change the key of the handler and check on redis
-    KEY = 'test_another_key-{}'.format(os.getpid())
+    KEY = f'test_another_key-{os.getpid()}'
     redis_handler.key = KEY
 
     with null_handler.applicationbound():
@@ -296,7 +295,7 @@ def test_redis_handler_lpush():
     from logbook.queues import RedisHandler
     null_handler = logbook.NullHandler()
 
-    KEY = 'lpushed-'.format(os.getpid())
+    KEY = f'lpushed-'
     redis_handler = RedisHandler(key=KEY, push_method='lpush',
                                  level=logbook.INFO, bubble=True)
 

@@ -2,7 +2,7 @@ import sys
 import logbook
 
 
-class MyObject(object):
+class MyObject:
     def __init__(self, logger_func):
         self._logger_func = logger_func
 
@@ -11,7 +11,7 @@ class MyObject(object):
         return "<complex object>"
 
 
-class FakeLock(object):
+class FakeLock:
     def __init__(self):
         self._acquired = False
         self._deadlock_occurred = False

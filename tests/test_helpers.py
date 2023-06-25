@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from logbook.helpers import u
 from datetime import datetime
 
@@ -9,7 +7,7 @@ import pytest
 def test_jsonhelper():
     from logbook.helpers import to_safe_json
 
-    class Bogus(object):
+    class Bogus:
         def __str__(self):
             return 'bogus'
 

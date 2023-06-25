@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook.base
     ~~~~~~~~~~~~
@@ -125,7 +124,7 @@ _level_names = {
     TRACE:      'TRACE',
     NOTSET:     'NOTSET'
 }
-_reverse_level_names = dict((v, k) for (k, v) in iteritems(_level_names))
+_reverse_level_names = {v: k for (k, v) in iteritems(_level_names)}
 _missing = object()
 
 
@@ -174,7 +173,7 @@ def get_level_name(level):
         raise LookupError('unknown level')
 
 
-class _ExceptionCatcher(object):
+class _ExceptionCatcher:
     """Helper for exception caught blocks."""
 
     def __init__(self, logger, args, kwargs):
@@ -305,7 +304,7 @@ class Processor(ContextObject):
             self.callback(record)
 
 
-class _InheritedType(object):
+class _InheritedType:
     __slots__ = ()
 
     def __repr__(self):
@@ -367,7 +366,7 @@ def _create_log_record(cls, dict):
     return cls.from_dict(dict)
 
 
-class LogRecord(object):
+class LogRecord:
     """A LogRecord instance represents an event being logged.
 
     LogRecord instances are created every time something is logged. They
@@ -431,7 +430,7 @@ class LogRecord(object):
         #: data.
 
         # TODO: Replace the lambda with str when we remove support for python 2
-        self.extra = defaultdict(lambda: u'', extra or ())
+        self.extra = defaultdict(lambda: '', extra or ())
         #: If available, optionally the interpreter frame that pulled the
         #: heavy init.  This usually points to somewhere in the dispatcher.
         #: Might not be available for all calls and is removed when the log
@@ -534,7 +533,7 @@ class LogRecord(object):
             self.time = parse_iso8601(self.time)
 
         # TODO: Replace the lambda with str when we remove support for python 2`
-        self.extra = defaultdict(lambda: u'', self.extra)
+        self.extra = defaultdict(lambda: '', self.extra)
         return self
 
     def _format_message(self, msg, *args, **kwargs):
@@ -735,7 +734,7 @@ class LogRecord(object):
             return self._dispatcher()
 
 
-class LoggerMixin(object):
+class LoggerMixin:
     """This mixin class defines and implements the "usual" logger
     interface (i.e. the descriptive logging functions).
 
@@ -873,7 +872,7 @@ class LoggerMixin(object):
                                     exc_info, extra, frame_correction)
 
 
-class RecordDispatcher(object):
+class RecordDispatcher:
     """A record dispatcher is the internal base class that implements
     the logic used by the :class:`~logbook.Logger`.
     """
@@ -1025,7 +1024,7 @@ class Logger(RecordDispatcher, LoggerMixin):
     """
 
 
-class LoggerGroup(object):
+class LoggerGroup:
     """A LoggerGroup represents a group of loggers.  It cannot emit log
     messages on its own but it can be used to set the disabled flag and
     log level of all loggers in the group.

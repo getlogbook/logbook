@@ -7,7 +7,7 @@ from .base import Logger, DEBUG
 from .helpers import string_types
 
 
-class _SlowContextNotifier(object):
+class _SlowContextNotifier:
 
     def __init__(self, threshold, func):
         self.timer = threading.Timer(threshold, func)
@@ -93,13 +93,13 @@ def _write_deprecations_if_needed(message, frame_correction):
 
 
 def log_deprecation_message(message, frame_correction=0):
-    _write_deprecations_if_needed("Deprecation message: {0}".format(message), frame_correction=frame_correction+1)
+    _write_deprecations_if_needed(f"Deprecation message: {message}", frame_correction=frame_correction+1)
 
 
-class _DeprecatedFunction(object):
+class _DeprecatedFunction:
 
     def __init__(self, func, message, obj=None, objtype=None):
-        super(_DeprecatedFunction, self).__init__()
+        super().__init__()
         self._func = func
         self._message = message
         self._obj = obj
@@ -116,9 +116,9 @@ class _DeprecatedFunction(object):
 
     def __call__(self, *args, **kwargs):
         func = self._get_underlying_func()
-        warning = "{0} is deprecated.".format(self._get_func_str())
+        warning = f"{self._get_func_str()} is deprecated."
         if self._message is not None:
-            warning += " {0}".format(self._message)
+            warning += f" {self._message}"
         _write_deprecations_if_needed(warning, frame_correction=+1)
         if self._obj is not None:
             return func(self._obj, *args, **kwargs)
@@ -129,8 +129,8 @@ class _DeprecatedFunction(object):
     def _get_func_str(self):
         func = self._get_underlying_func()
         if self._objtype is not None:
-            return '{0}.{1}'.format(self._objtype.__name__, func.__name__)
-        return '{0}.{1}'.format(func.__module__, func.__name__)
+            return f'{self._objtype.__name__}.{func.__name__}'
+        return f'{func.__module__}.{func.__name__}'
 
     def __get__(self, obj, objtype):
         return self.bound_to(obj, objtype)
@@ -149,7 +149,7 @@ class _DeprecatedFunction(object):
         if returned:  # pylint: disable=no-member
             returned += "\n.. deprecated\n"  # pylint: disable=no-member
             if self._message:
-                returned += "   {0}".format(
+                returned += "   {}".format(
                     self._message)  # pylint: disable=no-member
         return returned
 

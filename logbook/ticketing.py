@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook.ticketing
     ~~~~~~~~~~~~~~~~~
@@ -16,7 +15,7 @@ from logbook.handlers import Handler, HashingHandlerMixin
 from logbook.helpers import cached_property, b, PY2, u
 
 
-class Ticket(object):
+class Ticket:
     """Represents a ticket from the database."""
 
     level_name = level_name_property()
@@ -71,7 +70,7 @@ class Occurrence(LogRecord):
         self.occurrence_id = row['occurrence_id']
 
 
-class BackendBase(object):
+class BackendBase:
     """Provides an abstract interface to various databases."""
 
     def __init__(self, **options):

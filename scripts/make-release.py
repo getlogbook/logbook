@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
     make-release
     ~~~~~~~~~~~~
@@ -24,7 +23,7 @@ def parse_changelog():
     with open('CHANGES') as f:
         lineiter = iter(f)
         for line in lineiter:
-            match = re.search('^Version\s+(.*)', line.strip())
+            match = re.search(r'^Version\s+(.*)', line.strip())
             if match is None:
                 continue
             version = match.group(1).strip()
@@ -79,7 +78,7 @@ def set_filename_version(filename, version_number, pattern):
 def set_version(version):
     info('Setting version to %s', version)
     with open('logbook/__version__.py', 'w') as f:
-        f.write('__version__ = {!r}'.format(version))
+        f.write(f'__version__ = {version!r}')
 
 
 def fail(message, *args):

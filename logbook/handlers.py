@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook.handlers
     ~~~~~~~~~~~~~~~~
@@ -295,9 +294,9 @@ class Handler(with_metaclass(_HandlerType), ContextObject):
                 reraise(exc_info[0], exc_info[1], exc_info[2])
             elif behaviour == 'print':
                 traceback.print_exception(*(exc_info + (None, sys.stderr)))
-                sys.stderr.write('Logged from file %s, line %s\n' % (
+                sys.stderr.write('Logged from file {}, line {}\n'.format(
                                  record.filename, record.lineno))
-        except IOError:
+        except OSError:
             pass
 
 
@@ -315,7 +314,7 @@ class NullHandler(Handler):
     blackhole = True
 
     def __init__(self, level=NOTSET, filter=None):
-        super(NullHandler, self).__init__(level=level, filter=filter,
+        super().__init__(level=level, filter=filter,
                                           bubble=False)
 
 
@@ -345,7 +344,7 @@ class WrapperHandler(Handler):
         setattr(self.handler, name, value)
 
 
-class StringFormatter(object):
+class StringFormatter:
     """Many handlers format the log entries to text format.  This is done
     by a callable that is passed a log record and returns an unicode
     string.  The default formatter for this is implemented as a class so
@@ -391,7 +390,7 @@ class StringFormatter(object):
         return line
 
 
-class StringFormatterHandlerMixin(object):
+class StringFormatterHandlerMixin:
     """A mixin for handlers that provides a default integration for the
     :class:`~logbook.StringFormatter` class.  This is used for all handlers
     by default that log text to a destination.
@@ -426,7 +425,7 @@ class StringFormatterHandlerMixin(object):
     del _get_format_string, _set_format_string
 
 
-class HashingHandlerMixin(object):
+class HashingHandlerMixin:
     """Mixin class for handlers that are hashing records."""
 
     def hash_record_raw(self, record):
@@ -618,7 +617,7 @@ class FileHandler(StreamHandler):
     def _open(self, mode=None):
         if mode is None:
             mode = self._mode
-        self.stream = io.open(self._filename, mode, encoding=self.encoding)
+        self.stream = open(self._filename, mode, encoding=self.encoding)
 
     def write(self, item):
         self.ensure_stream_is_open()
@@ -653,7 +652,7 @@ class GZIPCompressionHandler(FileHandler):
                  format_string=None, delay=False, filter=None, bubble=False, compression_quality=9):
 
         self._compression_quality = compression_quality
-        super(GZIPCompressionHandler, self).__init__(filename, mode='wb', encoding=encoding, level=level,
+        super().__init__(filename, mode='wb', encoding=encoding, level=level,
                              format_string=format_string, delay=delay, filter=filter, bubble=bubble)
 
     def _open(self, mode=None):
@@ -677,7 +676,7 @@ class BrotliCompressionHandler(FileHandler):
     def __init__(self, filename, encoding=None, level=NOTSET,
                  format_string=None, delay=False, filter=None, bubble=False,
                  compression_window_size=4*1024**2, compression_quality=11):
-        super(BrotliCompressionHandler, self).__init__(filename, mode='wb', encoding=encoding, level=level,
+        super().__init__(filename, mode='wb', encoding=encoding, level=level,
                              format_string=format_string, delay=delay, filter=filter, bubble=bubble)
         try:
             from brotli import Compressor
@@ -691,7 +690,7 @@ class BrotliCompressionHandler(FileHandler):
     def _open(self, mode=None):
         if mode is None:
             mode = self._mode
-        self.stream = io.open(self._filename, mode)
+        self.stream = open(self._filename, mode)
 
     def write(self, item):
         if isinstance(item, str):
@@ -700,7 +699,7 @@ class BrotliCompressionHandler(FileHandler):
         if ret:
             self.ensure_stream_is_open()
             self.stream.write(ret)
-            super(BrotliCompressionHandler, self).flush()
+            super().flush()
 
     def should_flush(self):
         return False
@@ -711,14 +710,14 @@ class BrotliCompressionHandler(FileHandler):
             if ret:
                 self.ensure_stream_is_open()
                 self.stream.write(ret)
-        super(BrotliCompressionHandler, self).flush()
+        super().flush()
 
     def close(self):
         if self._compressor is not None:
             self.ensure_stream_is_open()
             self.stream.write(self._compressor.finish())
             self._compressor = None
-        super(BrotliCompressionHandler, self).close()
+        super().close()
 
 
 class MonitoringFileHandler(FileHandler):
@@ -1321,7 +1320,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin,
             title = 'Other log records in the same group'
         else:
             title = 'Log records that led up to this one'
-        mail.set_payload('%s\r\n\r\n\r\n%s:\r\n\r\n%s' % (
+        mail.set_payload('{}\r\n\r\n\r\n{}:\r\n\r\n{}'.format(
             mail.get_payload(),
             title,
             '\r\n\r\n'.join(body.rstrip() for body in related)
@@ -1453,7 +1452,7 @@ class GMailHandler(MailHandler):
     """
 
     def __init__(self, account_id, password, recipients, **kw):
-        super(GMailHandler, self).__init__(
+        super().__init__(
             account_id, recipients, secure=True,
             server_addr=("smtp.gmail.com", 587),
             credentials=(account_id, password), **kw)
@@ -1552,11 +1551,11 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         if isinstance(address, string_types):
             self._connect_unixsocket()
             self.enveloper = self.unix_envelope
-            default_delimiter = u'\x00'
+            default_delimiter = '\x00'
         else:
             self._connect_netsocket()
             self.enveloper = self.net_envelope
-            default_delimiter = u'\n'
+            default_delimiter = '\n'
 
         self.record_delimiter = default_delimiter \
             if record_delimiter is None else record_delimiter
@@ -1569,7 +1568,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         try:
             self.socket.connect(self.address)
-        except socket.error:
+        except OSError:
             self.socket.close()
             self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self.socket.connect(self.address)
@@ -1594,7 +1593,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
                 for segment in segments)
 
     def unix_envelope(self, record):
-        before = u'<{}>{}'.format(
+        before = '<{}>{}'.format(
             self.encode_priority(record),
             self.application_name + ':' if self.application_name else '')
         return self.wrap_segments(record, before)
@@ -1611,7 +1610,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
                 self.application_name = record.channel
             # RFC 5424: <PRIVAL>version timestamp hostname app-name procid
             #           msgid structured-data message
-            before = u'<{}>1 {}Z {} {} {} - - '.format(
+            before = '<{}>1 {}Z {} {} {} - - '.format(
                 self.encode_priority(record),
                 record.time.isoformat(),
                 socket.gethostname(),
@@ -1630,7 +1629,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         if self.unixsocket:
             try:
                 self.socket.send(data)
-            except socket.error:
+            except OSError:
                 self._connect_unixsocket()
                 self.socket.send(data)
         elif self.socktype == socket.SOCK_DGRAM:

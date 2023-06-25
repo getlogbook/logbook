@@ -32,7 +32,7 @@ def test_colorizing_support(logger):
 
     class TestColorizingHandler(ColorizedStderrHandler):
         def __init__(self, *args, **kwargs):
-            super(TestColorizingHandler, self).__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
             self._obj_stream = StringIO()
 
         @property
@@ -116,12 +116,12 @@ def test_external_application_handler(tmpdir, logger):
     from logbook.more import ExternalApplicationHandler as Handler
     fn = tmpdir.join('tempfile')
     handler = Handler([sys.executable, '-c', r'''if 1:
-    f = open(%(tempfile)s, 'w')
+    f = open({tempfile}, 'w')
     try:
-        f.write('{record.message}\n')
+        f.write('{{record.message}}\n')
     finally:
         f.close()
-    ''' % {'tempfile': repr(str(fn))}])
+    '''.format(tempfile=repr(str(fn)))])
     with handler:
         logger.error('this is a really bad idea')
     with fn.open() as rf:
@@ -161,7 +161,7 @@ def test_dedup_handler(logger):
     assert 'message repeated 1 times: bar' in test_handler.records[1].message
 
 
-class TestRiemannHandler(object):
+class TestRiemannHandler:
 
     @require_module("riemann_client")
     def test_happy_path(self, logger):

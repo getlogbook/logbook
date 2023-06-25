@@ -25,7 +25,7 @@ def test_handler_filter_after_processor(activation_strategy, logger):
         filter=lambda r, h: 'ip' in r.extra,
         bubble=False)
 
-    class Request(object):
+    class Request:
         remote_addr = '127.0.0.1'
         method = 'GET'
         path = '/index.html'
@@ -72,7 +72,7 @@ def test_handler_processors(activation_strategy, logger):
             {record.message}
             ''').lstrip())
 
-    class Request(object):
+    class Request:
         remote_addr = '127.0.0.1'
         method = 'GET'
         path = '/index.html'

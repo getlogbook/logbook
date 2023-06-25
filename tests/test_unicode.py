@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from .utils import require_py3, capturing_stderr_context
 
 import logbook
@@ -52,12 +51,12 @@ def test_custom_string_format_unicode(logger):
 @require_py3
 def test_unicode_message_encoded_params(logger):
     with capturing_stderr_context() as stream:
-        logger.warn("\u2603 {0}", "\u2603".encode('utf8'))
+        logger.warn("\u2603 {0}", "\u2603".encode())
     assert "WARNING: testlogger: \u2603 b'\\xe2\\x98\\x83'" in stream.getvalue()
 
 
 @require_py3
 def test_encoded_message_unicode_params(logger):
     with capturing_stderr_context() as stream:
-        logger.warn('\u2603 {0}'.encode('utf8'), '\u2603')
+        logger.warn('\u2603 {0}'.encode(), '\u2603')
     assert 'WARNING: testlogger: \u2603 \u2603' in stream.getvalue()

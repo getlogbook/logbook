@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook.queues
     ~~~~~~~~~~~~~~
@@ -241,7 +240,7 @@ class ZeroMQHandler(Handler):
         self.close(linger=100)
 
 
-class ThreadController(object):
+class ThreadController:
     """A helper class used by queue subscribers to control the background
     thread.  This is usually created and started in one go by
     :meth:`~logbook.queues.ZeroMQSubscriber.dispatch_in_background` or
@@ -279,7 +278,7 @@ class ThreadController(object):
                 self.setup.pop_thread()
 
 
-class SubscriberBase(object):
+class SubscriberBase:
     """Baseclass for all subscribers."""
 
     def recv(self, timeout=None):
@@ -599,12 +598,12 @@ class ExecnetChannelSubscriber(SubscriberBase):
             return LogRecord.from_dict(rv)
 
 
-class TWHThreadController(object):
+class TWHThreadController:
     """A very basic thread controller that pulls things in from a
     queue and sends it to a handler.  Both queue and handler are
     taken from the passed :class:`ThreadedWrapperHandler`.
     """
-    class Command(object):
+    class Command:
         stop = object()
         emit = object()
         emit_batch = object()

@@ -11,7 +11,7 @@ _THRESHOLD = 0.1
 try:
     from unittest.mock import Mock, call
 except ImportError:
-    from mock import Mock, call
+    from unittest.mock import Mock, call
 
 
 def test_logged_if_slow_reached(test_handler):
@@ -104,7 +104,7 @@ def _no_decorator(func):
 @pytest.mark.parametrize('decorator', [_no_decorator, classmethod])
 def test_class_deprecation(capture, decorator):
 
-    class Bla(object):
+    class Bla:
 
         @deprecated('reason')
         @classmethod
@@ -214,7 +214,7 @@ def test_deprecatd_docstring():
         """
 
     assert ".. deprecated" in some_func.__doc__
-    assert ".. deprecated\n   {0}".format(message) in other_func.__doc__
+    assert f".. deprecated\n   {message}" in other_func.__doc__
 
 
 @pytest.fixture

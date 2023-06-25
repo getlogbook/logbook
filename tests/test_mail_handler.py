@@ -10,7 +10,7 @@ from .utils import capturing_stderr_context, make_fake_mail_handler
 try:
     from unittest.mock import Mock, call, patch
 except ImportError:
-    from mock import Mock, call, patch
+    from unittest.mock import Mock, call, patch
 
 __file_without_pyc__ = __file__
 if __file_without_pyc__.endswith('.pyc'):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook.helpers
     ~~~~~~~~~~~~~~~
@@ -171,7 +170,7 @@ if os.name == 'nt':
             e = sys.exc_info()[1]
             if e.errno not in (errno.EEXIST, errno.EACCES):
                 raise
-            old = "%s-%08x" % (dst, random.randint(0, 2 ** 31 - 1))
+            old = f"{dst}-{random.randint(0, 2 ** 31 - 1):08x}"
             os.rename(dst, old)
             os.rename(src, dst)
             try:
@@ -266,7 +265,7 @@ def get_application_name():
     return os.path.basename(sys.argv[0]).title()
 
 
-class cached_property(object):
+class cached_property:
     """A property that is lazily calculated and then cached."""
 
     def __init__(self, func, name=None, doc=None):

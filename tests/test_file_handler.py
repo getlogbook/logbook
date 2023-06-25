@@ -120,7 +120,7 @@ def test_timed_rotating_file_handler(tmpdir, activation_strategy, backup_count):
 
     files = sorted(x for x in os.listdir(str(tmpdir)) if x.startswith('trot'))
 
-    assert files == ['trot-2010-01-0{0}.log'.format(i)
+    assert files == [f'trot-2010-01-0{i}.log'
                      for i in xrange(5, 9)][-backup_count:]
     with open(str(tmpdir.join('trot-2010-01-08.log'))) as f:
         assert f.readline().rstrip() == '[01:00] Last One'
@@ -158,7 +158,7 @@ def test_timed_rotating_file_handler__rollover_format(tmpdir, activation_strateg
 
     files = sorted(x for x in os.listdir(str(tmpdir)) if x.startswith('trot'))
 
-    assert files == ['trot.log.2010-01-0{0}'.format(i)
+    assert files == [f'trot.log.2010-01-0{i}'
                      for i in xrange(5, 9)][-backup_count:]
     with open(str(tmpdir.join('trot.log.2010-01-08'))) as f:
         assert f.readline().rstrip() == '[01:00] Last One'
@@ -210,7 +210,7 @@ def test_timed_rotating_file_handler__not_timed_filename_for_current(
     computed_files = [x for x in os.listdir(str(tmpdir)) if x.startswith('trot')]
 
     expected_files = ['trot.log.2010-01-01'] if preexisting_file else []
-    expected_files += ['trot.log.2010-01-0{0}'.format(i) for i in xrange(5, 8)]
+    expected_files += [f'trot.log.2010-01-0{i}' for i in xrange(5, 8)]
     expected_files += ['trot.log']
     expected_files = expected_files[-backup_count:]
 

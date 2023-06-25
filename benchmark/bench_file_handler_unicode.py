@@ -10,4 +10,4 @@ def run():
     f = NamedTemporaryFile()
     with FileHandler(f.name) as handler:
         for x in xrange(500):
-            log.warning(u'this is handled \x6f')
+            log.warning('this is handled \x6f')

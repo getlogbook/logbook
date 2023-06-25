@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook.notifiers
     ~~~~~~~~~~~~~~~~~
@@ -81,7 +80,7 @@ class GrowlHandler(NotificationBaseHandler):
 
         if icon is not None:
             if not os.path.isfile(icon):
-                raise IOError('Filename to an icon expected.')
+                raise OSError('Filename to an icon expected.')
             icon = self._growl.Image.imageFromPath(icon)
         else:
             try:
@@ -273,7 +272,7 @@ class PushoverHandler(NotificationBaseHandler):
                  record_delta=None, level=NOTSET, filter=None, bubble=False,
                  max_title_len=100, max_message_len=512):
 
-        super(PushoverHandler, self).__init__(None, record_limit, record_delta,
+        super().__init__(None, record_limit, record_delta,
                                               level, filter, bubble)
 
         self.application_name = application_name
@@ -296,7 +295,7 @@ class PushoverHandler(NotificationBaseHandler):
 
     def _crop(self, msg, max_len):
         if max_len is not None and max_len > 0 and len(msg) > max_len:
-            return "%s..." % (msg[:max_len-3],)
+            return f"{msg[:max_len-3]}..."
         else:
             return msg
 

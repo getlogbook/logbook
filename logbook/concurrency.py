@@ -46,7 +46,7 @@ if has_gevent:
     def thread_get_name():
         return __threading__.currentThread().getName()
 
-    class GreenletRLock(object):
+    class GreenletRLock:
         def __init__(self):
             self._thread_local = thread_local()
             self._owner = None
@@ -144,7 +144,7 @@ else:
 
     greenlet_local = thread_local
 
-    class GreenletRLock(object):
+    class GreenletRLock:
         def acquire(self):
             pass
 
@@ -195,7 +195,7 @@ if has_contextvars:
             return False
 
 else:
-    class ContextVar(object):
+    class ContextVar:
         def __init__(self, name):
             self.name = name
             self.local = thread_local()

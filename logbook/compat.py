@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook.compat
     ~~~~~~~~~~~~~~
@@ -36,7 +35,7 @@ def redirect_logging(set_root_logger_level=True):
         logging.root.setLevel(logging.DEBUG)
 
 
-class redirected_logging(object):
+class redirected_logging:
     """Temporarily redirects logging for all threads and reverts
     it later to the old handlers.  Mainly used by the internal
     unittests::
@@ -235,7 +234,7 @@ def redirect_warnings():
     redirected_warnings().__enter__()
 
 
-class redirected_warnings(object):
+class redirected_warnings:
     """A context manager that copies and restores the warnings filter upon
     exiting the context, and logs warnings using the logbook system.
 

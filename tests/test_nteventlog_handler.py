@@ -29,8 +29,7 @@ def test_nteventlog_handler():
     def iter_event_log(handle, flags, offset):
         while True:
             events = ReadEventLog(handle, flags, offset)
-            for event in events:
-                yield event
+            yield from events
             if not events:
                 break
 

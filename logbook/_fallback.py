@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook._fallback
     ~~~~~~~~~~~~~~~~~
@@ -40,7 +39,7 @@ def group_reflected_property(name, default, fallback=_missing):
     return property(_get, _set, _del)
 
 
-class _StackBound(object):
+class _StackBound:
 
     def __init__(self, obj, push, pop):
         self.__obj = obj
@@ -55,7 +54,7 @@ class _StackBound(object):
         self.__pop()
 
 
-class StackedObject(object):
+class StackedObject:
     """Baseclass for all objects that provide stack manipulation
     operations.
     """
@@ -131,7 +130,7 @@ class StackedObject(object):
         return _cls(self, self.push_application, self.pop_application)
 
 
-class ContextStackManager(object):
+class ContextStackManager:
     """Helper class for context objects that manages a stack of
     objects.
     """

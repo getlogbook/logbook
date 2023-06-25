@@ -29,10 +29,10 @@ def test_handler():
     return logbook.TestHandler()
 
 
-class ActivationStrategy(object):
+class ActivationStrategy:
 
     def __init__(self, handler):
-        super(ActivationStrategy, self).__init__()
+        super().__init__()
         self.handler = handler
 
     def activate(self):
