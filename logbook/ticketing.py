@@ -23,7 +23,7 @@ class Ticket:
 
     def __init__(self, db, row):
         self.db = db
-        self.__dict__.update(row)
+        self.__dict__.update(row._mapping)
 
     @cached_property
     def last_occurrence(self):
@@ -64,11 +64,11 @@ class Occurrence(LogRecord):
     """Represents an occurrence of a ticket."""
 
     def __init__(self, db, row):
-        self.update_from_dict(json.loads(row["data"]))
+        self.update_from_dict(json.loads(row.data))
         self.db = db
-        self.time = row["time"]
-        self.ticket_id = row["ticket_id"]
-        self.occurrence_id = row["occurrence_id"]
+        self.time = row.time
+        self.ticket_id = row.ticket_id
+        self.occurrence_id = row.occurrence_id
 
 
 class BackendBase:
@@ -144,9 +144,7 @@ class SQLAlchemyBackend(BackendBase):
             # Pool recycle keeps connections from going stale,
             # which happens in MySQL Databases
             # Pool size is more custom for out stack
-            self.engine = create_engine(
-                engine_or_uri, convert_unicode=True, pool_recycle=360, pool_size=1000
-            )
+            self.engine = create_engine(engine_or_uri, pool_recycle=360, pool_size=1000)
 
             # Create session factory using session maker
             session = sessionmaker()
@@ -211,8 +209,8 @@ class SQLAlchemyBackend(BackendBase):
         # Can use the session instead engine.connection and transaction
         s = self.session
         try:
-            q = self.tickets.select(self.tickets.c.record_hash == hash)
-            row = s.execute(q).fetchone()
+            q = self.tickets.select().where(self.tickets.c.record_hash == hash)
+            row = s.execute(q).one_or_none()
             if row is None:
                 row = s.execute(
                     self.tickets.insert().values(
@@ -228,7 +226,7 @@ class SQLAlchemyBackend(BackendBase):
                 )
                 ticket_id = row.inserted_primary_key[0]
             else:
-                ticket_id = row["ticket_id"]
+                ticket_id = row.ticket_id
             s.execute(
                 self.occurrences.insert().values(
                     ticket_id=ticket_id,
@@ -255,60 +253,70 @@ class SQLAlchemyBackend(BackendBase):
 
     def count_tickets(self):
         """Returns the number of tickets."""
-        return self.engine.execute(self.tickets.count()).fetchone()[0]
+        from sqlalchemy import func, select
+
+        with self.engine.begin() as conn:
+            return conn.scalar(select(func.count()).select_from(self.tickets))
 
     def get_tickets(self, order_by="-last_occurrence_time", limit=50, offset=0):
         """Selects tickets from the database."""
-        return [
-            Ticket(self, row)
-            for row in self.engine.execute(
-                self._order(self.tickets.select(), self.tickets, order_by)
-                .limit(limit)
-                .offset(offset)
-            ).fetchall()
-        ]
+        with self.engine.begin() as conn:
+            return [
+                Ticket(self, row)
+                for row in conn.execute(
+                    self._order(self.tickets.select(), self.tickets, order_by)
+                    .limit(limit)
+                    .offset(offset)
+                )
+            ]
 
     def solve_ticket(self, ticket_id):
         """Marks a ticket as solved."""
-        self.engine.execute(
-            self.tickets.update()
-            .where(self.tickets.c.ticket_id == ticket_id)
-            .values(solved=True)
-        )
+        with self.engine.begin() as conn:
+            conn.execute(
+                self.tickets.update()
+                .where(self.tickets.c.ticket_id == ticket_id)
+                .values(solved=True)
+            )
 
     def delete_ticket(self, ticket_id):
         """Deletes a ticket from the database."""
-        self.engine.execute(
-            self.occurrences.delete().where(self.occurrences.c.ticket_id == ticket_id)
-        )
-        self.engine.execute(
-            self.tickets.delete().where(self.tickets.c.ticket_id == ticket_id)
-        )
+        with self.engine.begin() as conn:
+            conn.execute(
+                self.occurrences.delete().where(
+                    self.occurrences.c.ticket_id == ticket_id
+                )
+            )
+            conn.execute(
+                self.tickets.delete().where(self.tickets.c.ticket_id == ticket_id)
+            )
 
     def get_ticket(self, ticket_id):
         """Return a single ticket with all occurrences."""
-        row = self.engine.execute(
-            self.tickets.select().where(self.tickets.c.ticket_id == ticket_id)
-        ).fetchone()
+        with self.engine.begin() as conn:
+            row = conn.execute(
+                self.tickets.select().where(self.tickets.c.ticket_id == ticket_id)
+            ).one_or_none()
         if row is not None:
             return Ticket(self, row)
 
     def get_occurrences(self, ticket, order_by="-time", limit=50, offset=0):
         """Selects occurrences from the database for a ticket."""
-        return [
-            Occurrence(self, row)
-            for row in self.engine.execute(
-                self._order(
-                    self.occurrences.select().where(
-                        self.occurrences.c.ticket_id == ticket
-                    ),
-                    self.occurrences,
-                    order_by,
+        with self.engine.begin() as conn:
+            return [
+                Occurrence(self, row)
+                for row in conn.execute(
+                    self._order(
+                        self.occurrences.select().where(
+                            self.occurrences.c.ticket_id == ticket
+                        ),
+                        self.occurrences,
+                        order_by,
+                    )
+                    .limit(limit)
+                    .offset(offset)
                 )
-                .limit(limit)
-                .offset(offset)
-            ).fetchall()
-        ]
+            ]
 
 
 class MongoDBBackend(BackendBase):
