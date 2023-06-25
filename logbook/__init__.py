@@ -11,7 +11,6 @@
 
 import os
 
-from . import compat
 from .base import (
     CRITICAL,
     DEBUG,
@@ -57,6 +56,8 @@ from .handlers import (
     WrapperHandler,
     create_syshandler,
 )
+
+from . import compat  # isort: skip
 
 # create an anonymous default logger and provide all important
 # methods of that logger as global functions

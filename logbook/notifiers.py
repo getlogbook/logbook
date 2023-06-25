@@ -179,7 +179,7 @@ class LibNotifyHandler(NotificationBaseHandler):
             self._pynotify = pynotify
         except ImportError:
             raise RuntimeError(
-                "The pynotify library is required for " "the LibNotifyHandler."
+                "The pynotify library is required for the LibNotifyHandler."
             )
 
         self.icon = icon
