@@ -2,16 +2,13 @@
 
 <img src="https://raw.githubusercontent.com/getlogbook/logbook/master/docs/_static/logbook-logo.png" width="300">
 
-
-
 |                    |                             |
-|--------------------|-----------------------------|
+| ------------------ | --------------------------- |
 | Travis             | [![Build Status][ti]][tl]   |
 | AppVeyor           | [![Build Status][ai]][al]   |
 | Supported Versions | ![Supported Versions][vi]   |
 | Latest Version     | [![Latest Version][pi]][pl] |
 | Test Coverage      | [![Test Coverage][ci]][cl]  |
-
 
 Logbook is a nice logging replacement.
 

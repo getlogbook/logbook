@@ -14,7 +14,6 @@ environment:
     ENABLE_LOGBOOK_NTEVENTLOG_TESTS: "TRUE"
 
   matrix:
-
     - PYTHON: "C:\\Python27"
     - PYTHON: "C:\\Python27"
       CYBUILD: "TRUE"
@@ -67,7 +66,7 @@ artifacts:
   - path: dist\*.whl
 
 deploy:
-  description: ''
+  description: ""
   provider: GitHub
   auth_token:
     secure: 0yLUo/V+wwSvSFk9nBW/77RN9iTjJA1B5p/TM1XgVLPPFEZWkH756jyJ0FOmtJPt

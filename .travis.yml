@@ -4,39 +4,39 @@ addons:
   apt:
     sources:
       - chris-lea-redis-server
-      - sourceline: 'ppa:chris-lea/zeromq'
+      - sourceline: "ppa:chris-lea/zeromq"
     packages:
-    - redis-server
-    - libzmq3-dev
+      - redis-server
+      - libzmq3-dev
 services:
-- redis-server
+  - redis-server
 python:
-- '2.7'
-- '3.5'
-- '3.6'
-- '3.7'
+  - "2.7"
+  - "3.5"
+  - "3.6"
+  - "3.7"
 before_install:
   - pip install coveralls
 install:
-- pip install -U pip
-- pip install cython
-- cython logbook/_speedups.pyx
+  - pip install -U pip
+  - pip install cython
+  - cython logbook/_speedups.pyx
 env:
-- DISABLE_LOGBOOK_CEXT=True
-- CYBUILD=True
+  - DISABLE_LOGBOOK_CEXT=True
+  - CYBUILD=True
 
 script:
-- pip install -e .[all]
-- if [[ $GEVENT == 'True' ]] ; then pip install gevent; fi
-- pytest --cov=logbook -r s tests
+  - pip install -e .[all]
+  - if [[ $GEVENT == 'True' ]] ; then pip install gevent; fi
+  - pytest --cov=logbook -r s tests
 
 matrix:
   exclude:
   include:
-  - python: "3.6"
-    env: GEVENT=True CYBUILD=True
-  - python: "2.7"
-    env: GEVENT=True CYBUILD=True
+    - python: "3.6"
+      env: GEVENT=True CYBUILD=True
+    - python: "2.7"
+      env: GEVENT=True CYBUILD=True
 
 after_success:
   - coveralls
@@ -44,10 +44,10 @@ after_success:
 notifications:
   email:
     recipients:
-    - vmalloc@gmail.com
+      - vmalloc@gmail.com
   irc:
     channels:
-    - chat.freenode.net#pocoo
+      - chat.freenode.net#pocoo
     on_success: change
     on_failure: always
     use_notice: true
