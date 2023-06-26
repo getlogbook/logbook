@@ -1,14 +1,10 @@
 import asyncio
 
-import pytest
-
 import logbook
-from logbook.concurrency import has_contextvars
 
 ITERATIONS = 100
 
 
-@pytest.mark.skipif(not has_contextvars, reason="Contexvars not available")
 def test_asyncio_context_management(logger):
     h1 = logbook.TestHandler()
     h2 = logbook.TestHandler()

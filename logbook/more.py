@@ -12,6 +12,7 @@ import platform
 import re
 from collections import defaultdict
 from functools import partial
+from urllib.parse import parse_qsl, urlencode
 
 from logbook._termcolors import colorize
 from logbook.base import ERROR, NOTICE, NOTSET, RecordDispatcher, dispatch_record
@@ -21,7 +22,6 @@ from logbook.handlers import (
     StringFormatter,
     StringFormatterHandlerMixin,
 )
-from logbook.helpers import PY2, iteritems, string_types, u
 from logbook.ticketing import BackendBase
 from logbook.ticketing import TicketingHandler as DatabaseHandler
 
@@ -32,16 +32,8 @@ except ImportError:
     riemann_client = None
     # from riemann_client.transport import TCPTransport, UDPTransport, BlankTransport
 
-
-if PY2:
-    from urllib import urlencode
-
-    from urlparse import parse_qsl
-else:
-    from urllib.parse import parse_qsl, urlencode
-
 _ws_re = re.compile(r"(\s+)", re.UNICODE)
-TWITTER_FORMAT_STRING = u("[{record.channel}] {record.level_name}: {record.message}")
+TWITTER_FORMAT_STRING = "[{record.channel}] {record.level_name}: {record.message}"
 TWITTER_ACCESS_TOKEN_URL = "https://twitter.com/oauth/access_token"
 NEW_TWEET_URL = "https://api.twitter.com/1/statuses/update.json"
 
@@ -52,7 +44,7 @@ class CouchDBBackend(BackendBase):
     def setup_backend(self):
         from couchdb import Server
 
-        uri = self.options.pop("uri", u(""))
+        uri = self.options.pop("uri", "")
         couch = Server(uri)
         db_name = self.options.pop("db")
         self.database = couch[db_name]
@@ -76,7 +68,7 @@ class TwitterFormatter(StringFormatter):
     max_length = 140
 
     def format_exception(self, record):
-        return u("%s: %s") % (record.exception_shortname, record.exception_message)
+        return f"{record.exception_shortname}: {record.exception_message}"
 
     def __call__(self, record, handler):
         formatted = StringFormatter.__call__(self, record, handler)
@@ -86,10 +78,10 @@ class TwitterFormatter(StringFormatter):
             length += len(piece)
             if length > self.max_length:
                 if length - len(piece) < self.max_length:
-                    rv.append(u("…"))
+                    rv.append("…")
                 break
             rv.append(piece)
-        return u("").join(rv)
+        return "".join(rv)
 
 
 class TaggingLogger(RecordDispatcher):
@@ -119,7 +111,7 @@ class TaggingLogger(RecordDispatcher):
             setattr(self, tag, partial(self.log, tag))
 
     def log(self, tags, msg, *args, **kwargs):
-        if isinstance(tags, string_types):
+        if isinstance(tags, str):
             tags = [tags]
         exc_info = kwargs.pop("exc_info", None)
         extra = kwargs.pop("extra", {})
@@ -149,7 +141,7 @@ class TaggingHandler(Handler):
         assert isinstance(handlers, dict)
         self._handlers = {
             tag: isinstance(handler, Handler) and [handler] or handler
-            for (tag, handler) in iteritems(handlers)
+            for (tag, handler) in handlers.items()
         }
 
     def emit(self, record):

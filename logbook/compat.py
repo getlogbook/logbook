@@ -8,14 +8,13 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
-import collections
 import logging
 import sys
 import warnings
+from collections.abc import Mapping
 from datetime import date, datetime
 
 import logbook
-from logbook.helpers import collections_abc, iteritems, string_types, u
 
 _epoch_ord = date(1970, 1, 1).toordinal()
 
@@ -151,7 +150,7 @@ class RedirectLoggingHandler(logging.Handler):
         kwargs = None
 
         # Logging allows passing a mapping object, in which case args will be a mapping.
-        if isinstance(args, collections_abc.Mapping):
+        if isinstance(args, Mapping):
             kwargs = args
             args = None
         record = LoggingCompatRecord(
@@ -190,7 +189,7 @@ class LoggingHandler(logbook.Handler):
         logbook.Handler.__init__(self, level, filter, bubble)
         if logger is None:
             logger = logging.getLogger()
-        elif isinstance(logger, string_types):
+        elif isinstance(logger, str):
             logger = logging.getLogger(logger)
         self.logger = logger
 
@@ -238,7 +237,7 @@ class LoggingHandler(logbook.Handler):
             old_record.exc_info,
             **optional_kwargs,
         )
-        for key, value in iteritems(old_record.extra):
+        for key, value in old_record.extra.items():
             record.__dict__.setdefault(key, value)
         record.created = self.convert_time(old_record.time)
         return record
@@ -281,10 +280,7 @@ class redirected_warnings:
         self._entered = False
 
     def message_to_unicode(self, message):
-        try:
-            return u(str(message))
-        except UnicodeError:
-            return str(message).decode("utf-8", "replace")
+        return str(message)
 
     def make_record(self, message, exception, filename, lineno):
         category = exception.__name__

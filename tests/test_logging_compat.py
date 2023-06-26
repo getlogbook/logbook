@@ -1,11 +1,11 @@
 import functools
+from io import StringIO
 from random import randrange
 
 import pytest
 
 import logbook
 import logbook.compat
-from logbook.helpers import StringIO
 
 from .utils import capturing_stderr_context
 

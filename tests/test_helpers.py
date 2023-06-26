@@ -2,8 +2,6 @@ from datetime import datetime
 
 import pytest
 
-from logbook.helpers import u
-
 
 def test_jsonhelper():
     from logbook.helpers import to_safe_json
@@ -16,21 +14,21 @@ def test_jsonhelper():
         [
             None,
             "foo",
-            u("jäger"),
+            "jäger",
             1,
             datetime(2000, 1, 1),
-            {"jäger1": 1, u("jäger2"): 2, Bogus(): 3, "invalid": object()},
+            {"jäger1": 1, "jäger2": 2, Bogus(): 3, "invalid": object()},
             object(),  # invalid
         ]
     )
 
     assert rv == [
         None,
-        u("foo"),
-        u("jäger"),
+        "foo",
+        "jäger",
         1,
         "2000-01-01T00:00:00Z",
-        {u("jäger1"): 1, u("jäger2"): 2, u("bogus"): 3, u("invalid"): None},
+        {"jäger1": 1, "jäger2": 2, "bogus": 3, "invalid": None},
         None,
     ]
 

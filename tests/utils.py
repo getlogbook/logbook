@@ -9,11 +9,11 @@ import functools
 import os
 import sys
 from contextlib import contextmanager
+from io import StringIO
 
 import pytest
 
 import logbook
-from logbook.helpers import StringIO
 
 _missing = object()
 

@@ -1,4 +1,5 @@
 from time import sleep
+from unittest.mock import Mock, call
 
 import pytest
 
@@ -12,11 +13,6 @@ from logbook.utils import (
 )
 
 _THRESHOLD = 0.1
-
-try:
-    from unittest.mock import Mock, call
-except ImportError:
-    from unittest.mock import Mock, call
 
 
 @pytest.mark.flaky(reruns=5)

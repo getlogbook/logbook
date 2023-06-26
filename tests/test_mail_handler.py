@@ -3,7 +3,6 @@ import re
 import sys
 
 import logbook
-from logbook.helpers import u
 
 from .utils import capturing_stderr_context, make_fake_mail_handler
 
@@ -18,7 +17,7 @@ if __file_without_pyc__.endswith(".pyc"):
 
 
 def test_mail_handler(activation_strategy, logger):
-    subject = u("\xf8nicode")
+    subject = "\xf8nicode"
     handler = make_fake_mail_handler(subject=subject)
     with capturing_stderr_context() as fallback:
         with activation_strategy(handler):
@@ -26,7 +25,7 @@ def test_mail_handler(activation_strategy, logger):
             try:
                 1 / 0
             except Exception:
-                logger.exception(u("Viva la Espa\xf1a"))
+                logger.exception("Viva la Espa\xf1a")
 
         if not handler.mails:
             # if sending the mail failed, the reason should be on stderr
@@ -44,7 +43,7 @@ def test_mail_handler(activation_strategy, logger):
         assert re.search(r"Location:.*%s" % re.escape(__file_without_pyc__), data)
         assert re.search(r"Module:\s+%s" % __name__, data)
         assert re.search(r"Function:\s+test_mail_handler", data)
-        body = u("Viva la Espa\xf1a")
+        body = "Viva la Espa\xf1a"
         if sys.version_info < (3, 0):
             body = body.encode("utf-8")
         assert body in data

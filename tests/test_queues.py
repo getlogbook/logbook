@@ -5,7 +5,6 @@ import time
 import pytest
 
 import logbook
-from logbook.helpers import u
 
 from .utils import LETTERS, missing, require_module
 
@@ -16,9 +15,9 @@ REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
 @require_module("zmq")
 def test_zeromq_handler(logger, handlers, subscriber):
     tests = [
-        u("Logging something"),
-        u("Something with umlauts äöü"),
-        u("Something else for good measure"),
+        "Logging something",
+        "Something with umlauts äöü",
+        "Something else for good measure",
     ]
     for test in tests:
         for handler in handlers:

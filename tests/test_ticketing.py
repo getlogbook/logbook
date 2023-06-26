@@ -1,15 +1,10 @@
 import os
 import sys
-
-try:
-    from thread import get_ident
-except ImportError:
-    from _thread import get_ident
+from _thread import get_ident
 
 import pytest
 
 import logbook
-from logbook.helpers import xrange
 
 from .utils import require_module
 
@@ -31,7 +26,7 @@ def test_basic_ticketing(logger):
     from logbook.ticketing import TicketingHandler
 
     with TicketingHandler("sqlite:///") as handler:
-        for x in xrange(5):
+        for x in range(5):
             logger.warn("A warning")
             sleep(0.2)
             logger.info("An error")
