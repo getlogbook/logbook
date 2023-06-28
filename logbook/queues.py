@@ -252,7 +252,8 @@ class ZeroMQHandler(Handler):
         # not reachable.
         # If messages are pending on the socket, we wait 100ms for them to be
         # sent then we discard them.
-        self.close(linger=100)
+        if hasattr(self, "socket"):
+            self.close(linger=100)
 
 
 class ThreadController:
