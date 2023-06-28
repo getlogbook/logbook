@@ -15,75 +15,6 @@ import sys
 import time
 from datetime import datetime, timedelta
 
-PY2 = sys.version_info[0] == 2
-
-if PY2:
-    import collections as collections_abc
-
-    import __builtin__ as _builtins
-else:
-    import builtins as _builtins
-    import collections.abc as collections_abc
-
-try:
-    import json
-except ImportError:
-    import simplejson as json
-
-if PY2:
-    from cStringIO import StringIO
-
-    iteritems = dict.iteritems
-    from itertools import izip as zip
-
-    xrange = _builtins.xrange
-else:
-    from io import StringIO
-
-    zip = _builtins.zip
-    xrange = range
-    iteritems = dict.items
-
-_IDENTITY = lambda obj: obj
-
-if PY2:
-
-    def u(s):
-        return unicode(s, "unicode_escape")
-
-else:
-    u = _IDENTITY
-
-if PY2:
-    integer_types = (int, long)
-    string_types = (basestring,)
-else:
-    integer_types = (int,)
-    string_types = (str,)
-
-if PY2:
-    import httplib as http_client
-else:
-    from http import client as http_client
-
-if PY2:
-    # Yucky, but apparently that's the only way to do this
-    exec(
-        """
-def reraise(tp, value, tb=None):
-    raise tp, value, tb
-""",
-        locals(),
-        globals(),
-    )
-else:
-
-    def reraise(tp, value, tb=None):
-        if value.__traceback__ is not tb:
-            raise value.with_traceback(tb)
-        raise value
-
-
 # this regexp also matches incompatible dates like 20070101 because
 # some libraries (like the python xmlrpclib modules) use this
 _iso8601_re = re.compile(
@@ -93,22 +24,6 @@ _iso8601_re = re.compile(
     r"(?:T(\d{2}):(\d{2})(?::(\d{2}(?:\.\d+)?))?(Z|[+-]\d{2}:\d{2})?)?$"
 )
 _missing = object()
-if PY2:
-
-    def b(x):
-        return x
-
-    def _is_text_stream(x):
-        return True
-
-else:
-    import io
-
-    def b(x):
-        return x.encode("ascii")
-
-    def _is_text_stream(stream):
-        return isinstance(stream, io.TextIOBase)
 
 
 can_rename_open_file = False
@@ -121,11 +36,6 @@ if os.name == "nt":
         _MoveFileEx = ctypes.windll.kernel32.MoveFileExW
 
         def _rename(src, dst):
-            if PY2:
-                if not isinstance(src, unicode):
-                    src = unicode(src, sys.getfilesystemencoding())
-                if not isinstance(dst, unicode):
-                    dst = unicode(dst, sys.getfilesystemencoding())
             if _rename_atomic(src, dst):
                 return True
             retry = 0
@@ -203,7 +113,7 @@ else:
     rename = os.rename
     can_rename_open_file = True
 
-_JSON_SIMPLE_TYPES = (bool, float) + integer_types + string_types
+_JSON_SIMPLE_TYPES = (bool, float, int, str)
 
 
 def to_safe_json(data):
@@ -214,8 +124,6 @@ def to_safe_json(data):
     def _convert(obj):
         if obj is None:
             return None
-        elif PY2 and isinstance(obj, str):
-            return obj.decode("utf-8", "replace")
         elif isinstance(obj, _JSON_SIMPLE_TYPES):
             return obj
         elif isinstance(obj, datetime):
@@ -226,11 +134,11 @@ def to_safe_json(data):
             return tuple(_convert(x) for x in obj)
         elif isinstance(obj, dict):
             rv = {}
-            for key, value in iteritems(obj):
-                if not isinstance(key, string_types):
+            for key, value in obj.items():
+                if not isinstance(key, str):
                     key = str(key)
-                if not is_unicode(key):
-                    key = u(key)
+                if not isinstance(key, str):
+                    key = key
                 rv[key] = _convert(value)
             return rv
 
@@ -310,28 +218,3 @@ class cached_property:
 
 def get_iterator_next_method(it):
     return lambda: next(it)
-
-
-# python 2 support functions and aliases
-def is_unicode(x):
-    if PY2:
-        return isinstance(x, unicode)
-    return isinstance(x, str)
-
-
-if PY2:
-    exec(
-        """def with_metaclass(meta):
-    class _WithMetaclassBase(object):
-        __metaclass__ = meta
-    return _WithMetaclassBase
-"""
-    )
-else:
-    exec(
-        """def with_metaclass(meta):
-    class _WithMetaclassBase(object, metaclass=meta):
-        pass
-    return _WithMetaclassBase
-"""
-    )

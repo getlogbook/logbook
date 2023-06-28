@@ -9,23 +9,17 @@
 """
 import errno
 import gzip
-import io
 import math
 import os
 import re
 import socket
 import stat
 import sys
-
-try:
-    from hashlib import sha1
-except ImportError:
-    from sha import new as sha1
-
-import collections
 import traceback
 from collections import deque
+from collections.abc import Iterable, Mapping
 from datetime import datetime, timedelta
+from hashlib import sha1
 from textwrap import dedent
 
 from logbook.base import (
@@ -46,31 +40,16 @@ from logbook.base import (
     lookup_level,
 )
 from logbook.concurrency import new_fine_grained_lock
-from logbook.helpers import (
-    PY2,
-    _is_text_stream,
-    b,
-    collections_abc,
-    integer_types,
-    is_unicode,
-    rename,
-    reraise,
-    string_types,
-    u,
-    with_metaclass,
-    xrange,
-    zip,
-)
+from logbook.helpers import rename
 
-DEFAULT_FORMAT_STRING = u(
+DEFAULT_FORMAT_STRING = (
     "[{record.time:%Y-%m-%d %H:%M:%S.%f%z}] "
     "{record.level_name}: {record.channel}: {record.message}"
 )
 
-SYSLOG_FORMAT_STRING = u("{record.channel}: {record.message}")
+SYSLOG_FORMAT_STRING = "{record.channel}: {record.message}"
 NTLOG_FORMAT_STRING = dedent(
-    u(
-        """
+    """
     Message Level: {record.level_name}
     Location: {record.filename}:{record.lineno}
     Module: {record.module}
@@ -81,13 +60,11 @@ NTLOG_FORMAT_STRING = dedent(
 
     {record.message}
     """
-    )
 ).lstrip()
 
-TEST_FORMAT_STRING = u("[{record.level_name}] {record.channel}: {record.message}")
+TEST_FORMAT_STRING = "[{record.level_name}] {record.channel}: {record.message}"
 MAIL_FORMAT_STRING = dedent(
-    u(
-        """
+    """
     Subject: {handler.subject}
 
     Message type:       {record.level_name}
@@ -100,19 +77,16 @@ MAIL_FORMAT_STRING = dedent(
 
     {record.message}
     """
-    )
 ).lstrip()
 
 MAIL_RELATED_FORMAT_STRING = dedent(
-    u(
-        """
+    """
     Message type:       {record.level_name}
     Location:           {record.filename}:{record.lineno}
     Module:             {record.module}
     Function:           {record.func_name}
     {record.message}
     """
-    )
 ).lstrip()
 
 SYSLOG_PORT = 514
@@ -159,7 +133,7 @@ class _HandlerType(type):
         return type.__new__(cls, name, bases, d)
 
 
-class Handler(with_metaclass(_HandlerType), ContextObject):
+class Handler(ContextObject, metaclass=_HandlerType):
     """Handler instances dispatch logging events to specific destinations.
 
     The base handler class. Acts as a placeholder which defines the Handler
@@ -338,7 +312,7 @@ class Handler(with_metaclass(_HandlerType), ContextObject):
         try:
             behaviour = Flags.get_flag("errors", "print")
             if behaviour == "raise":
-                reraise(exc_info[0], exc_info[1], exc_info[2])
+                raise exc_info[1]
             elif behaviour == "print":
                 traceback.print_exception(*(exc_info + (None, sys.stderr)))
                 sys.stderr.write(
@@ -436,7 +410,7 @@ class StringFormatter:
         line = self.format_record(record, handler)
         exc = self.format_exception(record)
         if exc:
-            line += u("\n") + exc
+            line += "\n" + exc
         return line
 
 
@@ -482,9 +456,9 @@ class HashingHandlerMixin:
         """Returns a hashlib object with the hash of the record."""
         hash = sha1()
         hash.update(("%d\x00" % record.level).encode("ascii"))
-        hash.update((record.channel or u("")).encode("utf-8") + b("\x00"))
-        hash.update(record.filename.encode("utf-8") + b("\x00"))
-        hash.update(b(str(record.lineno)))
+        hash.update((record.channel or "").encode("utf-8") + b"\x00")
+        hash.update(record.filename.encode("utf-8") + b"\x00")
+        hash.update(str(record.lineno).encode("utf-8"))
         return hash
 
     def hash_record(self, record):
@@ -495,9 +469,6 @@ class HashingHandlerMixin:
         Calls into :meth:`hash_record_raw`.
         """
         return self.hash_record_raw(record).hexdigest()
-
-
-_NUMBER_TYPES = integer_types + (float,)
 
 
 class LimitingHandlerMixin(HashingHandlerMixin):
@@ -519,7 +490,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
         self._record_limits = {}
         if record_delta is None:
             record_delta = timedelta(seconds=60)
-        elif isinstance(record_delta, _NUMBER_TYPES):
+        elif isinstance(record_delta, (int, float)):
             record_delta = timedelta(seconds=record_delta)
         self.record_delta = record_delta
 
@@ -622,16 +593,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
 
     def encode(self, msg):
         """Encodes the message to the stream encoding."""
-        stream = self.stream
-        rv = msg + "\n"
-        if (PY2 and is_unicode(rv)) or not (
-            PY2 or is_unicode(rv) or _is_text_stream(stream)
-        ):
-            enc = self.encoding
-            if enc is None:
-                enc = getattr(stream, "encoding", None) or "utf-8"
-            rv = rv.encode(enc, "replace")
-        return rv
+        return msg + "\n"
 
     def write(self, item):
         """Writes a bytestring to the stream."""
@@ -946,7 +908,7 @@ class RotatingFileHandler(FileHandler):
 
     def perform_rollover(self):
         self.stream.close()
-        for x in xrange(self.backup_count - 1, 0, -1):
+        for x in range(self.backup_count - 1, 0, -1):
             src = "%s.%d" % (self._filename, x)
             dst = "%s.%d" % (self._filename, x + 1)
             try:
@@ -1348,7 +1310,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
 
     default_format_string = MAIL_FORMAT_STRING
     default_related_format_string = MAIL_RELATED_FORMAT_STRING
-    default_subject = u("Server Error in Application")
+    default_subject = "Server Error in Application"
 
     #: the maximum number of record hashes in the cache for the limiting
     #: feature.  Afterwards, record_cache_prune percent of the oldest
@@ -1517,10 +1479,10 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
         # - tuple to be unpacked to variables keyfile and certfile.
         # - secure=() equivalent to secure=True for backwards compatibility.
         # - secure=False equivalent to secure=None to disable.
-        if isinstance(self.secure, collections_abc.Mapping):
+        if isinstance(self.secure, Mapping):
             keyfile = self.secure.get("keyfile", None)
             certfile = self.secure.get("certfile", None)
-        elif isinstance(self.secure, collections_abc.Iterable):
+        elif isinstance(self.secure, Iterable):
             # Allow empty tuple for backwards compatibility
             if len(self.secure) == 0:
                 keyfile = certfile = None
@@ -1543,7 +1505,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
                 con.ehlo()
 
             # Allow credentials to be a tuple or dict.
-            if isinstance(self.credentials, collections_abc.Mapping):
+            if isinstance(self.credentials, Mapping):
                 credentials_args = ()
                 credentials_kwargs = self.credentials
             else:
@@ -1726,7 +1688,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         self.facility = facility
         self.socktype = socktype
 
-        if isinstance(address, string_types):
+        if isinstance(address, str):
             self._connect_unixsocket()
             self.enveloper = self.unix_envelope
             default_delimiter = "\x00"

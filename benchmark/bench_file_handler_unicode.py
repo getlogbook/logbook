@@ -9,5 +9,5 @@ log = Logger("Test logger")
 def run():
     f = NamedTemporaryFile()
     with FileHandler(f.name) as handler:
-        for x in xrange(500):
+        for x in range(500):
             log.warning("this is handled \x6f")

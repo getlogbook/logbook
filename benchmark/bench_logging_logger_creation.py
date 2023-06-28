@@ -5,6 +5,6 @@ root_logger = getLogger()
 
 
 def run():
-    for x in xrange(500):
+    for x in range(500):
         getLogger("Test")
         del root_logger.manager.loggerDict["Test"]

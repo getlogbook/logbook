@@ -12,5 +12,5 @@ def run():
     with NullHandler():
         with StreamHandler(out, level=WARNING):
             with FileHandler(f.name, level=ERROR):
-                for x in xrange(100):
+                for x in range(100):
                     list(Handler.stack_manager.iter_context_objects())

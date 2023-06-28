@@ -1,9 +1,9 @@
 import sys
+from io import StringIO
 
 import pytest
 
 import logbook
-from logbook.helpers import StringIO
 
 from .utils import capturing_stderr_context, missing, require_module
 

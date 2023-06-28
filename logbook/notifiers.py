@@ -10,16 +10,13 @@
 import base64
 import os
 import sys
+from http import client as http_client
 from time import time
+from urllib.parse import parse_qsl, urlencode
 
 from logbook.base import ERROR, NOTSET, WARNING
 from logbook.handlers import Handler, LimitingHandlerMixin
-from logbook.helpers import PY2, get_application_name, http_client, u
-
-if PY2:
-    from urllib import urlencode
-else:
-    from urllib.parse import urlencode
+from logbook.helpers import get_application_name
 
 
 def create_notification_handler(application_name=None, level=NOTSET, icon=None):
@@ -52,7 +49,7 @@ class NotificationBaseHandler(Handler, LimitingHandlerMixin):
 
     def make_title(self, record):
         """Called to get the title from the record."""
-        return u("%s: %s") % (record.channel, record.level_name.title())
+        return f"{record.channel}: {record.level_name.title()}"
 
     def make_text(self, record):
         """Called to get the text of the record."""
@@ -275,9 +272,7 @@ class BoxcarHandler(NotificationBaseHandler):
             "/notifications/",
             headers={
                 "Authorization": "Basic "
-                + base64.b64encode(
-                    (u("%s:%s") % (self.email, self.password)).encode("utf-8")
-                ).strip(),
+                + base64.b64encode(f"{self.email}:{self.password}".encode()).strip(),
             },
             body=body,
         )

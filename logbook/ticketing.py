@@ -13,7 +13,7 @@ from time import time
 
 from logbook.base import NOTSET, LogRecord, level_name_property
 from logbook.handlers import Handler, HashingHandlerMixin
-from logbook.helpers import PY2, b, cached_property, u
+from logbook.helpers import cached_property
 
 
 class Ticket:
@@ -216,9 +216,9 @@ class SQLAlchemyBackend(BackendBase):
                     self.tickets.insert().values(
                         record_hash=hash,
                         level=record.level,
-                        channel=record.channel or u(""),
-                        location=u("%s:%d") % (record.filename, record.lineno),
-                        module=record.module or u("<unknown>"),
+                        channel=record.channel or "",
+                        location="%s:%d" % (record.filename, record.lineno),
+                        module=record.module or "<unknown>",
                         occurrence_count=0,
                         solved=False,
                         app_id=app_id,
@@ -348,7 +348,7 @@ class MongoDBBackend(BackendBase):
         from pymongo.errors import AutoReconnect
 
         _connection = None
-        uri = self.options.pop("uri", u(""))
+        uri = self.options.pop("uri", "")
         _connection_attempts = 0
 
         parsed_uri = parse_uri(uri, Connection.PORT)
@@ -399,9 +399,9 @@ class MongoDBBackend(BackendBase):
             doc = {
                 "record_hash": hash,
                 "level": record.level,
-                "channel": record.channel or u(""),
-                "location": u("%s:%d") % (record.filename, record.lineno),
-                "module": record.module or u("<unknown>"),
+                "channel": record.channel or "",
+                "location": "%s:%d" % (record.filename, record.lineno),
+                "module": record.module or "<unknown>",
                 "occurrence_count": 0,
                 "solved": False,
                 "app_id": app_id,
@@ -482,9 +482,8 @@ class TicketingBaseHandler(Handler, HashingHandlerMixin):
         hash = HashingHandlerMixin.hash_record_raw(self, record)
         if self.hash_salt is not None:
             hash_salt = self.hash_salt
-            if not PY2 or isinstance(hash_salt, unicode):
-                hash_salt = hash_salt.encode("utf-8")
-            hash.update(b("\x00") + hash_salt)
+            hash_salt = hash_salt.encode("utf-8")
+            hash.update(b"\x00" + hash_salt)
         return hash
 
 
@@ -524,7 +523,7 @@ class TicketingHandler(TicketingBaseHandler):
         **db_options,
     ):
         if hash_salt is None:
-            hash_salt = u("apphash-") + app_id
+            hash_salt = "apphash-" + app_id
         TicketingBaseHandler.__init__(self, hash_salt, level, filter, bubble)
         if backend is None:
             backend = self.default_backend
