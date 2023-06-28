@@ -85,7 +85,7 @@ class RedisHandler(Handler):
 
     def _flush_task(self, time, stop_event):
         """Calls the method _flush_buffer every certain time."""
-        while not self._stop_event.isSet():
+        while not self._stop_event.is_set():
             with self.lock:
                 self._flush_buffer()
             self._stop_event.wait(time)
@@ -272,7 +272,7 @@ class ThreadController:
         """Starts the task thread."""
         self.running = True
         self._thread = Thread(target=self._target)
-        self._thread.setDaemon(True)
+        self._thread.daemon = True
         self._thread.start()
 
     def stop(self):
@@ -636,7 +636,7 @@ class TWHThreadController:
         """Starts the task thread."""
         self.running = True
         self._thread = Thread(target=self._target)
-        self._thread.setDaemon(True)
+        self._thread.daemon = True
         self._thread.start()
 
     def stop(self):
