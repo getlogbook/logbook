@@ -98,7 +98,9 @@ except ImportError:
     pass
 else:
 
-    @pytest.fixture(scope="module", autouse=True, params=[False, True])
+    @pytest.fixture(
+        scope="module", autouse=True, params=[False, True], ids=["nogevent", "gevent"]
+    )
     def gevent(request):
         module_name = getattr(request.module, "__name__", "")
         if (
