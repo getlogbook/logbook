@@ -1,5 +1,6 @@
 from contextvars import ContextVar
 from itertools import count
+from threading import current_thread
 
 has_gevent = True
 use_gevent = False
@@ -31,25 +32,21 @@ except ImportError:
         return False
 
 
+def thread_get_name():
+    return current_thread().name
+
+
 if has_gevent:
     from gevent.monkey import get_original as _get_original
 
     ThreadLock = _get_original("threading", "Lock")
     ThreadRLock = _get_original("threading", "RLock")
-    try:
-        thread_get_ident = _get_original("threading", "get_ident")
-    except AttributeError:
-        # In 2.7, this is called _get_ident
-        thread_get_ident = _get_original("threading", "_get_ident")
+    thread_get_ident = _get_original("threading", "get_ident")
     thread_local = _get_original("threading", "local")
 
     from gevent.local import local as greenlet_local
     from gevent.lock import BoundedSemaphore
     from gevent.thread import get_ident as greenlet_get_ident
-    from gevent.threading import __threading__
-
-    def thread_get_name():
-        return __threading__.currentThread().getName()
 
     class GreenletRLock:
         def __init__(self):
@@ -141,10 +138,6 @@ else:
     from _thread import get_ident as thread_get_ident
     from threading import Lock as ThreadLock
     from threading import RLock as ThreadRLock
-    from threading import currentThread
-
-    def thread_get_name():
-        return currentThread().getName()
 
     greenlet_get_ident = thread_get_ident
 

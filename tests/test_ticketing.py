@@ -12,13 +12,7 @@ __file_without_pyc__ = __file__
 if __file_without_pyc__.endswith(".pyc"):
     __file_without_pyc__ = __file_without_pyc__[:-1]
 
-python_version = sys.version_info[:2]
 
-
-@pytest.mark.xfail(
-    os.name == "nt" and (python_version == (3, 2) or python_version == (3, 3)),
-    reason="Problem with in-memory sqlite on Python 3.2, 3.3 and Windows",
-)
 @require_module("sqlalchemy")
 def test_basic_ticketing(logger):
     from time import sleep

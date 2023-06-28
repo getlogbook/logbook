@@ -44,8 +44,6 @@ def test_mail_handler(activation_strategy, logger):
         assert re.search(r"Module:\s+%s" % __name__, data)
         assert re.search(r"Function:\s+test_mail_handler", data)
         body = "Viva la Espa\xf1a"
-        if sys.version_info < (3, 0):
-            body = body.encode("utf-8")
         assert body in data
         assert "\nTraceback (most" in data
         assert "1 / 0" in data

@@ -112,12 +112,3 @@ else:
             @request.addfinalizer
             def fin():
                 _disable_gevent()
-
-
-def pytest_ignore_collect(path, config):
-    if "test_asyncio.py" in path.basename and (
-        sys.version_info.major < 3 or sys.version_info.minor < 5
-    ):
-        return True
-
-    return False
