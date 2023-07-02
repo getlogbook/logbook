@@ -1914,7 +1914,7 @@ class FingersCrossedHandler(Handler):
     .. versionchanged:: 0.3
 
     The default behaviour is to buffer up records and then invoke another
-    handler when a severity theshold was reached with the buffer emitting.
+    handler when a severity threshold was reached with the buffer emitting.
     This now enables this logger to be properly used with the
     :class:`~logbook.MailHandler`.  You will now only get one mail for
     each buffered record.  However once the threshold was reached you would
