@@ -1,8 +1,5 @@
 import os
-import sys
-from _thread import get_ident
-
-import pytest
+from threading import get_ident
 
 import logbook
 

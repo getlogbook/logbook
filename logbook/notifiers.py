@@ -12,7 +12,7 @@ import os
 import sys
 from http import client as http_client
 from time import time
-from urllib.parse import parse_qsl, urlencode
+from urllib.parse import urlencode
 
 from logbook.base import ERROR, NOTSET, WARNING
 from logbook.handlers import Handler, LimitingHandlerMixin

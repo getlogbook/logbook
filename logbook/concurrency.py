@@ -134,10 +134,10 @@ if has_gevent:
             return self._owner == (thread_get_ident(), greenlet_get_ident())
 
 else:
-    from _thread import _local as thread_local
-    from _thread import get_ident as thread_get_ident
     from threading import Lock as ThreadLock
     from threading import RLock as ThreadRLock
+    from threading import get_ident as thread_get_ident
+    from threading import local as thread_local
 
     greenlet_get_ident = thread_get_ident
 
