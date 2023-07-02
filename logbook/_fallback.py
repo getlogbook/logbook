@@ -162,10 +162,10 @@ class ContextStackManager:
         use_gevent = is_gevent_enabled()
         use_context = is_context_enabled()
 
-        if use_gevent:
-            tid = greenlet_get_ident()
-        elif use_context:
+        if use_context:
             tid = context_get_ident()
+        elif use_gevent:
+            tid = greenlet_get_ident()
         else:
             tid = thread_get_ident()
 
