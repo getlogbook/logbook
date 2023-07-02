@@ -487,6 +487,12 @@ class LogRecord:
             self.frame = sys._getframe(1)
         if self.exc_info is True:
             self.exc_info = sys.exc_info()
+        if isinstance(self.exc_info, BaseException):
+            self.exc_info = (
+                type(self.exc_info),
+                self.exc_info,
+                self.exc_info.__traceback__,
+            )
 
     def pull_information(self):
         """A helper function that pulls all frame-related information into
