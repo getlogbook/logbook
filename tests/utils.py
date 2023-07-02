@@ -30,8 +30,6 @@ def get_total_delta_seconds(delta):
     ) / 10**6
 
 
-require_py3 = pytest.mark.skipif(sys.version_info[0] < 3, reason="Requires Python 3")
-
 appveyor = pytest.mark.skipif(
     os.environ.get("APPVEYOR") != "True", reason="AppVeyor CI test"
 )

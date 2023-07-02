@@ -222,11 +222,6 @@ class LoggingHandler(logbook.Handler):
 
     def convert_record(self, old_record):
         """Converts a record from logbook to logging."""
-        if sys.version_info >= (2, 5):
-            # make sure 2to3 does not screw this up
-            optional_kwargs = {"func": getattr(old_record, "func_name")}
-        else:
-            optional_kwargs = {}
         record = logging.LogRecord(
             old_record.channel,
             self.convert_level(old_record.level),
@@ -235,7 +230,7 @@ class LoggingHandler(logbook.Handler):
             old_record.message,
             (),
             old_record.exc_info,
-            **optional_kwargs,
+            func=old_record.func_name,
         )
         for key, value in old_record.extra.items():
             record.__dict__.setdefault(key, value)

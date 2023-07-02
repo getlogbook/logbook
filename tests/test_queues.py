@@ -395,6 +395,6 @@ def handlers_subscriber(multi):
     return handlers, subscriber
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True, False], ids=["multi", "nomulti"])
 def multi(request):
     return request.param

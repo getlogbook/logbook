@@ -1,16 +1,14 @@
 import logbook
 
-from .utils import capturing_stderr_context, require_py3
+from .utils import capturing_stderr_context
 
 
-@require_py3
 def test_default_format_unicode(logger):
     with capturing_stderr_context() as stream:
         logger.warn("\u2603")
     assert "WARNING: testlogger: \u2603" in stream.getvalue()
 
 
-@require_py3
 def test_default_format_encoded(logger):
     with capturing_stderr_context() as stream:
         # it's a string but it's in the right encoding so don't barf
@@ -18,7 +16,6 @@ def test_default_format_encoded(logger):
     assert "WARNING: testlogger: \u2603" in stream.getvalue()
 
 
-@require_py3
 def test_default_format_bad_encoding(logger):
     with capturing_stderr_context() as stream:
         # it's a string, is wrong, but just dump it in the logger,
@@ -28,7 +25,6 @@ def test_default_format_bad_encoding(logger):
     assert expected in stream.getvalue()
 
 
-@require_py3
 def test_custom_unicode_format_unicode(logger):
     format_string = "[{record.level_name}] " "{record.channel}: {record.message}"
     with capturing_stderr_context() as stream:
@@ -37,7 +33,6 @@ def test_custom_unicode_format_unicode(logger):
     assert "[WARNING] testlogger: \u2603" in stream.getvalue()
 
 
-@require_py3
 def test_custom_string_format_unicode(logger):
     format_string = "[{record.level_name}] " "{record.channel}: {record.message}"
     with capturing_stderr_context() as stream:
@@ -46,14 +41,12 @@ def test_custom_string_format_unicode(logger):
     assert "[WARNING] testlogger: \u2603" in stream.getvalue()
 
 
-@require_py3
 def test_unicode_message_encoded_params(logger):
     with capturing_stderr_context() as stream:
         logger.warn("\u2603 {0}", "\u2603".encode())
     assert "WARNING: testlogger: \u2603 b'\\xe2\\x98\\x83'" in stream.getvalue()
 
 
-@require_py3
 def test_encoded_message_unicode_params(logger):
     with capturing_stderr_context() as stream:
         logger.warn("\u2603 {0}".encode(), "\u2603")
