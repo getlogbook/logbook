@@ -55,7 +55,7 @@ def test_monitoring_file_handler(logfile, activation_strategy, logger):
     )
     with activation_strategy(handler):
         logger.warn("warning message")
-        os.rename(logfile, logfile + ".old")
+        os.rename(logfile, os.fspath(logfile) + ".old")
         logger.warn("another warning message")
     handler.close()
     with open(logfile) as f:

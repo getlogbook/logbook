@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 import logbook
@@ -77,9 +79,18 @@ def activation_strategy(request):
     return request.param
 
 
-@pytest.fixture
-def logfile(tmpdir):
-    return str(tmpdir.join("logfile.log"))
+class CustomPathLike:
+    def __init__(self, path):
+        self.path = path
+
+    def __fspath__(self):
+        return self.path
+
+
+@pytest.fixture(params=[Path, str, CustomPathLike])
+def logfile(tmp_path, request):
+    path = str(tmp_path / "logfile.log")
+    return request.param(path)
 
 
 @pytest.fixture
