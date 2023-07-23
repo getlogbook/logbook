@@ -50,7 +50,7 @@ copyright = "2010, Armin Ronacher, Georg Brandl"
 #
 # The short X.Y version.
 with open(
-    os.path.join(os.path.dirname(__file__), "..", "logbook", "__version__.py")
+    os.path.join(os.path.dirname(__file__), "../src/logbook/__version__.py")
 ) as version_file:
     # can't use import here...
     version = release = version_file.read().strip().split("=")[1].strip()[1:-1]
