@@ -62,7 +62,7 @@ cdef class group_reflected_property:
     def __set__(self, obj, value):
         setattr(obj, self._name, value)
 
-    def __del__(self, obj):
+    def __delete__(self, obj):
         delattr(obj, self._name)
 
 
