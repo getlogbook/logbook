@@ -1,2 +1,2 @@
-include MANIFEST.in Makefile CHANGES logbook/_speedups.pyx tox.ini LICENSE
+include MANIFEST.in Makefile CHANGES src/logbook/_speedups.pyx tox.ini LICENSE
 recursive-include tests *
