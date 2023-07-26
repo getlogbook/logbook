@@ -15,6 +15,8 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.14.1
+        env:
+          CIBW_BUILD_VERBOSITY: "1"
 
       - uses: actions/upload-artifact@v3
         with:
