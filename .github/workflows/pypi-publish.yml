@@ -38,11 +38,11 @@ jobs:
         uses: pypa/gh-action-pypi-publish@f8c70e705ffc13c3b4d1221169b84f12a75d6ca8 # v1.8.8
         if: github.event_name == 'workflow_run' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi')
         with:
-          packages_dir: dist/
+          packages-dir: dist/
 
       - name: Publish to test.pypi.org
         uses: pypa/gh-action-pypi-publish@f8c70e705ffc13c3b4d1221169b84f12a75d6ca8 # v1.8.8
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi'
         with:
-          repository_url: https://test.pypi.org/legacy/
-          packages_dir: dist/
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: dist/
