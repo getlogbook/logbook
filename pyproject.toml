@@ -50,3 +50,9 @@ profile = "black"
 
 [tool.cibuildwheel]
 skip = "pp*"
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "universal2", "arm64"]
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64", "aarch64"]
