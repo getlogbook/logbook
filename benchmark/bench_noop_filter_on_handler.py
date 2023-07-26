@@ -1,5 +1,5 @@
 """Like the filter test, but with the should_handle implemented"""
-from cStringIO import StringIO
+from io import StringIO
 
 from logbook import Logger, NullHandler, StreamHandler
 

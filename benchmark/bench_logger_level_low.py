@@ -1,5 +1,5 @@
 """Benchmarks too low logger levels"""
-from cStringIO import StringIO
+from io import StringIO
 
 from logbook import ERROR, Logger, StreamHandler
 

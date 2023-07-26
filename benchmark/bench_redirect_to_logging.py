@@ -1,7 +1,6 @@
 """Tests redirects from logging to logbook"""
+from io import StringIO
 from logging import StreamHandler, getLogger
-
-from cStringIO import StringIO
 
 from logbook.compat import LoggingHandler
 
