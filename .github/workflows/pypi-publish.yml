@@ -1,0 +1,45 @@
+# This is based on pyca/cryptography but we use cibuildwheel
+# https://github.com/pyca/cryptography/blob/50ae9623df9181e5d08bbca0791ae69af4d3d446/.github/workflows/pypi-publish.yml
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: The run of wheel-builder to use for finding artifacts.
+        required: true
+      environment:
+        description: Which PyPI environment to upload to
+        required: true
+        type: choice
+        options: [testpypi, pypi]
+  workflow_run:
+    workflows: ["Wheel Builder"]
+    types: [completed]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # We're not actually verifying that the triggering push event was for a
+    # tag, because github doesn't expose enough information to do so.
+    # wheel-builder.yml currently only has push events for tags.
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success')
+    environment: publish
+    permissions:
+      id-token: write
+    steps:
+      - uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615 # v2.27.0
+        with:
+          path: dist/
+          run_id: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
+
+      - uses: pypa/gh-action-pypi-publish@f8c70e705ffc13c3b4d1221169b84f12a75d6ca8 # v1.8.8
+        if: github.event_name == 'workflow_run' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi')
+        with:
+          packages_dir: dist/
+
+      - uses: pypa/gh-action-pypi-publish@f8c70e705ffc13c3b4d1221169b84f12a75d6ca8 # v1.8.8
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi'
+        with:
+          repository_url: https://test.pypi.org/legacy/
+          packages_dir: dist/
