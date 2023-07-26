@@ -33,7 +33,7 @@ Documentation = "https://logbook.readthedocs.io"
 test = ["pytest>=6", "pytest-rerunfailures"]
 dev = ["Logbook[test]", "tox>=4"]
 execnet = ["execnet>=1.0.9"]
-sqlalchemy = ["sqlalchemy"]
+sqlalchemy = ["sqlalchemy>=1.4"]
 redis = ["redis"]
 zmq = ["pyzmq"]
 jinja = ["Jinja2"]
