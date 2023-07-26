@@ -1,2 +1,3 @@
-include MANIFEST.in Makefile CHANGES src/logbook/_speedups.pyx tox.ini LICENSE
+include MANIFEST.in Makefile CHANGES src/cython/speedups.pyx tox.ini LICENSE
+exclude src/cython/speedups.c
 recursive-include tests *

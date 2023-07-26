@@ -29,7 +29,7 @@ else:
     from Cython.Build import cythonize
 
     ext_modules = cythonize(
-        [Extension("logbook._speedups", sources=["src/logbook/_speedups.pyx"])],
+        [Extension("logbook._speedups", sources=["src/cython/speedups.pyx"])],
         language_level=3,
     )
 

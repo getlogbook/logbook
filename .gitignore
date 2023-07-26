@@ -60,7 +60,7 @@ target/
 
 # Logbook specific / custom ignores
 .ropeproject
-src/logbook/_speedups.c
+src/cython/speedups.c
 env*
 .vagrant
 flycheck-*
