@@ -1,3 +1,6 @@
 include MANIFEST.in Makefile CHANGES src/cython/speedups.pyx tox.ini LICENSE
 exclude src/cython/speedups.c
-recursive-include tests *
+graft benchmark
+graft docs
+graft tests
+global-exclude *.pyc
