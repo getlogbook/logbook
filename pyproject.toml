@@ -55,4 +55,4 @@ skip = "pp*"
 archs = ["x86_64", "universal2", "arm64"]
 
 [tool.cibuildwheel.linux]
-archs = ["x86_64", "aarch64"]
+archs = ["x86_64"]
