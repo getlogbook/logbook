@@ -47,3 +47,6 @@ testpaths = ["tests"]
 
 [tool.isort]
 profile = "black"
+
+[tool.cibuildwheel]
+skip = "pp*"
