@@ -47,10 +47,9 @@ Project Information
 .. cssclass:: toctree-l1
 
 * `Download from PyPI`_
-* `Master repository on GitHub`_
+* `GitHub repository`_
 * `Mailing list`_
-* IRC: ``#pocoo`` on freenode
 
 .. _Download from PyPI: https://pypi.org/project/Logbook
-.. _Master repository on GitHub: https://github.com/getlogbook/logbook
+.. _GitHub repository: https://github.com/getlogbook/logbook
 .. _Mailing list: https://groups.google.com/g/pocoo-libs

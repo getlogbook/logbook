@@ -40,7 +40,7 @@ jinja = ["Jinja2"]
 compression = ["brotli"]
 all = ["Logbook[execnet,sqlalchemy,redis,zmq,jinja,compression,nteventlog]"]
 nteventlog = ["pywin32; platform_system == 'Windows'"]
-
+docs = ["Sphinx", "importlib_metadata; python_version < '3.8'"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
