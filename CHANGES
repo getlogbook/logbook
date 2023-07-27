@@ -15,6 +15,20 @@ Released on <TODO>
 - FileHandler supports path-like objects.
 - Fixed bug which prevented compilation on Cython 3
 
+Version 1.5.3
+-------------
+
+Released on October 16th, 2019
+
+- Fixed deprecated imports from collections module.
+
+Version 1.5.2
+-------------
+
+Released on August 21st, 2019
+
+- No changes
+
 Version 1.5.1
 -------------
 
