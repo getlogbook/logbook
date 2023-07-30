@@ -31,8 +31,15 @@ jobs:
       - name: Download artifacts
         uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615 # v2.27.0
         with:
-          path: dist/
+          path: artifacts/
           run_id: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
+
+      - name: Move artifacts to dist/
+        run: |
+          ls -lR artifacts/
+          mkdir dist
+          mv artifacts/sdist/*.tar.gz dist/
+          mv artifacts/wheels/*.whl dist/
 
       - name: Publish to pypi.org
         uses: pypa/gh-action-pypi-publish@f8c70e705ffc13c3b4d1221169b84f12a75d6ca8 # v1.8.8
