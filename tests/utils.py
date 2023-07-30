@@ -7,7 +7,6 @@
 """
 import functools
 import importlib
-import os
 import sys
 from contextlib import contextmanager
 from io import StringIO
@@ -19,13 +18,6 @@ import logbook
 _missing = object()
 
 LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-
-appveyor = pytest.mark.skipif(
-    os.environ.get("APPVEYOR") != "True", reason="AppVeyor CI test"
-)
-
-travis = pytest.mark.skipif(os.environ.get("TRAVIS") != "true", reason="Travis CI test")
 
 
 def require_module(module_name):
