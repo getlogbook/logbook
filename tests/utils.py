@@ -6,6 +6,7 @@
     :license: BSD, see LICENSE for more details.
 """
 import functools
+import importlib
 import os
 import sys
 from contextlib import contextmanager
@@ -40,7 +41,7 @@ travis = pytest.mark.skipif(os.environ.get("TRAVIS") != "true", reason="Travis C
 def require_module(module_name):
     found = True
     try:
-        __import__(module_name)
+        importlib.import_module(module_name)
     except ImportError:
         found = False
 
