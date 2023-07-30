@@ -6,7 +6,7 @@
     :license: BSD, see LICENSE for more details.
 """
 import functools
-import os
+import importlib
 import sys
 from contextlib import contextmanager
 from io import StringIO
@@ -20,27 +20,10 @@ _missing = object()
 LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
-def get_total_delta_seconds(delta):
-    """
-    Replacement for datetime.timedelta.total_seconds() for Python 2.5, 2.6
-    and 3.1
-    """
-    return (
-        delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6
-    ) / 10**6
-
-
-appveyor = pytest.mark.skipif(
-    os.environ.get("APPVEYOR") != "True", reason="AppVeyor CI test"
-)
-
-travis = pytest.mark.skipif(os.environ.get("TRAVIS") != "true", reason="Travis CI test")
-
-
 def require_module(module_name):
     found = True
     try:
-        __import__(module_name)
+        importlib.import_module(module_name)
     except ImportError:
         found = False
 

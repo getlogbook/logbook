@@ -450,8 +450,7 @@ class LogRecord:
         #: where custom log processors can attach custom context sensitive
         #: data.
 
-        # TODO: Replace the lambda with str when we remove support for python 2
-        self.extra = defaultdict(lambda: "", extra or ())
+        self.extra = defaultdict(str, extra or ())
         #: If available, optionally the interpreter frame that pulled the
         #: heavy init.  This usually points to somewhere in the dispatcher.
         #: Might not be available for all calls and is removed when the log
@@ -559,8 +558,7 @@ class LogRecord:
         if isinstance(self.time, str):
             self.time = parse_iso8601(self.time)
 
-        # TODO: Replace the lambda with str when we remove support for python 2`
-        self.extra = defaultdict(lambda: "", self.extra)
+        self.extra = defaultdict(str, self.extra)
         return self
 
     def _format_message(self, msg, *args, **kwargs):

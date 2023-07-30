@@ -26,7 +26,7 @@ def test_default_format_bad_encoding(logger):
 
 
 def test_custom_unicode_format_unicode(logger):
-    format_string = "[{record.level_name}] " "{record.channel}: {record.message}"
+    format_string = "[{record.level_name}] {record.channel}: {record.message}"
     with capturing_stderr_context() as stream:
         with logbook.StderrHandler(format_string=format_string):
             logger.warn("\u2603")
@@ -34,7 +34,7 @@ def test_custom_unicode_format_unicode(logger):
 
 
 def test_custom_string_format_unicode(logger):
-    format_string = "[{record.level_name}] " "{record.channel}: {record.message}"
+    format_string = "[{record.level_name}] {record.channel}: {record.message}"
     with capturing_stderr_context() as stream:
         with logbook.StderrHandler(format_string=format_string):
             logger.warn("\u2603")

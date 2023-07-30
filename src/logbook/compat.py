@@ -12,11 +12,9 @@ import logging
 import sys
 import warnings
 from collections.abc import Mapping
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 import logbook
-
-_epoch_ord = date(1970, 1, 1).toordinal()
 
 
 def redirect_logging(set_root_logger_level=True):
@@ -213,12 +211,10 @@ class LoggingHandler(logbook.Handler):
 
     def convert_time(self, dt):
         """Converts a datetime object into a timestamp."""
-        year, month, day, hour, minute, second = dt.utctimetuple()[:6]
-        days = date(year, month, 1).toordinal() - _epoch_ord + day - 1
-        hours = days * 24 + hour
-        minutes = hours * 60 + minute
-        seconds = minutes * 60 + second
-        return seconds
+        if dt.tzinfo is None:
+            # Logbook uses naive datetimes to represent UTC (utcnow)
+            return dt.replace(tzinfo=timezone.utc).timestamp()
+        return dt.timestamp()
 
     def convert_record(self, old_record):
         """Converts a record from logbook to logging."""
