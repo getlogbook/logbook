@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools", "Cython; python_implementation == 'CPython'"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Logbook"
+license = { text = "BSD-3-Clause" }
+authors = [
+    { name = "Armin Ronacher", email = "armin.ronacher@active-4.com" },
+    { name = "Georg Brandl" },
+]
+description = "A logging replacement for Python"
+readme = "README.md"
+maintainers = [
+    { name = "Frazer McLean", email = "frazer@frazermclean.co.uk" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.7"
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://logbook.readthedocs.io"
+"Source Code" = "https://github.com/getlogbook/logbook"
+
+[project.optional-dependencies]
+test = ["pytest>=6", "pytest-rerunfailures"]
+dev = ["Logbook[test]", "tox>=4"]
+execnet = ["execnet>=1.0.9"]
+sqlalchemy = ["sqlalchemy>=1.4"]
+redis = ["redis"]
+zmq = ["pyzmq"]
+jinja = ["Jinja2"]
+compression = ["brotli"]
+all = ["Logbook[execnet,sqlalchemy,redis,zmq,jinja,compression,nteventlog]"]
+nteventlog = ["pywin32; platform_system == 'Windows'"]
+docs = ["Sphinx", "importlib_metadata; python_version < '3.8'"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.isort]
+profile = "black"
+
+[tool.cibuildwheel]
+skip = "pp*"
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "universal2", "arm64"]
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]

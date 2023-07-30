@@ -1,3 +1,7 @@
+from contextvars import ContextVar
+from itertools import count
+from threading import current_thread
+
 has_gevent = True
 use_gevent = False
 try:
@@ -14,6 +18,7 @@ try:
     def is_gevent_enabled():
         global use_gevent
         return use_gevent
+
 except ImportError:
     has_gevent = False
 
@@ -27,26 +32,23 @@ except ImportError:
         return False
 
 
+def thread_get_name():
+    return current_thread().name
+
+
 if has_gevent:
     from gevent.monkey import get_original as _get_original
-    ThreadLock = _get_original('threading', 'Lock')
-    ThreadRLock = _get_original('threading', 'RLock')
-    try:
-        thread_get_ident = _get_original('threading', 'get_ident')
-    except AttributeError:
-        # In 2.7, this is called _get_ident
-        thread_get_ident = _get_original('threading', '_get_ident')
-    thread_local = _get_original('threading', 'local')
 
-    from gevent.thread import get_ident as greenlet_get_ident
+    ThreadLock = _get_original("threading", "Lock")
+    ThreadRLock = _get_original("threading", "RLock")
+    thread_get_ident = _get_original("threading", "get_ident")
+    thread_local = _get_original("threading", "local")
+
     from gevent.local import local as greenlet_local
     from gevent.lock import BoundedSemaphore
-    from gevent.threading import __threading__
+    from gevent.thread import get_ident as greenlet_get_ident
 
-    def thread_get_name():
-        return __threading__.currentThread().getName()
-
-    class GreenletRLock(object):
+    class GreenletRLock:
         def __init__(self):
             self._thread_local = thread_local()
             self._owner = None
@@ -55,8 +57,11 @@ if has_gevent:
 
         def __repr__(self):
             owner = self._owner
-            return "<%s owner=%r count=%d>" % (self.__class__.__name__, owner,
-                                               self._count)
+            return "<%s owner=%r count=%d>" % (
+                self.__class__.__name__,
+                owner,
+                self._count,
+            )
 
         def acquire(self, blocking=1):
             tid = thread_get_ident()
@@ -119,7 +124,7 @@ if has_gevent:
             self.release()
 
         def _get_greenlet_lock(self):
-            if not hasattr(self._thread_local, 'greenlet_lock'):
+            if not hasattr(self._thread_local, "greenlet_lock"):
                 greenlet_lock = self._thread_local.greenlet_lock = BoundedSemaphore(1)
             else:
                 greenlet_lock = self._thread_local.greenlet_lock
@@ -127,24 +132,18 @@ if has_gevent:
 
         def _is_owned(self):
             return self._owner == (thread_get_ident(), greenlet_get_ident())
-else:
-    from threading import (
-        Lock as ThreadLock, RLock as ThreadRLock, currentThread)
-    try:
-        from thread import (
-            get_ident as thread_get_ident, _local as thread_local)
-    except ImportError:
-        from _thread import (
-            get_ident as thread_get_ident, _local as thread_local)
 
-    def thread_get_name():
-        return currentThread().getName()
+else:
+    from threading import Lock as ThreadLock
+    from threading import RLock as ThreadRLock
+    from threading import get_ident as thread_get_ident
+    from threading import local as thread_local
 
     greenlet_get_ident = thread_get_ident
 
     greenlet_local = thread_local
 
-    class GreenletRLock(object):
+    class GreenletRLock:
         def acquire(self):
             pass
 
@@ -166,51 +165,22 @@ def new_fine_grained_lock():
         return ThreadRLock()
 
 
-has_contextvars = True
-try:
-    import contextvars
-except ImportError:
-    has_contextvars = False
+context_ident_counter = count()
+context_ident = ContextVar("context_ident")
 
-if has_contextvars:
-    from contextvars import ContextVar
-    from itertools import count
 
-    context_ident_counter = count()
-    context_ident = ContextVar('context_ident')
+def context_get_ident():
+    try:
+        return context_ident.get()
+    except LookupError:
+        ident = "context-%s" % next(context_ident_counter)
+        context_ident.set(ident)
+        return ident
 
-    def context_get_ident():
-        try:
-            return context_ident.get()
-        except LookupError:
-            ident = 'context-%s' % next(context_ident_counter)
-            context_ident.set(ident)
-            return ident
 
-    def is_context_enabled():
-        try:
-            context_ident.get()
-            return True
-        except LookupError:
-            return False
-
-else:
-    class ContextVar(object):
-        def __init__(self, name):
-            self.name = name
-            self.local = thread_local()
-
-        def set(self, value):
-            self.local = value
-
-        def get(self, default=None):
-            if self.local is None:
-                return default
-
-            return default
-
-    def context_get_ident():
-        return 1
-
-    def is_context_enabled():
+def is_context_enabled():
+    try:
+        context_ident.get()
+        return True
+    except LookupError:
         return False

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook.queues
     ~~~~~~~~~~~~~~
@@ -9,17 +8,14 @@
     :license: BSD, see LICENSE for more details.
 """
 import json
-import threading
-from threading import Thread, Lock
 import platform
+import threading
+from queue import Empty, Full
+from queue import Queue as ThreadQueue
+from threading import Lock, Thread
+
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.handlers import Handler, WrapperHandler
-from logbook.helpers import PY2, u
-
-if PY2:
-    from Queue import Empty, Full, Queue as ThreadQueue
-else:
-    from queue import Empty, Full, Queue as ThreadQueue
 
 
 class RedisHandler(Handler):
@@ -42,25 +38,36 @@ class RedisHandler(Handler):
 
     More info about the default buffer size: wp.me/p3tYJu-3b
     """
-    def __init__(self, host='127.0.0.1', port=6379, key='redis',
-                 extra_fields=None, flush_threshold=128, flush_time=1,
-                 level=NOTSET, filter=None, password=False, bubble=True,
-                 context=None, push_method='rpush'):
+
+    def __init__(
+        self,
+        host="127.0.0.1",
+        port=6379,
+        key="redis",
+        extra_fields=None,
+        flush_threshold=128,
+        flush_time=1,
+        level=NOTSET,
+        filter=None,
+        password=False,
+        bubble=True,
+        context=None,
+        push_method="rpush",
+    ):
         Handler.__init__(self, level, filter, bubble)
         try:
             import redis
             from redis import ResponseError
         except ImportError:
-            raise RuntimeError('The redis library is required for '
-                               'the RedisHandler')
+            raise RuntimeError("The redis library is required for the RedisHandler")
 
-        self.redis = redis.Redis(host=host, port=port, password=password,
-                                 decode_responses=True)
+        self.redis = redis.Redis(
+            host=host, port=port, password=password, decode_responses=True
+        )
         try:
             self.redis.ping()
         except ResponseError:
-            raise ResponseError(
-                'The password provided is apparently incorrect')
+            raise ResponseError("The password provided is apparently incorrect")
         self.key = key
         self.extra_fields = extra_fields or {}
         self.flush_threshold = flush_threshold
@@ -70,16 +77,15 @@ class RedisHandler(Handler):
 
         # Set up a thread that flushes the queue every specified seconds
         self._stop_event = threading.Event()
-        self._flushing_t = threading.Thread(target=self._flush_task,
-                                            args=(flush_time,
-                                                  self._stop_event))
+        self._flushing_t = threading.Thread(
+            target=self._flush_task, args=(flush_time, self._stop_event)
+        )
         self._flushing_t.daemon = True
         self._flushing_t.start()
 
     def _flush_task(self, time, stop_event):
-        """Calls the method _flush_buffer every certain time.
-        """
-        while not self._stop_event.isSet():
+        """Calls the method _flush_buffer every certain time."""
+        while not self._stop_event.is_set():
             with self.lock:
                 self._flush_buffer()
             self._stop_event.wait(time)
@@ -111,10 +117,12 @@ class RedisHandler(Handler):
         Extra values are also appended to the message.
         """
         with self.lock:
-            r = {"message": record.msg,
-                 "host": platform.node(),
-                 "level": record.level_name,
-                 "time": record.time.isoformat()}
+            r = {
+                "message": record.msg,
+                "host": platform.node(),
+                "level": record.level_name,
+                "time": record.time.isoformat(),
+            }
             r.update(self.extra_fields)
             r.update(record.kwargs)
             self.queue.append(json.dumps(r))
@@ -149,25 +157,26 @@ class MessageQueueHandler(Handler):
     Several other backends are also supported.
     Refer to the `kombu`_ documentation
 
-    .. _kombu: http://kombu.readthedocs.org/en/latest/introduction.html
+    .. _kombu: https://docs.celeryq.dev/projects/kombu/en/latest/introduction.html
     """
 
-    def __init__(self, uri=None, queue='logging', level=NOTSET,
-                 filter=None, bubble=False):
+    def __init__(
+        self, uri=None, queue="logging", level=NOTSET, filter=None, bubble=False
+    ):
         Handler.__init__(self, level, filter, bubble)
         try:
             import kombu
         except ImportError:
-            raise RuntimeError('The kombu library is required for '
-                               'the RabbitMQSubscriber.')
+            raise RuntimeError(
+                "The kombu library is required for the RabbitMQSubscriber."
+            )
         if uri:
             connection = kombu.Connection(uri)
 
         self.queue = connection.SimpleQueue(queue)
 
     def export_record(self, record):
-        """Exports the record into a dictionary ready for JSON dumping.
-        """
+        """Exports the record into a dictionary ready for JSON dumping."""
         return record.to_dict(json_safe=True)
 
     def emit(self, record):
@@ -198,14 +207,20 @@ class ZeroMQHandler(Handler):
         handler = ZeroMQHandler('tcp://127.0.0.1:5000')
     """
 
-    def __init__(self, uri=None, level=NOTSET, filter=None, bubble=False,
-                 context=None, multi=False):
+    def __init__(
+        self,
+        uri=None,
+        level=NOTSET,
+        filter=None,
+        bubble=False,
+        context=None,
+        multi=False,
+    ):
         Handler.__init__(self, level, filter, bubble)
         try:
             import zmq
         except ImportError:
-            raise RuntimeError('The pyzmq library is required for '
-                               'the ZeroMQHandler.')
+            raise RuntimeError("The pyzmq library is required for the ZeroMQHandler.")
         #: the zero mq context
         self.context = context or zmq.Context()
 
@@ -225,8 +240,7 @@ class ZeroMQHandler(Handler):
         return record.to_dict(json_safe=True)
 
     def emit(self, record):
-        self.socket.send(json.dumps(
-            self.export_record(record)).encode("utf-8"))
+        self.socket.send(json.dumps(self.export_record(record)).encode("utf-8"))
 
     def close(self, linger=-1):
         self.socket.close(linger)
@@ -238,10 +252,11 @@ class ZeroMQHandler(Handler):
         # not reachable.
         # If messages are pending on the socket, we wait 100ms for them to be
         # sent then we discard them.
-        self.close(linger=100)
+        if hasattr(self, "socket"):
+            self.close(linger=100)
 
 
-class ThreadController(object):
+class ThreadController:
     """A helper class used by queue subscribers to control the background
     thread.  This is usually created and started in one go by
     :meth:`~logbook.queues.ZeroMQSubscriber.dispatch_in_background` or
@@ -258,7 +273,7 @@ class ThreadController(object):
         """Starts the task thread."""
         self.running = True
         self._thread = Thread(target=self._target)
-        self._thread.setDaemon(True)
+        self._thread.daemon = True
         self._thread.start()
 
     def stop(self):
@@ -279,7 +294,7 @@ class ThreadController(object):
                 self.setup.pop_thread()
 
 
-class SubscriberBase(object):
+class SubscriberBase:
     """Baseclass for all subscribers."""
 
     def recv(self, timeout=None):
@@ -348,11 +363,12 @@ class MessageQueueSubscriber(SubscriberBase):
 
         controller.stop()
     """
-    def __init__(self, uri=None, queue='logging'):
+
+    def __init__(self, uri=None, queue="logging"):
         try:
             import kombu
         except ImportError:
-            raise RuntimeError('The kombu library is required.')
+            raise RuntimeError("The kombu library is required.")
         if uri:
             connection = kombu.Connection(uri)
 
@@ -428,8 +444,9 @@ class ZeroMQSubscriber(SubscriberBase):
         try:
             import zmq
         except ImportError:
-            raise RuntimeError('The pyzmq library is required for '
-                               'the ZeroMQSubscriber.')
+            raise RuntimeError(
+                "The pyzmq library is required for the ZeroMQSubscriber."
+            )
         self._zmq = zmq
 
         #: the zero mq context
@@ -445,7 +462,7 @@ class ZeroMQSubscriber(SubscriberBase):
             self.socket = self.context.socket(zmq.SUB)
             if uri is not None:
                 self.socket.connect(uri)
-            self.socket.setsockopt_unicode(zmq.SUBSCRIBE, u(''))
+            self.socket.setsockopt_unicode(zmq.SUBSCRIBE, "")
 
     def __del__(self):
         try:
@@ -473,8 +490,7 @@ class ZeroMQSubscriber(SubscriberBase):
             if not self._zmq.select([self.socket], [], [], timeout)[0]:
                 return
             rv = self.socket.recv(self._zmq.NOBLOCK)
-        if not PY2:
-            rv = rv.decode("utf-8")
+        rv = rv.decode("utf-8")
         return LogRecord.from_dict(json.loads(rv))
 
 
@@ -487,6 +503,7 @@ def _fix_261_mplog():
     """
     import logging
     import multiprocessing
+
     logging.multiprocessing = multiprocessing
 
 
@@ -553,6 +570,7 @@ class MultiProcessingSubscriber(SubscriberBase):
     def __init__(self, queue=None):
         if queue is None:
             from multiprocessing import Queue
+
             queue = Queue(-1)
         self.queue = queue
         _fix_261_mplog()
@@ -599,12 +617,13 @@ class ExecnetChannelSubscriber(SubscriberBase):
             return LogRecord.from_dict(rv)
 
 
-class TWHThreadController(object):
+class TWHThreadController:
     """A very basic thread controller that pulls things in from a
     queue and sends it to a handler.  Both queue and handler are
     taken from the passed :class:`ThreadedWrapperHandler`.
     """
-    class Command(object):
+
+    class Command:
         stop = object()
         emit = object()
         emit_batch = object()
@@ -618,13 +637,13 @@ class TWHThreadController(object):
         """Starts the task thread."""
         self.running = True
         self._thread = Thread(target=self._target)
-        self._thread.setDaemon(True)
+        self._thread.daemon = True
         self._thread.start()
 
     def stop(self):
         """Stops the task thread."""
         if self.running:
-            self.wrapper_handler.queue.put_nowait((self.Command.stop, ))
+            self.wrapper_handler.queue.put_nowait((self.Command.stop,))
             self._thread.join()
             self._thread = None
 
@@ -636,7 +655,7 @@ class TWHThreadController(object):
                 self.running = False
                 break
             elif command is self.Command.emit:
-                (record, ) = data
+                (record,) = data
                 self.wrapper_handler.handler.emit(record)
             elif command is self.Command.emit_batch:
                 record, reason = data
@@ -659,7 +678,8 @@ class ThreadedWrapperHandler(WrapperHandler):
     >>> twh.handler.level_name
     'WARNING'
     """
-    _direct_attrs = frozenset(['handler', 'queue', 'controller'])
+
+    _direct_attrs = frozenset(["handler", "queue", "controller"])
 
     def __init__(self, handler, maxsize=0):
         WrapperHandler.__init__(self, handler)
@@ -724,6 +744,7 @@ class SubscriberGroup(SubscriberBase):
         with target_handler:
             subscribers.dispatch_forever()
     """
+
     def __init__(self, subscribers=None, queue_limit=10):
         self.members = []
         self.queue = ThreadQueue(queue_limit)

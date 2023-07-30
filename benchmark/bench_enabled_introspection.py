@@ -1,8 +1,7 @@
 """Tests with stack frame introspection enabled"""
-from logbook import Logger, NullHandler, Flags
+from logbook import Flags, Logger, NullHandler
 
-
-log = Logger('Test logger')
+log = Logger("Test logger")
 
 
 class DummyHandler(NullHandler):
@@ -12,5 +11,5 @@ class DummyHandler(NullHandler):
 def run():
     with Flags(introspection=True):
         with DummyHandler() as handler:
-            for x in xrange(500):
-                log.warning('this is not handled')
+            for x in range(500):
+                log.warning("this is not handled")

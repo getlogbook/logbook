@@ -6,7 +6,7 @@ handlers.  There are additional handlers for special purposes in the
 :mod:`logbook.more`, :mod:`logbook.ticketing` and :mod:`logbook.queues`
 modules.
 
-.. module:: logbook
+.. currentmodule:: logbook
 
 Base Interface
 --------------

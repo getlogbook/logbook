@@ -1,6 +1,35 @@
 Logbook Changelog
 =================
 
+Version 1.6.0
+-------------
+
+Released on July 30th, 2023
+
+- Dropped support for Python 2.7, 3.5, and 3.6.
+- Uses pyproject.toml based build.
+- Added nteventlog extra for NTEventLogHandler.
+- Supports SQLAlchemy 1.4 and 2.0.
+- Fix various deprecation warnings.
+- exc_info arg may be a BaseException instance (thanks Mattijs Ugen)
+- FileHandler supports path-like objects.
+- Fixed bug which prevented compilation on Cython 3
+- Wheels are generated for more platforms and architectures
+
+Version 1.5.3
+-------------
+
+Released on October 16th, 2019
+
+- Fixed deprecated imports from collections module.
+
+Version 1.5.2
+-------------
+
+Released on August 21st, 2019
+
+- No changes
+
 Version 1.5.1
 -------------
 
@@ -223,7 +252,7 @@ Version 0.4.1
 Released on December 12th. Codename "121212"
 
 - Fixed several outstanding encoding problems, thanks to @dvarazzo.
-- Merged in minor pull requests (see https://github.com/mitsuhiko/logbook/pulls?&state=closed)
+- Merged in minor pull requests (see https://github.com/getlogbook/logbook/pulls?q=is%3Aclosed)
 
 Version 0.4
 -----------

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# cython: language_level=2
 """
     logbook._speedups
     ~~~~~~~~~~~~~~~~~
@@ -11,14 +9,27 @@
 """
 
 
-from logbook.concurrency import (is_gevent_enabled, thread_get_ident, greenlet_get_ident, thread_local,
-                                 GreenletRLock, greenlet_local, ContextVar, context_get_ident, is_context_enabled)
+from logbook.concurrency import (
+    ContextVar,
+    GreenletRLock,
+    context_get_ident,
+    greenlet_get_ident,
+    greenlet_local,
+    is_context_enabled,
+    is_gevent_enabled,
+    thread_get_ident,
+    thread_local,
+)
 
 from cpython.dict cimport PyDict_Clear, PyDict_SetItem
-from cpython.list cimport PyList_Append, PyList_Sort, PyList_GET_SIZE
-
-from cpython.pythread cimport PyThread_type_lock, PyThread_allocate_lock, \
-     PyThread_release_lock, PyThread_acquire_lock, WAIT_LOCK
+from cpython.list cimport PyList_Append, PyList_GET_SIZE, PyList_Sort
+from cpython.pythread cimport (
+    WAIT_LOCK,
+    PyThread_acquire_lock,
+    PyThread_allocate_lock,
+    PyThread_release_lock,
+    PyThread_type_lock,
+)
 
 _missing = object()
 
@@ -51,7 +62,7 @@ cdef class group_reflected_property:
     def __set__(self, obj, value):
         setattr(obj, self._name, value)
 
-    def __del__(self, obj):
+    def __delete__(self, obj):
         delattr(obj, self._name)
 
 
@@ -198,10 +209,10 @@ cdef class ContextStackManager:
         use_gevent = is_gevent_enabled()
         use_context = is_context_enabled()
 
-        if use_gevent:
-            tid = greenlet_get_ident()
-        elif use_context:
+        if use_context:
             tid = context_get_ident()
+        elif use_gevent:
+            tid = greenlet_get_ident()
         else:
             tid = thread_get_ident()
 

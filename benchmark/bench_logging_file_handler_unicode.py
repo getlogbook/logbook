@@ -1,14 +1,13 @@
 """Tests logging file handler in comparison"""
-from logging import getLogger, FileHandler
+from logging import FileHandler, getLogger
 from tempfile import NamedTemporaryFile
 
-
-log = getLogger('Testlogger')
+log = getLogger("Testlogger")
 
 
 def run():
     f = NamedTemporaryFile()
     handler = FileHandler(f.name)
     log.addHandler(handler)
-    for x in xrange(500):
-        log.warning(u'this is handled \x6f')
+    for x in range(500):
+        log.warning("this is handled \x6f")

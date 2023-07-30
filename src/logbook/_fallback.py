@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     logbook._fallback
     ~~~~~~~~~~~~~~~~~
@@ -9,11 +8,20 @@
     :license: BSD, see LICENSE for more details.
 """
 from itertools import count
-from logbook.helpers import get_iterator_next_method
+
 from logbook.concurrency import (
-    thread_get_ident, greenlet_get_ident, thread_local, greenlet_local,
-    ThreadLock, GreenletRLock, is_gevent_enabled, ContextVar, context_get_ident,
-    is_context_enabled)
+    ContextVar,
+    GreenletRLock,
+    ThreadLock,
+    context_get_ident,
+    greenlet_get_ident,
+    greenlet_local,
+    is_context_enabled,
+    is_gevent_enabled,
+    thread_get_ident,
+    thread_local,
+)
+from logbook.helpers import get_iterator_next_method
 
 _missing = object()
 _MAX_CONTEXT_OBJECT_CACHE = 256
@@ -24,8 +32,9 @@ def group_reflected_property(name, default, fallback=_missing):
     value of the group if set.  If there is no such group, the
     provided default is used.
     """
+
     def _get(self):
-        rv = getattr(self, '_' + name, _missing)
+        rv = getattr(self, "_" + name, _missing)
         if rv is not _missing and rv != fallback:
             return rv
         if self.group is None:
@@ -33,15 +42,15 @@ def group_reflected_property(name, default, fallback=_missing):
         return getattr(self.group, name)
 
     def _set(self, value):
-        setattr(self, '_' + name, value)
+        setattr(self, "_" + name, value)
 
     def _del(self):
-        delattr(self, '_' + name)
+        delattr(self, "_" + name)
+
     return property(_get, _set, _del)
 
 
-class _StackBound(object):
-
+class _StackBound:
     def __init__(self, obj, push, pop):
         self.__obj = obj
         self.__push = push
@@ -55,7 +64,7 @@ class _StackBound(object):
         self.__pop()
 
 
-class StackedObject(object):
+class StackedObject:
     """Baseclass for all objects that provide stack manipulation
     operations.
     """
@@ -131,7 +140,7 @@ class StackedObject(object):
         return _cls(self, self.push_application, self.pop_application)
 
 
-class ContextStackManager(object):
+class ContextStackManager:
     """Helper class for context objects that manages a stack of
     objects.
     """
@@ -142,7 +151,7 @@ class ContextStackManager(object):
         self._thread_context = thread_local()
         self._greenlet_context_lock = GreenletRLock()
         self._greenlet_context = greenlet_local()
-        self._context_stack = ContextVar('stack')
+        self._context_stack = ContextVar("stack")
         self._cache = {}
         self._stackop = get_iterator_next_method(count())
 
@@ -153,10 +162,10 @@ class ContextStackManager(object):
         use_gevent = is_gevent_enabled()
         use_context = is_context_enabled()
 
-        if use_gevent:
-            tid = greenlet_get_ident()
-        elif use_context:
+        if use_context:
             tid = context_get_ident()
+        elif use_gevent:
+            tid = greenlet_get_ident()
         else:
             tid = thread_get_ident()
 
@@ -165,10 +174,10 @@ class ContextStackManager(object):
             if len(self._cache) > _MAX_CONTEXT_OBJECT_CACHE:
                 self._cache.clear()
             objects = self._global[:]
-            objects.extend(getattr(self._thread_context, 'stack', ()))
+            objects.extend(getattr(self._thread_context, "stack", ()))
 
             if use_gevent:
-                objects.extend(getattr(self._greenlet_context, 'stack', ()))
+                objects.extend(getattr(self._greenlet_context, "stack", ()))
 
             if use_context:
                 objects.extend(self._context_stack.get([]))
@@ -184,7 +193,7 @@ class ContextStackManager(object):
             # remote chance to conflict with thread ids
             self._cache.pop(greenlet_get_ident(), None)
             item = (self._stackop(), obj)
-            stack = getattr(self._greenlet_context, 'stack', None)
+            stack = getattr(self._greenlet_context, "stack", None)
             if stack is None:
                 self._greenlet_context.stack = [item]
             else:
@@ -197,8 +206,8 @@ class ContextStackManager(object):
         try:
             # remote chance to conflict with thread ids
             self._cache.pop(greenlet_get_ident(), None)
-            stack = getattr(self._greenlet_context, 'stack', None)
-            assert stack, 'no objects on stack'
+            stack = getattr(self._greenlet_context, "stack", None)
+            assert stack, "no objects on stack"
             return stack.pop()[1]
         finally:
             self._greenlet_context_lock.release()
@@ -216,7 +225,7 @@ class ContextStackManager(object):
     def pop_context(self):
         self._cache.pop(context_get_ident(), None)
         stack = self._context_stack.get(None)
-        assert stack, 'no objects on stack'
+        assert stack, "no objects on stack"
         return stack.pop()[1]
 
     def push_thread(self, obj):
@@ -224,7 +233,7 @@ class ContextStackManager(object):
         try:
             self._cache.pop(thread_get_ident(), None)
             item = (self._stackop(), obj)
-            stack = getattr(self._thread_context, 'stack', None)
+            stack = getattr(self._thread_context, "stack", None)
             if stack is None:
                 self._thread_context.stack = [item]
             else:
@@ -236,8 +245,8 @@ class ContextStackManager(object):
         self._thread_context_lock.acquire()
         try:
             self._cache.pop(thread_get_ident(), None)
-            stack = getattr(self._thread_context, 'stack', None)
-            assert stack, 'no objects on stack'
+            stack = getattr(self._thread_context, "stack", None)
+            assert stack, "no objects on stack"
             return stack.pop()[1]
         finally:
             self._thread_context_lock.release()
@@ -247,7 +256,7 @@ class ContextStackManager(object):
         self._cache.clear()
 
     def pop_application(self):
-        assert self._global, 'no objects on application stack'
+        assert self._global, "no objects on application stack"
         popped = self._global.pop()[1]
         self._cache.clear()
         return popped

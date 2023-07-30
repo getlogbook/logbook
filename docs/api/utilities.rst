@@ -6,7 +6,7 @@ Misc. Utilities
 
 This documents general purpose utility functions available in Logbook.
 
-.. module:: logbook
+.. currentmodule:: logbook
 
 .. autofunction:: debug
 
@@ -33,7 +33,7 @@ This documents general purpose utility functions available in Logbook.
 Slow Operations Logging
 -----------------------
 
-.. module:: logbook.utils
+.. currentmodule:: logbook.utils
 .. autofunction:: logged_if_slow
 
 
@@ -43,4 +43,3 @@ Deprecations
 .. autofunction:: deprecated
 
 .. autofunction:: suppressed_deprecations
-

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     test utils for logbook
     ~~~~~~~~~~~~~~~~~~~~~~
@@ -7,47 +6,28 @@
     :license: BSD, see LICENSE for more details.
 """
 import functools
-import os
+import importlib
 import sys
 from contextlib import contextmanager
-
-import logbook
-from logbook.helpers import StringIO
+from io import StringIO
 
 import pytest
+
+import logbook
 
 _missing = object()
 
 LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
-def get_total_delta_seconds(delta):
-    """
-    Replacement for datetime.timedelta.total_seconds() for Python 2.5, 2.6
-    and 3.1
-    """
-    return (delta.microseconds + (delta.seconds + delta.days * 24 * 3600) * 10**6) / 10**6
-
-
-require_py3 = pytest.mark.skipif(
-    sys.version_info[0] < 3, reason="Requires Python 3")
-
-appveyor = pytest.mark.skipif(
-    os.environ.get('APPVEYOR') != 'True', reason='AppVeyor CI test')
-
-travis = pytest.mark.skipif(
-    os.environ.get('TRAVIS') != 'true', reason='Travis CI test')
-
-
 def require_module(module_name):
     found = True
     try:
-        __import__(module_name)
+        importlib.import_module(module_name)
     except ImportError:
         found = False
 
-    return pytest.mark.skipif(
-        not found, reason='Module {0} is required'.format(module_name))
+    return pytest.mark.skipif(not found, reason=f"Module {module_name} is required")
 
 
 def make_fake_mail_handler(**kwargs):
@@ -63,8 +43,8 @@ def make_fake_mail_handler(**kwargs):
         def sendmail(self, fromaddr, recipients, mail):
             self.mails.append((fromaddr, recipients, mail))
 
-    kwargs.setdefault('level', logbook.ERROR)
-    return FakeMailHandler('foo@example.com', ['bar@example.com'], **kwargs)
+    kwargs.setdefault("level", logbook.ERROR)
+    return FakeMailHandler("foo@example.com", ["bar@example.com"], **kwargs)
 
 
 def missing(name):
@@ -80,7 +60,9 @@ def missing(name):
                     del sys.modules[name]
                 else:
                     sys.modules[name] = old
+
         return wrapper
+
     return decorate
 
 
