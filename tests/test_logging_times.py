@@ -4,8 +4,6 @@ import pytest
 
 import logbook
 
-from .utils import get_total_delta_seconds
-
 
 def test_timedate_format(activation_strategy, logger):
     """
@@ -29,7 +27,7 @@ def test_timedate_format(activation_strategy, logger):
     t1 = datetime.now()
     t2 = datetime.utcnow()
 
-    tz_minutes_diff = get_total_delta_seconds(t1 - t2) / 60.0
+    tz_minutes_diff = (t1 - t2).total_seconds() / 60.0
 
     if abs(tz_minutes_diff) < 1:
         pytest.skip(
@@ -38,7 +36,7 @@ def test_timedate_format(activation_strategy, logger):
         )
 
     # get the difference between LogRecord local and utc times
-    logbook_minutes_diff = get_total_delta_seconds(time_local - time_utc) / 60.0
+    logbook_minutes_diff = (time_local - time_utc).total_seconds() / 60.0
     assert abs(logbook_minutes_diff) > 1, (
         "Localtime does not differ from UTC by more than 1 "
         "minute (Local: %s, UTC: %s)" % (time_local, time_utc)
