@@ -4,7 +4,7 @@ Logbook Changelog
 Version 1.6.0
 -------------
 
-Released on <TODO>
+Released on July 30th, 2023
 
 - Dropped support for Python 2.7, 3.5, and 3.6.
 - Uses pyproject.toml based build.
@@ -14,6 +14,7 @@ Released on <TODO>
 - exc_info arg may be a BaseException instance (thanks Mattijs Ugen)
 - FileHandler supports path-like objects.
 - Fixed bug which prevented compilation on Cython 3
+- Wheels are generated for more platforms and architectures
 
 Version 1.5.3
 -------------
