@@ -42,13 +42,13 @@ jobs:
           mv artifacts/wheels/*.whl dist/
 
       - name: Publish to pypi.org
-        uses: pypa/gh-action-pypi-publish@f8c70e705ffc13c3b4d1221169b84f12a75d6ca8 # v1.8.8
+        uses: pypa/gh-action-pypi-publish@b7f401de30cb6434a1e19f805ff006643653240e # v1.8.10
         if: github.event_name == 'workflow_run' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi')
         with:
           packages-dir: dist/
 
       - name: Publish to test.pypi.org
-        uses: pypa/gh-action-pypi-publish@f8c70e705ffc13c3b4d1221169b84f12a75d6ca8 # v1.8.8
+        uses: pypa/gh-action-pypi-publish@b7f401de30cb6434a1e19f805ff006643653240e # v1.8.10
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi'
         with:
           repository-url: https://test.pypi.org/legacy/
