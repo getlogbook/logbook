@@ -67,6 +67,8 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@39a63b5912f086dd459cf6fcb13dcdd3fe3bc24d # v2.15.0
+        env:
+          CIBW_BUILD: cp311-macosx_arm64 cp311-win_amd64 cp311-manylinux_x86_64
 
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
