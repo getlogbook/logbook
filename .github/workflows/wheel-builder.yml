@@ -34,12 +34,30 @@ jobs:
       - run: python -m venv .venv
       - name: Install Python dependencies
         run: .venv/bin/pip install -U pip build
+      - name: Make sdist
+        run: .venv/bin/python -m build --sdist
       - name: Set SOURCE_DATE_EPOCH to last commit for reproducible build
         run: |
           echo "SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)"
           echo "SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)" >> $GITHUB_ENV
-      - name: Make sdist
-        run: .venv/bin/python -m build --sdist
+      - name: Repackage using SOURCE_DATE_EPOCH
+        run: |
+          set -xe
+
+          cd dist
+          targzname=$(find . -type f -name '*.tar.gz' -print0 | xargs -0 realpath)
+          tarname="${targzname%.gz}"
+          mkdir scratch
+          tar xf "$targzname" -C scratch
+          # cd into scratch so we can glob all files with `*`. Other approaches
+          # like `-C scratch .` adds a leading `./` to the archive names.
+          pushd scratch
+          tar --sort=name --mtime="@$SOURCE_DATE_EPOCH" \
+            --owner=0 --group=0 --numeric-owner \
+            -cf "$tarname" -- *
+          popd
+          gzip --no-name --force "$tarname"
+          rm -rf scratch
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: sdist
