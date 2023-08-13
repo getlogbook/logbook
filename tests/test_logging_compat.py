@@ -87,6 +87,6 @@ def test_warning_redirections():
         finally:
             redirector.end()
 
-    assert len(handler.records) == 1
+    assert len(handler.formatted_records) == 1
     assert handler.formatted_records[0].startswith("[WARNING] RuntimeWarning: Testing")
     assert __file_without_pyc__ in handler.records[0].filename
