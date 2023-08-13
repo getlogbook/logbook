@@ -1,6 +1,11 @@
 Logbook Changelog
 =================
 
+Unreleased
+----------
+
+- Dropped support for Python 3.7
+
 Version 1.6.0
 -------------
 
