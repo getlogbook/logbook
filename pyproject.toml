@@ -51,6 +51,7 @@ profile = "black"
 [tool.cibuildwheel]
 skip = "pp*"
 environment = { LDFLAGS = "-Wl,--strip-all" }
+environment-pass = ["SOURCE_DATE_EPOCH"]
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "universal2", "arm64"]

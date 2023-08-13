@@ -34,6 +34,8 @@ jobs:
       - run: python -m venv .venv
       - name: Install Python dependencies
         run: .venv/bin/pip install -U pip build
+      - name: Set SOURCE_DATE_EPOCH to last commit for reproducible build
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)" >> $GITHUB_ENV
       - name: Make sdist
         run: .venv/bin/python -m build --sdist
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
@@ -55,6 +57,9 @@ jobs:
           # The tag to build or the tag received by the tag event
           ref: ${{ github.event.inputs.version || github.ref }}
           persist-credentials: false
+
+      - name: Set SOURCE_DATE_EPOCH to last commit for reproducible build
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)" >> $GITHUB_ENV
 
       - name: Build wheels
         uses: pypa/cibuildwheel@39a63b5912f086dd459cf6fcb13dcdd3fe3bc24d # v2.15.0
