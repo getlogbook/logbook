@@ -64,15 +64,14 @@ if os.name == "nt":
                 retry = 0
                 rv = False
                 while not rv and retry < 100:
-                    rv = _MoveFileTransacted(
+                    if rv := _MoveFileTransacted(
                         src,
                         dst,
                         None,
                         None,
                         _MOVEFILE_REPLACE_EXISTING | _MOVEFILE_WRITE_THROUGH,
                         ta,
-                    )
-                    if rv:
+                    ):
                         rv = _CommitTransaction(ta)
                         break
                     else:

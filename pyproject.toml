@@ -16,13 +16,12 @@ maintainers = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 dynamic = ["version"]
 
 [project.urls]
@@ -40,7 +39,7 @@ jinja = ["Jinja2"]
 compression = ["brotli"]
 all = ["Logbook[execnet,sqlalchemy,redis,zmq,jinja,compression,nteventlog]"]
 nteventlog = ["pywin32; platform_system == 'Windows'"]
-docs = ["Sphinx", "importlib_metadata; python_version < '3.8'"]
+docs = ["Sphinx"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

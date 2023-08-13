@@ -408,8 +408,7 @@ class StringFormatter:
 
     def __call__(self, record, handler):
         line = self.format_record(record, handler)
-        exc = self.format_exception(record)
-        if exc:
+        if exc := self.format_exception(record):
             line += "\n" + exc
         return line
 
@@ -765,8 +764,7 @@ class BrotliCompressionHandler(FileHandler):
     def write(self, item):
         if isinstance(item, str):
             item = item.encode(encoding=self.encoding)
-        ret = self._compressor.process(item)
-        if ret:
+        if ret := self._compressor.process(item):
             self.ensure_stream_is_open()
             self.stream.write(ret)
             super().flush()
@@ -776,8 +774,7 @@ class BrotliCompressionHandler(FileHandler):
 
     def flush(self):
         if self._compressor is not None:
-            ret = self._compressor.flush()
-            if ret:
+            if ret := self._compressor.flush():
                 self.ensure_stream_is_open()
                 self.stream.write(ret)
         super().flush()

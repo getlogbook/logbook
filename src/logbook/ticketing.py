@@ -28,8 +28,7 @@ class Ticket:
     @cached_property
     def last_occurrence(self):
         """The last occurrence."""
-        rv = self.get_occurrences(limit=1)
-        if rv:
+        if rv := self.get_occurrences(limit=1):
             return rv[0]
 
     def get_occurrences(self, order_by="-time", limit=50, offset=0):
@@ -452,8 +451,7 @@ class MongoDBBackend(BackendBase):
 
     def get_ticket(self, ticket_id):
         """Return a single ticket with all occurrences."""
-        ticket = self.database.tickets.find_one({"_id": self._oid(ticket_id)})
-        if ticket:
+        if ticket := self.database.tickets.find_one({"_id": self._oid(ticket_id)}):
             return Ticket(self, ticket)
 
     def get_occurrences(self, ticket, order_by="-time", limit=50, offset=0):

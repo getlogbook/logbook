@@ -378,8 +378,7 @@ class ColorizingStreamHandlerMixin:
     def format(self, record):
         rv = super().format(record)
         if self.should_colorize(record):
-            color = self.get_color(record)
-            if color:
+            if color := self.get_color(record):
                 rv = colorize(color, rv)
         return rv
 
