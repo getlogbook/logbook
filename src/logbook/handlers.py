@@ -379,15 +379,14 @@ class StringFormatter:
     def __init__(self, format_string):
         self.format_string = format_string
 
-    def _get_format_string(self):
+    @property
+    def format_string(self):
         return self._format_string
 
-    def _set_format_string(self, value):
+    @format_string.setter
+    def format_string(self, value):
         self._format_string = value
         self._formatter = value
-
-    format_string = property(_get_format_string, _set_format_string)
-    del _get_format_string, _set_format_string
 
     def format_record(self, record, handler):
         try:
@@ -434,18 +433,17 @@ class StringFormatterHandlerMixin:
         #: string.
         self.format_string = format_string
 
-    def _get_format_string(self):
+    @property
+    def format_string(self):
         if isinstance(self.formatter, StringFormatter):
             return self.formatter.format_string
 
-    def _set_format_string(self, value):
+    @format_string.setter
+    def format_string(self, value):
         if value is None:
             self.formatter = None
         else:
             self.formatter = self.formatter_class(value)
-
-    format_string = property(_get_format_string, _set_format_string)
-    del _get_format_string, _set_format_string
 
 
 class HashingHandlerMixin:
@@ -1350,20 +1348,17 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
         self.related_format_string = related_format_string
         self.starttls = starttls
 
-    def _get_related_format_string(self):
+    @property
+    def related_format_string(self):
         if isinstance(self.related_formatter, StringFormatter):
             return self.related_formatter.format_string
 
-    def _set_related_format_string(self, value):
+    @related_format_string.setter
+    def related_format_string(self, value):
         if value is None:
             self.related_formatter = None
         else:
             self.related_formatter = self.formatter_class(value)
-
-    related_format_string = property(
-        _get_related_format_string, _set_related_format_string
-    )
-    del _get_related_format_string, _set_related_format_string
 
     def get_recipients(self, record):
         """Returns the recipients for a record.  By default the

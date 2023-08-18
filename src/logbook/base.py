@@ -142,13 +142,16 @@ def level_name_property():
     the internal level attribute.
     """
 
-    def _get_level_name(self):
+    @property
+    def level_name(self):
+        """The level as unicode string"""
         return get_level_name(self.level)
 
-    def _set_level_name(self, level):
+    @level_name.setter
+    def level_name(self, level):
         self.level = lookup_level(level)
 
-    return property(_get_level_name, _set_level_name, doc="The level as unicode string")
+    return level_name
 
 
 def lookup_level(level):
