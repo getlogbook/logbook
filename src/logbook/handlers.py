@@ -13,9 +13,11 @@ import math
 import os
 import re
 import socket
+import ssl
 import stat
 import sys
 import traceback
+import warnings
 from collections import deque
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timedelta
@@ -1277,14 +1279,14 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
     `credentials` can be a tuple or dictionary of arguments that will be passed
     to :py:meth:`smtplib.SMTP.login`.
 
-    `secure` can be a tuple, dictionary, or boolean. As a boolean, this will
-    simply enable or disable a secure connection. The tuple is unpacked as
-    parameters `keyfile`, `certfile`. As a dictionary, `secure` should contain
-    those keys. For backwards compatibility, ``secure=()`` will enable a secure
-    connection. If `starttls` is enabled (default), these parameters will be
-    passed to :py:meth:`smtplib.SMTP.starttls`, otherwise
-    :py:class:`smtplib.SMTP_SSL`.
+    `secure` should be an :class:`ssl.SSLContext` or boolean. Please read
+    :ref:`ssl-security` for best practices. For backwards
+    compatibility reasons, `secure` may also be a tuple or dictionary, although
+    this is deprecated:
 
+    * ``(keyfile, certfile)`` tuple
+    * ``{'keyfile': keyfile, 'certfile': certfile}`` dict
+    * ``()`` an empty tuple is equivalent to ``True``.
 
     .. versionchanged:: 0.3
        The handler supports the batching system now.
@@ -1300,7 +1302,11 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
        `credentials` parameter can now be a dictionary of keyword arguments.
 
     .. versionchanged:: 1.0
-       `secure` can now be a dictionary or boolean in addition to to a tuple.
+       `secure` can now be a dictionary or boolean in addition to a tuple.
+
+    .. versionchanged:: 1.7
+        `secure` may be an :class:`ssl.SSLContext` (recommended). The tuple or
+        dict form is deprecated.
     """
 
     default_format_string = MAIL_FORMAT_STRING
@@ -1342,11 +1348,41 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
         self.subject = subject
         self.server_addr = server_addr
         self.credentials = credentials
-        self.secure = secure
+        self.secure = self._adapt_secure(secure)
         if related_format_string is None:
             related_format_string = self.default_related_format_string
         self.related_format_string = related_format_string
         self.starttls = starttls
+
+    def _adapt_secure(self, secure):
+        if secure is None or isinstance(secure, (bool, ssl.SSLContext)):
+            return secure
+
+        if isinstance(secure, tuple):
+            if not secure:
+                # For backwards compatibility, () translates to True
+                return True
+            else:
+                keyfile, certfile = secure
+        elif isinstance(secure, Mapping):
+            keyfile = secure.get("keyfile", None)
+            certfile = secure.get("certfile", None)
+        else:
+            raise TypeError(f"Unexpected type for `secure`: {type(secure)}")
+
+        warnings.warn(
+            "Passing keyfile and certfile are deprecated, use an "
+            "SSLContext instead.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        ctx.load_cert_chain(certfile, keyfile)
+
+        return ctx
 
     @property
     def related_format_string(self):
@@ -1444,9 +1480,17 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
         """
         from smtplib import SMTP, SMTP_PORT, SMTP_SSL, SMTP_SSL_PORT
 
+        if self.secure:
+            if self.starttls:
+                default_port = 587
+            else:
+                default_port = SMTP_SSL_PORT
+        else:
+            default_port = SMTP_PORT
+
         if self.server_addr is None:
             host = "127.0.0.1"
-            port = self.secure and SMTP_SSL_PORT or SMTP_PORT
+            port = default_port
         else:
             try:
                 host, port = self.server_addr
@@ -1454,43 +1498,23 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
                 # If server_addr is a string, the tuple unpacking will raise
                 # ValueError, and we can use the default port.
                 host = self.server_addr
-                port = self.secure and SMTP_SSL_PORT or SMTP_PORT
+                port = default_port
 
-        # Previously, self.secure was passed as con.starttls(*self.secure). This
-        # meant that starttls couldn't be used without a keyfile and certfile
-        # unless an empty tuple was passed. See issue #94.
-        #
-        # The changes below allow passing:
-        # - secure=True for secure connection without checking identity.
-        # - dictionary with keys 'keyfile' and 'certfile'.
-        # - tuple to be unpacked to variables keyfile and certfile.
-        # - secure=() equivalent to secure=True for backwards compatibility.
-        # - secure=False equivalent to secure=None to disable.
-        if isinstance(self.secure, Mapping):
-            keyfile = self.secure.get("keyfile", None)
-            certfile = self.secure.get("certfile", None)
-        elif isinstance(self.secure, Iterable):
-            # Allow empty tuple for backwards compatibility
-            if len(self.secure) == 0:
-                keyfile = certfile = None
-            else:
-                keyfile, certfile = self.secure
+        if isinstance(self.secure, ssl.SSLContext):
+            context = self.secure
         else:
-            keyfile = certfile = None
+            context = None
 
-        # Allow starttls to be disabled by passing starttls=False.
-        if not self.starttls and self.secure:
-            con = SMTP_SSL(host, port, keyfile=keyfile, certfile=certfile)
+        if self.secure and not self.starttls:
+            con = SMTP_SSL(host, port, context=context)
         else:
             con = SMTP(host, port)
 
-        if self.credentials is not None:
-            secure = self.secure
-            if self.starttls and secure is not None and secure is not False:
-                con.ehlo()
-                con.starttls(keyfile=keyfile, certfile=certfile)
-                con.ehlo()
+        if self.secure and self.starttls:
+            con.starttls(context=context)
+            con.ehlo()
 
+        if self.credentials is not None:
             # Allow credentials to be a tuple or dict.
             if isinstance(self.credentials, Mapping):
                 credentials_args = ()
@@ -1500,6 +1524,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
                 credentials_kwargs = dict()
 
             con.login(*credentials_args, **credentials_kwargs)
+
         return con
 
     def close_connection(self, con):
