@@ -1,4 +1,6 @@
 import functools
+import re
+import warnings
 from io import StringIO
 from random import randrange
 
@@ -77,15 +79,16 @@ def test_warning_redirections():
     from logbook.compat import redirected_warnings
 
     with logbook.TestHandler() as handler:
-        redirector = redirected_warnings()
-        redirector.start()
-        try:
-            from warnings import resetwarnings, warn
-
-            resetwarnings()
-            warn(RuntimeWarning("Testing" + str(next(test_warning_redirections_i))))
-        finally:
-            redirector.end()
+        with redirected_warnings():
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    re.escape("datetime.utcnow() is deprecated"),
+                    DeprecationWarning,
+                )
+                warnings.warn(
+                    RuntimeWarning(f"Testing {next(test_warning_redirections_i)}")
+                )
 
     assert len(handler.formatted_records) == 1
     assert handler.formatted_records[0].startswith("[WARNING] RuntimeWarning: Testing")
