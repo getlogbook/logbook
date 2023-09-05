@@ -16,9 +16,10 @@ def test_asyncio_context_management(logger):
 
             await asyncio.sleep(0)  # allow for context switch
 
-    asyncio.get_event_loop().run_until_complete(
-        asyncio.gather(task(h1, "task1"), task(h2, "task2"))
-    )
+    async def main():
+        await asyncio.gather(task(h1, "task1"), task(h2, "task2"))
+
+    asyncio.run(main())
 
     assert len(h1.records) == ITERATIONS
     assert all(["task1" == r.msg for r in h1.records])
