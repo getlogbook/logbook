@@ -36,7 +36,7 @@ jobs:
         run: .venv/bin/pip install -U pip build
       - name: Make sdist
         run: .venv/bin/python -m build --sdist
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
           name: sdist
           path: dist/*.tar.gz
@@ -59,7 +59,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@39a63b5912f086dd459cf6fcb13dcdd3fe3bc24d # v2.15.0
 
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
           name: wheels
           path: ./wheelhouse/*.whl
