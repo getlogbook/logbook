@@ -49,9 +49,18 @@ profile = "black"
 
 [tool.cibuildwheel]
 skip = "pp*"
+environment = { LDFLAGS = "-Wl,--strip-all" }
+environment-pass = ["SOURCE_DATE_EPOCH"]
 
 [tool.cibuildwheel.macos]
-archs = ["x86_64", "universal2", "arm64"]
+archs = ["x86_64", "arm64"]
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
+
+[[tool.cibuildwheel.overrides]]
+# Don't strip wheels on macOS.
+# macOS doesn't support stripping wheels with linker
+# https://github.com/MacPython/numpy-wheels/pull/87#issuecomment-624878264
+select = "*-macosx*"
+environment = { CFLAGS = "-g0" }
