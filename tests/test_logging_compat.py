@@ -80,15 +80,9 @@ def test_warning_redirections():
 
     with logbook.TestHandler() as handler:
         with redirected_warnings():
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    re.escape("datetime.utcnow() is deprecated"),
-                    DeprecationWarning,
-                )
-                warnings.warn(
-                    RuntimeWarning(f"Testing {next(test_warning_redirections_i)}")
-                )
+            warnings.warn(
+                RuntimeWarning(f"Testing {next(test_warning_redirections_i)}")
+            )
 
     assert len(handler.formatted_records) == 1
     assert handler.formatted_records[0].startswith("[WARNING] RuntimeWarning: Testing")
