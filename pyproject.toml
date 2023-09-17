@@ -42,6 +42,16 @@ all = ["Logbook[execnet,sqlalchemy,redis,zmq,jinja,compression,nteventlog]"]
 nteventlog = ["pywin32; platform_system == 'Windows'"]
 docs = ["Sphinx"]
 
+[tool.setuptools.dynamic]
+version = { attr = "logbook.__version__" }
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
