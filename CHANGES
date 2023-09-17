@@ -7,6 +7,7 @@ Unreleased
 - Dropped support for Python 3.7
 - Passing (keyfile, certfile) to MailHandler's `secure` argument is deprecated
   in favour of passing an ssl.SSLContext.
+- Python 3.12 support
 
 Version 1.6.0
 -------------
