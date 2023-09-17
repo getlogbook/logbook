@@ -16,7 +16,12 @@ from itertools import chain
 from weakref import ref as weakref
 
 from logbook.concurrency import greenlet_get_ident, thread_get_ident, thread_get_name
-from logbook.helpers import cached_property, parse_iso8601, to_safe_json
+from logbook.helpers import (
+    cached_property,
+    datetime_utcnow,
+    parse_iso8601,
+    to_safe_json,
+)
 
 _has_speedups = False
 try:
@@ -39,7 +44,7 @@ except ImportError:
         group_reflected_property,
     )
 
-_datetime_factory = datetime.utcnow
+_datetime_factory = datetime_utcnow
 
 
 def set_datetime_format(datetime_format):
@@ -94,7 +99,7 @@ def set_datetime_format(datetime_format):
     """
     global _datetime_factory
     if datetime_format == "utc":
-        _datetime_factory = datetime.utcnow
+        _datetime_factory = datetime_utcnow
     elif datetime_format == "local":
         _datetime_factory = datetime.now
     elif callable(datetime_format):

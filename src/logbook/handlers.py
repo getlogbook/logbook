@@ -42,7 +42,7 @@ from logbook.base import (
     lookup_level,
 )
 from logbook.concurrency import new_fine_grained_lock
-from logbook.helpers import rename
+from logbook.helpers import datetime_utcnow, rename
 
 DEFAULT_FORMAT_STRING = (
     "[{record.time:%Y-%m-%d %H:%M:%S.%f%z}] "
@@ -506,7 +506,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
         try:
             allow_delivery = None
             suppression_count = old_count = 0
-            first_count = now = datetime.utcnow()
+            first_count = now = datetime_utcnow()
 
             if hash in self._record_limits:
                 last_count, suppression_count = self._record_limits[hash]
