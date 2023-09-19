@@ -57,7 +57,7 @@ jobs:
           persist-credentials: false
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@39a63b5912f086dd459cf6fcb13dcdd3fe3bc24d # v2.15.0
+        uses: pypa/cibuildwheel@a873dd9cbf9e3c4c73a1fd11ac31cf835f6eb502 # v2.16.0
 
       - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
