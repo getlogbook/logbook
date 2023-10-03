@@ -27,13 +27,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - uses: "actions/checkout@v3"
+      - uses: "actions/checkout@v4"
       - uses: "actions/setup-python@v4"
         with:
           python-version: "${{ matrix.python-version }}"
+          cache: pip
+          allow-prereleases: true
       - name: "Install dependencies"
         run: |
           set -xe
@@ -52,18 +54,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         arch: ["x86", "x64"]
 
     env:
       ENABLE_LOGBOOK_NTEVENTLOG_TESTS: "1"
 
     steps:
-      - uses: "actions/checkout@v3"
+      - uses: "actions/checkout@v4"
       - uses: "actions/setup-python@v4"
         with:
           python-version: "${{ matrix.python-version }}"
           architecture: "${{ matrix.arch }}"
+          cache: pip
+          allow-prereleases: true
 
       - run: python -VV
       - run: python -m site
@@ -80,14 +84,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - uses: "actions/checkout@v3"
+      - uses: "actions/checkout@v4"
       - uses: "actions/setup-python@v4"
         with:
           python-version: "${{ matrix.python-version }}"
           architecture: "${{ matrix.arch }}"
+          cache: pip
+          allow-prereleases: true
       - name: "Install dependencies"
         run: |
           set -xe
@@ -102,6 +108,6 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
       - uses: pre-commit/action@v3.0.0

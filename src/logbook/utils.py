@@ -146,8 +146,7 @@ class _DeprecatedFunction:
 
     @property
     def __doc__(self):
-        returned = self._get_underlying_func().__doc__
-        if returned:  # pylint: disable=no-member
+        if returned := self._get_underlying_func().__doc__:  # pylint: disable=no-member
             returned += "\n.. deprecated\n"  # pylint: disable=no-member
             if self._message:
                 returned += f"   {self._message}"  # pylint: disable=no-member

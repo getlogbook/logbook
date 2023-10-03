@@ -1,4 +1,6 @@
 import functools
+import re
+import warnings
 from io import StringIO
 from random import randrange
 
@@ -77,16 +79,11 @@ def test_warning_redirections():
     from logbook.compat import redirected_warnings
 
     with logbook.TestHandler() as handler:
-        redirector = redirected_warnings()
-        redirector.start()
-        try:
-            from warnings import resetwarnings, warn
+        with redirected_warnings():
+            warnings.warn(
+                RuntimeWarning(f"Testing {next(test_warning_redirections_i)}")
+            )
 
-            resetwarnings()
-            warn(RuntimeWarning("Testing" + str(next(test_warning_redirections_i))))
-        finally:
-            redirector.end()
-
-    assert len(handler.records) == 1
+    assert len(handler.formatted_records) == 1
     assert handler.formatted_records[0].startswith("[WARNING] RuntimeWarning: Testing")
     assert __file_without_pyc__ in handler.records[0].filename

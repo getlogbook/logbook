@@ -13,7 +13,7 @@ import random
 import re
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # this regexp also matches incompatible dates like 20070101 because
 # some libraries (like the python xmlrpclib modules) use this
@@ -64,15 +64,14 @@ if os.name == "nt":
                 retry = 0
                 rv = False
                 while not rv and retry < 100:
-                    rv = _MoveFileTransacted(
+                    if rv := _MoveFileTransacted(
                         src,
                         dst,
                         None,
                         None,
                         _MOVEFILE_REPLACE_EXISTING | _MOVEFILE_WRITE_THROUGH,
                         ta,
-                    )
-                    if rv:
+                    ):
                         rv = _CommitTransaction(ta)
                         break
                     else:
@@ -145,10 +144,23 @@ def to_safe_json(data):
     return _convert(data)
 
 
+if sys.version_info >= (3, 12):
+
+    def datetime_utcnow():
+        """datetime.utcnow() but doesn't emit a deprecation warning.
+
+        Will be fixed by https://github.com/getlogbook/logbook/issues/353
+        """
+        return datetime.now(timezone.utc).replace(tzinfo=None)
+
+else:
+    datetime_utcnow = datetime.utcnow
+
+
 def format_iso8601(d=None):
     """Returns a date in iso8601 format."""
     if d is None:
-        d = datetime.utcnow()
+        d = datetime_utcnow()
     rv = d.strftime("%Y-%m-%dT%H:%M:%S")
     if d.microsecond:
         rv += "." + str(d.microsecond)
