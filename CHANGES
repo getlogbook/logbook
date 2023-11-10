@@ -1,6 +1,13 @@
 Logbook Changelog
 =================
 
+Version 1.7.0.post0
+-------------------
+
+Released on November 11th, 2023
+
+- Ensure setuptools can read version number statically during build
+
 Version 1.7.0
 -------------
 
