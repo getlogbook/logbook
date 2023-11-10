@@ -43,7 +43,7 @@ nteventlog = ["pywin32; platform_system == 'Windows'"]
 docs = ["Sphinx>=5"]
 
 [tool.setuptools.dynamic]
-version = { attr = "logbook.__version__" }
+version = { attr = "logbook.__version__.__version__" }
 
 [tool.setuptools]
 package-dir = { "" = "src" }
