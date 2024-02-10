@@ -39,7 +39,7 @@ jobs:
           ls -lR artifacts/
           mkdir dist
           mv artifacts/sdist/*.tar.gz dist/
-          mv artifacts/wheels/*.whl dist/
+          mv artifacts/wheels-*/*.whl dist/
 
       - name: Publish to pypi.org
         uses: pypa/gh-action-pypi-publish@2f6f737ca5f74c637829c0f5c3acd0e29ea5e8bf # v1.8.11
