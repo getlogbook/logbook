@@ -140,7 +140,10 @@ class RedirectLoggingHandler(logging.Handler):
         """Converts the UNIX timestamp of the old record into a
         datetime object as used by logbook.
         """
-        return datetime.utcfromtimestamp(timestamp)
+        if sys.version_info >= (3, 12):
+            return  datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        else:
+            return datetime.utcfromtimestamp(timestamp)
 
     def convert_record(self, old_record):
         """Converts an old logging record into a logbook log record."""
