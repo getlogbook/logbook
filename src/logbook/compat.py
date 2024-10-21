@@ -12,9 +12,11 @@ import logging
 import sys
 import warnings
 from collections.abc import Mapping
-from datetime import date, datetime, timezone
+from datetime import timezone
 
 import logbook
+
+from .helpers import datetime_utcfromtimestamp
 
 
 def redirect_logging(set_root_logger_level=True):
@@ -140,7 +142,7 @@ class RedirectLoggingHandler(logging.Handler):
         """Converts the UNIX timestamp of the old record into a
         datetime object as used by logbook.
         """
-        return datetime.utcfromtimestamp(timestamp)
+        return datetime_utcfromtimestamp(timestamp)
 
     def convert_record(self, old_record):
         """Converts an old logging record into a logbook log record."""

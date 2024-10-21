@@ -153,8 +153,16 @@ if sys.version_info >= (3, 12):
         """
         return datetime.now(timezone.utc).replace(tzinfo=None)
 
+    def datetime_utcfromtimestamp(timestamp):
+        """datetime.utcfromtimesetamp() but doesn't emit a deprecation warning.
+
+        Will be fixed by https://github.com/getlogbook/logbook/issues/353
+        """
+        return datetime.fromtimestamp(timestamp, timezone.utc).replace(tzinfo=None)
+
 else:
     datetime_utcnow = datetime.utcnow
+    datetime_utcfromtimestamp = datetime.utcfromtimestamp
 
 
 def format_iso8601(d=None):
