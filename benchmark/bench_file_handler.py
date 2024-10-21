@@ -1,4 +1,5 @@
 """Benchmarks the file handler"""
+
 from tempfile import NamedTemporaryFile
 
 from logbook import FileHandler, Logger

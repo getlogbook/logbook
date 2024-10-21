@@ -1,4 +1,5 @@
 """Test with no handler active"""
+
 from logbook import Logger
 
 

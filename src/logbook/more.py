@@ -7,6 +7,7 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
+
 import os
 import platform
 import re
@@ -232,7 +233,6 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
 
 
 class SlackHandler(Handler, StringFormatterHandlerMixin):
-
     """A handler that logs to slack.  Requires that you sign up an
     application on slack and request an api token.  Furthermore the
     slacker library has to be installed.
@@ -520,7 +520,6 @@ class DedupHandler(Handler):
 
 
 class RiemannHandler(Handler):
-
     """
     A handler that sends logs as events to Riemann.
     """

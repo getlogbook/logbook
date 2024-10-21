@@ -1,4 +1,5 @@
 """Tests with a logging handler becoming a noop for comparison"""
+
 from io import StringIO
 from logging import ERROR, StreamHandler, getLogger
 
