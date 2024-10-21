@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, tzinfo
+from datetime import datetime, timedelta, timezone, tzinfo
 
 import pytest
 
@@ -25,7 +25,7 @@ def test_timedate_format(activation_strategy, logger):
 
     # get the expected difference between local and utc time
     t1 = datetime.now()
-    t2 = datetime.utcnow()
+    t2 = datetime.now(timezone.utc).replace(tzinfo=None)
 
     tz_minutes_diff = (t1 - t2).total_seconds() / 60.0
 
