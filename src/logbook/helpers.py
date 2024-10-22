@@ -137,8 +137,6 @@ def to_safe_json(data):
             for key, value in obj.items():
                 if not isinstance(key, str):
                     key = str(key)
-                if not isinstance(key, str):
-                    key = key
                 rv[key] = _convert(value)
             return rv
 
