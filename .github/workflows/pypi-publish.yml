@@ -29,7 +29,7 @@ jobs:
       id-token: write
     steps:
       - name: Download artifacts
-        uses: dawidd6/action-download-artifact@09f2f74827fd3a8607589e5ad7f9398816f540fe # v3.1.4
+        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11 # v6
         with:
           path: artifacts/
           run_id: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
