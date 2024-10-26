@@ -1,4 +1,5 @@
 """Tests with stack frame introspection enabled"""
+
 from logbook import Flags, Logger, NullHandler
 
 log = Logger("Test logger")

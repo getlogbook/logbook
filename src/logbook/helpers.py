@@ -7,6 +7,7 @@
     :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
     :license: BSD, see LICENSE for more details.
 """
+
 import errno
 import os
 import random
@@ -136,8 +137,6 @@ def to_safe_json(data):
             for key, value in obj.items():
                 if not isinstance(key, str):
                     key = str(key)
-                if not isinstance(key, str):
-                    key = key
                 rv[key] = _convert(value)
             return rv
 
@@ -153,8 +152,16 @@ if sys.version_info >= (3, 12):
         """
         return datetime.now(timezone.utc).replace(tzinfo=None)
 
+    def datetime_utcfromtimestamp(timestamp):
+        """datetime.utcfromtimesetamp() but doesn't emit a deprecation warning.
+
+        Will be fixed by https://github.com/getlogbook/logbook/issues/353
+        """
+        return datetime.fromtimestamp(timestamp, timezone.utc).replace(tzinfo=None)
+
 else:
     datetime_utcnow = datetime.utcnow
+    datetime_utcfromtimestamp = datetime.utcfromtimestamp
 
 
 def format_iso8601(d=None):

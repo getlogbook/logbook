@@ -1,4 +1,5 @@
 """Tests basic stack manipulation performance"""
+
 from io import StringIO
 from tempfile import NamedTemporaryFile
 

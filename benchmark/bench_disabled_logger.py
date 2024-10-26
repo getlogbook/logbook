@@ -1,4 +1,5 @@
 """Tests with the whole logger disabled"""
+
 from logbook import Logger
 
 log = Logger("Test logger")

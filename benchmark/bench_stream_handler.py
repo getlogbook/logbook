@@ -1,4 +1,5 @@
 """Tests the stream handler"""
+
 from io import StringIO
 
 from logbook import Logger, StreamHandler

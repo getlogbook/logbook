@@ -1,6 +1,13 @@
 Logbook Changelog
 =================
 
+Version 1.8.0
+-------------
+
+- Python 3.13 support
+- Fixed deprecation warnings on Python 3.12
+- Dropped support for Python 3.8
+
 Version 1.7.0.post0
 -------------------
 

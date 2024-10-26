@@ -1,4 +1,5 @@
 """Benchmarks too low logger levels"""
+
 from io import StringIO
 
 from logbook import ERROR, Logger, StreamHandler
