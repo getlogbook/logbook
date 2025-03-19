@@ -21,8 +21,8 @@ from logbook.concurrency import (
     thread_local,
 )
 
-from cpython.dict cimport PyDict_Clear, PyDict_SetItem
-from cpython.list cimport PyList_Append, PyList_GET_SIZE, PyList_Sort
+from cpython.dict cimport PyDict_Clear, PyDict_SetItem, PyDict_Size
+from cpython.list cimport PyList_Append, PyList_Sort
 from cpython.pythread cimport (
     WAIT_LOCK,
     PyThread_acquire_lock,
@@ -218,7 +218,7 @@ cdef class ContextStackManager:
 
         objects = self._cache.get(tid)
         if objects is None:
-            if PyList_GET_SIZE(self._cache) > _MAX_CONTEXT_OBJECT_CACHE:
+            if PyDict_Size(self._cache) > _MAX_CONTEXT_OBJECT_CACHE:
                 PyDict_Clear(self._cache)
             objects = self._global[:]
             objects.extend(getattr(self._thread_context, 'stack', ()))
