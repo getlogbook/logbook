@@ -1,6 +1,11 @@
 Logbook Changelog
 =================
 
+Version 1.8.1
+-------------
+
+- Fixed crash on Python 3.12+ in speedups extension module.
+
 Version 1.8.0
 -------------
 
