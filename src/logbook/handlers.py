@@ -907,8 +907,8 @@ class RotatingFileHandler(FileHandler):
     def perform_rollover(self):
         self.stream.close()
         for x in range(self.backup_count - 1, 0, -1):
-            src = "%s.%d" % (self._filename, x)
-            dst = "%s.%d" % (self._filename, x + 1)
+            src = f"{self._filename}.{x}"
+            dst = f"{self._filename}.{x + 1}"
             try:
                 rename(src, dst)
             except OSError:
@@ -1432,8 +1432,8 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
         body = "\r\n".join(lineiter)
         if suppressed:
             body += (
-                "\r\n\r\nThis message occurred additional %d "
-                "time(s) and was suppressed" % suppressed
+                f"\r\n\r\nThis message occurred additional {suppressed} "
+                "time(s) and was suppressed"
             )
 
         msg.set_payload(body, "UTF-8")
