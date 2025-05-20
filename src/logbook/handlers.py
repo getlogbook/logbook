@@ -639,7 +639,7 @@ class FileHandler(StreamHandler):
         StreamHandler.__init__(
             self, None, level, format_string, encoding, filter, bubble
         )
-        self._filename = os.path.abspath(os.fspath(filename))
+        self._filename = os.path.abspath(filename)
         self._mode = mode
         if delay:
             self.stream = None
