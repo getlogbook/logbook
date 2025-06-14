@@ -1,6 +1,13 @@
 Logbook Changelog
 =================
 
+Version 1.8.2
+-------------
+
+- TimedRotatingFileHandler was sensitive to changes in the current work
+  directory if ``filename`` was a relative path.
+- Wheels are built for Linux arm64
+
 Version 1.8.1
 -------------
 
