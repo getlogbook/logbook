@@ -27,3 +27,15 @@ repos:
     rev: 24.10.0
     hooks:
       - id: black
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.7.17
+    hooks:
+      - id: uv-lock
+      - id: uv-export
+        args:
+          - --frozen
+          - --no-dev
+          - --group=docs
+          - --no-emit-project
+          - --no-annotate
+          - --output-file=docs/requirements.txt
