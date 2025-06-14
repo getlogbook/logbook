@@ -34,18 +34,19 @@ jobs:
       - uses: "actions/setup-python@v5"
         with:
           python-version: "${{ matrix.python-version }}"
-          cache: pip
           allow-prereleases: true
+      - uses: "astral-sh/setup-uv@v5"
+        with:
+          enable-cache: true
       - name: "Install dependencies"
         run: |
           set -xe
           python -VV
           python -m site
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install --upgrade tox tox-gh-actions
+          uv sync --no-install-project --no-dev --group nox
 
-      - name: "Run tox targets for ${{ matrix.python-version }}"
-        run: "python -m tox -- -r aR"
+      - name: "Run nox targets for ${{ matrix.python-version }}"
+        run: "uv run nox --python ${{ matrix.python-version }} -- -r aR"
 
   windows:
     name: "Windows (${{ matrix.python-version }}, ${{ matrix.arch }})"
@@ -66,16 +67,17 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
           architecture: "${{ matrix.arch }}"
-          cache: pip
           allow-prereleases: true
+      - uses: "astral-sh/setup-uv@v5"
+        with:
+          enable-cache: true
 
       - run: python -VV
       - run: python -m site
-      - run: python -m pip install --upgrade pip setuptools wheel
-      - run: python -m pip install --upgrade tox tox-gh-actions
+      - run: uv sync --no-install-project --no-dev --group nox
 
-      - name: "Run tox targets for ${{ matrix.python-version }} on ${{ matrix.arch }}"
-        run: "python -m tox -- -r aR -k 'not redis'"
+      - name: "Run nox targets for ${{ matrix.python-version }} on ${{ matrix.arch }}"
+        run: "uv run nox --python ${{ matrix.python-version }} -- -r aR -k 'not redis'"
 
   macos:
     name: "macOS (${{ matrix.python-version }})"
@@ -92,18 +94,19 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
           architecture: "${{ matrix.arch }}"
-          cache: pip
           allow-prereleases: true
+      - uses: "astral-sh/setup-uv@v5"
+        with:
+          enable-cache: true
       - name: "Install dependencies"
         run: |
           set -xe
           python -VV
           python -m site
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install --upgrade tox tox-gh-actions
+          uv sync --no-install-project --no-dev --group nox
 
-      - name: "Run tox targets for ${{ matrix.python-version }}"
-        run: "python -m tox -- -r aR -k 'not redis'"
+      - name: "Run nox targets for ${{ matrix.python-version }}"
+        run: "uv run nox --python ${{ matrix.python-version }} -- -r aR"
 
   pre-commit:
     runs-on: ubuntu-latest
