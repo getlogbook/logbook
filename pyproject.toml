@@ -30,17 +30,35 @@ Documentation = "https://logbook.readthedocs.io"
 "Source Code" = "https://github.com/getlogbook/logbook"
 
 [project.optional-dependencies]
-test = ["pytest>=6", "pytest-rerunfailures"]
-dev = ["Logbook[test]", "tox>=4"]
-execnet = ["execnet>=1.0.9"]
+all = ["Logbook[brotli,execnet,jinja,nteventlog,redis,sqlalchemy,zmq]"]
+brotli = ["brotli>=1.0.1"]
+compression = ["Logbook[brotli]"] # Deprecated: use brotli extra directly
+execnet = ["execnet>=1.5"]
+jinja = ["Jinja2>=2.11.3"]
+nteventlog = [
+    "pywin32>=225; sys_platform == 'win32' and python_version=='3.9'",
+    "pywin32>=302; sys_platform == 'win32' and python_version=='3.10'",
+    "pywin32>=303; sys_platform == 'win32' and python_version=='3.11'",
+    "pywin32>=306; sys_platform == 'win32' and python_version=='3.12'",
+    "pywin32>=307; sys_platform == 'win32' and python_version>='3.13'",
+]
+redis = ["redis>=3.5.3"]
 sqlalchemy = ["sqlalchemy>=1.4"]
-redis = ["redis"]
-zmq = ["pyzmq"]
-jinja = ["Jinja2"]
-compression = ["brotli"]
-all = ["Logbook[execnet,sqlalchemy,redis,zmq,jinja,compression,nteventlog]"]
-nteventlog = ["pywin32; platform_system == 'Windows'"]
-docs = ["Sphinx>=5"]
+zmq = ["pyzmq>=26"]
+
+[dependency-groups]
+dev = [
+    { include-group = "nox" },
+    "gevent>=25.5.1",
+    "pytest>=8.4.0",
+    "pytest-rerunfailures>=15.1",
+]
+docs = [
+    "sphinx>=7.4.7",
+]
+nox = [
+    "nox>=2025.5.1",
+]
 
 [tool.setuptools.dynamic]
 version = { attr = "logbook.__version__.__version__" }
@@ -60,3 +78,22 @@ profile = "black"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "universal2", "arm64"]
+
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "setup.py" },
+    { file = "src/logbook/__version__.py" },
+    { file = "src/cython/*.pyx" },
+    { env = "DISABLE_LOGBOOK_CEXT" },
+]
+required-environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "sys_platform == 'linux' and platform_machine == 'aarch64'",
+    "sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'win32' and platform_machine == 'x86'",
+    "sys_platform == 'win32' and platform_machine == 'AMD64'",
+    "sys_platform == 'win32' and platform_machine == 'arm64'",
+]
+required-version = ">=0.7.14" # https://github.com/astral-sh/uv/pull/14041
