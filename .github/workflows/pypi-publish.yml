@@ -17,6 +17,9 @@ on:
     workflows: ["Wheel Builder"]
     types: [completed]
 
+permissions:
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -27,29 +30,34 @@ jobs:
     environment: publish
     permissions:
       id-token: write
+      attestations: "write"
     steps:
-      - name: Download artifacts
-        uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
-        with:
-          path: artifacts/
-          run_id: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
+      - run: echo "$EVENT_CONTEXT"
+        env:
+          EVENT_CONTEXT: ${{ toJson(github.event) }}
 
-      - name: Move artifacts to dist/
-        run: |
-          ls -lR artifacts/
-          mkdir dist
-          mv artifacts/sdist/*.tar.gz dist/
-          mv artifacts/wheels-*/*.whl dist/
-
-      - name: Publish to pypi.org
-        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
+      - run: |
+          echo "PYPI_URL=https://upload.pypi.org/legacy/" >> $GITHUB_ENV
         if: github.event_name == 'workflow_run' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi')
-        with:
-          packages-dir: dist/
-
-      - name: Publish to test.pypi.org
-        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
+      - run: |
+          echo "PYPI_URL=https://test.pypi.org/legacy/" >> $GITHUB_ENV
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi'
+
+      - uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
         with:
-          repository-url: https://test.pypi.org/legacy/
-          packages-dir: dist/
+          path: tmpdist/
+          run_id: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
+      - run: mkdir dist/
+      - run: |
+          find tmpdist/ -type f -name 'logbook*' -exec mv -v {} dist/ \;
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
+        with:
+          repository-url: ${{ env.PYPI_URL }}
+          skip-existing: true
+          # Do not perform attestation for things for TestPyPI. This is
+          # because there's nothing that would prevent a malicious PyPI from
+          # serving a signed TestPyPI asset in place of a release intended for
+          # PyPI.
+          attestations: ${{ env.PYPI_URL == 'https://upload.pypi.org/legacy/' }}
