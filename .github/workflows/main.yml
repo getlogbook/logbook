@@ -1,6 +1,9 @@
 ---
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: ["develop", "master"]
