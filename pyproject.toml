@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 requires-python = ">=3.9"
 dynamic = ["version"]
@@ -40,7 +41,8 @@ nteventlog = [
     "pywin32>=302; sys_platform == 'win32' and python_version=='3.10'",
     "pywin32>=303; sys_platform == 'win32' and python_version=='3.11'",
     "pywin32>=306; sys_platform == 'win32' and python_version=='3.12'",
-    "pywin32>=307; sys_platform == 'win32' and python_version>='3.13'",
+    "pywin32>=307; sys_platform == 'win32' and python_version=='3.13'",
+    "pywin32>=311; sys_platform == 'win32' and python_version>='3.14'",
 ]
 redis = ["redis>=3.5.3"]
 sqlalchemy = ["sqlalchemy>=1.4"]

@@ -41,7 +41,7 @@ def docs(session: nox.Session) -> None:
     )
 
 
-@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13"])
+@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"])
 @nox.parametrize("speedups", [False, True], ids=["nospeedups", "speedups"])
 def tests(session: nox.Session, speedups: bool) -> None:
     session.run_install(
@@ -59,7 +59,9 @@ def tests(session: nox.Session, speedups: bool) -> None:
     session.run("pytest", *session.posargs)
 
 
-@nox.session(name="test-min-deps", python=["3.9", "3.10", "3.11", "3.12", "3.13"])
+@nox.session(
+    name="test-min-deps", python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+)
 def test_min_deps(session: nox.Session) -> None:
     with restore_file("uv.lock"):
         session.run_install(
@@ -75,7 +77,7 @@ def test_min_deps(session: nox.Session) -> None:
         session.run("pytest", *session.posargs)
 
 
-@nox.session(name="test-latest", python=["3.9", "3.10", "3.11", "3.12", "3.13"])
+@nox.session(name="test-latest", python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"])
 def test_latest(session: nox.Session) -> None:
     session.run_install(
         "uv",
