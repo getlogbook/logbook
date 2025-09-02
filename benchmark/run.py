@@ -3,6 +3,7 @@
 Runs the benchmarks
 """
 
+import importlib.metadata
 import importlib.util
 import os
 import re
@@ -10,10 +11,8 @@ import sys
 from subprocess import Popen
 
 try:
-    from pkg_resources import get_distribution
-
-    version = get_distribution("Logbook").version
-except Exception:
+    version = importlib.metadata.version("logbook")
+except ModuleNotFoundError:
     version = "unknown version"
 
 
