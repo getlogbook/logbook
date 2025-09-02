@@ -78,6 +78,9 @@ testpaths = ["tests"]
 [tool.isort]
 profile = "black"
 
+[tool.cibuildwheel]
+skip = "cp3??t-*"
+
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "universal2", "arm64"]
 
