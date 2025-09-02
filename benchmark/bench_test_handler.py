@@ -6,6 +6,6 @@ log = Logger("Test logger")
 
 
 def run():
-    with TestHandler() as handler:
+    with TestHandler():
         for _ in range(500):
             log.warning("this is not handled")
