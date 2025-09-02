@@ -34,7 +34,7 @@ light_colors = [
 ]
 
 x = 30
-for d, l in zip(dark_colors, light_colors):
+for d, l in zip(dark_colors, light_colors):  # noqa: E741
     codes[d] = esc + "%im" % x  # noqa: UP031
     codes[l] = esc + "%i;01m" % x  # noqa: UP031
     x += 1

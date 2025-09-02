@@ -1,6 +1,7 @@
 import functools
 import warnings
 from io import StringIO
+from itertools import count
 from random import randrange
 
 import pytest
@@ -68,8 +69,6 @@ def test_redirect_logbook():
     finally:
         logger.handlers[:] = old_handlers
 
-
-from itertools import count
 
 test_warning_redirections_i = count()
 

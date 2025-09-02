@@ -1155,4 +1155,4 @@ def dispatch_record(record):
 
 
 # at that point we are safe to import handler
-from logbook.handlers import Handler  # isort:skip
+from logbook.handlers import Handler  # isort:skip  # noqa: E402

@@ -35,7 +35,7 @@ def test_exception_catching_with_unicode():
     """See https://github.com/getlogbook/logbook/issues/104"""
     try:
         raise Exception("\u202a test \u202c")
-    except:
+    except Exception:
         r = logbook.LogRecord("channel", "DEBUG", "test", exc_info=sys.exc_info())
     r.exception_message  # noqa: B018
 
