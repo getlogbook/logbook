@@ -611,16 +611,9 @@ class LogRecord:
             e = sys.exc_info()[1]
             errormsg = (
                 "Could not format message with provided "
-                "arguments: {err}\n  msg={msg!r}\n  "
-                "args={args!r} \n  kwargs={kwargs!r}.\n"
-                "Happened in file {file}, line {lineno}"
-            ).format(
-                err=e,
-                msg=self.msg,
-                args=self.args,
-                kwargs=self.kwargs,
-                file=self.filename,
-                lineno=self.lineno,
+                f"arguments: {e}\n  msg={self.msg!r}\n  "
+                f"args={self.args!r} \n  kwargs={self.kwargs!r}.\n"
+                f"Happened in file {self.filename}, line {self.lineno}"
             )
             raise TypeError(errormsg)
 

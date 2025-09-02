@@ -125,13 +125,13 @@ def test_external_application_handler(tmpdir, logger):
         [
             sys.executable,
             "-c",
-            r"""if 1:
-    f = open({tempfile}, 'w')
+            rf"""if 1:
+    f = open({str(fn)!r}, 'w')
     try:
         f.write('{{record.message}}\n')
     finally:
         f.close()
-    """.format(tempfile=repr(str(fn))),
+    """,
         ]
     )
     with handler:

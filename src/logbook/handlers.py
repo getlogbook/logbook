@@ -319,9 +319,7 @@ class Handler(ContextObject, metaclass=_HandlerType):
             elif behaviour == "print":
                 traceback.print_exception(*(exc_info + (None, sys.stderr)))
                 sys.stderr.write(
-                    "Logged from file {}, line {}\n".format(
-                        record.filename, record.lineno
-                    )
+                    f"Logged from file {record.filename}, line {record.lineno}\n"
                 )
         except OSError:
             pass

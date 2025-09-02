@@ -48,11 +48,7 @@ def run_bench(name, use_gevent=False):
 
 def bench_wrapper(use_gevent=False):
     print("=" * 80)
-    print(
-        "Running benchmark with Logbook {} (gevent enabled={})".format(
-            version, use_gevent
-        )
-    )
+    print(f"Running benchmark with Logbook {version} (gevent enabled={use_gevent})")
     print("-" * 80)
     os.chdir(bench_directory)
     for bench in list_benchmarks():
