@@ -14,19 +14,6 @@ repos:
     hooks:
       - id: prettier
         exclude: docs/sheet/.*\.html$
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.18.0
-    hooks:
-      - id: pyupgrade
-        args: [--py39-plus]
-  - repo: https://github.com/timothycrosley/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
-    hooks:
-      - id: black
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.8.14
     hooks:
@@ -39,3 +26,9 @@ repos:
           - --no-emit-project
           - --no-annotate
           - --output-file=docs/requirements.txt
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.11 # also update pyproject.toml
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
