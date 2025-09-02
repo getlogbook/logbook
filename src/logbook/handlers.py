@@ -453,7 +453,7 @@ class HashingHandlerMixin:
     def hash_record_raw(self, record):
         """Returns a hashlib object with the hash of the record."""
         hash = sha1()
-        hash.update(("%d\x00" % record.level).encode("ascii"))
+        hash.update(("%d\x00" % record.level).encode("ascii"))  # noqa: UP031
         hash.update((record.channel or "").encode("utf-8") + b"\x00")
         hash.update(record.filename.encode("utf-8") + b"\x00")
         hash.update(str(record.lineno).encode("utf-8"))

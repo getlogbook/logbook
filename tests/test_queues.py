@@ -384,7 +384,7 @@ def handlers_subscriber(multi):
     tempsock.close()
 
     # Retrieve the ZeroMQ handler and subscriber
-    uri = "tcp://%s:%d" % (host, unused_port)
+    uri = "tcp://%s:%d" % (host, unused_port)  # noqa: UP031
     if multi:
         handlers = [ZeroMQHandler(uri, multi=True) for _ in range(3)]
     else:

@@ -107,14 +107,14 @@ def set_datetime_format(datetime_format):
         inst = datetime_format()
         if not isinstance(inst, datetime):
             raise ValueError(
-                "Invalid callable value, valid callable "
+                "Invalid callable value, valid callable "  # noqa: UP031
                 "should return datetime.datetime instances, "
                 "not %r" % (type(inst),)
             )
         _datetime_factory = datetime_format
     else:
         raise ValueError(
-            "Invalid value %r.  Valid values are 'utc' and "
+            "Invalid value %r.  Valid values are 'utc' and "  # noqa: UP031
             "'local'." % (datetime_format,)
         )
 
@@ -167,7 +167,7 @@ def lookup_level(level):
     try:
         return _reverse_level_names[level]
     except KeyError:
-        raise LookupError("unknown level name %s" % level)
+        raise LookupError("unknown level name %s" % level)  # noqa: UP031
 
 
 def get_level_name(level):

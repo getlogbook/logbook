@@ -26,7 +26,7 @@ def test_basic_compat(request, set_root_logger_level):
     request.addfinalizer(functools.partial(logging.root.setLevel, logging.root.level))
     logging.root.setLevel(logging.WARNING)
 
-    name = "test_logbook-%d" % randrange(1 << 32)
+    name = "test_logbook-%d" % randrange(1 << 32)  # noqa: UP031
     logger = logging.getLogger(name)
 
     with logbook.TestHandler(bubble=True) as handler:
@@ -41,9 +41,9 @@ def test_basic_compat(request, set_root_logger_level):
                     "This is a %(what)s %(where)s", {"what": "mapping", "where": "test"}
                 )
         assert (
-            "WARNING: %s: This is from the old system" % name
+            "WARNING: %s: This is from the old system" % name  # noqa: UP031
         ) in captured.getvalue()
-        assert ("ERROR: %s: This is a mapping test" % name) in captured.getvalue()
+        assert ("ERROR: %s: This is a mapping test" % name) in captured.getvalue()  # noqa: UP031
     if set_root_logger_level:
         assert handler.records[0].level == logbook.DEBUG
     else:

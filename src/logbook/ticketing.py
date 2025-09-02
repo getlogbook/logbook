@@ -217,7 +217,7 @@ class SQLAlchemyBackend(BackendBase):
                         record_hash=hash,
                         level=record.level,
                         channel=record.channel or "",
-                        location="%s:%d" % (record.filename, record.lineno),
+                        location="%s:%d" % (record.filename, record.lineno),  # noqa: UP031
                         module=record.module or "<unknown>",
                         occurrence_count=0,
                         solved=False,
@@ -400,7 +400,7 @@ class MongoDBBackend(BackendBase):
                 "record_hash": hash,
                 "level": record.level,
                 "channel": record.channel or "",
-                "location": "%s:%d" % (record.filename, record.lineno),
+                "location": "%s:%d" % (record.filename, record.lineno),  # noqa: UP031
                 "module": record.module or "<unknown>",
                 "occurrence_count": 0,
                 "solved": False,

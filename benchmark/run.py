@@ -31,14 +31,14 @@ def list_benchmarks():
 
 
 def run_bench(name, use_gevent=False):
-    sys.stdout.write("%-32s" % name)
+    sys.stdout.write("%-32s" % name)  # noqa: UP031
     sys.stdout.flush()
     Popen(
         [
             sys.executable,
             "-mtimeit",
             "-s",
-            "from bench_%s import run" % name,
+            "from bench_%s import run" % name,  # noqa: UP031
             "from logbook.concurrency import enable_gevent",
             "enable_gevent()" if use_gevent else "",
             "run()",
