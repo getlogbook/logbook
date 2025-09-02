@@ -317,7 +317,7 @@ class Handler(ContextObject, metaclass=_HandlerType):
             if behaviour == "raise":
                 raise exc_info[1]
             elif behaviour == "print":
-                traceback.print_exception(*(exc_info + (None, sys.stderr)))
+                traceback.print_exception(*exc_info, file=sys.stderr)
                 sys.stderr.write(
                     f"Logged from file {record.filename}, line {record.lineno}\n"
                 )
@@ -1560,7 +1560,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
         if not records:
             return
 
-        trigger = records.pop(reason == "escalation" and -1 or 0)
+        trigger = records.pop(-1 if reason == "escalation" else 0)
         suppressed = 0
         if self.record_limit is not None:
             suppressed, allow_delivery = self.check_delivery(trigger)

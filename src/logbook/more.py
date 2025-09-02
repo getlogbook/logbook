@@ -167,7 +167,7 @@ class TaggingHandler(Handler):
         Handler.__init__(self, NOTSET, filter, bubble)
         assert isinstance(handlers, dict)
         self._handlers = {
-            tag: isinstance(handler, Handler) and [handler] or handler
+            tag: [handler] if isinstance(handler, Handler) else handler
             for (tag, handler) in handlers.items()
         }
 
