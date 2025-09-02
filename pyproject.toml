@@ -46,7 +46,7 @@ nteventlog = [
 ]
 redis = ["redis>=3.5.3"]
 sqlalchemy = ["sqlalchemy>=1.4"]
-zmq = ["pyzmq>=26"]
+zmq = ["pyzmq>=27"]
 
 [dependency-groups]
 dev = [
