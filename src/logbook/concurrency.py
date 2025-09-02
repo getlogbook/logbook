@@ -134,7 +134,7 @@ if has_gevent:
             return self._owner == (thread_get_ident(), greenlet_get_ident())
 
 else:
-    from threading import Lock as ThreadLock
+    from threading import Lock as ThreadLock  # noqa: F401
     from threading import RLock as ThreadRLock
     from threading import get_ident as thread_get_ident
     from threading import local as thread_local

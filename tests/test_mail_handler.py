@@ -1,7 +1,7 @@
 import base64
 import re
 import ssl
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, patch
 
 import logbook
 

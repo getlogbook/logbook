@@ -1,5 +1,4 @@
 import functools
-import re
 import warnings
 from io import StringIO
 from random import randrange

@@ -20,7 +20,7 @@ import sys
 import traceback
 import warnings
 from collections import deque
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from hashlib import sha1
 from textwrap import dedent
