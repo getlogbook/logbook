@@ -313,7 +313,7 @@ def test_redis_handler_lpush():
 
     null_handler = logbook.NullHandler()
 
-    KEY = f"lpushed-"
+    KEY = "lpushed-"
     redis_handler = RedisHandler(
         key=KEY, push_method="lpush", level=logbook.INFO, bubble=True
     )
