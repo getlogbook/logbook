@@ -36,7 +36,7 @@ def test_formatting_exception():
 
     record = make_record()
     with pytest.raises(TypeError) as caught:
-        record.message
+        record.message  # noqa: B018
 
     errormsg = str(caught.value)
     assert re.search(

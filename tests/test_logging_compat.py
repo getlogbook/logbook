@@ -80,7 +80,7 @@ def test_warning_redirections():
 
     with logbook.TestHandler() as handler:
         with redirected_warnings():
-            warnings.warn(
+            warnings.warn(  # noqa: B028
                 RuntimeWarning(f"Testing {next(test_warning_redirections_i)}")
             )
 

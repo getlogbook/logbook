@@ -66,7 +66,7 @@ def test_nested_setups(activation_strategy):
             logger.warn("This is a warning")
             logger.error("This is also a mail")
             try:
-                1 / 0
+                1 / 0  # noqa: B018
             except Exception:
                 logger.exception()
         logger.warn("And here we go straight back to stderr")

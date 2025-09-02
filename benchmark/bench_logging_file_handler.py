@@ -10,5 +10,5 @@ def run():
     f = NamedTemporaryFile()
     handler = FileHandler(f.name)
     log.addHandler(handler)
-    for x in range(500):
+    for _ in range(500):
         log.warning("this is handled")

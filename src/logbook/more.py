@@ -418,10 +418,9 @@ class FingersCrossedHandler(FingersCrossedHandlerBase):
         from warnings import warn
 
         warn(
-            PendingDeprecationWarning(
-                "fingers crossed handler changed "
-                "location.  It's now a core component of Logbook."
-            )
+            "fingers crossed handler changed location. It's now a core component of Logbook.",
+            category=DeprecationWarning,
+            stacklevel=2,
         )
 
 
@@ -474,7 +473,7 @@ class DedupHandler(Handler):
     def __init__(
         self, format_string="message repeated {count} times: {message}", *args, **kwargs
     ):
-        Handler.__init__(self, bubble=False, *args, **kwargs)
+        Handler.__init__(self, *args, bubble=False, **kwargs)
         self._format_string = format_string
         self.clear()
 

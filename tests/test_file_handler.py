@@ -84,7 +84,7 @@ def test_rotating_file_handler(logfile, activation_strategy, logger):
     )
     handler.format_string = "{record.message}"
     with activation_strategy(handler):
-        for c, x in zip(LETTERS, range(32)):
+        for c, _ in zip(LETTERS, range(32)):
             logger.warn(c * 256)
     files = [x for x in os.listdir(os.path.dirname(logfile)) if x.startswith(basename)]
     files.sort()

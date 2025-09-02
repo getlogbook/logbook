@@ -19,13 +19,13 @@ def test_mail_handler(activation_strategy, logger):
         with activation_strategy(handler):
             logger.warn("This is not mailed")
             try:
-                1 / 0
+                1 / 0  # noqa: B018
             except Exception:
                 logger.exception("Viva la Espa\xf1a")
 
         if not handler.mails:
             # if sending the mail failed, the reason should be on stderr
-            assert False, fallback.getvalue()
+            assert False, fallback.getvalue()  # noqa: B011
 
         assert len(handler.mails) == 1
         sender, receivers, mail = handler.mails[0]

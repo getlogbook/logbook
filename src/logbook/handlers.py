@@ -1052,7 +1052,7 @@ class TimedRotatingFileHandler(FileHandler):
             os.rename(self._filename, filename)
 
         if self.backup_count > 0:
-            for time, filename in self.files_to_delete():
+            for _, filename in self.files_to_delete():
                 os.remove(filename)
 
         if self.timed_filename_for_current:
