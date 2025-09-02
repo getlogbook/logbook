@@ -3,6 +3,7 @@
 Runs the benchmarks
 """
 
+import importlib.util
 import os
 import re
 import sys
@@ -58,12 +59,8 @@ def bench_wrapper(use_gevent=False):
 
 def main():
     bench_wrapper(False)
-    try:
-        import gevent
-
+    if importlib.util.find_spec("gevent") is not None:
         bench_wrapper(True)
-    except ImportError:
-        pass
 
 
 if __name__ == "__main__":
