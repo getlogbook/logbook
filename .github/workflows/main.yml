@@ -44,7 +44,7 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
           allow-prereleases: true
-      - uses: "astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc" # v6.4.3
+      - uses: "astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6" # v6.6.1
         with:
           enable-cache: true
       - name: "Install dependencies"
@@ -79,7 +79,7 @@ jobs:
           python-version: "${{ matrix.python-version }}"
           architecture: "${{ matrix.arch }}"
           allow-prereleases: true
-      - uses: "astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc" # v6.4.3
+      - uses: "astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6" # v6.6.1
         with:
           enable-cache: true
 
@@ -108,7 +108,7 @@ jobs:
           python-version: "${{ matrix.python-version }}"
           architecture: "${{ matrix.arch }}"
           allow-prereleases: true
-      - uses: "astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc" # v6.4.3
+      - uses: "astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6" # v6.6.1
         with:
           enable-cache: true
       - name: "Install dependencies"
