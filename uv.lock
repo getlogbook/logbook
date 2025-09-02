@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.9"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -641,7 +641,7 @@ requires-dist = [
     { name = "pywin32", marker = "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'nteventlog'", specifier = ">=306" },
     { name = "pywin32", marker = "python_full_version == '3.13.*' and sys_platform == 'win32' and extra == 'nteventlog'", specifier = ">=307" },
     { name = "pywin32", marker = "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'nteventlog'", specifier = ">=311" },
-    { name = "pyzmq", marker = "extra == 'zmq'", specifier = ">=26" },
+    { name = "pyzmq", marker = "extra == 'zmq'", specifier = ">=27" },
     { name = "redis", marker = "extra == 'redis'", specifier = ">=3.5.3" },
     { name = "sqlalchemy", marker = "extra == 'sqlalchemy'", specifier = ">=1.4" },
 ]

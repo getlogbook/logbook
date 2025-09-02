@@ -46,7 +46,7 @@ nteventlog = [
 ]
 redis = ["redis>=3.5.3"]
 sqlalchemy = ["sqlalchemy>=1.4"]
-zmq = ["pyzmq>=26"]
+zmq = ["pyzmq>=27"]
 
 [dependency-groups]
 dev = [
@@ -77,6 +77,9 @@ testpaths = ["tests"]
 
 [tool.isort]
 profile = "black"
+
+[tool.cibuildwheel]
+skip = "cp3??t-*"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "universal2", "arm64"]
