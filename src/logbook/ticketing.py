@@ -1,12 +1,12 @@
 """
-    logbook.ticketing
-    ~~~~~~~~~~~~~~~~~
+logbook.ticketing
+~~~~~~~~~~~~~~~~~
 
-    Implements long handlers that write to remote data stores and assign
-    each logging message a ticket id.
+Implements long handlers that write to remote data stores and assign
+each logging message a ticket id.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import json

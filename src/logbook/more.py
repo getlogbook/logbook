@@ -1,11 +1,11 @@
 """
-    logbook.more
-    ~~~~~~~~~~~~
+logbook.more
+~~~~~~~~~~~~
 
-    Fancy stuff for logbook.
+Fancy stuff for logbook.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import os

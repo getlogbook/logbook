@@ -1,11 +1,11 @@
 """
-    logbook.base
-    ~~~~~~~~~~~~
+logbook.base
+~~~~~~~~~~~~
 
-    Base implementation for logbook.
+Base implementation for logbook.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import os

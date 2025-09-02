@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """
-    Runs the benchmarks
+Runs the benchmarks
 """
+
 import os
 import re
 import sys

@@ -1,12 +1,12 @@
 """
-    logbook
-    ~~~~~~~
+logbook
+~~~~~~~
 
-    Simple logging library that aims to support desktop, command line
-    and web applications alike.
+Simple logging library that aims to support desktop, command line
+and web applications alike.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import os

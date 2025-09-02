@@ -1,11 +1,11 @@
 """
-    logbook._fallback
-    ~~~~~~~~~~~~~~~~~
+logbook._fallback
+~~~~~~~~~~~~~~~~~
 
-    Fallback implementations in case speedups is not around.
+Fallback implementations in case speedups is not around.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 from itertools import count

@@ -131,9 +131,7 @@ def test_external_application_handler(tmpdir, logger):
         f.write('{{record.message}}\n')
     finally:
         f.close()
-    """.format(
-                tempfile=repr(str(fn))
-            ),
+    """.format(tempfile=repr(str(fn))),
         ]
     )
     with handler:

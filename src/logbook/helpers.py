@@ -1,11 +1,11 @@
 """
-    logbook.helpers
-    ~~~~~~~~~~~~~~~
+logbook.helpers
+~~~~~~~~~~~~~~~
 
-    Various helper functions
+Various helper functions
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import errno

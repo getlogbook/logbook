@@ -1,11 +1,11 @@
 """
-    logbook._termcolors
-    ~~~~~~~~~~~~~~~~~~~
+logbook._termcolors
+~~~~~~~~~~~~~~~~~~~
 
-    Provides terminal color mappings.
+Provides terminal color mappings.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 esc = "\x1b["

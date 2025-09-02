@@ -1,11 +1,11 @@
 """
-    logbook.handlers
-    ~~~~~~~~~~~~~~~~
+logbook.handlers
+~~~~~~~~~~~~~~~~
 
-    The handler interface and builtin handlers.
+The handler interface and builtin handlers.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import errno
@@ -1372,8 +1372,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
             raise TypeError(f"Unexpected type for `secure`: {type(secure)}")
 
         warnings.warn(
-            "Passing keyfile and certfile are deprecated, use an "
-            "SSLContext instead.",
+            "Passing keyfile and certfile are deprecated, use an SSLContext instead.",
             DeprecationWarning,
             stacklevel=3,
         )

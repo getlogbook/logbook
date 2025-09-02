@@ -12,8 +12,7 @@ def test_custom_logger(activation_strategy, logger):
 
     custom_log = CustomLogger("awesome logger")
     fmt = (
-        "[{record.level_name}] {record.channel}: "
-        "{record.message} [{record.extra[ip]}]"
+        "[{record.level_name}] {record.channel}: {record.message} [{record.extra[ip]}]"
     )
     handler = logbook.TestHandler(format_string=fmt)
     assert handler.format_string == fmt

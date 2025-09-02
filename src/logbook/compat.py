@@ -1,12 +1,12 @@
 """
-    logbook.compat
-    ~~~~~~~~~~~~~~
+logbook.compat
+~~~~~~~~~~~~~~
 
-    Backwards compatibility with stdlib's logging package and the
-    warnings module.
+Backwards compatibility with stdlib's logging package and the
+warnings module.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import logging
