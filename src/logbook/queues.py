@@ -768,4 +768,4 @@ class SubscriberGroup(SubscriberBase):
         internal queue is exhausted :meth:`recv` will always return `None`.
         """
         for member in self.members:
-            self.member.stop()
+            member.stop()
