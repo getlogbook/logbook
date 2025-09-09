@@ -59,20 +59,10 @@ class ContextEnteringStrategy(ActivationStrategy):
 
 class PushingStrategy(ActivationStrategy):
     def activate(self):
-        from logbook.concurrency import is_gevent_enabled
-
-        if is_gevent_enabled():
-            self.handler.push_greenlet()
-        else:
-            self.handler.push_thread()
+        self.handler.push_context()
 
     def deactivate(self):
-        from logbook.concurrency import is_gevent_enabled
-
-        if is_gevent_enabled():
-            self.handler.pop_greenlet()
-        else:
-            self.handler.pop_thread()
+        self.handler.pop_context()
 
 
 @pytest.fixture(params=[ContextEnteringStrategy, PushingStrategy])

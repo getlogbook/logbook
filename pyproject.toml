@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "Cython; python_implementation == 'CPython'"]
+requires = ["setuptools", "setuptools-rust>=1.11.1; python_implementation == 'CPython'"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -25,6 +25,9 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dynamic = ["version"]
+dependencies = [
+    "typing-extensions>=4.14.0",
+]
 
 [project.urls]
 Documentation = "https://logbook.readthedocs.io"
@@ -88,6 +91,9 @@ ignore = [
     "RUF012", # maybe once we have more type annotations
 ]
 
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["logbook._fallback.FrozenSequence"]
+
 [tool.cibuildwheel]
 skip = "cp3??t-*"
 
@@ -99,8 +105,12 @@ cache-keys = [
     { file = "pyproject.toml" },
     { file = "setup.py" },
     { file = "src/logbook/__version__.py" },
-    { file = "src/cython/*.pyx" },
+    { file = "src/rust/**/*.rs" },
+    { file = "src/rust/Cargo.toml" },
+    { file = "Cargo.toml" },
+    { file = "Cargo.lock" },
     { env = "DISABLE_LOGBOOK_CEXT" },
+    { env = "SETUPTOOLS_RUST_CARGO_PROFILE" },
 ]
 required-environments = [
     "sys_platform == 'linux' and platform_machine == 'x86_64'",

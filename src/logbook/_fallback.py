@@ -8,61 +8,65 @@ Fallback implementations in case speedups is not around.
 :license: BSD, see LICENSE for more details.
 """
 
-from itertools import count
+from __future__ import annotations
 
-from logbook.concurrency import (
-    ContextVar,
-    GreenletRLock,
-    ThreadLock,
-    context_get_ident,
-    greenlet_get_ident,
-    greenlet_local,
-    is_context_enabled,
-    is_gevent_enabled,
-    thread_get_ident,
-    thread_local,
-)
+from collections.abc import Callable, Iterable, Iterator, Sequence
+from contextvars import ContextVar
+from itertools import chain, count
+from typing import Any, Generic, SupportsIndex, TypeVar, overload
+from weakref import WeakKeyDictionary
+
+from typing_extensions import TypeAliasType
+
 from logbook.helpers import get_iterator_next_method
 
 _missing = object()
 _MAX_CONTEXT_OBJECT_CACHE = 256
 
+T_co = TypeVar("T_co", covariant=True)
+T = TypeVar("T")
 
-def group_reflected_property(name, default, fallback=_missing):
-    """Returns a property for a given name that falls back to the
-    value of the group if set.  If there is no such group, the
-    provided default is used.
-    """
 
-    def _get(self):
-        rv = getattr(self, "_" + name, _missing)
-        if rv is not _missing and rv != fallback:
+class group_reflected_property:
+    def __init__(self, default, *, fallback=_missing):
+        self.default = default
+        self.fallback = fallback
+        self.prop_name = None
+        self.attr_name = None
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        self.prop_name = name
+        self.attr_name = f"_{name}"
+
+    def __get__(self, instance: Any, owner: type) -> Any:
+        if instance is None:
+            return self
+        if self.attr_name is None:
+            raise TypeError("property is not bound to a class")
+        rv = getattr(instance, self.attr_name, _missing)
+        if rv is not _missing and rv != self.fallback:
             return rv
-        if self.group is None:
-            return default
-        return getattr(self.group, name)
+        if instance.group is None:
+            return self.default
+        return getattr(instance.group, self.prop_name)
 
-    def _set(self, value):
-        setattr(self, "_" + name, value)
+    def __set__(self, instance: Any, value: Any) -> None:
+        setattr(instance, self.attr_name, value)
 
-    def _del(self):
-        delattr(self, "_" + name)
-
-    return property(_get, _set, _del)
+    def __delete__(self, instance: Any) -> None:
+        delattr(instance, self.attr_name)
 
 
-class _StackBound:
-    def __init__(self, obj, push, pop):
+class ApplicationBound:
+    def __init__(self, obj):
         self.__obj = obj
-        self.__push = push
-        self.__pop = pop
 
     def __enter__(self):
-        self.__push()
+        self.__obj.push_application()
         return self.__obj
 
     def __exit__(self, exc_type, exc_value, tb):
-        self.__pop()
+        self.__obj.pop_application()
 
 
 class StackedObject:
@@ -70,28 +74,12 @@ class StackedObject:
     operations.
     """
 
-    def push_greenlet(self):
-        """Pushes the stacked object to the greenlet stack."""
-        raise NotImplementedError()
-
-    def pop_greenlet(self):
-        """Pops the stacked object from the greenlet stack."""
-        raise NotImplementedError()
-
     def push_context(self):
         """Pushes the stacked object to the context stack."""
         raise NotImplementedError()
 
     def pop_context(self):
         """Pops the stacked object from the context stack."""
-        raise NotImplementedError()
-
-    def push_thread(self):
-        """Pushes the stacked object to the thread stack."""
-        raise NotImplementedError()
-
-    def pop_thread(self):
-        """Pops the stacked object from the thread stack."""
         raise NotImplementedError()
 
     def push_application(self):
@@ -103,161 +91,121 @@ class StackedObject:
         raise NotImplementedError()
 
     def __enter__(self):
-        if is_gevent_enabled():
-            self.push_greenlet()
-        else:
-            self.push_thread()
+        self.push_context()
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
-        if is_gevent_enabled():
-            self.pop_greenlet()
-        else:
-            self.pop_thread()
+        self.pop_context()
 
-    def greenletbound(self, _cls=_StackBound):
-        """Can be used in combination with the `with` statement to
-        execute code while the object is bound to the greenlet.
-        """
-        return _cls(self, self.push_greenlet, self.pop_greenlet)
-
-    def contextbound(self, _cls=_StackBound):
-        """Can be used in combination with the `with` statement to
-        execute code while the object is bound to the concurrent
-        context.
-        """
-        return _cls(self, self.push_context, self.pop_context)
-
-    def threadbound(self, _cls=_StackBound):
-        """Can be used in combination with the `with` statement to
-        execute code while the object is bound to the thread.
-        """
-        return _cls(self, self.push_thread, self.pop_thread)
-
-    def applicationbound(self, _cls=_StackBound):
+    def applicationbound(self):
         """Can be used in combination with the `with` statement to
         execute code while the object is bound to the application.
         """
-        return _cls(self, self.push_application, self.pop_application)
+        return ApplicationBound(self)
 
 
-class ContextStackManager:
+class FrozenSequence(Sequence[T_co]):
+    __slots__ = ("__weakref__", "_hash", "_items")
+
+    def __init__(self, iterable: Iterable[T_co] = ()) -> None:
+        self._items = tuple(iterable)
+        self._hash: int | None = None
+
+    @overload
+    def __getitem__(self, index: SupportsIndex) -> T_co: ...
+
+    @overload
+    def __getitem__(self, index: slice) -> FrozenSequence[T_co]: ...
+
+    def __getitem__(self, index: SupportsIndex | slice) -> T_co | FrozenSequence[T_co]:
+        if isinstance(index, slice):
+            return FrozenSequence(self._items[index])
+        return self._items[index]
+
+    def __len__(self) -> int:
+        return len(self._items)
+
+    def __iter__(self) -> Iterator[T_co]:
+        return iter(self._items)
+
+    def __reversed__(self) -> Iterator[T_co]:
+        return reversed(self._items)
+
+    def __contains__(self, item: object) -> bool:
+        return item in self._items
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, FrozenSequence):
+            return self._items == other._items
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        if self._hash is None:
+            self._hash = hash(self._items)
+        return self._hash
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self._items!r})"
+
+
+FrozenStack = TypeAliasType(
+    "FrozenStack", FrozenSequence[tuple[int, T]], type_params=(T,)
+)
+
+
+class ContextStackManager(Generic[T]):
     """Helper class for context objects that manages a stack of
     objects.
     """
 
-    def __init__(self):
-        self._global = []
-        self._thread_context_lock = ThreadLock()
-        self._thread_context = thread_local()
-        self._greenlet_context_lock = GreenletRLock()
-        self._greenlet_context = greenlet_local()
-        self._context_stack = ContextVar("stack")
-        self._cache = {}
-        self._stackop = get_iterator_next_method(count())
+    def __init__(self) -> None:
+        self._global: list[T] = []
+        self._context_stack: ContextVar[FrozenStack[T]] = ContextVar(
+            "stack", default=FrozenSequence()
+        )
+        self._cache: WeakKeyDictionary[FrozenStack[T], list[T]] = WeakKeyDictionary()
+        self._stackop: Callable[[], int] = get_iterator_next_method(count())
 
-    def iter_context_objects(self):
+    def iter_context_objects(self) -> Iterator[T]:
         """Returns an iterator over all objects for the combined
         application and context cache.
         """
-        use_gevent = is_gevent_enabled()
-        use_context = is_context_enabled()
 
-        if use_context:
-            tid = context_get_ident()
-        elif use_gevent:
-            tid = greenlet_get_ident()
-        else:
-            tid = thread_get_ident()
-
-        objects = self._cache.get(tid)
+        stack = self._context_stack.get()
+        objects = self._cache.get(stack)
         if objects is None:
             if len(self._cache) > _MAX_CONTEXT_OBJECT_CACHE:
                 self._cache.clear()
-            objects = self._global[:]
-            objects.extend(getattr(self._thread_context, "stack", ()))
-
-            if use_gevent:
-                objects.extend(getattr(self._greenlet_context, "stack", ()))
-
-            if use_context:
-                objects.extend(self._context_stack.get([]))
-
-            objects.sort(reverse=True)
-            objects = [x[1] for x in objects]
-            self._cache[tid] = objects
+            stack_objects = sorted(
+                chain(
+                    self._global,
+                    stack,
+                ),
+                reverse=True,
+            )
+            objects = [x[1] for x in stack_objects]
+            self._cache[stack] = objects
         return iter(objects)
 
-    def push_greenlet(self, obj):
-        self._greenlet_context_lock.acquire()
-        try:
-            # remote chance to conflict with thread ids
-            self._cache.pop(greenlet_get_ident(), None)
-            item = (self._stackop(), obj)
-            stack = getattr(self._greenlet_context, "stack", None)
-            if stack is None:
-                self._greenlet_context.stack = [item]
-            else:
-                stack.append(item)
-        finally:
-            self._greenlet_context_lock.release()
-
-    def pop_greenlet(self):
-        self._greenlet_context_lock.acquire()
-        try:
-            # remote chance to conflict with thread ids
-            self._cache.pop(greenlet_get_ident(), None)
-            stack = getattr(self._greenlet_context, "stack", None)
-            assert stack, "no objects on stack"
-            return stack.pop()[1]
-        finally:
-            self._greenlet_context_lock.release()
-
-    def push_context(self, obj):
-        self._cache.pop(context_get_ident(), None)
+    def push_context(self, obj: T) -> None:
         item = (self._stackop(), obj)
-        stack = self._context_stack.get(None)
-        if stack is None:
-            stack = [item]
-            self._context_stack.set(stack)
-        else:
-            stack.append(item)
+        stack = self._context_stack.get()
+        self._context_stack.set(FrozenSequence((*stack, item)))
 
-    def pop_context(self):
-        self._cache.pop(context_get_ident(), None)
-        stack = self._context_stack.get(None)
+    def pop_context(self) -> T:
+        stack = self._context_stack.get()
         assert stack, "no objects on stack"
-        return stack.pop()[1]
+        *remaining, poppped = stack
+        self._context_stack.set(FrozenSequence(remaining))
+        return poppped[1]
 
-    def push_thread(self, obj):
-        self._thread_context_lock.acquire()
-        try:
-            self._cache.pop(thread_get_ident(), None)
-            item = (self._stackop(), obj)
-            stack = getattr(self._thread_context, "stack", None)
-            if stack is None:
-                self._thread_context.stack = [item]
-            else:
-                stack.append(item)
-        finally:
-            self._thread_context_lock.release()
-
-    def pop_thread(self):
-        self._thread_context_lock.acquire()
-        try:
-            self._cache.pop(thread_get_ident(), None)
-            stack = getattr(self._thread_context, "stack", None)
-            assert stack, "no objects on stack"
-            return stack.pop()[1]
-        finally:
-            self._thread_context_lock.release()
-
-    def push_application(self, obj):
-        self._global.append((self._stackop(), obj))
+    def push_application(self, obj: T) -> None:
+        item = (self._stackop(), obj)
+        self._global.append(item)
         self._cache.clear()
 
-    def pop_application(self):
+    def pop_application(self) -> T:
         assert self._global, "no objects on application stack"
-        popped = self._global.pop()[1]
+        popped = self._global.pop()
         self._cache.clear()
-        return popped
+        return popped[1]

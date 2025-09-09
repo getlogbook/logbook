@@ -1,7 +1,7 @@
 import os
 import platform
 
-from setuptools import Extension, setup
+from setuptools import setup
 
 IS_CPYTHON = platform.python_implementation() == "CPython"
 DISABLE_EXTENSION = bool(os.environ.get("DISABLE_LOGBOOK_CEXT"))
@@ -19,18 +19,23 @@ if not IS_CPYTHON:
         "WARNING: C extensions are not supported on this Python platform, "
         "speedups are not enabled.",
     )
-    ext_modules = []
+    kwargs = {}
 elif DISABLE_EXTENSION:
     status_msgs(
         "DISABLE_LOGBOOK_CEXT is set; not attempting to build C extensions.",
     )
-    ext_modules = []
+    kwargs = {}
 else:
-    from Cython.Build import cythonize
+    from setuptools_rust import RustExtension
 
-    ext_modules = cythonize(
-        [Extension("logbook._speedups", sources=["src/cython/speedups.pyx"])],
-        language_level=3,
-    )
+    kwargs = {
+        "rust_extensions": [
+            RustExtension(
+                "logbook._speedups",
+                "src/rust/Cargo.toml",
+                rust_version=">=1.74",
+            )
+        ]
+    }
 
-setup(ext_modules=ext_modules)
+setup(**kwargs)

@@ -576,6 +576,9 @@ wheels = [
 [[package]]
 name = "logbook"
 source = { editable = "." }
+dependencies = [
+    { name = "typing-extensions" },
+]
 
 [package.optional-dependencies]
 all = [
@@ -645,6 +648,7 @@ requires-dist = [
     { name = "pyzmq", marker = "extra == 'zmq'", specifier = ">=27" },
     { name = "redis", marker = "extra == 'redis'", specifier = ">=3.5.3" },
     { name = "sqlalchemy", marker = "extra == 'sqlalchemy'", specifier = ">=1.4" },
+    { name = "typing-extensions", specifier = ">=4.14.0" },
 ]
 provides-extras = ["all", "brotli", "compression", "execnet", "jinja", "nteventlog", "redis", "sqlalchemy", "zmq"]
 
