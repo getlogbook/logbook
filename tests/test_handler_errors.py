@@ -36,7 +36,7 @@ def test_formatting_exception():
 
     record = make_record()
     with pytest.raises(TypeError) as caught:
-        record.message
+        record.message  # noqa: B018
 
     errormsg = str(caught.value)
     assert re.search(
@@ -49,7 +49,7 @@ def test_formatting_exception():
     assert "args=()" in errormsg
     assert "kwargs={'foo': 42}" in errormsg
     assert re.search(
-        r"Happened in file .*%s, line \d+" % re.escape(__file_without_pyc__),
+        r"Happened in file .*%s, line \d+" % re.escape(__file_without_pyc__),  # noqa: UP031
         errormsg,
         re.M | re.S,
     )

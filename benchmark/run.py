@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 """
-    Runs the benchmarks
+Runs the benchmarks
 """
+
+import importlib.metadata
+import importlib.util
 import os
 import re
 import sys
 from subprocess import Popen
 
 try:
-    from pkg_resources import get_distribution
-
-    version = get_distribution("Logbook").version
-except Exception:
+    version = importlib.metadata.version("logbook")
+except ModuleNotFoundError:
     version = "unknown version"
 
 
@@ -30,14 +31,14 @@ def list_benchmarks():
 
 
 def run_bench(name, use_gevent=False):
-    sys.stdout.write("%-32s" % name)
+    sys.stdout.write("%-32s" % name)  # noqa: UP031
     sys.stdout.flush()
     Popen(
         [
             sys.executable,
             "-mtimeit",
             "-s",
-            "from bench_%s import run" % name,
+            "from bench_%s import run" % name,  # noqa: UP031
             "from logbook.concurrency import enable_gevent",
             "enable_gevent()" if use_gevent else "",
             "run()",
@@ -47,11 +48,7 @@ def run_bench(name, use_gevent=False):
 
 def bench_wrapper(use_gevent=False):
     print("=" * 80)
-    print(
-        "Running benchmark with Logbook {} (gevent enabled={})".format(
-            version, use_gevent
-        )
-    )
+    print(f"Running benchmark with Logbook {version} (gevent enabled={use_gevent})")
     print("-" * 80)
     os.chdir(bench_directory)
     for bench in list_benchmarks():
@@ -61,12 +58,8 @@ def bench_wrapper(use_gevent=False):
 
 def main():
     bench_wrapper(False)
-    try:
-        import gevent
-
+    if importlib.util.find_spec("gevent") is not None:
         bench_wrapper(True)
-    except ImportError:
-        pass
 
 
 if __name__ == "__main__":

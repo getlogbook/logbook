@@ -1,11 +1,11 @@
 """
-    logbook.queues
-    ~~~~~~~~~~~~~~
+logbook.queues
+~~~~~~~~~~~~~~
 
-    This module implements queue backends.
+This module implements queue backends.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import json
@@ -768,4 +768,4 @@ class SubscriberGroup(SubscriberBase):
         internal queue is exhausted :meth:`recv` will always return `None`.
         """
         for member in self.members:
-            self.member.stop()
+            member.stop()

@@ -1,3 +1,4 @@
+import importlib.util
 from pathlib import Path
 
 import pytest
@@ -101,11 +102,7 @@ def default_handler(request):
     return returned
 
 
-try:
-    import gevent
-except ImportError:
-    pass
-else:
+if importlib.util.find_spec("gevent") is not None:
 
     @pytest.fixture(
         scope="module", autouse=True, params=[False, True], ids=["nogevent", "gevent"]

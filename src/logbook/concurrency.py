@@ -57,7 +57,7 @@ if has_gevent:
 
         def __repr__(self):
             owner = self._owner
-            return "<%s owner=%r count=%d>" % (
+            return "<%s owner=%r count=%d>" % (  # noqa: UP031
                 self.__class__.__name__,
                 owner,
                 self._count,
@@ -134,7 +134,7 @@ if has_gevent:
             return self._owner == (thread_get_ident(), greenlet_get_ident())
 
 else:
-    from threading import Lock as ThreadLock
+    from threading import Lock as ThreadLock  # noqa: F401
     from threading import RLock as ThreadRLock
     from threading import get_ident as thread_get_ident
     from threading import local as thread_local
@@ -173,7 +173,7 @@ def context_get_ident():
     try:
         return context_ident.get()
     except LookupError:
-        ident = "context-%s" % next(context_ident_counter)
+        ident = "context-%s" % next(context_ident_counter)  # noqa: UP031
         context_ident.set(ident)
         return ident
 

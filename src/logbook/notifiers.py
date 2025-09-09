@@ -1,11 +1,11 @@
 """
-    logbook.notifiers
-    ~~~~~~~~~~~~~~~~~
+logbook.notifiers
+~~~~~~~~~~~~~~~~~
 
-    System notify handlers for OSX and Linux.
+System notify handlers for OSX and Linux.
 
-    :copyright: (c) 2010 by Armin Ronacher, Christopher Grebs.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Christopher Grebs.
+:license: BSD, see LICENSE for more details.
 """
 
 import base64

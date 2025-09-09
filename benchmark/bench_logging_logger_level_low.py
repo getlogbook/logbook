@@ -11,5 +11,5 @@ def run():
     out = StringIO()
     handler = StreamHandler(out)
     log.addHandler(handler)
-    for x in range(500):
+    for _ in range(500):
         log.warning("this is not handled")

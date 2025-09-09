@@ -1,18 +1,21 @@
 """
-    logbook.more
-    ~~~~~~~~~~~~
+logbook.more
+~~~~~~~~~~~~
 
-    Fancy stuff for logbook.
+Fancy stuff for logbook.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
+import importlib.util
 import os
 import platform
 import re
+import warnings
 from collections import defaultdict
 from functools import partial
+from typing import Any
 from urllib.parse import parse_qsl, urlencode
 
 from logbook._termcolors import colorize
@@ -24,19 +27,42 @@ from logbook.handlers import (
     StringFormatterHandlerMixin,
 )
 from logbook.ticketing import BackendBase
-from logbook.ticketing import TicketingHandler as DatabaseHandler
 
 try:
     import riemann_client.client
     import riemann_client.transport
 except ImportError:
     riemann_client = None
-    # from riemann_client.transport import TCPTransport, UDPTransport, BlankTransport
 
 _ws_re = re.compile(r"(\s+)", re.UNICODE)
 TWITTER_FORMAT_STRING = "[{record.channel}] {record.level_name}: {record.message}"
 TWITTER_ACCESS_TOKEN_URL = "https://twitter.com/oauth/access_token"
 NEW_TWEET_URL = "https://api.twitter.com/1/statuses/update.json"
+
+
+def __getattr__(name: str) -> Any:
+    if name == "FingersCrossedHandler":
+        from logbook.handlers import FingersCrossedHandler
+
+        warnings.warn(
+            "FingersCrossedHandler was moved to logbook.handlers",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return FingersCrossedHandler
+    elif name == "DatabaseHandler":
+        from logbook.ticketing import TicketingHandler
+
+        warnings.warn(
+            "logbook.more.DatabaseHandler is a deprecated alias to "
+            "logbook.ticketing.TicketingHandler",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return TicketingHandler
+    else:
+        msg = f"module '{__name__}' has no attribute '{name}'"
+        raise AttributeError(msg)
 
 
 class CouchDBBackend(BackendBase):
@@ -141,7 +167,7 @@ class TaggingHandler(Handler):
         Handler.__init__(self, NOTSET, filter, bubble)
         assert isinstance(handlers, dict)
         self._handlers = {
-            tag: isinstance(handler, Handler) and [handler] or handler
+            tag: [handler] if isinstance(handler, Handler) else handler
             for (tag, handler) in handlers.items()
         }
 
@@ -358,9 +384,7 @@ class ColorizingStreamHandlerMixin:
         installed.
         """
         if os.name == "nt":
-            try:
-                import colorama
-            except ImportError:
+            if importlib.util.find_spec("colorama") is None:
                 return False
         if self._use_color is not None:
             return self._use_color
@@ -406,23 +430,6 @@ class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
             pass
         else:
             colorama.init()
-
-
-# backwards compat.  Should go away in some future releases
-from logbook.handlers import FingersCrossedHandler as FingersCrossedHandlerBase
-
-
-class FingersCrossedHandler(FingersCrossedHandlerBase):
-    def __init__(self, *args, **kwargs):
-        FingersCrossedHandlerBase.__init__(self, *args, **kwargs)
-        from warnings import warn
-
-        warn(
-            PendingDeprecationWarning(
-                "fingers crossed handler changed "
-                "location.  It's now a core component of Logbook."
-            )
-        )
 
 
 class ExceptionHandler(Handler, StringFormatterHandlerMixin):
@@ -474,7 +481,7 @@ class DedupHandler(Handler):
     def __init__(
         self, format_string="message repeated {count} times: {message}", *args, **kwargs
     ):
-        Handler.__init__(self, bubble=False, *args, **kwargs)
+        Handler.__init__(self, *args, bubble=False, **kwargs)
         self._format_string = format_string
         self.clear()
 

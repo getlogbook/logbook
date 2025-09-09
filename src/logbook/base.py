@@ -1,11 +1,11 @@
 """
-    logbook.base
-    ~~~~~~~~~~~~
+logbook.base
+~~~~~~~~~~~~
 
-    Base implementation for logbook.
+Base implementation for logbook.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import os
@@ -107,14 +107,14 @@ def set_datetime_format(datetime_format):
         inst = datetime_format()
         if not isinstance(inst, datetime):
             raise ValueError(
-                "Invalid callable value, valid callable "
+                "Invalid callable value, valid callable "  # noqa: UP031
                 "should return datetime.datetime instances, "
                 "not %r" % (type(inst),)
             )
         _datetime_factory = datetime_format
     else:
         raise ValueError(
-            "Invalid value %r.  Valid values are 'utc' and "
+            "Invalid value %r.  Valid values are 'utc' and "  # noqa: UP031
             "'local'." % (datetime_format,)
         )
 
@@ -167,7 +167,7 @@ def lookup_level(level):
     try:
         return _reverse_level_names[level]
     except KeyError:
-        raise LookupError("unknown level name %s" % level)
+        raise LookupError("unknown level name %s" % level)  # noqa: UP031
 
 
 def get_level_name(level):
@@ -611,16 +611,9 @@ class LogRecord:
             e = sys.exc_info()[1]
             errormsg = (
                 "Could not format message with provided "
-                "arguments: {err}\n  msg={msg!r}\n  "
-                "args={args!r} \n  kwargs={kwargs!r}.\n"
-                "Happened in file {file}, line {lineno}"
-            ).format(
-                err=e,
-                msg=self.msg,
-                args=self.args,
-                kwargs=self.kwargs,
-                file=self.filename,
-                lineno=self.lineno,
+                f"arguments: {e}\n  msg={self.msg!r}\n  "
+                f"args={self.args!r} \n  kwargs={self.kwargs!r}.\n"
+                f"Happened in file {self.filename}, line {self.lineno}"
             )
             raise TypeError(errormsg)
 
@@ -1162,4 +1155,4 @@ def dispatch_record(record):
 
 
 # at that point we are safe to import handler
-from logbook.handlers import Handler  # isort:skip
+from logbook.handlers import Handler  # isort:skip  # noqa: E402

@@ -18,11 +18,11 @@ def test_basic_logging(active_handler, logger):
 def test_exception_catching(active_handler, logger):
     assert not active_handler.has_error()
     try:
-        1 / 0
+        1 / 0  # noqa: B018
     except Exception:
         logger.exception()
     try:
-        1 / 0
+        1 / 0  # noqa: B018
     except Exception:
         logger.exception("Awesome")
     assert active_handler.has_error("Uncaught exception occurred")
@@ -35,15 +35,15 @@ def test_exception_catching_with_unicode():
     """See https://github.com/getlogbook/logbook/issues/104"""
     try:
         raise Exception("\u202a test \u202c")
-    except:
+    except Exception:
         r = logbook.LogRecord("channel", "DEBUG", "test", exc_info=sys.exc_info())
-    r.exception_message
+    r.exception_message  # noqa: B018
 
 
 @pytest.mark.parametrize("as_tuple", [True, False])
 def test_exc_info(as_tuple, logger, active_handler):
     try:
-        1 / 0
+        1 / 0  # noqa: B018
     except Exception:
         exc_info = sys.exc_info()
         logger.info("Exception caught", exc_info=exc_info if as_tuple else True)
@@ -53,7 +53,7 @@ def test_exc_info(as_tuple, logger, active_handler):
 
 def test_to_dict(logger, active_handler):
     try:
-        1 / 0
+        1 / 0  # noqa: B018
     except Exception:
         logger.exception()
         record = active_handler.records[0]
@@ -69,7 +69,7 @@ def test_to_dict(logger, active_handler):
 
 def test_pickle(active_handler, logger):
     try:
-        1 / 0
+        1 / 0  # noqa: B018
     except Exception:
         logger.exception()
         record = active_handler.records[0]

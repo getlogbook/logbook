@@ -12,8 +12,7 @@ def test_custom_logger(activation_strategy, logger):
 
     custom_log = CustomLogger("awesome logger")
     fmt = (
-        "[{record.level_name}] {record.channel}: "
-        "{record.message} [{record.extra[ip]}]"
+        "[{record.level_name}] {record.channel}: {record.message} [{record.extra[ip]}]"
     )
     handler = logbook.TestHandler(format_string=fmt)
     assert handler.format_string == fmt
@@ -67,7 +66,7 @@ def test_nested_setups(activation_strategy):
             logger.warn("This is a warning")
             logger.error("This is also a mail")
             try:
-                1 / 0
+                1 / 0  # noqa: B018
             except Exception:
                 logger.exception()
         logger.warn("And here we go straight back to stderr")

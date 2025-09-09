@@ -44,7 +44,7 @@ def test_handler_filter_after_processor(activation_strategy, logger):
             handler.push_thread()
             try:
                 try:
-                    1 / 0
+                    1 / 0  # noqa: B018
                 except Exception:
                     logger.exception("Exception happened during request")
             finally:
@@ -94,7 +94,7 @@ def test_handler_processors(activation_strategy, logger):
             handler.push_thread()
             try:
                 try:
-                    1 / 0
+                    1 / 0  # noqa: B018
                 except Exception:
                     logger.exception("Exception happened during request")
             finally:

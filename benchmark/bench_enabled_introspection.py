@@ -11,6 +11,6 @@ class DummyHandler(NullHandler):
 
 def run():
     with Flags(introspection=True):
-        with DummyHandler() as handler:
-            for x in range(500):
+        with DummyHandler():
+            for _ in range(500):
                 log.warning("this is not handled")

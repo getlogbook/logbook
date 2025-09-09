@@ -4,5 +4,5 @@ from logbook import Logger
 
 
 def run():
-    for x in range(500):
+    for _ in range(500):
         Logger("Test")

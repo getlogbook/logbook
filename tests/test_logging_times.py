@@ -38,7 +38,7 @@ def test_timedate_format(activation_strategy, logger):
     # get the difference between LogRecord local and utc times
     logbook_minutes_diff = (time_local - time_utc).total_seconds() / 60.0
     assert abs(logbook_minutes_diff) > 1, (
-        "Localtime does not differ from UTC by more than 1 "
+        "Localtime does not differ from UTC by more than 1 "  # noqa: UP031
         "minute (Local: %s, UTC: %s)" % (time_local, time_utc)
     )
 

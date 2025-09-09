@@ -1,16 +1,17 @@
 """
-    logbook
-    ~~~~~~~
+logbook
+~~~~~~~
 
-    Simple logging library that aims to support desktop, command line
-    and web applications alike.
+Simple logging library that aims to support desktop, command line
+and web applications alike.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import os
 
+from .__version__ import __version__  # noqa: F401
 from .base import (
     CRITICAL,
     DEBUG,
@@ -57,8 +58,6 @@ from .handlers import (
     create_syshandler,
 )
 
-from . import compat  # isort: skip
-
 # create an anonymous default logger and provide all important
 # methods of that logger as global functions
 _default_logger = Logger("Generic")
@@ -82,4 +81,57 @@ if os.environ.get("LOGBOOK_INSTALL_DEFAULT_HANDLER"):
     default_handler = StderrHandler()
     default_handler.push_application()
 
-from .__version__ import __version__
+__all__ = (
+    "CRITICAL",
+    "DEBUG",
+    "ERROR",
+    "INFO",
+    "NOTICE",
+    "NOTSET",
+    "TRACE",
+    "WARNING",
+    "BrotliCompressionHandler",
+    "FileHandler",
+    "FingersCrossedHandler",
+    "Flags",
+    "GMailHandler",
+    "GZIPCompressionHandler",
+    "GroupHandler",
+    "Handler",
+    "HashingHandlerMixin",
+    "LimitingHandlerMixin",
+    "LogRecord",
+    "Logger",
+    "LoggerGroup",
+    "MailHandler",
+    "MonitoringFileHandler",
+    "NTEventLogHandler",
+    "NestedSetup",
+    "NullHandler",
+    "Processor",
+    "RotatingFileHandler",
+    "StderrHandler",
+    "StreamHandler",
+    "StringFormatter",
+    "StringFormatterHandlerMixin",
+    "SyslogHandler",
+    "TestHandler",
+    "TimedRotatingFileHandler",
+    "WrapperHandler",
+    "catch_exceptions",
+    "create_syshandler",
+    "critical",
+    "debug",
+    "dispatch_record",
+    "error",
+    "exception",
+    "get_level_name",
+    "info",
+    "log",
+    "lookup_level",
+    "notice",
+    "set_datetime_format",
+    "trace",
+    "warn",
+    "warning",
+)

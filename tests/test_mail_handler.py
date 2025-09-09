@@ -1,7 +1,7 @@
 import base64
 import re
 import ssl
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, patch
 
 import logbook
 
@@ -19,13 +19,13 @@ def test_mail_handler(activation_strategy, logger):
         with activation_strategy(handler):
             logger.warn("This is not mailed")
             try:
-                1 / 0
+                1 / 0  # noqa: B018
             except Exception:
                 logger.exception("Viva la Espa\xf1a")
 
         if not handler.mails:
             # if sending the mail failed, the reason should be on stderr
-            assert False, fallback.getvalue()
+            assert False, fallback.getvalue()  # noqa: B011
 
         assert len(handler.mails) == 1
         sender, receivers, mail = handler.mails[0]
@@ -36,8 +36,8 @@ def test_mail_handler(activation_strategy, logger):
         if "Content-Transfer-Encoding: base64" in header:
             data = base64.b64decode(data).decode("utf-8")
         assert re.search(r"Message type:\s+ERROR", data)
-        assert re.search(r"Location:.*%s" % re.escape(__file_without_pyc__), data)
-        assert re.search(r"Module:\s+%s" % __name__, data)
+        assert re.search(r"Location:.*%s" % re.escape(__file_without_pyc__), data)  # noqa: UP031
+        assert re.search(r"Module:\s+%s" % __name__, data)  # noqa: UP031
         assert re.search(r"Function:\s+test_mail_handler", data)
         body = "Viva la Espa\xf1a"
         assert body in data
@@ -65,7 +65,7 @@ def test_mail_handler_batching(activation_strategy, logger):
     rest = rest.replace("\r", "")
 
     assert re.search(r"Message type:\s+ERROR", body)
-    assert re.search(r"Module:\s+%s" % __name__, body)
+    assert re.search(r"Module:\s+%s" % __name__, body)  # noqa: UP031
     assert re.search(r"Function:\s+test_mail_handler_batching", body)
 
     related = rest.strip().split("\n\n")

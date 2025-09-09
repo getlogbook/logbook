@@ -24,7 +24,7 @@ def test_basic_ticketing(logger):
             sleep(0.2)
             if x < 2:
                 try:
-                    1 / 0
+                    1 / 0  # noqa: B018
                 except Exception:
                     logger.exception()
 
@@ -50,8 +50,7 @@ def test_basic_ticketing(logger):
     assert len(occurrences) == 2
     record = occurrences[0]
     assert __file_without_pyc__ in record.filename
-    # avoid 2to3 destroying our assertion
-    assert getattr(record, "func_name") == "test_basic_ticketing"
+    assert record.func_name == "test_basic_ticketing"
     assert record.level == logbook.ERROR
     assert record.thread == get_ident()
     assert record.process == os.getpid()

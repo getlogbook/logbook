@@ -1,12 +1,12 @@
 """
-    logbook.compat
-    ~~~~~~~~~~~~~~
+logbook.compat
+~~~~~~~~~~~~~~
 
-    Backwards compatibility with stdlib's logging package and the
-    warnings module.
+Backwards compatibility with stdlib's logging package and the
+warnings module.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import logging
@@ -289,7 +289,7 @@ class redirected_warnings:
 
     def start(self):
         if self._entered:  # pragma: no cover
-            raise RuntimeError("Cannot enter %r twice" % self)
+            raise RuntimeError("Cannot enter %r twice" % self)  # noqa: UP031
         self._entered = True
         self._filters = warnings.filters
         warnings.filters = self._filters[:]
@@ -304,7 +304,7 @@ class redirected_warnings:
 
     def end(self, etype=None, evalue=None, tb=None):
         if not self._entered:  # pragma: no cover
-            raise RuntimeError("Cannot exit %r without entering first" % self)
+            raise RuntimeError("Cannot exit %r without entering first" % self)  # noqa: UP031
         warnings.filters = self._filters
         warnings.showwarning = self._showwarning
 

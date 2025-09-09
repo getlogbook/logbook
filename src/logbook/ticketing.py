@@ -1,12 +1,12 @@
 """
-    logbook.ticketing
-    ~~~~~~~~~~~~~~~~~
+logbook.ticketing
+~~~~~~~~~~~~~~~~~
 
-    Implements long handlers that write to remote data stores and assign
-    each logging message a ticket id.
+Implements long handlers that write to remote data stores and assign
+each logging message a ticket id.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import json
@@ -217,7 +217,7 @@ class SQLAlchemyBackend(BackendBase):
                         record_hash=hash,
                         level=record.level,
                         channel=record.channel or "",
-                        location="%s:%d" % (record.filename, record.lineno),
+                        location="%s:%d" % (record.filename, record.lineno),  # noqa: UP031
                         module=record.module or "<unknown>",
                         occurrence_count=0,
                         solved=False,
@@ -381,7 +381,7 @@ class MongoDBBackend(BackendBase):
     def _order(self, q, order_by):
         from pymongo import ASCENDING, DESCENDING
 
-        col = "%s" % (order_by[0] == "-" and order_by[1:] or order_by)
+        col = "%s" % (order_by[1:] if order_by[0] == "-" else order_by)
         if order_by[0] == "-":
             return q.sort(col, DESCENDING)
         return q.sort(col, ASCENDING)
@@ -400,7 +400,7 @@ class MongoDBBackend(BackendBase):
                 "record_hash": hash,
                 "level": record.level,
                 "channel": record.channel or "",
-                "location": "%s:%d" % (record.filename, record.lineno),
+                "location": "%s:%d" % (record.filename, record.lineno),  # noqa: UP031
                 "module": record.module or "<unknown>",
                 "occurrence_count": 0,
                 "solved": False,

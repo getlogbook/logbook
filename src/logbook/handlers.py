@@ -1,11 +1,11 @@
 """
-    logbook.handlers
-    ~~~~~~~~~~~~~~~~
+logbook.handlers
+~~~~~~~~~~~~~~~~
 
-    The handler interface and builtin handlers.
+The handler interface and builtin handlers.
 
-    :copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
-    :license: BSD, see LICENSE for more details.
+:copyright: (c) 2010 by Armin Ronacher, Georg Brandl.
+:license: BSD, see LICENSE for more details.
 """
 
 import errno
@@ -20,7 +20,7 @@ import sys
 import traceback
 import warnings
 from collections import deque
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from hashlib import sha1
 from textwrap import dedent
@@ -317,11 +317,9 @@ class Handler(ContextObject, metaclass=_HandlerType):
             if behaviour == "raise":
                 raise exc_info[1]
             elif behaviour == "print":
-                traceback.print_exception(*(exc_info + (None, sys.stderr)))
+                traceback.print_exception(*exc_info, file=sys.stderr)
                 sys.stderr.write(
-                    "Logged from file {}, line {}\n".format(
-                        record.filename, record.lineno
-                    )
+                    f"Logged from file {record.filename}, line {record.lineno}\n"
                 )
         except OSError:
             pass
@@ -455,7 +453,7 @@ class HashingHandlerMixin:
     def hash_record_raw(self, record):
         """Returns a hashlib object with the hash of the record."""
         hash = sha1()
-        hash.update(("%d\x00" % record.level).encode("ascii"))
+        hash.update(("%d\x00" % record.level).encode("ascii"))  # noqa: UP031
         hash.update((record.channel or "").encode("utf-8") + b"\x00")
         hash.update(record.filename.encode("utf-8") + b"\x00")
         hash.update(str(record.lineno).encode("utf-8"))
@@ -1054,7 +1052,7 @@ class TimedRotatingFileHandler(FileHandler):
             os.rename(self._filename, filename)
 
         if self.backup_count > 0:
-            for time, filename in self.files_to_delete():
+            for _, filename in self.files_to_delete():
                 os.remove(filename)
 
         if self.timed_filename_for_current:
@@ -1372,8 +1370,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
             raise TypeError(f"Unexpected type for `secure`: {type(secure)}")
 
         warnings.warn(
-            "Passing keyfile and certfile are deprecated, use an "
-            "SSLContext instead.",
+            "Passing keyfile and certfile are deprecated, use an SSLContext instead.",
             DeprecationWarning,
             stacklevel=3,
         )
@@ -1563,7 +1560,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
         if not records:
             return
 
-        trigger = records.pop(reason == "escalation" and -1 or 0)
+        trigger = records.pop(-1 if reason == "escalation" else 0)
         suppressed = 0
         if self.record_limit is not None:
             suppressed, allow_delivery = self.check_delivery(trigger)
