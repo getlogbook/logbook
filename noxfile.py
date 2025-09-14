@@ -99,6 +99,17 @@ def test_latest(session: nox.Session) -> None:
     session.run("pytest", *session.posargs)
 
 
+@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"])
+def rust(session: nox.Session) -> None:
+    session.run(
+        "cargo",
+        "test",
+        "--no-default-features",
+        "--all",
+        external=True,
+    )
+
+
 @contextmanager
 def restore_file(path: str) -> Iterator[None]:
     with open(path, "rb") as f:

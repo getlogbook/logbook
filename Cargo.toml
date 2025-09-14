@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = [
+    "src/rust",
+]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Frazer McLean <frazer@frazermclean.co.uk>"]
+edition = "2021"
+publish = false
+rust-version = "1.74"
+license = "BSD-3-Clause"
+
+[workspace.dependencies]
+pyo3 = "0.26"

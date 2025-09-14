@@ -42,7 +42,7 @@ from logbook.base import (
     level_name_property,
     lookup_level,
 )
-from logbook.concurrency import new_fine_grained_lock
+from logbook.concurrency import _new_fine_grained_lock
 from logbook.helpers import datetime_utcnow, rename
 
 DEFAULT_FORMAT_STRING = (
@@ -484,7 +484,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
 
     def __init__(self, record_limit, record_delta):
         self.record_limit = record_limit
-        self._limit_lock = new_fine_grained_lock()
+        self._limit_lock = _new_fine_grained_lock()
         self._record_limits = {}
         if record_delta is None:
             record_delta = timedelta(seconds=60)
@@ -561,7 +561,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.encoding = encoding
-        self.lock = new_fine_grained_lock()
+        self.lock = _new_fine_grained_lock()
         if stream is not _missing:
             self.stream = stream
 
@@ -1963,7 +1963,7 @@ class FingersCrossedHandler(Handler):
         bubble=False,
     ):
         Handler.__init__(self, NOTSET, filter, bubble)
-        self.lock = new_fine_grained_lock()
+        self.lock = _new_fine_grained_lock()
         self._level = action_level
         if isinstance(handler, Handler):
             self._handler = handler

@@ -16,6 +16,8 @@ from datetime import datetime
 from itertools import chain
 from weakref import ref as weakref
 
+from typing_extensions import deprecated
+
 from logbook.concurrency import greenlet_get_ident, thread_get_ident, thread_get_name
 from logbook.helpers import (
     cached_property,
@@ -206,13 +208,23 @@ class ContextObject(StackedObject):
     #: subclasses of it.
     stack_manager = None
 
+    @deprecated("Use push_context instead")
     def push_greenlet(self):
-        """Pushes the context object to the greenlet stack."""
-        self.stack_manager.push_greenlet(self)
+        """Pushes the context object to the greenlet stack.
 
+        .. deprecated:: 1.9
+           Use :meth:`push_context` instead.
+        """
+        self.stack_manager.push_context(self)
+
+    @deprecated("Use pop_context instead")
     def pop_greenlet(self):
-        """Pops the context object from the stack."""
-        popped = self.stack_manager.pop_greenlet()
+        """Pops the context object from the stack.
+
+        .. deprecated:: 1.9
+           Use :meth:`pop_context` instead.
+        """
+        popped = self.stack_manager.pop_context()
         assert popped is self, "popped unexpected object"
 
     def push_context(self):
@@ -224,13 +236,23 @@ class ContextObject(StackedObject):
         popped = self.stack_manager.pop_context()
         assert popped is self, "popped unexpected object"
 
+    @deprecated("Use push_context instead")
     def push_thread(self):
-        """Pushes the context object to the thread stack."""
-        self.stack_manager.push_thread(self)
+        """Pushes the context object to the thread stack.
 
+        .. deprecated:: 1.9
+           Use :meth:`push_context` instead.
+        """
+        self.stack_manager.push_context(self)
+
+    @deprecated("Use pop_context instead")
     def pop_thread(self):
-        """Pops the context object from the stack."""
-        popped = self.stack_manager.pop_thread()
+        """Pops the context object from the stack.
+
+        .. deprecated:: 1.9
+           Use :meth:`pop_context` instead.
+        """
+        popped = self.stack_manager.pop_context()
         assert popped is self, "popped unexpected object"
 
     def push_application(self):
@@ -241,6 +263,18 @@ class ContextObject(StackedObject):
         """Pops the context object from the stack."""
         popped = self.stack_manager.pop_application()
         assert popped is self, "popped unexpected object"
+
+    @deprecated("`with obj.greenletbound()` is deprecated, use `with obj:` instead")
+    def greenletbound(self):
+        return self
+
+    @deprecated("`with obj.contextbound()` is deprecated, use `with obj:` instead")
+    def contextbound(self):
+        return self
+
+    @deprecated("`with obj.threadbound()` is deprecated, use `with obj:` instead")
+    def threadbound(self):
+        return self
 
 
 class NestedSetup(StackedObject):
@@ -259,21 +293,25 @@ class NestedSetup(StackedObject):
         for obj in reversed(self.objects):
             obj.pop_application()
 
+    @deprecated("Use push_context instead")
     def push_thread(self):
         for obj in self.objects:
-            obj.push_thread()
+            obj.push_context()
 
+    @deprecated("Use pop_context instead")
     def pop_thread(self):
         for obj in reversed(self.objects):
-            obj.pop_thread()
+            obj.pop_context()
 
+    @deprecated("Use push_context instead")
     def push_greenlet(self):
         for obj in self.objects:
-            obj.push_greenlet()
+            obj.push_context()
 
+    @deprecated("Use pop_context instead")
     def pop_greenlet(self):
         for obj in reversed(self.objects):
-            obj.pop_greenlet()
+            obj.pop_context()
 
     def push_context(self):
         for obj in self.objects:
@@ -282,6 +320,18 @@ class NestedSetup(StackedObject):
     def pop_context(self):
         for obj in reversed(self.objects):
             obj.pop_context()
+
+    @deprecated("`with obj.greenletbound()` is deprecated, use `with obj:` instead")
+    def greenletbound(self):
+        return self
+
+    @deprecated("`with obj.contextbound()` is deprecated, use `with obj:` instead")
+    def contextbound(self):
+        return self
+
+    @deprecated("`with obj.threadbound()` is deprecated, use `with obj:` instead")
+    def threadbound(self):
+        return self
 
 
 class Processor(ContextObject):
@@ -914,8 +964,8 @@ class RecordDispatcher:
         #: the level of the record dispatcher as integer
         self.level = level
 
-    disabled = group_reflected_property("disabled", False)
-    level = group_reflected_property("level", NOTSET, fallback=NOTSET)
+    disabled = group_reflected_property(False)
+    level = group_reflected_property(NOTSET, fallback=NOTSET)
 
     def handle(self, record):
         """Call the handlers for the specified record.  This is

@@ -1,0 +1,19 @@
+[package]
+name = "logbook-rust"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+publish = { workspace = true }
+rust-version = { workspace = true }
+license = { workspace = true }
+
+[dependencies]
+pyo3 = { workspace = true }
+
+[features]
+extension-module = ["pyo3/extension-module"]
+default = ["extension-module"]
+
+[lib]
+name = "logbook_rust"
+crate-type = ["cdylib"]

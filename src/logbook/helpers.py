@@ -14,7 +14,9 @@ import random
 import re
 import sys
 import time
+from collections.abc import Callable, Iterator
 from datetime import datetime, timedelta, timezone
+from typing import TypeVar
 
 # this regexp also matches incompatible dates like 20070101 because
 # some libraries (like the python xmlrpclib modules) use this
@@ -25,6 +27,8 @@ _iso8601_re = re.compile(
     r"(?:T(\d{2}):(\d{2})(?::(\d{2}(?:\.\d+)?))?(Z|[+-]\d{2}:\d{2})?)?$"
 )
 _missing = object()
+
+T = TypeVar("T")
 
 
 can_rename_open_file = False
@@ -235,5 +239,5 @@ class cached_property:
         return value
 
 
-def get_iterator_next_method(it):
+def get_iterator_next_method(it: Iterator[T]) -> Callable[[], T]:
     return lambda: next(it)

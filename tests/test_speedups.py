@@ -17,7 +17,7 @@ def test_group_reflected_property(speedups_module):
         foo = "group"
 
     class A:
-        foo = speedups_module.group_reflected_property("foo", "default")
+        foo = speedups_module.group_reflected_property("default")
 
         def __init__(self, group=None):
             self.group = group
