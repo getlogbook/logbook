@@ -22,28 +22,32 @@ interface (:class:`~logbook.base.StackedObject`) and can be used in
 combination with the :class:`~logbook.NestedSetup` class.
 
 Commonly stacked objects are used with a context manager (`with`
-statement)::
+statement):
 
-    with context_object.threadbound():
-        # this is managed for this thread only
+.. code-block:: python
+
+    with context_object:
+        # this is managed for this context only
         ...
 
     with context_object.applicationbound():
-        # this is managed for all applications
+        # this is managed globally
         ...
 
-Alternatively you can also use `try`/`finally`::
+Alternatively you can also use `try`/`finally`:
 
-    context_object.push_thread()
+.. code-block:: python
+
+    context_object.push_context()
     try:
-        # this is managed for this thread only
+        # this is managed for this context only
         ...
     finally:
-        context_object.pop_thread()
+        context_object.pop_context()
 
     context_object.push_application()
     try:
-        # this is managed for all applications
+        # this is managed globally
         ...
     finally:
         context_object.pop_application()
@@ -53,11 +57,13 @@ you really want the change to last until the application closes down,
 which probably is not the case.
 
 If you want to push and pop multiple stacked objects at the same time, you
-can use the :class:`~logbook.NestedSetup`::
+can use the :class:`~logbook.NestedSetup`:
+
+.. code-block:: python
 
     setup = NestedSetup([stacked_object1, stacked_object2])
-    with setup.threadbound():
-        # both objects are now bound to the thread's stack
+    with setup:
+        # both objects are now bound to the context's stack
         ...
 
 Sometimes a stacked object can be passed to one of the functions or
@@ -92,12 +98,16 @@ interested in handling the record.  Before that happens, no processing
 takes place.
 
 Here an example processor that injects the current working directory into
-the extra attribute of the record::
+the extra attribute of the record:
+
+.. code-block:: python
 
     import os
 
+
     def inject_cwd(record):
-        record.extra['cwd'] = os.getcwd()
+        record.extra["cwd"] = os.getcwd()
+
 
     with Processor(inject_cwd):
         # all logging calls inside this block in this thread will now
@@ -115,8 +125,10 @@ filesystem but it ran out of available space).  Additionally there is a
 flag that disables frame introspection which can result in a speedup on
 JIT compiled Python interpreters.
 
-Here an example of a silenced error reporting::
+Here an example of a silenced error reporting:
 
-    with Flags(errors='silent'):
+.. code-block:: python
+
+    with Flags(errors="silent"):
         # errors are now silent for this block
         ...

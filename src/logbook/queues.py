@@ -28,14 +28,14 @@ class RedisHandler(Handler):
 
     Example setup::
 
-        handler = RedisHandler('http://127.0.0.1', port='9200', key='redis')
+        handler = RedisHandler("http://127.0.0.1", port="9200", key="redis")
 
     If your Redis instance is password protected, you can securely connect
     passing your password when creating a RedisHandler object.
 
     Example::
 
-        handler = RedisHandler(password='your_redis_password')
+        handler = RedisHandler(password="your_redis_password")
 
     More info about the default buffer size: wp.me/p3tYJu-3b
     """
@@ -143,17 +143,17 @@ class MessageQueueHandler(Handler):
 
     For an AMQP backend such as RabbitMQ::
 
-        handler = MessageQueueHandler('amqp://guest:guest@localhost//')
+        handler = MessageQueueHandler("amqp://guest:guest@localhost//")
 
     This requires the py-amqp or the librabbitmq client library.
 
     For Redis (requires redis client library)::
 
-        handler = MessageQueueHandler('redis://localhost:8889/0')
+        handler = MessageQueueHandler("redis://localhost:8889/0")
 
     For MongoDB (requires pymongo)::
 
-        handler = MessageQueueHandler('mongodb://localhost:27017/logging')
+        handler = MessageQueueHandler("mongodb://localhost:27017/logging")
 
     Several other backends are also supported.
     Refer to the `kombu`_ documentation
@@ -205,7 +205,7 @@ class ZeroMQHandler(Handler):
 
     Example setup::
 
-        handler = ZeroMQHandler('tcp://127.0.0.1:5000')
+        handler = ZeroMQHandler("tcp://127.0.0.1:5000")
     """
 
     def __init__(
@@ -343,20 +343,20 @@ class MessageQueueSubscriber(SubscriberBase):
 
     It can be used to receive log records from a queue::
 
-        subscriber = MessageQueueSubscriber('mongodb://localhost:27017/logging')
+        subscriber = MessageQueueSubscriber("mongodb://localhost:27017/logging")
         record = subscriber.recv()
 
     But it can also be used to receive and dispatch these in one go::
 
         with target_handler:
-            subscriber = MessageQueueSubscriber('mongodb://localhost:27017/logging')
+            subscriber = MessageQueueSubscriber("mongodb://localhost:27017/logging")
             subscriber.dispatch_forever()
 
     This will take all the log records from that queue and dispatch them
     over to `target_handler`.  If you want you can also do that in the
     background::
 
-        subscriber = MessageQueueSubscriber('mongodb://localhost:27017/logging')
+        subscriber = MessageQueueSubscriber("mongodb://localhost:27017/logging")
         controller = subscriber.dispatch_in_background(target_handler)
 
     The controller returned can be used to shut down the background
@@ -414,20 +414,20 @@ class ZeroMQSubscriber(SubscriberBase):
 
     It can be used to receive log records from a queue::
 
-        subscriber = ZeroMQSubscriber('tcp://127.0.0.1:5000')
+        subscriber = ZeroMQSubscriber("tcp://127.0.0.1:5000")
         record = subscriber.recv()
 
     But it can also be used to receive and dispatch these in one go::
 
         with target_handler:
-            subscriber = ZeroMQSubscriber('tcp://127.0.0.1:5000')
+            subscriber = ZeroMQSubscriber("tcp://127.0.0.1:5000")
             subscriber.dispatch_forever()
 
     This will take all the log records from that queue and dispatch them
     over to `target_handler`.  If you want you can also do that in the
     background::
 
-        subscriber = ZeroMQSubscriber('tcp://127.0.0.1:5000')
+        subscriber = ZeroMQSubscriber("tcp://127.0.0.1:5000")
         controller = subscriber.dispatch_in_background(target_handler)
 
     The controller returned can be used to shut down the background
@@ -515,6 +515,7 @@ class MultiProcessingHandler(Handler):
 
         from multiprocessing import Queue
         from logbook.queues import MultiProcessingHandler
+
         queue = Queue(-1)
         handler = MultiProcessingHandler(queue)
 
@@ -536,6 +537,7 @@ class MultiProcessingSubscriber(SubscriberBase):
     up with maximum size (``-1``)::
 
         from multiprocessing import Queue
+
         queue = Queue(-1)
 
     It can be used to receive log records from a queue::
@@ -737,10 +739,9 @@ class SubscriberGroup(SubscriberBase):
     happened somewhere in the entire system without having to check every
     single slave::
 
-        subscribers = SubscriberGroup([
-            MultiProcessingSubscriber(queue),
-            ZeroMQSubscriber('tcp://127.0.0.1:5000')
-        ])
+        subscribers = SubscriberGroup(
+            [MultiProcessingSubscriber(queue), ZeroMQSubscriber("tcp://127.0.0.1:5000")]
+        )
         with target_handler:
             subscribers.dispatch_forever()
     """

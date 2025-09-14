@@ -16,19 +16,25 @@ Mocking Logbook
 If you want to support Logbook in your library but not depend on it you
 can copy/paste the following piece of code.  It will attempt to import
 logbook and create a :class:`~logbook.Logger` and if it fails provide a
-class that just swallows all calls::
+class that just swallows all calls:
+
+.. code-block:: python
 
     try:
         from logbook import Logger
     except ImportError:
+
         class Logger(object):
             def __init__(self, name, level=0):
                 self.name = name
                 self.level = level
-            debug = info = warn = warning = notice = error = exception = \
-                critical = log = lambda *a, **kw: None
 
-    log = Logger('My library')
+            debug = info = warn = warning = notice = error = exception = critical = log = (
+                lambda *a, **kw: None
+            )
+
+
+    log = Logger("My library")
 
 Best Practices
 --------------
@@ -57,36 +63,44 @@ Example Setup
 
 Consider how your logger should be configured by default. Users familiar with
 :mod:`logging` from the standard library probably expect your logger to be
-disabled by default::
+disabled by default:
+
+.. code-block:: python
 
     import yourmodule
     import logbook
 
     yourmodule.logger.enable()
 
+
     def main():
         ...
         yourmodule.something()
         ...
 
-    if __name__ == '__main__':
+
+    if __name__ == "__main__":
         with logbook.StderrHandler():
             main()
 
 or set to a high level (e.g. `WARNING`) by default, allowing them to opt in to
-more detail if desired::
+more detail if desired:
+
+.. code-block:: python
 
     import yourmodule
     import logbook
 
     yourmodule.logger.level = logbook.WARNING
 
+
     def main():
         ...
         yourmodule.something()
         ...
 
-    if __name__ == '__main__':
+
+    if __name__ == "__main__":
         with logbook.StderrHandler():
             main()
 
@@ -123,7 +137,7 @@ For example, your library might look something like this:
     from logbook import Logger
     from .log import logger_group
 
-    logger = Logger('yourmodule.engine')
+    logger = Logger("yourmodule.engine")
     logger_group.add_logger(logger)
 
 .. code-block:: python
@@ -132,18 +146,22 @@ For example, your library might look something like this:
     from logbook import Logger
     from .log import logger_group
 
-    logger = Logger('yourmodule.parser')
+    logger = Logger("yourmodule.parser")
     logger_group.add_logger(logger)
 
 The library user can then choose what level of logging they would like from
-your library::
+your library:
+
+.. code-block:: python
 
     import logbook
     import yourmodule
 
     yourmodule.logger_group.level = logbook.INFO
 
-They might only want to see debug messages from one of the loggers::
+They might only want to see debug messages from one of the loggers:
+
+.. code-block:: python
 
     import logbook
     import yourmodule
@@ -161,10 +179,14 @@ you can enable/disable that log output as necessary.
 In that case it makes sense to create a logger and disable that by default
 and give people a way to get hold of the logger to flip the flag.
 Additionally you can override the :attr:`~logbook.Logger.disabled` flag to
-automatically set it based on another value::
+automatically set it based on another value:
+
+.. code-block:: python
 
     class MyLogger(Logger):
         @property
         def disabled(self):
             return not database_connection.debug
-    database_connection.logger = MyLogger('mylibrary.dbconnection')
+
+
+    database_connection.logger = MyLogger("mylibrary.dbconnection")

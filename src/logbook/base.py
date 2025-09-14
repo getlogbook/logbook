@@ -86,6 +86,7 @@ def set_datetime_format(datetime_format):
 
        import logbook
        from datetime import datetime
+
        logbook.set_datetime_format("local")
 
     Other uses rely on your supplied :py:obj:`datetime_format`.
@@ -95,8 +96,10 @@ def set_datetime_format(datetime_format):
         import logbook
         import pytz
 
+
         def utc_tz():
             return datetime.now(tz=pytz.utc)
+
 
         logbook.set_datetime_format(utc_tz)
     """
@@ -203,7 +206,7 @@ class ContextObject(StackedObject):
     """An object that can be bound to a context.  It is managed by the
     :class:`ContextStackManager`"""
 
-    #: subclasses have to instanciate a :class:`ContextStackManager`
+    #: subclasses have to instantiate a :class:`ContextStackManager`
     #: object on this attribute which is then shared for all the
     #: subclasses of it.
     stack_manager = None
@@ -339,7 +342,8 @@ class Processor(ContextObject):
     a log record as necessary::
 
         def inject_ip(record):
-            record.extra['ip'] = '127.0.0.1'
+            record.extra["ip"] = "127.0.0.1"
+
 
         with Processor(inject_ip):
             ...
@@ -398,7 +402,7 @@ class Flags(ContextObject):
 
     Example usage::
 
-        with Flags(errors='silent'):
+        with Flags(errors="silent"):
             ...
     """
 

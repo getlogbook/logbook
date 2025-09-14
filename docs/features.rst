@@ -6,10 +6,6 @@ consider having a look at Logbook for your applications.
 
 We think it will work out for you and be fun to use :)
 
-Logbook leverages some features of Python that are not available in older Python releases.
-Logbook currently requires Python 2.7 or higher including Python 3 (3.3 or
-higher, 3.2 and lower is not supported).
-
 Core Features
 -------------
 
@@ -105,12 +101,15 @@ system and more.
 Logbook in a Nutshell
 ---------------------
 
-This is how easy it is to get started with Logbook::
+This is how easy it is to get started with Logbook:
+
+.. code-block:: python
 
     from logbook import warn, StreamHandler
     import sys
+
     StreamHandler(sys.stdout).push_application()
-    warn('This is a warning')
+    warn("This is a warning")
 
 Roadmap
 -------

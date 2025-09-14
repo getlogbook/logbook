@@ -12,9 +12,12 @@ Basic Setup
 
 If you import the compat system and call the
 :func:`~logbook.compat.redirect_logging` function, all logging calls that happen
-after this call will transparently be redirected to Logbook::
+after this call will transparently be redirected to Logbook:
+
+.. code-block:: python
 
     from logbook.compat import redirect_logging
+
     redirect_logging()
 
 This also means you don't have to call :func:`logging.basicConfig`:
@@ -54,11 +57,13 @@ Reverse Redirects
 
 You can also redirect logbook records to logging, so the other way round.
 For this you just have to activate the
-:class:`~logbook.compat.LoggingHandler` for the thread or application::
+:class:`~logbook.compat.LoggingHandler` for the thread or application:
+
+.. code-block:: python
 
     from logbook import Logger
     from logbook.compat import LoggingHandler
 
-    log = Logger('My app')
+    log = Logger("My app")
     with LoggingHandler():
-        log.warn('Going to logging')
+        log.warn("Going to logging")

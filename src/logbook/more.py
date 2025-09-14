@@ -117,12 +117,12 @@ class TaggingLogger(RecordDispatcher):
     records apart.  It is constructed with a descriptive name and at least
     one tag.  The tags are up for you to define::
 
-        logger = TaggingLogger('My Logger', ['info', 'warning'])
+        logger = TaggingLogger("My Logger", ["info", "warning"])
 
     For each tag defined that way, a method appears on the logger with
     that name::
 
-        logger.info('This is a info message')
+        logger.info("This is a info message")
 
     To dispatch to different handlers based on tags you can use the
     :class:`TaggingHandler`.
@@ -157,10 +157,7 @@ class TaggingHandler(Handler):
         import logbook
         from logbook.more import TaggingHandler
 
-        handler = TaggingHandler(dict(
-            info=OneHandler(),
-            warning=AnotherHandler()
-        ))
+        handler = TaggingHandler(dict(info=OneHandler(), warning=AnotherHandler()))
     """
 
     def __init__(self, handlers, filter=None, bubble=False):
@@ -315,7 +312,8 @@ class ExternalApplicationHandler(Handler):
     For example it can be used to invoke the ``say`` command on OS X::
 
         from logbook.more import ExternalApplicationHandler
-        say_handler = ExternalApplicationHandler(['say', '{record.message}'])
+
+        say_handler = ExternalApplicationHandler(["say", "{record.message}"])
 
     Note that the above example is blocking until ``say`` finished, so it's
     recommended to combine this handler with the
@@ -439,10 +437,12 @@ class ExceptionHandler(Handler, StringFormatterHandlerMixin):
 
         from logbook.more import ExceptionHandler
 
+
         class ApplicationWarning(Exception):
             pass
 
-        exc_handler = ExceptionHandler(ApplicationWarning, level='WARNING')
+
+        exc_handler = ExceptionHandler(ApplicationWarning, level="WARNING")
 
     .. versionadded:: 0.3
     """
@@ -468,11 +468,13 @@ class DedupHandler(Handler):
     Example:::
 
         with logbook.more.DedupHandler():
-            logbook.error('foo')
-            logbook.error('bar')
-            logbook.error('foo')
+            logbook.error("foo")
+            logbook.error("bar")
+            logbook.error("foo")
 
-    The expected output:::
+    The expected output:
+
+    .. code-block:: text
 
        message repeated 2 times: foo
        message repeated 1 times: bar

@@ -32,3 +32,10 @@ repos:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+  - repo: https://github.com/adamchainz/blacken-docs
+    rev: 1.20.0
+    hooks:
+      - id: blacken-docs
+        args: [--rst-literal-blocks]
+        additional_dependencies:
+          - black==25.1

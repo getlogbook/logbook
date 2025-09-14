@@ -50,12 +50,14 @@ occurrences go into ``${prefix}occurrences``.  The default table prefix is
 ``'logbook_'`` but can be overridden.  If the tables do not exist already,
 the handler will create them.
 
-Here an example setup that logs into a postgres database::
+Here an example setup that logs into a postgres database:
+
+.. code-block:: python
 
     from logbook import ERROR
     from logbook.ticketing import TicketingHandler
-    handler = TicketingHandler('postgres://localhost/database',
-                                       level=ERROR)
+
+    handler = TicketingHandler("postgres://localhost/database", level=ERROR)
     with handler:
         # everything in this block and thread will be handled by
         # the ticketing database handler
