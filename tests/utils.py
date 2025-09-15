@@ -7,7 +7,7 @@ test utils for logbook
 """
 
 import functools
-import importlib
+import importlib.util
 import sys
 from contextlib import contextmanager
 from io import StringIO
@@ -22,12 +22,7 @@ LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
 def require_module(module_name):
-    found = True
-    try:
-        importlib.import_module(module_name)
-    except ImportError:
-        found = False
-
+    found = importlib.util.find_spec(module_name) is not None
     return pytest.mark.skipif(not found, reason=f"Module {module_name} is required")
 
 
