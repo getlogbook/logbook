@@ -683,7 +683,7 @@ requires-dist = [
     { name = "jinja2", marker = "extra == 'jinja'", specifier = ">=2.11.3" },
     { name = "logbook", extras = ["brotli"], marker = "extra == 'compression'" },
     { name = "logbook", extras = ["brotli", "execnet", "jinja", "nteventlog", "redis", "sqlalchemy", "zmq"], marker = "extra == 'all'" },
-    { name = "pywin32", marker = "python_full_version == '3.9.*' and sys_platform == 'win32' and extra == 'nteventlog'", specifier = ">=225" },
+    { name = "pywin32", marker = "python_full_version == '3.9.*' and sys_platform == 'win32' and extra == 'nteventlog'", specifier = ">=227" },
     { name = "pywin32", marker = "python_full_version == '3.10.*' and sys_platform == 'win32' and extra == 'nteventlog'", specifier = ">=302" },
     { name = "pywin32", marker = "python_full_version == '3.11.*' and sys_platform == 'win32' and extra == 'nteventlog'", specifier = ">=303" },
     { name = "pywin32", marker = "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'nteventlog'", specifier = ">=306" },
