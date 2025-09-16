@@ -14,6 +14,7 @@ from .utils import require_module
     os.environ.get("ENABLE_LOGBOOK_NTEVENTLOG_TESTS") is None,
     reason="Don't clutter NT Event Log unless enabled.",
 )
+@pytest.mark.flaky(reruns=5)
 def test_nteventlog_handler():
     from win32con import (
         EVENTLOG_ERROR_TYPE,

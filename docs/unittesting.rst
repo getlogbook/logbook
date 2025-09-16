@@ -13,26 +13,35 @@ Basic Setup
 The interface to satisfaction is :class:`logbook.TestHandler`.  Create it,
 and bind it, and you're done.  If you are using classic :mod:`unittest`
 test cases, you might want to set it up in the before and after callback
-methods::
+methods:
+
+.. code-block:: python
 
     import logbook
     import unittest
+
 
     class LoggingTestCase(unittest.TestCase):
 
         def setUp(self):
             self.log_handler = logbook.TestHandler()
-            self.log_handler.push_thread()
+            self.log_handler.push_context()
 
         def tearDown(self):
-            self.log_handler.pop_thread()
+            self.log_handler.pop_context()
 
 Alternatively you can also use it in a with statement in an individual
-test.  This is also how this can work in nose and other testing systems::
+test.  This is also how this can work in pytest and other testing systems:
 
-    def my_test():
+.. code-block:: python
+
+    import pytest
+
+
+    @pytest.fixture
+    def log_handler():
         with logbook.TestHandler() as log_handler:
-            ...
+            yield log_handler
 
 
 Test Handler Interface
@@ -47,7 +56,7 @@ as unicode strings:
 >>> from logbook import TestHandler, Logger
 >>> logger = Logger('Testing')
 >>> handler = TestHandler()
->>> handler.push_thread()
+>>> handler.push_context()
 >>> logger.warn('Hello World')
 >>> handler.records
 [<logbook.base.LogRecord object at 0x100640cd0>]

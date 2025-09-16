@@ -63,7 +63,9 @@ create a thread (or again, reuse something that already exists).  Either
 way, we can now say that the context of process id and thread id is our
 playground.  For this context we can define a log handler that is active
 in this context only for a certain time.  In pseudocode this would look
-like this::
+like this:
+
+.. code-block:: python
 
     def my_application(environ, start_response):
         my_handler = FileHandler(...)
@@ -76,7 +78,9 @@ like this::
             my_handler.pop_thread()
 
 Because this is a lot to type, you can also use the `with` statement to do
-the very same::
+the very same:
+
+.. code-block:: python
 
     def my_application(environ, start_response):
         with FileHandler(...).threadbound() as my_handler:
@@ -125,17 +129,18 @@ When then a long running tasks in the GUI starts we can move that into a
 separate thread and intercept all the log calls for that thread into a
 separate window until the task succeeded.
 
-Here such a setup in pseudocode::
+Here such a setup in pseudocode:
+
+.. code-block:: python
 
     from logbook import FileHandler, WARNING
     from logbook import FingersCrossedHandler
 
+
     def main():
         # first we set up a handler that logs everything (including debug
         # messages, but only starts doing that when a warning happens
-        default_handler = FingersCrossedHandler(FileHandler(filename,
-                                                            delay=True),
-                                                WARNING)
+        default_handler = FingersCrossedHandler(FileHandler(filename, delay=True), WARNING)
         # this handler is now activated as the default handler for the
         # whole process.  We do not bubble up to the default handler
         # that logs to stderr.
@@ -172,16 +177,21 @@ We instead provide powerful tools to inject arbitrary additional data into
 log records with the concept of log processors.
 
 So for example if you want to log user input and tag it appropriately you
-can override the :meth:`Logger.process_record` method::
+can override the :meth:`Logger.process_record` method:
+
+.. code-block:: python
 
     class InputLogger(Logger):
         def process_record(self, record):
-            record.extra['kind'] = 'input'
+            record.extra["kind"] = "input"
 
-A handler can then use this information to filter out input::
+A handler can then use this information to filter out input:
+
+.. code-block:: python
 
     def no_input(record, handler):
-        return record.extra.get('kind') != 'input'
+        return record.extra.get("kind") != "input"
+
 
     with MyHandler().threadbound(filter=no_input):
         ...
@@ -197,11 +207,14 @@ want to record the URL of that request for each log record so that you get
 an idea where a specific error happened.
 
 This can easily be accomplished by registering a custom processor when
-binding a handler to a thread::
+binding a handler to a thread:
+
+.. code-block:: python
 
     def my_application(environ, start_reponse):
         def inject_request_info(record, handler):
-            record.extra['path'] = environ['PATH_INFO']
+            record.extra["path"] = environ["PATH_INFO"]
+
         with Processor(inject_request_info).threadbound():
             with my_handler.threadbound():
                 # rest of the request code here

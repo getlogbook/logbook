@@ -87,11 +87,13 @@ a thread or for a whole process or individually for a logger.  However, it is
 strongly recommended not to add handlers to loggers unless there is a very good
 use case for that.
 
-If you want errors to go to syslog, you can set up logging like this::
+If you want errors to go to syslog, you can set up logging like this:
+
+.. code-block:: python
 
     from logbook import SyslogHandler
 
-    error_handler = SyslogHandler('logbook example', level='ERROR')
+    error_handler = SyslogHandler("logbook example", level="ERROR")
     with error_handler.applicationbound():
         # whatever is executed here and an error is logged to the
         # error handler
@@ -102,22 +104,26 @@ levels still to stderr.  This is because the handler is not bubbling by
 default which means that if a record is handled by the handler, it will
 not bubble up to a higher handler.  If you want to display all records on
 stderr, even if they went to the syslog you can enable bubbling by setting
-*bubble* to ``True``::
+*bubble* to ``True``:
+
+.. code-block:: python
 
     from logbook import SyslogHandler
 
-    error_handler = SyslogHandler('logbook example', level='ERROR', bubble=True)
+    error_handler = SyslogHandler("logbook example", level="ERROR", bubble=True)
     with error_handler.applicationbound():
         # whatever is executed here and an error is logged to the
         # error handler but it will also bubble up other handles.
         ...
 
 So what if you want to only log errors to the syslog and nothing to
-stderr?  Then you can combine this with a :class:`NullHandler`::
+stderr?  Then you can combine this with a :class:`NullHandler`:
+
+.. code-block:: python
 
     from logbook import SyslogHandler, NullHandler
 
-    error_handler = SyslogHandler('logbook example', level='ERROR')
+    error_handler = SyslogHandler("logbook example", level="ERROR")
     null_handler = NullHandler()
 
     with null_handler.applicationbound():
@@ -141,13 +147,17 @@ processor to a stack like you do with handlers or you can override the
 override the :meth:`.RecordDispatcher.process_record` method.
 
 Here an example that injects the current working directory into the
-`extra` dictionary of a log record::
+`extra` dictionary of a log record:
+
+.. code-block:: python
 
     import os
     from logbook import Processor
 
+
     def inject_cwd(record):
-        record.extra['cwd'] = os.getcwd()
+        record.extra["cwd"] = os.getcwd()
+
 
     with my_handler.applicationbound():
         with Processor(inject_cwd).applicationbound():
@@ -156,15 +166,18 @@ Here an example that injects the current working directory into the
             ...
 
 The alternative is to inject information just for one logger in which case
-you might want to subclass it::
+you might want to subclass it:
+
+.. code-block:: python
 
     import os
+
 
     class MyLogger(logbook.Logger):
 
         def process_record(self, record):
             logbook.Logger.process_record(self, record)
-            record.extra['cwd'] = os.getcwd()
+            record.extra["cwd"] = os.getcwd()
 
 
 Configuring the Logging Format
@@ -204,10 +217,13 @@ using brackets.  Note that if you are accessing an item in the extra dict that
 does not exist, an empty string is returned.
 
 Here is an example configuration that shows the current working directory from
-the example in the previous section::
+the example in the previous section:
 
-    handler = StderrHandler(format_string=
-        '{record.channel}: {record.message) [{record.extra[cwd]}]')
+.. code-block:: python
+
+    handler = StderrHandler(
+        format_string="{record.channel}: {record.message) [{record.extra[cwd]}]"
+    )
 
 In the :mod:`~logbook.more` module there is a formatter that uses the Jinja2
 template engine to format log records, especially useful for multi-line log

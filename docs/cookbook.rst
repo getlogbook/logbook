@@ -11,10 +11,11 @@ Filtering Records Based on Extra Info
     import logbook
 
     if __name__ == "__main__":
+        only_interesting = logbook.FileHandler(
+            "/tmp/interesting.log", filter=lambda r, h: r.extra["interesting"]
+        )
+        everything = logbook.FileHandler("/tmp/all.log", bubble=True)
 
-	only_interesting = logbook.FileHandler('/tmp/interesting.log', filter=lambda r, h: r.extra['interesting'])
-	everything = logbook.FileHandler('/tmp/all.log', bubble=True)
-
-	with only_interesting, everything:
-	    logbook.info('this is interesting', extra={'interesting': True})
-	    logbook.info('this is not interesting')
+        with only_interesting, everything:
+            logbook.info("this is interesting", extra={"interesting": True})
+            logbook.info("this is not interesting")

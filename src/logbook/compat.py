@@ -41,6 +41,7 @@ class redirected_logging:
     unittests::
 
         from logbook.compat import redirected_logging
+
         with redirected_logging():
             ...
     """
@@ -182,8 +183,9 @@ class LoggingHandler(logbook.Handler):
     Example usage::
 
         from logbook.compat import LoggingHandler, warn
+
         with LoggingHandler():
-            warn('This goes to logging')
+            warn("This goes to logging")
     """
 
     def __init__(self, logger=None, level=logbook.NOTSET, filter=None, bubble=False):
@@ -247,6 +249,7 @@ def redirect_warnings():
     .. code-block:: python
 
         from logbook.compat import redirect_warnings
+
         redirect_warnings()
     """
     redirected_warnings().__enter__()
@@ -267,7 +270,7 @@ class redirected_warnings:
         from warnings import warn
 
         with redirected_warnings():
-            warn(DeprecationWarning('logging should be deprecated'))
+            warn(DeprecationWarning("logging should be deprecated"))
     """
 
     def __init__(self):

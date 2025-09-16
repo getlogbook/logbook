@@ -40,7 +40,7 @@ compression = ["Logbook[brotli]"] # Deprecated: use brotli extra directly
 execnet = ["execnet>=1.5"]
 jinja = ["Jinja2>=2.11.3"]
 nteventlog = [
-    "pywin32>=225; sys_platform == 'win32' and python_version=='3.9'",
+    "pywin32>=227; sys_platform == 'win32' and python_version=='3.9'",
     "pywin32>=302; sys_platform == 'win32' and python_version=='3.10'",
     "pywin32>=303; sys_platform == 'win32' and python_version=='3.11'",
     "pywin32>=306; sys_platform == 'win32' and python_version=='3.12'",
@@ -60,6 +60,7 @@ dev = [
     "ruff==0.12.11",
 ]
 docs = [
+    "furo>=2025.7.19",
     "sphinx>=7.4.7",
 ]
 nox = [

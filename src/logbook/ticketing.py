@@ -492,7 +492,8 @@ class TicketingHandler(TicketingBaseHandler):
     this a nice setup for web applications::
 
         from logbook.ticketing import TicketingHandler
-        handler = TicketingHandler('sqlite:////tmp/myapp-logs.db')
+
+        handler = TicketingHandler("sqlite:////tmp/myapp-logs.db")
 
     :param uri: a backend specific string or object to decide where to log to.
     :param app_id: a string with an optional ID for an application.  Can be

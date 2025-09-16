@@ -26,7 +26,9 @@ This is where the Python ``__debug__`` feature comes in handy.  This
 variable is a special flag that is evaluated at the time where Python
 processes your script.  It can eliminate code completely from your script
 so that it does not even exist in the compiled bytecode (requires Python
-to be run with the ``-O`` switch)::
+to be run with the ``-O`` switch):
+
+.. code-block:: python
 
     if __debug__:
         info = get_wallcalculate_debug_info()
@@ -64,7 +66,9 @@ stock logbook setup on pypy, the JIT wouldn't be able to work properly.
 
 In case you don't need the frame based information (name of module,
 calling function, filename, line number) you can disable the introspection
-feature::
+feature:
+
+.. code-block:: python
 
     from logbook import Flags
 
