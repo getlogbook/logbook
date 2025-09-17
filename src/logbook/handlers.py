@@ -738,14 +738,18 @@ class BrotliCompressionHandler(FileHandler):
             bubble=bubble,
         )
         try:
-            from brotli import Compressor
+            import brotlicffi as brotli
         except ImportError:
-            raise RuntimeError(
-                "The brotli library is required for the BrotliCompressionHandler."
-            )
+            try:
+                import brotli
+            except ImportError:
+                raise RuntimeError(
+                    "The brotli/brotlicffi library is required for the "
+                    "BrotliCompressionHandler."
+                )
 
         max_window_size = int(math.log(compression_window_size, 2))
-        self._compressor = Compressor(
+        self._compressor = brotli.Compressor(
             quality=compression_quality, lgwin=max_window_size
         )
 
