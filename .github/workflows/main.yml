@@ -129,3 +129,34 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
       - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
+
+  msrv:
+    name: "Python ${{ matrix.python-version }} with Rust ${{ matrix.rust-version }}"
+    runs-on: "ubuntu-latest"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        rust-version: ["1.74.0"]
+
+    steps:
+      - uses: "actions/checkout@v4"
+      - uses: "astral-sh/setup-uv@v3"
+      - uses: "actions/setup-python@v5"
+        with:
+          python-version: "${{ matrix.python-version }}"
+          allow-prereleases: true
+      - uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921
+        with:
+          toolchain: ${{ matrix.rust-version }}
+      - name: "Install dependencies"
+        run: |
+          set -xe
+          python -VV
+          rustc --version
+          python -m site
+          uv --version
+          uv sync --no-install-project --no-dev --group nox
+      - name: "Run nox"
+        run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not nospeedups' -- -r aR -k 'not redis'"
