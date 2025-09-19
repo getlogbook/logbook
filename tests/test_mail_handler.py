@@ -28,7 +28,7 @@ def test_mail_handler(activation_strategy, logger):
             assert False, fallback.getvalue()  # noqa: B011
 
         assert len(handler.mails) == 1
-        sender, receivers, mail = handler.mails[0]
+        sender, receivers, mail = handler.mails[0]  # noqa: RUF059
         mail = mail.replace("\r", "")
         assert sender == handler.from_addr
         assert "=?utf-8?q?=C3=B8nicode?=" in mail

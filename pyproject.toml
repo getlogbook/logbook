@@ -60,7 +60,7 @@ dev = [
     "gevent>=25.5.1",
     "pytest>=8.4.0",
     "pytest-rerunfailures>=15.1",
-    "ruff==0.12.11",
+    "ruff==0.13.1",
 ]
 docs = [
     "furo>=2025.7.19",

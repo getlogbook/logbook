@@ -27,7 +27,7 @@ repos:
           - --no-annotate
           - --output-file=docs/requirements.txt
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.11 # also update pyproject.toml
+    rev: v0.13.1 # also update pyproject.toml
     hooks:
       - id: ruff-check
         args: [--fix]
