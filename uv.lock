@@ -19,7 +19,7 @@ required-markers = [
     "platform_machine == 'arm64' and sys_platform == 'darwin'",
     "platform_machine == 'x86' and sys_platform == 'win32'",
     "platform_machine == 'AMD64' and sys_platform == 'win32'",
-    "platform_machine == 'arm64' and sys_platform == 'win32'",
+    "platform_machine == 'ARM64' and sys_platform == 'win32'",
 ]
 
 [[package]]
