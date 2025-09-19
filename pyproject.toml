@@ -35,7 +35,10 @@ Documentation = "https://logbook.readthedocs.io"
 
 [project.optional-dependencies]
 all = ["Logbook[brotli,execnet,jinja,nteventlog,redis,sqlalchemy,zmq]"]
-brotli = ["brotli>=1.0.1"]
+brotli = [
+    "brotli>=1.1.0; platform_python_implementation == 'CPython'",
+    "brotlicffi>=1.1.0.0; platform_python_implementation != 'CPython'",
+]
 compression = ["Logbook[brotli]"] # Deprecated: use brotli extra directly
 execnet = ["execnet>=1.5"]
 jinja = ["Jinja2>=2.11.3"]

@@ -3,12 +3,16 @@ import os
 import time
 from datetime import datetime
 
-import brotli
 import pytest
 
 import logbook
 
 from .utils import LETTERS, capturing_stderr_context
+
+try:
+    import brotlicffi as brotli
+except ImportError:
+    import brotli
 
 
 def test_file_handler(logfile, activation_strategy, logger):
