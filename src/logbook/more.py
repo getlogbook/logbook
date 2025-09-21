@@ -82,7 +82,7 @@ class CouchDBBackend(BackendBase):
 
         ticket = record.to_dict()
         ticket["time"] = ticket["time"].isoformat() + "Z"
-        ticket_id, _ = db.save(ticket)
+        ticket_id, _ = db.save(ticket)  # noqa: RUF059
 
         db.save(ticket)
 
@@ -243,7 +243,7 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
     def tweet(self, status):
         """Tweets a given status.  Status must not exceed 140 chars."""
         client = self.make_client()
-        resp, content = client.request(
+        resp, content = client.request(  # noqa: RUF059
             NEW_TWEET_URL,
             "POST",
             body=urlencode({"status": status.encode("utf-8")}),
