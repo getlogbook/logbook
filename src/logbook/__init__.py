@@ -10,8 +10,8 @@ and web applications alike.
 """
 
 import os
+from typing import Any
 
-from .__version__ import __version__  # noqa: F401
 from .base import (
     CRITICAL,
     DEBUG,
@@ -135,3 +135,21 @@ __all__ = (
     "warn",
     "warning",
 )
+
+
+def __getattr__(name: str) -> Any:
+    if name != "__version__":
+        msg = f"module '{__name__}' has no attribute '{name}'"
+        raise AttributeError(msg)
+
+    import warnings
+    from importlib.metadata import version
+
+    warnings.warn(
+        "logbook.__version__ is deprecated and will be removed in a "
+        "future release. Use importlib.metadata instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    return version("Logbook")

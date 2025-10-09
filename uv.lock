@@ -878,6 +878,7 @@ wheels = [
 
 [[package]]
 name = "logbook"
+version = "1.8.2"
 source = { editable = "." }
 dependencies = [
     { name = "typing-extensions" },
