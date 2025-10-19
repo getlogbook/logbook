@@ -7,7 +7,7 @@ import logbook
 
 
 def test_basic_logging(active_handler, logger):
-    logger.warn("This is a warning.  Nice hah?")
+    logger.warning("This is a warning.  Nice hah?")
 
     assert active_handler.has_warning("This is a warning.  Nice hah?")
     assert active_handler.formatted_records == [

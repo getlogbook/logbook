@@ -43,7 +43,7 @@ the logger for as long this logger class is not garbage collected:
 >>> logger = Logger('Console')
 >>> handler = TestHandler()
 >>> handler.push_application()
->>> logger.warn('A warning')
+>>> logger.warning('A warning')
 >>> handler.records[0].dispatcher is logger
 True
 

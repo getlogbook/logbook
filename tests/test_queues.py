@@ -22,7 +22,7 @@ def test_zeromq_handler(logger, handlers, subscriber):
     for test in tests:
         for handler in handlers:
             with handler:
-                logger.warn(test)
+                logger.warning(test)
                 record = subscriber.recv()
                 assert record.message == test
                 assert record.channel == logger.name
@@ -35,7 +35,7 @@ def test_zeromq_background_thread(logger, handlers, subscriber):
 
     for handler in handlers:
         with handler:
-            logger.warn("This is a warning")
+            logger.warning("This is a warning")
             logger.error("This is an error")
 
     # stop the controller.  This will also stop the loop and join the
@@ -68,7 +68,7 @@ class MultiProcessingHandlerSendBack:
         handler = MultiProcessingHandler(self.queue)
         handler.push_thread()
         try:
-            logbook.warn("Hello World")
+            logbook.warning("Hello World")
         finally:
             handler.pop_thread()
 
@@ -114,7 +114,7 @@ def test_threaded_wrapper_handler(logger):
 
     test_handler = BatchTestHandler()
     with ThreadedWrapperHandler(test_handler) as handler:
-        logger.warn("Just testing")
+        logger.warning("Just testing")
         logger.error("More testing")
 
     # give it some time to sync up
@@ -206,7 +206,7 @@ class SubscriberGroupSendBack:
         from logbook.queues import MultiProcessingHandler
 
         with MultiProcessingHandler(self.queue):
-            logbook.warn(self.message)
+            logbook.warning(self.message)
 
 
 @require_module("multiprocessing")

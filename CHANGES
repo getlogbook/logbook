@@ -70,6 +70,7 @@ Deprecated
 - ``logbook.concurrency.new_fine_grained_lock``.
 - The ``compression`` extra. Replace ``Logbook[compression]`` with
   ``Logbook[brotli]`` if you are using ``BrotliCompressionHandler``
+- ``Logger.warn``. Use ``Logger.warning`` instead.
 
 Fixed
 ~~~~~

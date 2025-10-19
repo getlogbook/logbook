@@ -14,10 +14,10 @@ def test_timedate_format(activation_strategy, logger):
     with activation_strategy(handler):
         logbook.set_datetime_format("utc")
         try:
-            logger.warn("This is a warning.")
+            logger.warning("This is a warning.")
             time_utc = handler.records[0].time
             logbook.set_datetime_format("local")
-            logger.warn("This is a warning.")
+            logger.warning("This is a warning.")
             time_local = handler.records[1].time
         finally:
             # put back the default time factory
@@ -73,7 +73,7 @@ def test_tz_aware(activation_strategy, logger):
     with activation_strategy(handler):
         logbook.set_datetime_format(utc_tz)
         try:
-            logger.warn("this is a warning.")
+            logger.warning("this is a warning.")
             record = handler.records[0]
         finally:
             # put back the default time factory

@@ -33,7 +33,7 @@ def test_exc_info_exception_instance(logger):
 
 
 def test_extradict(active_handler, logger):
-    logger.warn("Test warning")
+    logger.warning("Test warning")
     record = active_handler.records[0]
     record.extra["existing"] = "foo"
     assert record.extra["nonexisting"] == ""
@@ -41,18 +41,18 @@ def test_extradict(active_handler, logger):
 
 
 def test_calling_frame(active_handler, logger):
-    logger.warn("test")
+    logger.warning("test")
     assert active_handler.records[0].calling_frame == sys._getframe()
 
 
 def test_frame_correction(active_handler, logger):
     def inner():
-        logger.warn("test", frame_correction=+1)
+        logger.warning("test", frame_correction=+1)
 
     inner()
     assert active_handler.records[0].calling_frame == sys._getframe()
 
 
 def test_dispatcher(active_handler, logger):
-    logger.warn("Logbook is too awesome for stdlib")
+    logger.warning("Logbook is too awesome for stdlib")
     assert active_handler.records[0].dispatcher == logger

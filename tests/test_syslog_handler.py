@@ -57,7 +57,7 @@ def test_syslog_handler(
         handler = logbook.SyslogHandler(app_name, inc.getsockname(), socktype=socktype)
 
         with activation_strategy(handler):
-            logger.warn("Syslog is weird")
+            logger.warning("Syslog is weird")
 
         if socktype == socket.SOCK_STREAM:
             with closing(inc.accept()[0]) as inc2:

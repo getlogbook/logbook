@@ -9,7 +9,7 @@ def test_groups(logger):
     group.level = logbook.ERROR
     group.add_logger(logger)
     with logbook.TestHandler() as handler:
-        logger.warn("A warning")
+        logger.warning("A warning")
         logger.error("An error")
     assert not handler.has_warning("A warning")
     assert handler.has_error("An error")
@@ -29,8 +29,8 @@ def test_group_disabled():
     group.disable()
 
     with logbook.TestHandler() as handler:
-        logger1.warn("Warning 1")
-        logger2.warn("Warning 2")
+        logger1.warning("Warning 1")
+        logger2.warning("Warning 2")
 
     assert not handler.has_warnings
 
@@ -39,8 +39,8 @@ def test_group_disabled():
     group.enable()
 
     with logbook.TestHandler() as handler:
-        logger1.warn("Warning 1")
-        logger2.warn("Warning 2")
+        logger1.warning("Warning 1")
+        logger2.warning("Warning 2")
 
     assert handler.has_warning("Warning 1")
     assert handler.has_warning("Warning 2")
@@ -52,8 +52,8 @@ def test_group_disabled():
     logger1.enable()
 
     with logbook.TestHandler() as handler:
-        logger1.warn("Warning 1")
-        logger2.warn("Warning 2")
+        logger1.warning("Warning 1")
+        logger2.warning("Warning 2")
 
     assert handler.has_warning("Warning 1")
     assert not handler.has_warning("Warning 2")
@@ -63,8 +63,8 @@ def test_group_disabled():
     group.disable(force=True)
 
     with logbook.TestHandler() as handler:
-        logger1.warn("Warning 1")
-        logger2.warn("Warning 2")
+        logger1.warning("Warning 1")
+        logger2.warning("Warning 2")
 
     assert not handler.has_warning("Warning 1")
     assert not handler.has_warning("Warning 2")
@@ -74,8 +74,8 @@ def test_group_disabled():
     group.enable()
 
     with logbook.TestHandler() as handler:
-        logger1.warn("Warning 1")
-        logger2.warn("Warning 2")
+        logger1.warning("Warning 1")
+        logger2.warning("Warning 2")
 
     assert not handler.has_warning("Warning 1")
     assert handler.has_warning("Warning 2")
@@ -85,8 +85,8 @@ def test_group_disabled():
     group.enable(force=True)
 
     with logbook.TestHandler() as handler:
-        logger1.warn("Warning 1")
-        logger2.warn("Warning 2")
+        logger1.warning("Warning 1")
+        logger2.warning("Warning 2")
 
     assert handler.has_warning("Warning 1")
     assert handler.has_warning("Warning 2")

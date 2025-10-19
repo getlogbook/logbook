@@ -1084,7 +1084,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
         def my_test():
             with logbook.TestHandler() as handler:
-                logger.warn("A warning")
+                logger.warning("A warning")
                 assert logger.has_warning("A warning")
                 ...
     """

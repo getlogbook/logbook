@@ -57,7 +57,7 @@ as unicode strings:
 >>> logger = Logger('Testing')
 >>> handler = TestHandler()
 >>> handler.push_context()
->>> logger.warn('Hello World')
+>>> logger.warning('Hello World')
 >>> handler.records
 [<logbook.base.LogRecord object at 0x100640cd0>]
 >>> handler.formatted_records

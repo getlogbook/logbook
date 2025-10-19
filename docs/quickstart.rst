@@ -10,7 +10,7 @@ class, create yourself a logger and you are set:
 >>> import sys
 >>> StreamHandler(sys.stdout).push_application()
 >>> log = Logger('My Awesome Logger')
->>> log.warn('This is too cool for stdlib')
+>>> log.warning('This is too cool for stdlib')
 [2015-10-05 19:02:03.575723] WARNING: My Awesome Logger: This is too cool for stdlib
 
 A logger is a so-called :class:`~logbook.base.RecordDispatcher`, which is
@@ -32,7 +32,6 @@ levels -- and their suggested meaning -- are:
 * ``debug`` -- for debug messages
 
 Each of these levels is available as method on the :class:`Logger`.
-Additionally the ``warning`` level is aliased as :meth:`~Logger.warn`.
 
 Alternatively, there is the :meth:`~Logger.log` method that takes the logging
 level (string or integer) as an argument.
