@@ -18,6 +18,12 @@ ZeroMQ
    :members:
    :inherited-members:
 
+Redis
+-----
+
+.. autoclass:: RedisHandler
+   :members:
+
 AMQP Message Queues
 -------------------
 

@@ -12,8 +12,8 @@ beyond the scope of Logbook itself or depend on external libraries.
 
 .. autofunction:: create_notification_handler
 
-OSX Specific Handlers
----------------------
+macOS Specific Handlers
+-----------------------
 
 .. autoclass:: GrowlHandler
    :members:

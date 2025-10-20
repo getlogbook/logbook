@@ -67,7 +67,7 @@ errors happened during a WSGI application:
 
 .. code-block:: python
 
-    from logbook import MailHandler
+    from logbook import MailHandler, Processor
 
     format_string = """\
     Subject: Application Error at {record.extra[url]}
@@ -101,7 +101,7 @@ errors happened during a WSGI application:
                 ip=request.remote_addr, method=request.method, url=request.url
             )
 
-        with mail_handler.threadbound(processor=inject_info):
+        with mail_handler, Processor(inject_info):
             # standard WSGI processing happens here.  If an error
             # is logged, a mail will be sent to the admin on
             # example.com
@@ -154,7 +154,7 @@ it was a single handler:
 
 .. code-block:: python
 
-    with setup.threadbound():
+    with setup:
         # everything here is handled as specified by the rules above.
         ...
 

@@ -41,20 +41,14 @@ of the execution to figure out where to deliver it.
 Context Sensitive Handler Stack
 -------------------------------
 
-Python has two builtin ways to express implicit context: processes and
-threads.  What this means is that if you have a function that is passed no
-arguments at all, you can figure out what thread called the function and
-what process you are sitting in.  Logbook supports this context
-information and lets you bind a handler (or more!) for such a context.
+Logbook's context handling is built on top of Python's :mod:`contextvars` module,
+allowing it to work seamlessly across threaded and concurrent code alike. T
 
-This is how this works: there are two stacks available at all times in
-Logbook.  The first stack is the process wide stack.  It is manipulated
-with :class:`Handler.push_application` and
-:class:`Handler.pop_application` (and of course the context manager
-:class:`Handler.applicationbound`).  Then there is a second stack which is
-per thread.  The manipulation of that stack happens with
-:class:`Handler.push_thread`, :class:`Handler.pop_thread` and the
-:class:`Handler.threadbound` contextmanager.
+There is a global stack (manipulated
+with :meth:`Handler.push_application`, :meth:`Handler.pop_application`, and
+:meth:`Handler.applicationbound`), and a stack based on contextvars (manipulated
+with :meth:`Handler.push_context`, :meth:`Handler.pop_context`, and the
+default :meth:`Handler` contextmanager).
 
 Let's take a WSGI web application as first example.  When a request comes
 in your WSGI server will most likely do one of the following two things:
@@ -69,13 +63,13 @@ like this:
 
     def my_application(environ, start_response):
         my_handler = FileHandler(...)
-        my_handler.push_thread()
+        my_handler.push_context()
         try:
             # whatever happens here in terms of logging is handled
             # by the `my_handler` handler.
             ...
         finally:
-            my_handler.pop_thread()
+            my_handler.pop_context()
 
 Because this is a lot to type, you can also use the `with` statement to do
 the very same:
@@ -83,7 +77,7 @@ the very same:
 .. code-block:: python
 
     def my_application(environ, start_response):
-        with FileHandler(...).threadbound() as my_handler:
+        with FileHandler(...) as my_handler:
             # whatever happens here in terms of logging is handled
             # by the `my_handler` handler.
             ...
@@ -193,7 +187,7 @@ A handler can then use this information to filter out input:
         return record.extra.get("kind") != "input"
 
 
-    with MyHandler().threadbound(filter=no_input):
+    with MyHandler(filter=no_input):
         ...
 
 Injecting Context-Sensitive Information
@@ -215,8 +209,8 @@ binding a handler to a thread:
         def inject_request_info(record, handler):
             record.extra["path"] = environ["PATH_INFO"]
 
-        with Processor(inject_request_info).threadbound():
-            with my_handler.threadbound():
+        with Processor(inject_request_info):
+            with my_handler:
                 # rest of the request code here
                 ...
 
