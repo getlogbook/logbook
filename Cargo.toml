@@ -13,4 +13,4 @@ rust-version = "1.74"
 license = "BSD-3-Clause"
 
 [workspace.dependencies]
-pyo3 = "0.26"
+pyo3 = "0.27"
