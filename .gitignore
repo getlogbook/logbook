@@ -66,3 +66,6 @@ env*
 flycheck-*
 .idea
 .python-version
+.rust-cov/
+*.lcov
+*.profdata
