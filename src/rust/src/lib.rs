@@ -1,6 +1,7 @@
 #![deny(rust_2018_idioms)]
 
 use std::sync::atomic::{self, AtomicUsize};
+use std::cmp::Reverse;
 
 use contextvars::{PyContextVar, PyContextVarMethods};
 use pyo3::exceptions::{
@@ -187,7 +188,7 @@ impl ContextStackManager {
                     .chain(stack.try_iter()?)
                     .map(|item| item.and_then(|item| item.extract()))
                     .collect::<PyResult<_>>()?;
-                stack_objects.sort_by_key(|item| item.0);
+                stack_objects.sort_by_key(|item| Reverse(item.0));
                 let objects = PyTuple::new(py, stack_objects.into_iter().map(|item| item.1))?;
 
                 cache.set_item(stack, objects.clone())?;
