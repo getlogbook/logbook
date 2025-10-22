@@ -34,7 +34,6 @@ try:
     from logbook._speedups import (
         ContextStackManager,
         StackedObject,
-        _missing,
         group_reflected_property,
     )
 
@@ -43,7 +42,6 @@ except ImportError:
     from logbook._fallback import (
         ContextStackManager,
         StackedObject,
-        _missing,
         group_reflected_property,
     )
 

@@ -1,6 +1,7 @@
 #![deny(rust_2018_idioms)]
 
 use std::sync::atomic::{self, AtomicUsize};
+use std::cmp::Reverse;
 
 use contextvars::{PyContextVar, PyContextVarMethods};
 use pyo3::exceptions::{
@@ -137,7 +138,8 @@ impl ContextStackManager {
 #[pymethods]
 impl ContextStackManager {
     #[new]
-    fn __new__(py: Python<'_>) -> PyResult<Self> {
+    #[pyo3(signature = (*args, **kwargs))]
+    fn __new__(py: Python<'_>, args: &Bound<'_, PyAny>, kwargs: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
         let stack = Bound::new(py, FrozenSequence::empty(py))?;
         Ok(Self {
             global: PyList::empty(py).unbind(),
@@ -186,7 +188,7 @@ impl ContextStackManager {
                     .chain(stack.try_iter()?)
                     .map(|item| item.and_then(|item| item.extract()))
                     .collect::<PyResult<_>>()?;
-                stack_objects.sort_by_key(|item| item.0);
+                stack_objects.sort_by_key(|item| Reverse(item.0));
                 let objects = PyTuple::new(py, stack_objects.into_iter().map(|item| item.1))?;
 
                 cache.set_item(stack, objects.clone())?;
@@ -288,7 +290,8 @@ pub struct StackedObject;
 #[pymethods]
 impl StackedObject {
     #[new]
-    fn __new__() -> Self {
+    #[pyo3(signature = (*args, **kwargs))]
+    fn __new__(args: &Bound<'_, PyAny>, kwargs: Option<&Bound<'_, PyAny>>) -> Self {
         Self
     }
 
