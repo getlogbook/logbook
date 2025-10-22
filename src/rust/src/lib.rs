@@ -142,8 +142,8 @@ impl ContextStackManager {
 #[pymethods]
 impl ContextStackManager {
     #[new]
-    #[pyo3(signature = (*args, **kwargs))]
-    fn __new__(py: Python<'_>, args: &Bound<'_, PyAny>, kwargs: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __new__(py: Python<'_>, _args: &Bound<'_, PyAny>, _kwargs: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
         let stack = Bound::new(py, FrozenSequence::empty(py))?;
         Ok(Self {
             global: PyList::empty(py).unbind(),
@@ -294,8 +294,8 @@ pub struct StackedObject;
 #[pymethods]
 impl StackedObject {
     #[new]
-    #[pyo3(signature = (*args, **kwargs))]
-    fn __new__(args: &Bound<'_, PyAny>, kwargs: Option<&Bound<'_, PyAny>>) -> Self {
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __new__(_args: &Bound<'_, PyAny>, _kwargs: Option<&Bound<'_, PyAny>>) -> Self {
         Self
     }
 
