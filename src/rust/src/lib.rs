@@ -60,10 +60,14 @@ impl FrozenSequence {
 #[pymethods]
 impl FrozenSequence {
     #[new]
+    #[pyo3(signature = (iterable = None))]
     fn __new__(py: Python<'_>, iterable: Option<Bound<'_, PyAny>>) -> PyResult<Self> {
         let tuple = match iterable {
             None => PyTuple::empty(py),
-            Some(it) => PyTuple::new(py, it.try_iter())?,
+            Some(it) => {
+                let it: Vec<Bound<'_, PyAny>> = it.try_iter()?.collect::<PyResult<_>>()?;
+                PyTuple::new(py, it)?
+            },
         };
         Ok(Self::new(tuple))
     }

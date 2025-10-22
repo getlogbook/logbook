@@ -30,3 +30,18 @@ def test_group_reflected_property(speedups_module):
     assert a.foo == "set"
     del a.foo
     assert a.foo == "group"
+
+
+def test_frozen_sequence(speedups_module):
+    items = [1, 2, 3]
+    seq = speedups_module.FrozenSequence(iter(items))
+    assert list(seq) == items
+    seq = speedups_module.FrozenSequence(items)
+    assert list(seq) == items
+    assert len(seq) == 3
+    assert list(reversed(seq)) == [3, 2, 1]
+    assert 1 in seq
+    assert seq[0] == 1
+    assert seq[1:] == speedups_module.FrozenSequence([2, 3])
+    assert repr(seq) == "FrozenSequence((1, 2, 3))"
+    assert repr(speedups_module.FrozenSequence()) == "FrozenSequence()"
