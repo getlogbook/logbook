@@ -73,6 +73,7 @@ def tests(session: nox.Session, speedups: bool) -> None:
         env={
             "UV_PROJECT_ENVIRONMENT": session.virtualenv.location,
             "DISABLE_LOGBOOK_CEXT": "" if speedups else "1",
+            "SETUPTOOLS_RUST_CARGO_PROFILE": "release",
         },
     )
 
@@ -98,7 +99,10 @@ def test_min_deps(session: nox.Session) -> None:
             "--no-editable",
             "--resolution=lowest-direct",
             f"--python={session.virtualenv.location}",
-            env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
+            env={
+                "UV_PROJECT_ENVIRONMENT": session.virtualenv.location,
+                "SETUPTOOLS_RUST_CARGO_PROFILE": "release",
+            },
         )
 
         session.run("pytest", *session.posargs)
@@ -120,7 +124,10 @@ def test_latest(session: nox.Session) -> None:
         "--upgrade",
         ".[all]",
         f"--python={session.virtualenv.location}",
-        env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
+        env={
+            "UV_PROJECT_ENVIRONMENT": session.virtualenv.location,
+            "SETUPTOOLS_RUST_CARGO_PROFILE": "release",
+        },
     )
 
     session.run("pytest", *session.posargs)
