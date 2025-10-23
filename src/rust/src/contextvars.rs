@@ -190,6 +190,8 @@ mod tests {
             assert!(var.get(Some(&bar))?.unwrap().is(&baz));
             assert!(token.var()?.is(&var));
             assert!(token.old_value()?.is_none());
+            let token2 = var.set(&foo)?;
+            assert!(token2.old_value()?.unwrap().is(&baz));
             var.reset(&token)?;
             assert!(var.get(None)?.is_none());
             assert!(var.get(Some(&bar))?.unwrap().is(&bar));

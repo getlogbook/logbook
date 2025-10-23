@@ -178,7 +178,7 @@ class ContextStackManager(Generic[T]):
         stack = self._context_stack.get()
         objects = self._cache.get(stack)
         if objects is None:
-            if len(self._cache) > _MAX_CONTEXT_OBJECT_CACHE:
+            if len(self._cache) >= _MAX_CONTEXT_OBJECT_CACHE:
                 self._cache.clear()
             stack_objects = sorted(
                 chain(

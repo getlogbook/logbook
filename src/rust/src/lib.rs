@@ -186,7 +186,7 @@ impl ContextStackManager {
         match cache.get_item(&stack) {
             Ok(objects) => Ok(objects.try_iter()?.unbind()),
             Err(err) if err.is_instance(py, &py.get_type::<PyKeyError>()) => {
-                if cache.len()? > MAX_CONTEXT_OBJECT_CACHE {
+                if cache.len()? >= MAX_CONTEXT_OBJECT_CACHE {
                     cache.call_method0(intern!(py, "clear"))?;
                 }
 
@@ -452,6 +452,7 @@ fn _speedups(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ContextStackManager>()?;
     m.add_class::<StackedObject>()?;
     m.add_class::<PyGroupReflectedProperty>()?;
+    m.setattr("_MAX_CONTEXT_OBJECT_CACHE", MAX_CONTEXT_OBJECT_CACHE)?;
 
     Ok(())
 }
