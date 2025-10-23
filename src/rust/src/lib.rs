@@ -1,7 +1,7 @@
 #![deny(rust_2018_idioms)]
 
-use std::sync::atomic::{self, AtomicUsize};
 use std::cmp::Reverse;
+use std::sync::atomic::{self, AtomicUsize};
 
 use contextvars::{PyContextVar, PyContextVarMethods};
 use pyo3::exceptions::{
@@ -10,7 +10,7 @@ use pyo3::exceptions::{
 use pyo3::prelude::*;
 use pyo3::sync::PyOnceLock;
 use pyo3::types::{PyIterator, PyList, PyMapping, PyString, PyTraceback, PyTuple, PyType};
-use pyo3::{IntoPyObjectExt, intern};
+use pyo3::{intern, IntoPyObjectExt};
 
 mod contextvars;
 
@@ -67,7 +67,7 @@ impl FrozenSequence {
             Some(it) => {
                 let it: Vec<Bound<'_, PyAny>> = it.try_iter()?.collect::<PyResult<_>>()?;
                 PyTuple::new(py, it)?
-            },
+            }
         };
         Ok(Self::new(tuple))
     }
@@ -143,7 +143,11 @@ impl ContextStackManager {
 impl ContextStackManager {
     #[new]
     #[pyo3(signature = (*_args, **_kwargs))]
-    fn __new__(py: Python<'_>, _args: &Bound<'_, PyAny>, _kwargs: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
+    fn __new__(
+        py: Python<'_>,
+        _args: &Bound<'_, PyAny>,
+        _kwargs: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<Self> {
         let stack = Bound::new(py, FrozenSequence::empty(py))?;
         Ok(Self {
             global: PyList::empty(py).unbind(),

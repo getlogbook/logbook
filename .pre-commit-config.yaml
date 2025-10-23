@@ -39,3 +39,17 @@ repos:
         args: [--rst-literal-blocks]
         additional_dependencies:
           - black==25.1
+  - repo: local
+    hooks:
+      - id: rustfmt
+        name: rustfmt
+        entry: cargo fmt --
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: clippy
+        name: clippy
+        entry: cargo clippy --quiet -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
