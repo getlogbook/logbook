@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: pyca/cryptography contributors
 # SPDX-FileCopyrightText: Frazer McLean
 import glob
+import json
 import re
 import sys
 from collections.abc import Iterator
@@ -72,6 +73,7 @@ def tests(session: nox.Session, speedups: bool) -> None:
         env={
             "UV_PROJECT_ENVIRONMENT": session.virtualenv.location,
             "DISABLE_LOGBOOK_CEXT": "" if speedups else "1",
+            "SETUPTOOLS_RUST_CARGO_PROFILE": "release",
         },
     )
 
@@ -97,7 +99,10 @@ def test_min_deps(session: nox.Session) -> None:
             "--no-editable",
             "--resolution=lowest-direct",
             f"--python={session.virtualenv.location}",
-            env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
+            env={
+                "UV_PROJECT_ENVIRONMENT": session.virtualenv.location,
+                "SETUPTOOLS_RUST_CARGO_PROFILE": "release",
+            },
         )
 
         session.run("pytest", *session.posargs)
@@ -119,7 +124,10 @@ def test_latest(session: nox.Session) -> None:
         "--upgrade",
         ".[all]",
         f"--python={session.virtualenv.location}",
-        env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
+        env={
+            "UV_PROJECT_ENVIRONMENT": session.virtualenv.location,
+            "SETUPTOOLS_RUST_CARGO_PROFILE": "release",
+        },
     )
 
     session.run("pytest", *session.posargs)
@@ -127,13 +135,38 @@ def test_latest(session: nox.Session) -> None:
 
 @nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"])
 def rust(session: nox.Session) -> None:
-    session.run(
+    prof_location = Path(".rust-cov", str(uuid4())).absolute()
+    rustflags = session.env.get("RUSTFLAGS", "")
+    rustflags = f"-Cinstrument-coverage {rustflags}"
+    session.env.update(
+        {
+            "RUSTFLAGS": rustflags,
+            "LLVM_PROFILE_FILE": str(prof_location / "cov-%p.profraw"),
+        }
+    )
+
+    build_output = session.run(
         "cargo",
         "test",
         "--no-default-features",
         "--all",
+        "--no-run",
+        "--quiet",
+        "--message-format=json",
         external=True,
+        silent=True,
     )
+    session.run("cargo", "test", "--no-default-features", "--all", external=True)
+
+    if build_output is not None:
+        assert isinstance(build_output, str)
+        rust_tests = []
+        for line in build_output.splitlines():
+            data = json.loads(line)
+            if data.get("profile", {}).get("test", False):
+                rust_tests.extend(data["filenames"])
+
+        process_rust_coverage(session, rust_tests, prof_location)
 
 
 @contextmanager

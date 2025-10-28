@@ -5,7 +5,7 @@ use pyo3::ffi::{self, PyTypeObject};
 use pyo3::prelude::*;
 use pyo3::sync::PyOnceLock;
 use pyo3::types::DerefToPyAny;
-use pyo3::{IntoPyObjectExt, PyTypeInfo, intern};
+use pyo3::{intern, IntoPyObjectExt, PyTypeInfo};
 
 #[repr(transparent)]
 pub struct PyContextVar(PyAny);
@@ -64,7 +64,7 @@ impl PyContextVar {
 
 pub trait PyContextVarMethods<'py> {
     fn get(&self, default_value: Option<&Bound<'py, PyAny>>)
-    -> PyResult<Option<Bound<'py, PyAny>>>;
+        -> PyResult<Option<Bound<'py, PyAny>>>;
     fn set<V>(&self, value: V) -> PyResult<Bound<'py, PyContextToken>>
     where
         V: IntoPyObject<'py>;
@@ -190,6 +190,8 @@ mod tests {
             assert!(var.get(Some(&bar))?.unwrap().is(&baz));
             assert!(token.var()?.is(&var));
             assert!(token.old_value()?.is_none());
+            let token2 = var.set(&foo)?;
+            assert!(token2.old_value()?.unwrap().is(&baz));
             var.reset(&token)?;
             assert!(var.get(None)?.is_none());
             assert!(var.get(Some(&bar))?.unwrap().is(&bar));

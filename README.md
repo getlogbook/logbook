@@ -6,6 +6,7 @@
 ![Supported Python Versions][pyver-img]
 [![GitHub Actions][gha-img]][gha]
 [![PyPI Downloads][downloads-img]][pypi]
+[![codecov](https://codecov.io/github/getlogbook/logbook/graph/badge.svg?token=vDtvTkWVYW)](https://codecov.io/github/getlogbook/logbook)
 
 Logbook is a nice logging replacement.
 

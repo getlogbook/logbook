@@ -145,7 +145,11 @@ class FrozenSequence(Sequence[T_co]):
         return self._hash
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self._items!r})"
+        if self._items:
+            items = repr(self._items)
+        else:
+            items = ""
+        return f"{self.__class__.__name__}({items})"
 
 
 FrozenStack = TypeAliasType(
@@ -174,7 +178,7 @@ class ContextStackManager(Generic[T]):
         stack = self._context_stack.get()
         objects = self._cache.get(stack)
         if objects is None:
-            if len(self._cache) > _MAX_CONTEXT_OBJECT_CACHE:
+            if len(self._cache) >= _MAX_CONTEXT_OBJECT_CACHE:
                 self._cache.clear()
             stack_objects = sorted(
                 chain(

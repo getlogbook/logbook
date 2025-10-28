@@ -1,7 +1,7 @@
 #![deny(rust_2018_idioms)]
 
-use std::sync::atomic::{self, AtomicUsize};
 use std::cmp::Reverse;
+use std::sync::atomic::{self, AtomicUsize};
 
 use contextvars::{PyContextVar, PyContextVarMethods};
 use pyo3::exceptions::{
@@ -10,7 +10,7 @@ use pyo3::exceptions::{
 use pyo3::prelude::*;
 use pyo3::sync::PyOnceLock;
 use pyo3::types::{PyIterator, PyList, PyMapping, PyString, PyTraceback, PyTuple, PyType};
-use pyo3::{IntoPyObjectExt, intern};
+use pyo3::{intern, IntoPyObjectExt};
 
 mod contextvars;
 
@@ -60,10 +60,14 @@ impl FrozenSequence {
 #[pymethods]
 impl FrozenSequence {
     #[new]
+    #[pyo3(signature = (iterable = None))]
     fn __new__(py: Python<'_>, iterable: Option<Bound<'_, PyAny>>) -> PyResult<Self> {
         let tuple = match iterable {
             None => PyTuple::empty(py),
-            Some(it) => PyTuple::new(py, it.try_iter())?,
+            Some(it) => {
+                let it: Vec<Bound<'_, PyAny>> = it.try_iter()?.collect::<PyResult<_>>()?;
+                PyTuple::new(py, it)?
+            }
         };
         Ok(Self::new(tuple))
     }
@@ -138,8 +142,12 @@ impl ContextStackManager {
 #[pymethods]
 impl ContextStackManager {
     #[new]
-    #[pyo3(signature = (*args, **kwargs))]
-    fn __new__(py: Python<'_>, args: &Bound<'_, PyAny>, kwargs: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __new__(
+        py: Python<'_>,
+        _args: &Bound<'_, PyAny>,
+        _kwargs: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<Self> {
         let stack = Bound::new(py, FrozenSequence::empty(py))?;
         Ok(Self {
             global: PyList::empty(py).unbind(),
@@ -178,7 +186,7 @@ impl ContextStackManager {
         match cache.get_item(&stack) {
             Ok(objects) => Ok(objects.try_iter()?.unbind()),
             Err(err) if err.is_instance(py, &py.get_type::<PyKeyError>()) => {
-                if cache.len()? > MAX_CONTEXT_OBJECT_CACHE {
+                if cache.len()? >= MAX_CONTEXT_OBJECT_CACHE {
                     cache.call_method0(intern!(py, "clear"))?;
                 }
 
@@ -290,8 +298,8 @@ pub struct StackedObject;
 #[pymethods]
 impl StackedObject {
     #[new]
-    #[pyo3(signature = (*args, **kwargs))]
-    fn __new__(args: &Bound<'_, PyAny>, kwargs: Option<&Bound<'_, PyAny>>) -> Self {
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn __new__(_args: &Bound<'_, PyAny>, _kwargs: Option<&Bound<'_, PyAny>>) -> Self {
         Self
     }
 
@@ -444,6 +452,7 @@ fn _speedups(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ContextStackManager>()?;
     m.add_class::<StackedObject>()?;
     m.add_class::<PyGroupReflectedProperty>()?;
+    m.setattr("_MAX_CONTEXT_OBJECT_CACHE", MAX_CONTEXT_OBJECT_CACHE)?;
 
     Ok(())
 }
