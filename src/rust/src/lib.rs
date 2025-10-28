@@ -93,7 +93,7 @@ impl FrozenSequence {
 
     fn __getitem__(&self, py: Python<'_>, index: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         let result = self.items.bind(py).as_any().get_item(index)?;
-        match result.downcast_into::<PyTuple>() {
+        match result.cast_into::<PyTuple>() {
             Ok(t) => {
                 let sliced = FrozenSequence::new(t);
                 Ok(Py::new(py, sliced)?.into_any())
@@ -155,7 +155,7 @@ impl ContextStackManager {
             cache: WEAKREF_WEAK_KEY_DICTIONARY
                 .get(py)?
                 .call0()?
-                .downcast_into()?
+                .cast_into()?
                 .unbind(),
             stack_count: AtomicUsize::new(0),
         })
@@ -181,7 +181,7 @@ impl ContextStackManager {
         let Some(stack) = context_stack.get(None)? else {
             return Err(PyLookupError::new_err(context_stack.clone().unbind()));
         };
-        let stack = stack.downcast_into::<FrozenSequence>()?;
+        let stack = stack.cast_into::<FrozenSequence>()?;
         let cache = self.cache.bind(py);
         match cache.get_item(&stack) {
             Ok(objects) => Ok(objects.try_iter()?.unbind()),
@@ -348,9 +348,14 @@ pub enum Maybe<T> {
     Missing,
 }
 
-impl<'py> FromPyObject<'py> for Maybe<Py<PyAny>> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(Maybe::Some(ob.clone().unbind()))
+impl<'a, 'py, T> FromPyObject<'a, 'py> for Maybe<T>
+where
+    T: FromPyObject<'a, 'py>,
+{
+    type Error = T::Error;
+
+    fn extract(obj: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        obj.extract().map(Maybe::Some)
     }
 }
 
@@ -385,7 +390,7 @@ impl PyGroupReflectedProperty {
         _owner: Option<&Bound<'_, PyType>>,
         name: Bound<'_, PyString>,
     ) -> PyResult<()> {
-        self.attr_name = Some(intern!(py, "_").add(&name)?.downcast_into()?.unbind());
+        self.attr_name = Some(intern!(py, "_").add(&name)?.cast_into()?.unbind());
         self.prop_name = Some(name.unbind());
         Ok(())
     }

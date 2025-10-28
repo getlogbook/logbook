@@ -41,7 +41,7 @@ impl PyContextVar {
         let name = CString::new(name)?;
         unsafe {
             let ptr = ffi::PyContextVar_New(name.as_ptr(), ptr::null_mut());
-            Ok(Bound::from_owned_ptr_or_err(py, ptr)?.downcast_into_unchecked())
+            Ok(Bound::from_owned_ptr_or_err(py, ptr)?.cast_into_unchecked())
         }
     }
 
@@ -57,7 +57,7 @@ impl PyContextVar {
         let default = default.into_bound_py_any(py)?;
         unsafe {
             let ptr = ffi::PyContextVar_New(name.as_ptr(), default.as_ptr());
-            Ok(Bound::from_owned_ptr_or_err(py, ptr)?.downcast_into_unchecked())
+            Ok(Bound::from_owned_ptr_or_err(py, ptr)?.cast_into_unchecked())
         }
     }
 }
@@ -93,7 +93,7 @@ impl<'py> PyContextVarMethods<'py> for Bound<'py, PyContextVar> {
         let py = self.py();
         unsafe {
             let token = ffi::PyContextVar_Set(self.as_ptr(), value.into_bound_py_any(py)?.as_ptr());
-            Ok(Bound::from_owned_ptr_or_err(py, token)?.downcast_into_unchecked())
+            Ok(Bound::from_owned_ptr_or_err(py, token)?.cast_into_unchecked())
         }
     }
 
@@ -155,7 +155,7 @@ pub trait PyContextTokenMethods<'py> {
 
 impl<'py> PyContextTokenMethods<'py> for Bound<'py, PyContextToken> {
     fn var(&self) -> PyResult<Bound<'py, PyContextVar>> {
-        self.getattr(intern!(self.py(), "var"))?.extract()
+        Ok(self.getattr(intern!(self.py(), "var"))?.extract()?)
     }
 
     fn old_value(&self) -> PyResult<Option<Bound<'py, PyAny>>> {
