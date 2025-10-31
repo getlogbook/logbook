@@ -1,6 +1,6 @@
 # Welcome to Logbook
 
-<img src="https://raw.githubusercontent.com/getlogbook/logbook/main/docs/_static/logbook-logo.png" width="300">
+<img src="https://raw.githubusercontent.com/getlogbook/logbook/main/docs/logbook-logo.png" width="300">
 
 [![Latest Version][version-img]][pypi]
 ![Supported Python Versions][pyver-img]
