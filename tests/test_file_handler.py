@@ -12,7 +12,10 @@ from .utils import LETTERS, capturing_stderr_context
 try:
     import brotlicffi as brotli
 except ImportError:
-    import brotli
+    try:
+        import brotli
+    except ImportError:
+        brotli = None
 
 
 def test_file_handler(logfile, activation_strategy, logger):
@@ -236,15 +239,25 @@ def _decompress(input_file_name, use_gzip=True):
             return brotli.decompress(in_f.read()).decode()
 
 
-@pytest.mark.parametrize("use_gzip", [True, False])
-def test_compression_file_handler(logfile, activation_strategy, logger, use_gzip):
-    handler = (
-        logbook.GZIPCompressionHandler(logfile)
-        if use_gzip
-        else logbook.BrotliCompressionHandler(logfile)
-    )
+def test_gzip_file_handler(logfile, activation_strategy, logger):
+    handler = logbook.GZIPCompressionHandler(logfile)
     handler.format_string = "{record.level_name}:{record.channel}:{record.message}"
     with activation_strategy(handler):
         logger.warning("warning message")
     handler.close()
-    assert _decompress(logfile, use_gzip) == "WARNING:testlogger:warning message\n"
+    with gzip.open(logfile, "rb") as f:
+        assert f.read().decode() == "WARNING:testlogger:warning message\n"
+
+
+@pytest.mark.skipif(brotli is None, reason="brotli not installed")
+def test_brotli_file_handler(logfile, activation_strategy, logger):
+    handler = logbook.BrotliCompressionHandler(logfile)
+    handler.format_string = "{record.level_name}:{record.channel}:{record.message}"
+    with activation_strategy(handler):
+        logger.warning("warning message")
+    handler.close()
+    with open(logfile, "rb") as in_f:
+        assert (
+            brotli.decompress(in_f.read()).decode()
+            == "WARNING:testlogger:warning message\n"
+        )

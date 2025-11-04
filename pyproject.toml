@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Free Threading :: 2 - Beta",
 ]
 requires-python = ">=3.9"
 dependencies = [
@@ -50,9 +51,9 @@ nteventlog = [
     "pywin32>=307; sys_platform == 'win32' and python_version=='3.13'",
     "pywin32>=311; sys_platform == 'win32' and python_version>='3.14'",
 ]
-redis = ["redis>=3.5.3"]
+redis = ["redis>=4.6.0"]
 sqlalchemy = ["sqlalchemy>=1.4"]
-zmq = ["pyzmq>=27"]
+zmq = ["pyzmq>=27.0.2"]
 
 [dependency-groups]
 coverage = [
@@ -61,7 +62,6 @@ coverage = [
 dev = [
     { include-group = "coverage" },
     { include-group = "nox" },
-    "gevent>=25.5.1",
     "pytest>=8.4.0",
     "pytest-rerunfailures>=15.1",
     "ruff==0.13.1",
@@ -69,6 +69,9 @@ dev = [
 docs = [
     "furo>=2025.7.19",
     "sphinx>=7.4.7",
+]
+gevent = [
+    "gevent>=25.5.1",
 ]
 nox = [
     "nox>=2025.5.1",
@@ -117,9 +120,6 @@ ignore = [
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["logbook._fallback.FrozenSequence"]
-
-[tool.cibuildwheel]
-skip = "cp3??t-*"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "universal2", "arm64"]

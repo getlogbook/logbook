@@ -2,13 +2,14 @@
 
 use std::cmp::Reverse;
 use std::sync::atomic::{self, AtomicUsize};
+use std::sync::Mutex;
 
 use contextvars::{PyContextVar, PyContextVarMethods};
 use pyo3::exceptions::{
     PyAssertionError, PyException, PyKeyError, PyLookupError, PyNotImplementedError, PyTypeError,
 };
 use pyo3::prelude::*;
-use pyo3::sync::PyOnceLock;
+use pyo3::sync::{MutexExt, PyOnceLock};
 use pyo3::types::{PyIterator, PyList, PyMapping, PyString, PyTraceback, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
 
@@ -125,12 +126,16 @@ impl FrozenSequence {
 
 const MAX_CONTEXT_OBJECT_CACHE: usize = 256;
 
+struct State {
+    global: Py<PyList>,
+    cache: Py<PyMapping>,
+}
+
 #[pyclass(module = "logbook._speedups")]
 pub struct ContextStackManager {
-    global: Py<PyList>,
     context_stack: Py<PyContextVar>,
-    cache: Py<PyMapping>,
     stack_count: AtomicUsize,
+    state: Mutex<State>,
 }
 
 impl ContextStackManager {
@@ -149,21 +154,23 @@ impl ContextStackManager {
         _kwargs: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<Self> {
         let stack = Bound::new(py, FrozenSequence::empty(py))?;
+        let global = PyList::empty(py).unbind();
+        let cache = WEAKREF_WEAK_KEY_DICTIONARY
+            .get(py)?
+            .call0()?
+            .cast_into()?
+            .unbind();
         Ok(Self {
-            global: PyList::empty(py).unbind(),
             context_stack: PyContextVar::new_with_default(py, "stack", stack)?.unbind(),
-            cache: WEAKREF_WEAK_KEY_DICTIONARY
-                .get(py)?
-                .call0()?
-                .cast_into()?
-                .unbind(),
             stack_count: AtomicUsize::new(0),
+            state: Mutex::new(State { global, cache }),
         })
     }
 
     #[getter(_global)]
     fn get_global(&self, py: Python<'_>) -> Py<PyList> {
-        self.global.clone_ref(py)
+        let state = self.state.lock_py_attached(py).unwrap();
+        state.global.clone_ref(py)
     }
 
     #[getter(_context_stack)]
@@ -173,7 +180,8 @@ impl ContextStackManager {
 
     #[getter(_cache)]
     fn get_cache(&self, py: Python<'_>) -> Py<PyMapping> {
-        self.cache.clone_ref(py)
+        let state = self.state.lock_py_attached(py).unwrap();
+        state.cache.clone_ref(py)
     }
 
     fn iter_context_objects(&self, py: Python<'_>) -> PyResult<Py<PyIterator>> {
@@ -182,7 +190,8 @@ impl ContextStackManager {
             return Err(PyLookupError::new_err(context_stack.clone().unbind()));
         };
         let stack = stack.cast_into::<FrozenSequence>()?;
-        let cache = self.cache.bind(py);
+        let state = self.state.lock_py_attached(py).unwrap();
+        let cache = state.cache.bind(py);
         match cache.get_item(&stack) {
             Ok(objects) => Ok(objects.try_iter()?.unbind()),
             Err(err) if err.is_instance(py, &py.get_type::<PyKeyError>()) => {
@@ -190,7 +199,7 @@ impl ContextStackManager {
                     cache.call_method0(intern!(py, "clear"))?;
                 }
 
-                let global = self.global.bind(py);
+                let global = state.global.bind(py);
                 let mut stack_objects: Vec<(usize, Bound<'_, PyAny>)> = global
                     .try_iter()?
                     .chain(stack.try_iter()?)
@@ -243,18 +252,20 @@ impl ContextStackManager {
 
     fn push_application(&self, py: Python<'_>, obj: Bound<'_, PyAny>) -> PyResult<()> {
         let new_item = (self.stackop(), obj).into_pyobject(py)?;
-        self.global.bind(py).append(new_item)?;
-        self.cache.bind(py).call_method0(intern!(py, "clear"))?;
+        let state = self.state.lock_py_attached(py).unwrap();
+        state.global.bind(py).append(new_item)?;
+        state.cache.bind(py).call_method0(intern!(py, "clear"))?;
         Ok(())
     }
 
     fn pop_application<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let global = self.global.bind(py);
+        let state = self.state.lock_py_attached(py).unwrap();
+        let global = state.global.bind(py);
         if global.is_empty() {
             return Err(PyAssertionError::new_err("no objects on application stack"));
         }
         let popped = global.call_method0(intern!(py, "pop"))?;
-        self.cache.bind(py).call_method0(intern!(py, "clear"))?;
+        state.cache.bind(py).call_method0(intern!(py, "clear"))?;
         popped.get_item(1)
     }
 }
@@ -451,7 +462,7 @@ impl PyGroupReflectedProperty {
     }
 }
 
-#[pymodule]
+#[pymodule(gil_used = false)]
 fn _speedups(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<FrozenSequence>()?;
     m.add_class::<ContextStackManager>()?;
