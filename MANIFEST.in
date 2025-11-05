@@ -1,6 +1,13 @@
-include MANIFEST.in Makefile CHANGES src/cython/speedups.pyx tox.ini LICENSE
-exclude src/cython/speedups.c
+include CHANGES
+include README.md
+include noxfile.py
+include uv.lock
+include Cargo.lock
+include Cargo.toml
 graft benchmark
 graft docs
 graft tests
+recursive-include src/rust Cargo.toml *.rs
+prune docs/_buildx
 global-exclude *.pyc
+exclude .gitignore .readthedocs.yml
