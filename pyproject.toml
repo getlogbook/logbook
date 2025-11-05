@@ -57,10 +57,14 @@ sqlalchemy = ["sqlalchemy>=1.4"]
 zmq = ["pyzmq>=27.0.2"]
 
 [dependency-groups]
+check-sdist = [
+    "check-sdist>=1.2.0",
+]
 coverage = [
     "coverage[toml]>=7.10.7",
 ]
 dev = [
+    { include-group = "check-sdist" },
     { include-group = "coverage" },
     { include-group = "nox" },
     { include-group = "test" },
@@ -153,3 +157,6 @@ required-environments = [
     "sys_platform == 'win32' and platform_machine == 'ARM64'",
 ]
 required-version = ">=0.8.19" # https://github.com/astral-sh/uv/pull/15921
+
+[tool.check-sdist]
+git-only = [".gitignore", ".readthedocs.yaml"]
