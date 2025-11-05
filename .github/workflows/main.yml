@@ -14,6 +14,7 @@ on:
 env:
   FORCE_COLOR: "1"
   UV_PYTHON_DOWNLOADS: "false"
+  UV_NO_SYNC: "1"
 
 jobs:
   linux:
@@ -53,7 +54,7 @@ jobs:
           set -xe
           python -VV
           python -m site
-          uv sync --no-install-project --no-dev --group nox
+          uv sync --only-group nox --only-group coverage
 
       - name: "Run nox targets for ${{ matrix.python-version }}"
         run: "uv run nox --python ${{ matrix.python-version }} -v -- -r aR"
@@ -96,7 +97,7 @@ jobs:
       - run: rustup component add llvm-tools-preview
       - run: python -VV
       - run: python -m site
-      - run: uv sync --no-install-project --no-dev --group nox
+      - run: uv sync --only-group nox --only-group coverage
       - name: "Run nox targets for ${{ matrix.python-version }} on ${{ matrix.arch }}"
         run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not rust' -- -r aR -k 'not redis'"
       - run: uv run coverage combine
@@ -134,7 +135,7 @@ jobs:
           set -xe
           python -VV
           python -m site
-          uv sync --no-install-project --no-dev --group nox
+          uv sync --only-group nox --only-group coverage
 
       - name: "Run nox targets for ${{ matrix.python-version }}"
         run: "uv run nox --python ${{ matrix.python-version }} -v -- -r aR -k 'not redis'"
@@ -148,14 +149,21 @@ jobs:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  pre-commit:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
+      - uses: "astral-sh/setup-uv@85856786d1ce8acfbcc2f13a5f3fbd6b938f9f41" # v7.1.2
       - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: "3.14"
       - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
+      - name: check-sdist
+        run: |
+          uv sync --only-group check-sdist
+          uv run check-sdist
 
   msrv:
     name: "Python ${{ matrix.python-version }} with Rust ${{ matrix.rust-version }}"
@@ -185,6 +193,6 @@ jobs:
           rustc --version
           python -m site
           uv --version
-          uv sync --no-install-project --no-dev --group nox
+          uv sync --only-group nox --only-group coverage
       - name: "Run nox"
         run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not nospeedups' -- -r aR -k 'not redis'"
