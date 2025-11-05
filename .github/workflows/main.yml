@@ -14,6 +14,7 @@ on:
 env:
   FORCE_COLOR: "1"
   UV_PYTHON_DOWNLOADS: "false"
+  UV_NO_SYNC: "1"
 
 jobs:
   linux:
@@ -53,7 +54,7 @@ jobs:
           set -xe
           python -VV
           python -m site
-          uv sync --no-install-project --no-dev --group nox
+          uv sync --only-group nox --only-group coverage
 
       - name: "Run nox targets for ${{ matrix.python-version }}"
         run: "uv run nox --python ${{ matrix.python-version }} -v -- -r aR"
@@ -96,7 +97,7 @@ jobs:
       - run: rustup component add llvm-tools-preview
       - run: python -VV
       - run: python -m site
-      - run: uv sync --no-install-project --no-dev --group nox
+      - run: uv sync --only-group nox --only-group coverage
       - name: "Run nox targets for ${{ matrix.python-version }} on ${{ matrix.arch }}"
         run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not rust' -- -r aR -k 'not redis'"
       - run: uv run coverage combine
@@ -134,7 +135,7 @@ jobs:
           set -xe
           python -VV
           python -m site
-          uv sync --no-install-project --no-dev --group nox
+          uv sync --only-group nox --only-group coverage
 
       - name: "Run nox targets for ${{ matrix.python-version }}"
         run: "uv run nox --python ${{ matrix.python-version }} -v -- -r aR -k 'not redis'"
@@ -185,6 +186,6 @@ jobs:
           rustc --version
           python -m site
           uv --version
-          uv sync --no-install-project --no-dev --group nox
+          uv sync --only-group nox --only-group coverage
       - name: "Run nox"
         run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not nospeedups' -- -r aR -k 'not redis'"

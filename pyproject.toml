@@ -63,8 +63,7 @@ coverage = [
 dev = [
     { include-group = "coverage" },
     { include-group = "nox" },
-    "pytest>=8.4.0",
-    "pytest-rerunfailures>=15.1",
+    { include-group = "test" },
     "ruff==0.13.1",
 ]
 docs = [
@@ -76,6 +75,10 @@ gevent = [
 ]
 nox = [
     "nox>=2025.5.1",
+]
+test = [
+    "pytest>=8.4.0",
+    "pytest-rerunfailures>=15.1",
 ]
 
 [tool.setuptools]

@@ -978,6 +978,10 @@ gevent = [
 nox = [
     { name = "nox" },
 ]
+test = [
+    { name = "pytest" },
+    { name = "pytest-rerunfailures" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -1015,6 +1019,10 @@ docs = [
 ]
 gevent = [{ name = "gevent", specifier = ">=25.5.1" }]
 nox = [{ name = "nox", specifier = ">=2025.5.1" }]
+test = [
+    { name = "pytest", specifier = ">=8.4.0" },
+    { name = "pytest-rerunfailures", specifier = ">=15.1" },
+]
 
 [[package]]
 name = "markupsafe"
