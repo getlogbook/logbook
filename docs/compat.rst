@@ -28,7 +28,7 @@ This also means you don't have to call :func:`logging.basicConfig`:
 >>> redirect_logging()
 >>> from logging import getLogger
 >>> log = getLogger('My Logger')
->>> log.warn('This is a warning')
+>>> log.warning('This is a warning')
 [2015-10-05 19:13:37.524346] WARNING: My Logger: This is a warning
 
 Advanced Setup
@@ -47,9 +47,9 @@ loggers if you want:
 >>> from logbook.compat import RedirectLoggingHandler
 >>> mylog.addHandler(RedirectLoggingHandler())
 >>> otherlog = getLogger('Other Log')
->>> otherlog.warn('logging is deprecated')
+>>> otherlog.warning('logging is deprecated')
 No handlers could be found for logger "Other Log"
->>> mylog.warn('but logbook is awesome')
+>>> mylog.warning('but logbook is awesome')
 [2015-10-05 19:13:37.524346] WARNING: My Log: but logbook is awesome
 
 Reverse Redirects
@@ -66,4 +66,4 @@ For this you just have to activate the
 
     log = Logger("My app")
     with LoggingHandler():
-        log.warn("Going to logging")
+        log.warning("Going to logging")

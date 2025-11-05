@@ -845,7 +845,7 @@ class MonitoringFileHandler(FileHandler):
 
 class StderrHandler(StreamHandler):
     """A handler that writes to what is currently at stderr.  At the first
-    glace this appears to just be a :class:`StreamHandler` with the stream
+    glance this appears to just be a :class:`StreamHandler` with the stream
     set to :data:`sys.stderr` but there is a difference: if the handler is
     created globally and :data:`sys.stderr` changes later, this handler will
     point to the current `stderr`, whereas a stream handler would still
@@ -1084,7 +1084,7 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
 
         def my_test():
             with logbook.TestHandler() as handler:
-                logger.warn("A warning")
+                logger.warning("A warning")
                 assert logger.has_warning("A warning")
                 ...
     """

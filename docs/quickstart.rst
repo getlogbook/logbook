@@ -6,11 +6,11 @@ Quickstart
 Logbook makes it very easy to get started with logging.  Just import the logger
 class, create yourself a logger and you are set:
 
->>> from logbook import Logger, StreamHandler
+>>> from logbook import Logger, StderrHandler
 >>> import sys
->>> StreamHandler(sys.stdout).push_application()
+>>> StderrHandler().push_application()
 >>> log = Logger('My Awesome Logger')
->>> log.warn('This is too cool for stdlib')
+>>> log.warning('This is too cool for stdlib')
 [2015-10-05 19:02:03.575723] WARNING: My Awesome Logger: This is too cool for stdlib
 
 A logger is a so-called :class:`~logbook.base.RecordDispatcher`, which is
@@ -32,7 +32,6 @@ levels -- and their suggested meaning -- are:
 * ``debug`` -- for debug messages
 
 Each of these levels is available as method on the :class:`Logger`.
-Additionally the ``warning`` level is aliased as :meth:`~Logger.warn`.
 
 Alternatively, there is the :meth:`~Logger.log` method that takes the logging
 level (string or integer) as an argument.
@@ -83,9 +82,17 @@ Registering Handlers
 
 So how are handlers registered?  If you are used to the standard Python logging
 system, it works a little bit differently here.  Handlers can be registered for
-a thread or for a whole process or individually for a logger.  However, it is
+a context or for a whole process or individually for a logger.  However, it is
 strongly recommended not to add handlers to loggers unless there is a very good
 use case for that.
+
+Let's say you've registered a default handler to stderr:
+
+.. code-block:: python
+
+    from logbook import StderrHandler
+
+    StderrHandler.push_application()
 
 If you want errors to go to syslog, you can set up logging like this:
 
@@ -115,23 +122,6 @@ stderr, even if they went to the syslog you can enable bubbling by setting
         # whatever is executed here and an error is logged to the
         # error handler but it will also bubble up other handles.
         ...
-
-So what if you want to only log errors to the syslog and nothing to
-stderr?  Then you can combine this with a :class:`NullHandler`:
-
-.. code-block:: python
-
-    from logbook import SyslogHandler, NullHandler
-
-    error_handler = SyslogHandler("logbook example", level="ERROR")
-    null_handler = NullHandler()
-
-    with null_handler.applicationbound():
-        with error_handler.applicationbound():
-            # errors now go to the error_handler and everything else
-            # is swallowed by the null handler so nothing ends up
-            # on the default stderr handler
-            ...
 
 Record Processors
 -----------------

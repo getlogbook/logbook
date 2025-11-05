@@ -8,7 +8,7 @@ def test_null_handler(activation_strategy, logger):
         with activation_strategy(logbook.NullHandler()):
             with activation_strategy(logbook.TestHandler(level="ERROR")) as handler:
                 logger.error("An error")
-                logger.warn("A warning")
+                logger.warning("A warning")
         assert captured.getvalue() == ""
         assert not handler.has_warning("A warning")
         assert handler.has_error("An error")
@@ -25,7 +25,7 @@ def test_blackhole_setting(activation_strategy):
         logbook.LogRecord.heavy_init = new_heavy_init
         try:
             with activation_strategy(null_handler):
-                logbook.warn("Awesome")
+                logbook.warning("Awesome")
         finally:
             logbook.LogRecord.heavy_init = heavy_init
 
@@ -45,8 +45,8 @@ def test_null_handler_filtering(activation_strategy):
 
     with activation_strategy(outer):
         with activation_strategy(inner):
-            logger1.warn("1")
-            logger2.warn("2")
+            logger1.warning("1")
+            logger2.warning("2")
 
     assert outer.has_warning("2", channel="2")
     assert not outer.has_warning("1", channel="1")

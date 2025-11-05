@@ -44,7 +44,7 @@ def test_colorizing_support(logger):
     with TestColorizingHandler(format_string="{record.message}") as handler:
         handler.force_color()
         logger.error("An error")
-        logger.warn("A warning")
+        logger.warning("A warning")
         logger.debug("A debug message")
         lines = handler.stream.getvalue().rstrip("\n").splitlines()
         assert lines == [
@@ -56,7 +56,7 @@ def test_colorizing_support(logger):
     with TestColorizingHandler(format_string="{record.message}") as handler:
         handler.forbid_color()
         logger.error("An error")
-        logger.warn("A warning")
+        logger.warning("A warning")
         logger.debug("A debug message")
         lines = handler.stream.getvalue().rstrip("\n").splitlines()
         assert lines == ["An error", "A warning", "A debug message"]
@@ -157,7 +157,7 @@ def test_exception_handler_specific_level(logger):
         with pytest.raises(ValueError) as caught:
             with ExceptionHandler(ValueError, level="WARNING"):
                 logger.info("this is irrelevant")
-                logger.warn("here i am")
+                logger.warning("here i am")
         assert "WARNING: testlogger: here i am" in caught.value.args[0]
     assert "this is irrelevant" in test_handler.records[0].message
 

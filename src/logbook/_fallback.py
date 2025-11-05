@@ -10,6 +10,7 @@ Fallback implementations in case speedups is not around.
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable, Iterable, Iterator, Sequence
 from contextvars import ContextVar
 from itertools import chain, count
@@ -169,26 +170,28 @@ class ContextStackManager(Generic[T]):
         )
         self._cache: WeakKeyDictionary[FrozenStack[T], list[T]] = WeakKeyDictionary()
         self._stackop: Callable[[], int] = get_iterator_next_method(count())
+        self._lock = threading.Lock()
 
     def iter_context_objects(self) -> Iterator[T]:
         """Returns an iterator over all objects for the combined
         application and context cache.
         """
 
-        stack = self._context_stack.get()
-        objects = self._cache.get(stack)
-        if objects is None:
-            if len(self._cache) >= _MAX_CONTEXT_OBJECT_CACHE:
-                self._cache.clear()
-            stack_objects = sorted(
-                chain(
-                    self._global,
-                    stack,
-                ),
-                reverse=True,
-            )
-            objects = [x[1] for x in stack_objects]
-            self._cache[stack] = objects
+        with self._lock:
+            stack = self._context_stack.get()
+            objects = self._cache.get(stack)
+            if objects is None:
+                if len(self._cache) >= _MAX_CONTEXT_OBJECT_CACHE:
+                    self._cache.clear()
+                stack_objects = sorted(
+                    chain(
+                        self._global,
+                        stack,
+                    ),
+                    reverse=True,
+                )
+                objects = [x[1] for x in stack_objects]
+                self._cache[stack] = objects
         return iter(objects)
 
     def push_context(self, obj: T) -> None:
@@ -205,11 +208,13 @@ class ContextStackManager(Generic[T]):
 
     def push_application(self, obj: T) -> None:
         item = (self._stackop(), obj)
-        self._global.append(item)
-        self._cache.clear()
+        with self._lock:
+            self._global.append(item)
+            self._cache.clear()
 
     def pop_application(self) -> T:
-        assert self._global, "no objects on application stack"
-        popped = self._global.pop()
-        self._cache.clear()
-        return popped[1]
+        with self._lock:
+            assert self._global, "no objects on application stack"
+            popped = self._global.pop()
+            self._cache.clear()
+            return popped[1]

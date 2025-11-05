@@ -63,7 +63,7 @@ def test_redirect_logbook():
     logger.handlers[:] = [handler]
     try:
         with logbook.compat.LoggingHandler():
-            logbook_logger.warn("This goes to logging")
+            logbook_logger.warning("This goes to logging")
             pieces = out.getvalue().strip().split(":")
             assert pieces == ["testlogger", "WARNING", "This goes to logging"]
     finally:

@@ -1,6 +1,99 @@
 Logbook Changelog
 =================
 
+Version 1.9.0
+-------------
+
+Added
+~~~~~
+
+- Python 3.14 support
+- Python 3.14 free-threading support (beta). This does not extend to all optional
+  dependencies. At the time of writing, the following extras are not supported due
+  to their dependencies pulling in C extensions which do not support free-threading:
+
+  - ``brotli``
+  - ``nteventlog``
+  - ``sqlalchemy``
+- Wheels are built for Windows ARM64
+
+Changed
+~~~~~~~
+
+- The way handlers, flags, and processors are activated is now based on
+  :mod:`contextvars`, and has been completely rewritten. See deprecations since
+  many methods have been deprecated and are mere aliases to the new defaults.
+- Cython has been replaced with Rust for the speedups module.
+- ``Logbook[brotli]`` depends on ``brotlicffi`` on non-CPython implementations.
+
+Deprecated
+~~~~~~~~~~
+
+- ``logbook.__version__``. Use :mod:`importlib.metadata` instead.
+- There are now only two ways to activate :class:`~logbook.Handler`,
+  :class:`~logbook.Flags`, and :class:`~logbook.Processor` instances.
+
+  Either globally:
+
+  .. code-block:: python
+
+    handler = StderrHandler()
+
+    with handler.applicationbound():
+        ...
+
+    handler.push_application()
+    try:
+        ...
+    finally:
+        handler.pop_application()
+
+  or for the current context:
+
+  .. code-block:: python
+
+    handler = StderrHandler()
+
+    with handler:
+        ...
+
+    handler.push_context()
+    try:
+        ...
+    finally:
+        handler.pop_context()
+- The following methods on :class:`~logbook.Handler`, :class:`~logbook.Flags`,
+  and :class:`~logbook.Processor`:
+
+  - ``push_greenlet`` is an alias to ``push_context``
+  - ``pop_greenlet`` is an alias to ``pop_context``
+  - ``push_thread`` is an alias to ``push_context``
+  - ``pop_thread`` is an alias to ``pop_context``
+  - ``with obj.greenletbound()``, use ``with obj:`` instead.
+  - ``with obj.threadbound()``, use ``with obj:`` instead.
+  - ``with obj.contextbound()``, use ``with obj:`` instead.
+- ``logbook.concurrency.enable_gevent``, use ``gevent.monkey`` instead.
+- ``logbook.concurrency.is_gevent_enabled``.
+- ``logbook.concurrency.new_fine_grained_lock``.
+- The ``compression`` extra. Replace ``Logbook[compression]`` with
+  ``Logbook[brotli]`` if you are using ``BrotliCompressionHandler``
+- :meth:`Logger.warn <logbook.Logger.warn>`. Use
+  :meth:`Logger.warning <logbook.Logger.warning>` instead.
+- :class:`logbook.notifiers.GrowlHandler`
+- :class:`logbook.notifiers.BoxcarHandler`
+- :class:`logbook.notifiers.NotifoHandler`
+- :class:`logbook.more.TwitterHandler`
+- ``logbook.more.TwitterFormatter``
+
+Fixed
+~~~~~
+
+- The previous contextvars implementation (used by ``push_context``,
+  ``pop_context``, and ``contextbound``) was completely broken. The new
+  implementation supersedes the previous default (using thread locals), and is
+  now the default.
+
+
 Version 1.8.2
 -------------
 

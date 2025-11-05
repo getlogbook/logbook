@@ -17,6 +17,24 @@ import nox
 nox.options.reuse_existing_virtualenvs = True
 nox.options.default_venv_backend = "uv"
 
+PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.14t"]
+
+SUPPORTED_EXTRAS = [
+    "brotli",
+    "execnet",
+    "jinja",
+    "nteventlog",
+    "redis",
+    "sqlalchemy",
+    "zmq",
+]
+SUPPORTED_EXTRAS_FREETHREADING = [
+    "execnet",
+    "jinja",
+    "redis",
+    "zmq",
+]
+
 
 @nox.session(python="3.13")
 def docs(session: nox.Session) -> None:
@@ -52,7 +70,7 @@ def docs(session: nox.Session) -> None:
     )
 
 
-@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"])
+@nox.session(python=PYTHON_VERSIONS)
 @nox.parametrize("speedups", [False, True], ids=["nospeedups", "speedups"])
 def tests(session: nox.Session, speedups: bool) -> None:
     prof_location = Path(".rust-cov", str(uuid4())).absolute()
@@ -64,12 +82,17 @@ def tests(session: nox.Session, speedups: bool) -> None:
             "LLVM_PROFILE_FILE": str(prof_location / "cov-%p.profraw"),
         }
     )
+    is_freethreaded = session.python.endswith("t")
+    supported_extras = (
+        SUPPORTED_EXTRAS_FREETHREADING if is_freethreaded else SUPPORTED_EXTRAS
+    )
     session.run_install(
         "uv",
         "sync",
-        "--all-extras",
+        *(f"--extra={extra}" for extra in supported_extras),
         "--no-editable",
         f"--python={session.virtualenv.location}",
+        *([] if is_freethreaded else ["--group=gevent"]),
         env={
             "UV_PROJECT_ENVIRONMENT": session.virtualenv.location,
             "DISABLE_LOGBOOK_CEXT": "" if speedups else "1",
@@ -87,16 +110,19 @@ def tests(session: nox.Session, speedups: bool) -> None:
         process_rust_coverage(session, [rust_so], prof_location)
 
 
-@nox.session(
-    name="test-min-deps", python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
-)
+@nox.session(name="test-min-deps", python=PYTHON_VERSIONS)
 def test_min_deps(session: nox.Session) -> None:
+    is_freethreaded = session.python.endswith("t")
+    supported_extras = (
+        SUPPORTED_EXTRAS_FREETHREADING if is_freethreaded else SUPPORTED_EXTRAS
+    )
     with restore_file("uv.lock"):
         session.run_install(
             "uv",
             "sync",
-            "--all-extras",
+            *(f"--extra={extra}" for extra in supported_extras),
             "--no-editable",
+            *([] if is_freethreaded else ["--group=gevent"]),
             "--resolution=lowest-direct",
             f"--python={session.virtualenv.location}",
             env={
@@ -108,21 +134,27 @@ def test_min_deps(session: nox.Session) -> None:
         session.run("pytest", *session.posargs)
 
 
-@nox.session(name="test-latest", python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"])
+@nox.session(name="test-latest", python=PYTHON_VERSIONS)
 def test_latest(session: nox.Session) -> None:
+    is_freethreaded = session.python.endswith("t")
     session.run_install(
         "uv",
         "sync",
         "--no-install-project",
+        *([] if is_freethreaded else ["--group=gevent"]),
         f"--python={session.virtualenv.location}",
         env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
+    )
+    supported_extras = (
+        SUPPORTED_EXTRAS_FREETHREADING if is_freethreaded else SUPPORTED_EXTRAS
     )
     session.run_install(
         "uv",
         "pip",
         "install",
         "--upgrade",
-        ".[all]",
+        f".[{','.join(supported_extras)}]",
+        *([] if is_freethreaded else ["gevent"]),
         f"--python={session.virtualenv.location}",
         env={
             "UV_PROJECT_ENVIRONMENT": session.virtualenv.location,
@@ -133,7 +165,7 @@ def test_latest(session: nox.Session) -> None:
     session.run("pytest", *session.posargs)
 
 
-@nox.session(python=["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"])
+@nox.session(python=PYTHON_VERSIONS)
 def rust(session: nox.Session) -> None:
     prof_location = Path(".rust-cov", str(uuid4())).absolute()
     rustflags = session.env.get("RUSTFLAGS", "")

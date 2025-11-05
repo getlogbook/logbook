@@ -841,17 +841,21 @@ class LoggerMixin:
         if not self.disabled and INFO >= self.level:
             self._log(INFO, args, kwargs)
 
+    @deprecated("Use warning instead")
     def warn(self, *args, **kwargs):
+        """Alias for :meth:`warning`.
+
+        .. deprecated:: 1.9
+           Use :meth:`warning` instead.
+        """
+        return self.warning(*args, **kwargs)
+
+    def warning(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set
-        to :data:`~logbook.WARNING`.  This function has an alias
-        named :meth:`warning`.
+        to :data:`~logbook.WARNING`.
         """
         if not self.disabled and WARNING >= self.level:
             self._log(WARNING, args, kwargs)
-
-    def warning(self, *args, **kwargs):
-        """Alias for :meth:`warn`."""
-        return self.warn(*args, **kwargs)
 
     def notice(self, *args, **kwargs):
         """Logs a :class:`~logbook.LogRecord` with the level set

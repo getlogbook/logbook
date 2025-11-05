@@ -18,8 +18,8 @@ def test_custom_logger(activation_strategy, logger):
     assert handler.format_string == fmt
 
     with activation_strategy(handler):
-        custom_log.warn("Too many sounds")
-        logger.warn('"Music" playing')
+        custom_log.warning("Too many sounds")
+        logger.warning('"Music" playing')
 
     assert handler.formatted_records == [
         "[WARNING] awesome logger: Too many sounds [127.0.0.1]",
@@ -46,8 +46,8 @@ def test_custom_handling(activation_strategy, logger):
     handler = MyTestHandler()
     with capturing_stderr_context() as captured:
         with activation_strategy(handler):
-            log.warn("From my logger")
-            logger.warn("From another logger")
+            log.warning("From my logger")
+            logger.warning("From another logger")
         assert handler.has_warning("From my logger")
         assert "From another logger" in captured.getvalue()
 
@@ -63,13 +63,13 @@ def test_nested_setups(activation_strategy):
         )
 
         with activation_strategy(handlers):
-            logger.warn("This is a warning")
+            logger.warning("This is a warning")
             logger.error("This is also a mail")
             try:
                 1 / 0  # noqa: B018
             except Exception:
                 logger.exception()
-        logger.warn("And here we go straight back to stderr")
+        logger.warning("And here we go straight back to stderr")
 
         assert test_handler.has_warning("This is a warning")
         assert test_handler.has_error("This is also a mail")
@@ -79,11 +79,11 @@ def test_nested_setups(activation_strategy):
         assert "And here we go straight back to stderr" in captured.getvalue()
 
         with activation_strategy(handlers):
-            logger.warn("threadbound warning")
+            logger.warning("threadbound warning")
 
         handlers.push_application()
         try:
-            logger.warn("applicationbound warning")
+            logger.warning("applicationbound warning")
         finally:
             handlers.pop_application()
 
@@ -101,8 +101,8 @@ def test_filtering(activation_strategy):
 
     with activation_strategy(outer_handler):
         with activation_strategy(handler):
-            logger1.warn("foo")
-            logger2.warn("bar")
+            logger1.warning("foo")
+            logger2.warning("bar")
 
     assert handler.has_warning("foo", channel="Logger1")
     assert not handler.has_warning("bar", channel="Logger2")
@@ -119,7 +119,7 @@ def test_different_context_pushing(activation_strategy):
     with activation_strategy(h1):
         with activation_strategy(h2):
             with activation_strategy(h3):
-                logger.warn("Wuuu")
+                logger.warning("Wuuu")
                 logger.info("still awesome")
                 logger.debug("puzzled")
 
@@ -132,6 +132,6 @@ def test_different_context_pushing(activation_strategy):
 
 def test_default_handlers(logger):
     with capturing_stderr_context() as stream:
-        logger.warn("Aha!")
+        logger.warning("Aha!")
         captured = stream.getvalue()
     assert "WARNING: testlogger: Aha!" in captured

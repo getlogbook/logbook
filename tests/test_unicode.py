@@ -5,14 +5,14 @@ from .utils import capturing_stderr_context
 
 def test_default_format_unicode(logger):
     with capturing_stderr_context() as stream:
-        logger.warn("\u2603")
+        logger.warning("\u2603")
     assert "WARNING: testlogger: \u2603" in stream.getvalue()
 
 
 def test_default_format_encoded(logger):
     with capturing_stderr_context() as stream:
         # it's a string but it's in the right encoding so don't barf
-        logger.warn("\u2603")
+        logger.warning("\u2603")
     assert "WARNING: testlogger: \u2603" in stream.getvalue()
 
 
@@ -20,7 +20,7 @@ def test_default_format_bad_encoding(logger):
     with capturing_stderr_context() as stream:
         # it's a string, is wrong, but just dump it in the logger,
         # don't try to decode/encode it
-        logger.warn("Русский".encode("koi8-r"))
+        logger.warning("Русский".encode("koi8-r"))
     expected = "WARNING: testlogger: b'\\xf2\\xd5\\xd3\\xd3\\xcb\\xc9\\xca'"
     assert expected in stream.getvalue()
 
@@ -29,7 +29,7 @@ def test_custom_unicode_format_unicode(logger):
     format_string = "[{record.level_name}] {record.channel}: {record.message}"
     with capturing_stderr_context() as stream:
         with logbook.StderrHandler(format_string=format_string):
-            logger.warn("\u2603")
+            logger.warning("\u2603")
     assert "[WARNING] testlogger: \u2603" in stream.getvalue()
 
 
@@ -37,17 +37,17 @@ def test_custom_string_format_unicode(logger):
     format_string = "[{record.level_name}] {record.channel}: {record.message}"
     with capturing_stderr_context() as stream:
         with logbook.StderrHandler(format_string=format_string):
-            logger.warn("\u2603")
+            logger.warning("\u2603")
     assert "[WARNING] testlogger: \u2603" in stream.getvalue()
 
 
 def test_unicode_message_encoded_params(logger):
     with capturing_stderr_context() as stream:
-        logger.warn("\u2603 {0}", "\u2603".encode())
+        logger.warning("\u2603 {0}", "\u2603".encode())
     assert "WARNING: testlogger: \u2603 b'\\xe2\\x98\\x83'" in stream.getvalue()
 
 
 def test_encoded_message_unicode_params(logger):
     with capturing_stderr_context() as stream:
-        logger.warn("\u2603 {0}".encode(), "\u2603")
+        logger.warning("\u2603 {0}".encode(), "\u2603")
     assert "WARNING: testlogger: \u2603 \u2603" in stream.getvalue()

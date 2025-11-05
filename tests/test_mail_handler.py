@@ -17,7 +17,7 @@ def test_mail_handler(activation_strategy, logger):
     handler = make_fake_mail_handler(subject=subject)
     with capturing_stderr_context() as fallback:
         with activation_strategy(handler):
-            logger.warn("This is not mailed")
+            logger.warning("This is not mailed")
             try:
                 1 / 0  # noqa: B018
             except Exception:
@@ -50,7 +50,7 @@ def test_mail_handler_batching(activation_strategy, logger):
     mail_handler = make_fake_mail_handler()
     handler = logbook.FingersCrossedHandler(mail_handler, reset=True)
     with activation_strategy(handler):
-        logger.warn("Testing")
+        logger.warning("Testing")
         logger.debug("Even more")
         logger.error("And this triggers it")
         logger.info("Aha")
@@ -81,7 +81,7 @@ def test_group_handler_mail_combo(activation_strategy, logger):
     handler = logbook.GroupHandler(mail_handler)
     with activation_strategy(handler):
         logger.error("The other way round")
-        logger.warn("Testing")
+        logger.warning("Testing")
         logger.debug("Even more")
         assert mail_handler.mails == []
 

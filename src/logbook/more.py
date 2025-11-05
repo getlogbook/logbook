@@ -18,6 +18,8 @@ from functools import partial
 from typing import Any
 from urllib.parse import parse_qsl, urlencode
 
+from typing_extensions import deprecated
+
 from logbook._termcolors import colorize
 from logbook.base import ERROR, NOTICE, NOTSET, RecordDispatcher, dispatch_record
 from logbook.handlers import (
@@ -87,9 +89,12 @@ class CouchDBBackend(BackendBase):
         db.save(ticket)
 
 
+@deprecated("TwitterFormatter is deprecated")
 class TwitterFormatter(StringFormatter):
     """Works like the standard string formatter and is used by the
     :class:`TwitterHandler` unless changed.
+
+    .. deprecated:: 1.9
     """
 
     max_length = 140
@@ -174,10 +179,13 @@ class TaggingHandler(Handler):
                 handler.handle(record)
 
 
+@deprecated("TwitterHandler is deprecated")
 class TwitterHandler(Handler, StringFormatterHandlerMixin):
     """A handler that logs to twitter.  Requires that you sign up an
     application on twitter and request xauth support.  Furthermore the
     oauth2 library has to be installed.
+
+    .. deprecated:: 1.9
     """
 
     default_format_string = TWITTER_FORMAT_STRING

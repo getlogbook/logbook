@@ -12,7 +12,10 @@ from .utils import LETTERS, capturing_stderr_context
 try:
     import brotlicffi as brotli
 except ImportError:
-    import brotli
+    try:
+        import brotli
+    except ImportError:
+        brotli = None
 
 
 def test_file_handler(logfile, activation_strategy, logger):
@@ -21,7 +24,7 @@ def test_file_handler(logfile, activation_strategy, logger):
         format_string="{record.level_name}:{record.channel}:{record.message}",
     )
     with activation_strategy(handler):
-        logger.warn("warning message")
+        logger.warning("warning message")
     handler.close()
     with open(logfile) as f:
         assert f.readline() == "WARNING:testlogger:warning message\n"
@@ -42,7 +45,7 @@ def test_file_handler_delay(logfile, activation_strategy, logger):
     )
     assert not os.path.isfile(logfile)
     with activation_strategy(handler):
-        logger.warn("warning message")
+        logger.warning("warning message")
     handler.close()
 
     with open(logfile) as f:
@@ -58,9 +61,9 @@ def test_monitoring_file_handler(logfile, activation_strategy, logger):
         delay=True,
     )
     with activation_strategy(handler):
-        logger.warn("warning message")
+        logger.warning("warning message")
         os.rename(logfile, os.fspath(logfile) + ".old")
-        logger.warn("another warning message")
+        logger.warning("another warning message")
     handler.close()
     with open(logfile) as f:
         assert f.read().strip() == "WARNING:testlogger:another warning message"
@@ -73,7 +76,7 @@ def test_custom_formatter(activation_strategy, logfile, logger):
     handler = logbook.FileHandler(logfile)
     with activation_strategy(handler):
         handler.formatter = custom_format
-        logger.warn("Custom formatters are awesome")
+        logger.warning("Custom formatters are awesome")
 
     with open(logfile) as f:
         assert f.readline() == "WARNING:Custom formatters are awesome\n"
@@ -89,7 +92,7 @@ def test_rotating_file_handler(logfile, activation_strategy, logger):
     handler.format_string = "{record.message}"
     with activation_strategy(handler):
         for c, _ in zip(LETTERS, range(32)):
-            logger.warn(c * 256)
+            logger.warning(c * 256)
     files = [x for x in os.listdir(os.path.dirname(logfile)) if x.startswith(basename)]
     files.sort()
 
@@ -236,15 +239,25 @@ def _decompress(input_file_name, use_gzip=True):
             return brotli.decompress(in_f.read()).decode()
 
 
-@pytest.mark.parametrize("use_gzip", [True, False])
-def test_compression_file_handler(logfile, activation_strategy, logger, use_gzip):
-    handler = (
-        logbook.GZIPCompressionHandler(logfile)
-        if use_gzip
-        else logbook.BrotliCompressionHandler(logfile)
-    )
+def test_gzip_file_handler(logfile, activation_strategy, logger):
+    handler = logbook.GZIPCompressionHandler(logfile)
     handler.format_string = "{record.level_name}:{record.channel}:{record.message}"
     with activation_strategy(handler):
-        logger.warn("warning message")
+        logger.warning("warning message")
     handler.close()
-    assert _decompress(logfile, use_gzip) == "WARNING:testlogger:warning message\n"
+    with gzip.open(logfile, "rb") as f:
+        assert f.read().decode() == "WARNING:testlogger:warning message\n"
+
+
+@pytest.mark.skipif(brotli is None, reason="brotli not installed")
+def test_brotli_file_handler(logfile, activation_strategy, logger):
+    handler = logbook.BrotliCompressionHandler(logfile)
+    handler.format_string = "{record.level_name}:{record.channel}:{record.message}"
+    with activation_strategy(handler):
+        logger.warning("warning message")
+    handler.close()
+    with open(logfile, "rb") as in_f:
+        assert (
+            brotli.decompress(in_f.read()).decode()
+            == "WARNING:testlogger:warning message\n"
+        )

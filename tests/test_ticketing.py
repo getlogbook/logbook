@@ -18,7 +18,7 @@ def test_basic_ticketing(logger):
 
     with TicketingHandler("sqlite:///") as handler:
         for x in range(5):
-            logger.warn("A warning")
+            logger.warning("A warning")
             sleep(0.2)
             logger.info("An error")
             sleep(0.2)

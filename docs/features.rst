@@ -14,7 +14,7 @@ Core Features
 -   Each logger and handler, as well as other parts of the system, may inject
     additional information into the logging record that improves the usefulness
     of log entries.
--   Handlers can be set on an application-wide stack as well as a thread-wide
+-   Handlers can be set on an application-wide stack as well as a context-wide
     stack.  Setting a handler does not replace existing handlers, but gives it
     higher priority.  Each handler has the ability to prevent records from
     propagating to lower-priority handlers.
@@ -105,18 +105,9 @@ This is how easy it is to get started with Logbook:
 
 .. code-block:: python
 
-    from logbook import warn, StreamHandler
+    from logbook import Logger, StderrHandler
     import sys
 
-    StreamHandler(sys.stdout).push_application()
-    warn("This is a warning")
-
-Roadmap
--------
-
-Here a list of things you can expect in upcoming versions:
-
--   c implementation of the internal stack management and record
-    dispatching for higher performance.
--   a ticketing log handler that creates tickets in trac and redmine.
--   a web frontend for the ticketing database handler.
+    logger = Logger("mylibrary")
+    StderrHandler().push_application()
+    logger.warning("This is a warning")

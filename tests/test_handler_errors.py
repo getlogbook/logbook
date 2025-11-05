@@ -19,7 +19,7 @@ def test_handler_exception(activation_strategy, logger):
 
     with capturing_stderr_context() as stderr:
         with activation_strategy(ErroringHandler()):
-            logger.warn("I warn you.")
+            logger.warning("I warn you.")
     assert "something bad happened" in stderr.getvalue()
     assert "I warn you" not in stderr.getvalue()
 
