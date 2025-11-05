@@ -1,6 +1,14 @@
 Logbook Changelog
 =================
 
+Version 1.9.1
+-------------
+
+Fixed
+~~~~~
+
+- Required files were missing from the source distribution (sdist).
+
 Version 1.9.0
 -------------
 
