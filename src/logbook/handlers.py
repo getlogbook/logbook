@@ -17,6 +17,7 @@ import socket
 import ssl
 import stat
 import sys
+import threading
 import traceback
 import warnings
 from collections import deque
@@ -24,8 +25,6 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from textwrap import dedent
-
-from typing_extensions import deprecated
 
 from logbook.base import (
     CRITICAL,
@@ -43,7 +42,6 @@ from logbook.base import (
     level_name_property,
     lookup_level,
 )
-from logbook.concurrency import _new_fine_grained_lock
 from logbook.helpers import rename
 
 DEFAULT_FORMAT_STRING = (
@@ -513,7 +511,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
 
     def __init__(self, record_limit, record_delta):
         self.record_limit = record_limit
-        self._limit_lock = _new_fine_grained_lock()
+        self._limit_lock = threading.RLock()
         self._record_limits = {}
         if record_delta is None:
             record_delta = timedelta(seconds=60)
@@ -592,7 +590,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         Handler.__init__(self, level, filter, bubble, tzinfo=tzinfo)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.encoding = encoding
-        self.lock = _new_fine_grained_lock()
+        self.lock = threading.RLock()
         if stream is not _missing:
             self.stream = stream
 
@@ -2076,7 +2074,7 @@ class FingersCrossedHandler(Handler):
         bubble=False,
     ):
         Handler.__init__(self, NOTSET, filter, bubble)
-        self.lock = _new_fine_grained_lock()
+        self.lock = threading.RLock()
         self._level = action_level
         if isinstance(handler, Handler):
             self._handler = handler
@@ -2178,17 +2176,7 @@ class GroupHandler(WrapperHandler):
         Handler.pop_application(self)
         self.rollover()
 
-    @deprecated("Use pop_context instead")
-    def pop_thread(self):
-        Handler.pop_context(self)
-        self.rollover()
-
     def pop_context(self):
-        Handler.pop_context(self)
-        self.rollover()
-
-    @deprecated("Use pop_context instead")
-    def pop_greenlet(self):
         Handler.pop_context(self)
         self.rollover()
 

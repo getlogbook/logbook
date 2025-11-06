@@ -40,15 +40,11 @@ def test_handler_filter_after_processor(activation_strategy, logger):
             record.extra["path"] = request.path
 
         processor = logbook.Processor(inject_extra)
-        with activation_strategy(processor):
-            handler.push_thread()
+        with activation_strategy(processor), handler:
             try:
-                try:
-                    1 / 0  # noqa: B018
-                except Exception:
-                    logger.exception("Exception happened during request")
-            finally:
-                handler.pop_thread()
+                1 / 0  # noqa: B018
+            except Exception:
+                logger.exception("Exception happened during request")
 
     handle_request(Request())
     assert len(handler.mails) == 1
@@ -90,15 +86,11 @@ def test_handler_processors(activation_strategy, logger):
             record.extra["path"] = request.path
 
         processor = logbook.Processor(inject_extra)
-        with activation_strategy(processor):
-            handler.push_thread()
+        with activation_strategy(processor), handler:
             try:
-                try:
-                    1 / 0  # noqa: B018
-                except Exception:
-                    logger.exception("Exception happened during request")
-            finally:
-                handler.pop_thread()
+                1 / 0  # noqa: B018
+            except Exception:
+                logger.exception("Exception happened during request")
 
     handle_request(Request())
     assert len(handler.mails) == 1

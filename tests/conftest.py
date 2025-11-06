@@ -1,4 +1,3 @@
-import importlib.util
 from pathlib import Path
 
 import pytest
@@ -90,23 +89,3 @@ def default_handler(request):
     returned.push_application()
     request.addfinalizer(returned.pop_application)
     return returned
-
-
-if importlib.util.find_spec("gevent") is not None:
-
-    @pytest.fixture(
-        scope="module", autouse=True, params=[False, True], ids=["nogevent", "gevent"]
-    )
-    def gevent(request):
-        module_name = getattr(request.module, "__name__", "")
-        if (
-            not any(s in module_name for s in ("queues", "processors"))
-            and request.param
-        ):
-            from logbook.concurrency import _disable_gevent, enable_gevent
-
-            enable_gevent()
-
-            @request.addfinalizer
-            def fin():
-                _disable_gevent()

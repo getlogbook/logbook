@@ -66,17 +66,12 @@ class MultiProcessingHandlerSendBack:
         from logbook.queues import MultiProcessingHandler
 
         handler = MultiProcessingHandler(self.queue)
-        handler.push_thread()
-        try:
+        with handler:
             logbook.warning("Hello World")
-        finally:
-            handler.pop_thread()
 
 
 @require_module("multiprocessing")
 def test_multi_processing_handler():
-    if os.getenv("APPVEYOR") == "True":
-        pytest.skip("Test hangs on AppVeyor CI")
     from multiprocessing import Process, Queue
 
     from logbook.queues import MultiProcessingSubscriber
@@ -211,8 +206,6 @@ class SubscriberGroupSendBack:
 
 @require_module("multiprocessing")
 def test_subscriber_group():
-    if os.getenv("APPVEYOR") == "True":
-        pytest.skip("Test hangs on AppVeyor CI")
     from multiprocessing import Process, Queue
 
     from logbook.queues import MultiProcessingSubscriber, SubscriberGroup
