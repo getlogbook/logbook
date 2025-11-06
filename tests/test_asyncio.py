@@ -11,7 +11,7 @@ def test_asyncio_context_management(logger):
 
     async def task(handler, msg):
         for _ in range(ITERATIONS):
-            with handler.contextbound():
+            with handler:
                 logger.info(msg)
 
             await asyncio.sleep(0)  # allow for context switch

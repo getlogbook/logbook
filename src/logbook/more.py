@@ -16,16 +16,12 @@ import warnings
 from collections import defaultdict
 from functools import partial
 from typing import Any
-from urllib.parse import parse_qsl, urlencode
-
-from typing_extensions import deprecated
 
 from logbook._termcolors import colorize
 from logbook.base import ERROR, NOTICE, NOTSET, RecordDispatcher, dispatch_record
 from logbook.handlers import (
     Handler,
     StderrHandler,
-    StringFormatter,
     StringFormatterHandlerMixin,
 )
 from logbook.ticketing import BackendBase
@@ -89,33 +85,6 @@ class CouchDBBackend(BackendBase):
         db.save(ticket)
 
 
-@deprecated("TwitterFormatter is deprecated")
-class TwitterFormatter(StringFormatter):
-    """Works like the standard string formatter and is used by the
-    :class:`TwitterHandler` unless changed.
-
-    .. deprecated:: 1.9
-    """
-
-    max_length = 140
-
-    def format_exception(self, record):
-        return f"{record.exception_shortname}: {record.exception_message}"
-
-    def __call__(self, record, handler):
-        formatted = StringFormatter.__call__(self, record, handler)
-        rv = []
-        length = 0
-        for piece in _ws_re.split(formatted):
-            length += len(piece)
-            if length > self.max_length:
-                if length - len(piece) < self.max_length:
-                    rv.append("…")
-                break
-            rv.append(piece)
-        return "".join(rv)
-
-
 class TaggingLogger(RecordDispatcher):
     """A logger that attaches a tag to each record.  This is an alternative
     record dispatcher that does not use levels but tags to keep log
@@ -177,90 +146,6 @@ class TaggingHandler(Handler):
         for tag in record.extra.get("tags", ()):
             for handler in self._handlers.get(tag, ()):
                 handler.handle(record)
-
-
-@deprecated("TwitterHandler is deprecated")
-class TwitterHandler(Handler, StringFormatterHandlerMixin):
-    """A handler that logs to twitter.  Requires that you sign up an
-    application on twitter and request xauth support.  Furthermore the
-    oauth2 library has to be installed.
-
-    .. deprecated:: 1.9
-    """
-
-    default_format_string = TWITTER_FORMAT_STRING
-    formatter_class = TwitterFormatter
-
-    def __init__(
-        self,
-        consumer_key,
-        consumer_secret,
-        username,
-        password,
-        level=NOTSET,
-        format_string=None,
-        filter=None,
-        bubble=False,
-    ):
-        Handler.__init__(self, level, filter, bubble)
-        StringFormatterHandlerMixin.__init__(self, format_string)
-        self.consumer_key = consumer_key
-        self.consumer_secret = consumer_secret
-        self.username = username
-        self.password = password
-
-        try:
-            import oauth2
-        except ImportError:
-            raise RuntimeError(
-                "The python-oauth2 library is required for the TwitterHandler."
-            )
-
-        self._oauth = oauth2
-        self._oauth_token = None
-        self._oauth_token_secret = None
-        self._consumer = oauth2.Consumer(consumer_key, consumer_secret)
-        self._client = oauth2.Client(self._consumer)
-
-    def get_oauth_token(self):
-        """Returns the oauth access token."""
-        if self._oauth_token is None:
-            resp, content = self._client.request(
-                TWITTER_ACCESS_TOKEN_URL + "?",
-                "POST",
-                body=urlencode(
-                    {
-                        "x_auth_username": self.username.encode("utf-8"),
-                        "x_auth_password": self.password.encode("utf-8"),
-                        "x_auth_mode": "client_auth",
-                    }
-                ),
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-            )
-            if resp["status"] != "200":
-                raise RuntimeError("unable to login to Twitter")
-            data = dict(parse_qsl(content))
-            self._oauth_token = data["oauth_token"]
-            self._oauth_token_secret = data["oauth_token_secret"]
-        return self._oauth.Token(self._oauth_token, self._oauth_token_secret)
-
-    def make_client(self):
-        """Creates a new oauth client auth a new access token."""
-        return self._oauth.Client(self._consumer, self.get_oauth_token())
-
-    def tweet(self, status):
-        """Tweets a given status.  Status must not exceed 140 chars."""
-        client = self.make_client()
-        resp, content = client.request(  # noqa: RUF059
-            NEW_TWEET_URL,
-            "POST",
-            body=urlencode({"status": status.encode("utf-8")}),
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-        return resp["status"] == "200"
-
-    def emit(self, record):
-        self.tweet(self.format(record))
 
 
 class SlackHandler(Handler, StringFormatterHandlerMixin):
@@ -503,16 +388,8 @@ class DedupHandler(Handler):
         Handler.pop_application(self)
         self.flush()
 
-    def pop_thread(self):
-        Handler.pop_thread(self)
-        self.flush()
-
     def pop_context(self):
         Handler.pop_context(self)
-        self.flush()
-
-    def pop_greenlet(self):
-        Handler.pop_greenlet(self)
         self.flush()
 
     def handle(self, record):
