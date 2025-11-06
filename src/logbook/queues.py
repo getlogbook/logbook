@@ -286,13 +286,13 @@ class ThreadController:
 
     def _target(self):
         if self.setup is not None:
-            self.setup.push_thread()
+            self.setup.push_context()
         try:
             while self.running:
                 self.subscriber.dispatch_once(timeout=0.05)
         finally:
             if self.setup is not None:
-                self.setup.pop_thread()
+                self.setup.pop_context()
 
 
 class SubscriberBase:
@@ -718,7 +718,7 @@ class GroupMember(ThreadController):
 
     def _target(self):
         if self.setup is not None:
-            self.setup.push_thread()
+            self.setup.push_context()
         try:
             while self.running:
                 if record := self.subscriber.recv():
@@ -728,7 +728,7 @@ class GroupMember(ThreadController):
                         pass
         finally:
             if self.setup is not None:
-                self.setup.pop_thread()
+                self.setup.pop_context()
 
 
 class SubscriberGroup(SubscriberBase):

@@ -17,6 +17,7 @@ import socket
 import ssl
 import stat
 import sys
+import threading
 import traceback
 import warnings
 from collections import deque
@@ -42,7 +43,6 @@ from logbook.base import (
     level_name_property,
     lookup_level,
 )
-from logbook.concurrency import _new_fine_grained_lock
 from logbook.helpers import datetime_utcnow, rename
 
 DEFAULT_FORMAT_STRING = (
@@ -145,10 +145,10 @@ class Handler(ContextObject, metaclass=_HandlerType):
     the 'raw' message as determined by record.message is logged.
 
     To bind a handler you can use the :meth:`push_application`,
-    :meth:`push_thread` or :meth:`push_greenlet` methods.
+    or :meth:`push_context` methods.
     This will push the handler on a stack of handlers.
     To undo this, use the :meth:`pop_application`,
-    :meth:`pop_thread` methods and :meth:`pop_greenlet`::
+    and :meth:`pop_context` methods::
 
         handler = MyHandler()
         handler.push_application()
@@ -164,11 +164,6 @@ class Handler(ContextObject, metaclass=_HandlerType):
 
         with handler.applicationbound():
             ...
-
-        with handler.contextbound():
-            ...
-
-    Because `contextbound` is a common operation, it is the default::
 
         with handler:
             ...
@@ -478,7 +473,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
 
     def __init__(self, record_limit, record_delta):
         self.record_limit = record_limit
-        self._limit_lock = _new_fine_grained_lock()
+        self._limit_lock = threading.RLock()
         self._record_limits = {}
         if record_delta is None:
             record_delta = timedelta(seconds=60)
@@ -555,7 +550,7 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.encoding = encoding
-        self.lock = _new_fine_grained_lock()
+        self.lock = threading.RLock()
         if stream is not _missing:
             self.stream = stream
 
@@ -1972,7 +1967,7 @@ class FingersCrossedHandler(Handler):
         bubble=False,
     ):
         Handler.__init__(self, NOTSET, filter, bubble)
-        self.lock = _new_fine_grained_lock()
+        self.lock = threading.RLock()
         self._level = action_level
         if isinstance(handler, Handler):
             self._handler = handler
@@ -2074,16 +2069,8 @@ class GroupHandler(WrapperHandler):
         Handler.pop_application(self)
         self.rollover()
 
-    def pop_thread(self):
-        Handler.pop_thread(self)
-        self.rollover()
-
     def pop_context(self):
         Handler.pop_context(self)
-        self.rollover()
-
-    def pop_greenlet(self):
-        Handler.pop_greenlet(self)
         self.rollover()
 
     def emit(self, record):

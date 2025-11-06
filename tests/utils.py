@@ -62,19 +62,6 @@ def missing(name):
     return decorate
 
 
-def activate_via_with_statement(handler):
-    return handler
-
-
-@contextmanager
-def activate_via_push_pop(handler):
-    handler.push_thread()
-    try:
-        yield handler
-    finally:
-        handler.pop_thread()
-
-
 @contextmanager
 def capturing_stderr_context():
     original = sys.stderr
