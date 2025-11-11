@@ -13,11 +13,9 @@ import logging
 import sys
 import warnings
 from collections.abc import Mapping
-from datetime import timezone
+from datetime import datetime, timezone
 
 import logbook
-
-from .helpers import datetime_utcfromtimestamp
 
 
 def redirect_logging(set_root_logger_level=True):
@@ -140,12 +138,6 @@ class RedirectLoggingHandler(logging.Handler):
             else:
                 return frm
 
-    def convert_time(self, timestamp):
-        """Converts the UNIX timestamp of the old record into a
-        datetime object as used by logbook.
-        """
-        return datetime_utcfromtimestamp(timestamp)
-
     def convert_record(self, old_record):
         """Converts an old logging record into a logbook log record."""
         args = old_record.args
@@ -165,7 +157,7 @@ class RedirectLoggingHandler(logging.Handler):
             self.find_extra(old_record),
             self.find_caller(old_record),
         )
-        record.time = self.convert_time(old_record.created)
+        record.time = datetime.fromtimestamp(old_record.created, timezone.utc)
         return record
 
     def emit(self, record):
@@ -182,10 +174,11 @@ class LoggingHandler(logbook.Handler):
 
     Example usage::
 
-        from logbook.compat import LoggingHandler, warn
+        import logbook
+        from logbook.compat import LoggingHandler
 
         with LoggingHandler():
-            warn("This goes to logging")
+            logbook.warning("This goes to logging")
     """
 
     def __init__(self, logger=None, level=logbook.NOTSET, filter=None, bubble=False):
@@ -214,13 +207,6 @@ class LoggingHandler(logbook.Handler):
             return logging.INFO
         return logging.DEBUG
 
-    def convert_time(self, dt):
-        """Converts a datetime object into a timestamp."""
-        if dt.tzinfo is None:
-            # Logbook uses naive datetimes to represent UTC (utcnow)
-            return dt.replace(tzinfo=timezone.utc).timestamp()
-        return dt.timestamp()
-
     def convert_record(self, old_record):
         """Converts a record from logbook to logging."""
         record = logging.LogRecord(
@@ -235,7 +221,7 @@ class LoggingHandler(logbook.Handler):
         )
         for key, value in old_record.extra.items():
             record.__dict__.setdefault(key, value)
-        record.created = self.convert_time(old_record.time)
+        record.created = old_record.time.timestamp()
         return record
 
     def emit(self, record):

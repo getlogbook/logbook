@@ -14,6 +14,7 @@ import platform
 import re
 import warnings
 from collections import defaultdict
+from datetime import timezone
 from functools import partial
 from typing import Any
 
@@ -162,8 +163,9 @@ class SlackHandler(Handler, StringFormatterHandlerMixin):
         format_string=None,
         filter=None,
         bubble=False,
+        tz=timezone.utc,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tz)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.api_token = api_token
 
@@ -224,8 +226,9 @@ class ExternalApplicationHandler(Handler):
         level=NOTSET,
         filter=None,
         bubble=False,
+        tz=timezone.utc,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tz)
         self.encoding = encoding
         self._arguments = list(arguments)
         if stdin_format is not None:
@@ -341,16 +344,26 @@ class ExceptionHandler(Handler, StringFormatterHandlerMixin):
     """
 
     def __init__(
-        self, exc_type, level=NOTSET, format_string=None, filter=None, bubble=False
+        self,
+        exc_type,
+        level=NOTSET,
+        format_string=None,
+        filter=None,
+        bubble=False,
+        tz=timezone.utc,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tz)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.exc_type = exc_type
 
     def handle(self, record):
-        if self.should_handle(record):
-            raise self.exc_type(self.format(record))
-        return False
+        time = record.time
+        record.time = time.astimezone(self.tz)
+        try:
+            msg = self.format(record)
+        finally:
+            record.time = time
+        raise self.exc_type(msg)
 
 
 class DedupHandler(Handler):

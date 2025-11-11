@@ -22,7 +22,7 @@ import traceback
 import warnings
 from collections import deque
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from textwrap import dedent
 
@@ -38,12 +38,11 @@ from logbook.base import (
     ContextObject,
     ContextStackManager,
     Flags,
-    _datetime_factory,
     _missing,
     level_name_property,
     lookup_level,
 )
-from logbook.helpers import datetime_utcnow, rename
+from logbook.helpers import rename
 
 DEFAULT_FORMAT_STRING = (
     "[{record.time:%Y-%m-%d %H:%M:%S.%f%z}] "
@@ -176,7 +175,7 @@ class Handler(ContextObject, metaclass=_HandlerType):
     #: flag is set for the :class:`NullHandler` for instance.
     blackhole = False
 
-    def __init__(self, level=NOTSET, filter=None, bubble=False):
+    def __init__(self, level=NOTSET, filter=None, bubble=False, tz=timezone.utc):
         #: the level for the handler.  Defaults to `NOTSET` which
         #: consumes all entries.
         self.level = lookup_level(level)
@@ -189,6 +188,7 @@ class Handler(ContextObject, metaclass=_HandlerType):
         self.filter = filter
         #: the bubble flag of this handler
         self.bubble = bubble
+        self.tz = tz
 
     level_name = level_name_property()
 
@@ -224,10 +224,14 @@ class Handler(ContextObject, metaclass=_HandlerType):
         This should not be used to signal error situations.  The default
         implementation always returns `True`.
         """
+        time = record.time
+        record.time = time.astimezone(self.tz)
         try:
             self.emit(record)
         except Exception:
             self.handle_error(record, sys.exc_info())
+        finally:
+            record.time = time
         return True
 
     def emit(self, record):
@@ -494,7 +498,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
         try:
             allow_delivery = None
             suppression_count = old_count = 0
-            first_count = now = datetime_utcnow()
+            first_count = now = datetime.now(timezone.utc)
 
             if hash in self._record_limits:
                 last_count, suppression_count = self._record_limits[hash]
@@ -546,8 +550,9 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         encoding=None,
         filter=None,
         bubble=False,
+        tz=timezone.utc,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tz)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.encoding = encoding
         self.lock = threading.RLock()
@@ -620,11 +625,12 @@ class FileHandler(StreamHandler):
         delay=False,
         filter=None,
         bubble=False,
+        tz=timezone.utc,
     ):
         if encoding is None:
             encoding = "utf-8"
         StreamHandler.__init__(
-            self, None, level, format_string, encoding, filter, bubble
+            self, None, level, format_string, encoding, filter, bubble, tz
         )
         self._filename = os.path.abspath(filename)
         self._mode = mode
@@ -677,6 +683,7 @@ class GZIPCompressionHandler(FileHandler):
         filter=None,
         bubble=False,
         compression_quality=9,
+        tz=timezone.utc,
     ):
         self._compression_quality = compression_quality
         super().__init__(
@@ -688,6 +695,7 @@ class GZIPCompressionHandler(FileHandler):
             delay=delay,
             filter=filter,
             bubble=bubble,
+            tz=tz,
         )
 
     def _open(self, mode=None):
@@ -721,6 +729,7 @@ class BrotliCompressionHandler(FileHandler):
         bubble=False,
         compression_window_size=4 * 1024**2,
         compression_quality=11,
+        tz=timezone.utc,
     ):
         super().__init__(
             filename,
@@ -731,6 +740,7 @@ class BrotliCompressionHandler(FileHandler):
             delay=delay,
             filter=filter,
             bubble=bubble,
+            tz=tz,
         )
         try:
             import brotlicffi as brotli
@@ -798,9 +808,19 @@ class MonitoringFileHandler(FileHandler):
         delay=False,
         filter=None,
         bubble=False,
+        tz=timezone.utc,
     ):
         FileHandler.__init__(
-            self, filename, mode, encoding, level, format_string, delay, filter, bubble
+            self,
+            filename,
+            mode,
+            encoding,
+            level,
+            format_string,
+            delay,
+            filter,
+            bubble,
+            tz,
         )
         if os.name == "nt":
             raise RuntimeError("MonitoringFileHandler does not support Windows")
@@ -847,9 +867,16 @@ class StderrHandler(StreamHandler):
     point to the old one.
     """
 
-    def __init__(self, level=NOTSET, format_string=None, filter=None, bubble=False):
+    def __init__(
+        self,
+        level=NOTSET,
+        format_string=None,
+        filter=None,
+        bubble=False,
+        tz=timezone.utc,
+    ):
         StreamHandler.__init__(
-            self, _missing, level, format_string, None, filter, bubble
+            self, _missing, level, format_string, None, filter, bubble, tz
         )
 
     @property
@@ -883,9 +910,19 @@ class RotatingFileHandler(FileHandler):
         backup_count=5,
         filter=None,
         bubble=False,
+        tz=timezone.utc,
     ):
         FileHandler.__init__(
-            self, filename, mode, encoding, level, format_string, delay, filter, bubble
+            self,
+            filename,
+            mode,
+            encoding,
+            level,
+            format_string,
+            delay,
+            filter,
+            bubble,
+            tz,
         )
         self.max_size = max_size
         self.backup_count = backup_count
@@ -979,6 +1016,7 @@ class TimedRotatingFileHandler(FileHandler):
         bubble=False,
         timed_filename_for_current=True,
         rollover_format="{basename}-{timestamp}{ext}",
+        tz=timezone.utc,
     ):
         self.date_format = date_format
         self.backup_count = backup_count
@@ -989,23 +1027,32 @@ class TimedRotatingFileHandler(FileHandler):
         self.basename, self.ext = os.path.splitext(os.path.abspath(filename))
         self.timed_filename_for_current = timed_filename_for_current
 
-        self._timestamp = self._get_timestamp(_datetime_factory())
+        self._timestamp = self._get_timestamp(datetime.now(timezone.utc))
         if self.timed_filename_for_current:
             filename = self.generate_timed_filename(self._timestamp)
         elif os.path.exists(filename):
             self._timestamp = self._get_timestamp(
-                datetime.fromtimestamp(os.stat(filename).st_mtime)
+                datetime.fromtimestamp(os.stat(filename).st_mtime, timezone.utc)
             )
 
         FileHandler.__init__(
-            self, filename, mode, encoding, level, format_string, True, filter, bubble
+            self,
+            filename,
+            mode,
+            encoding,
+            level,
+            format_string,
+            True,
+            filter,
+            bubble,
+            tz,
         )
 
     def _get_timestamp(self, datetime):
         """
-        Fetches a formatted string witha timestamp of the given datetime
+        Fetches a formatted string with a timestamp of the given datetime
         """
-        return datetime.strftime(self.date_format)
+        return datetime.astimezone(self.tz).strftime(self.date_format)
 
     def generate_timed_filename(self, timestamp):
         """
@@ -1092,9 +1139,10 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         format_string=None,
         filter=None,
         bubble=False,
+        tz=timezone.utc,
         force_heavy_init=False,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tz)
         StringFormatterHandlerMixin.__init__(self, format_string)
         #: captures the :class:`LogRecord`\s as instances
         self.records = []
@@ -1339,8 +1387,9 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
         filter=None,
         bubble=False,
         starttls=True,
+        tz=timezone.utc,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tz)
         StringFormatterHandlerMixin.__init__(self, format_string)
         LimitingHandlerMixin.__init__(self, record_limit, record_delta)
         self.from_addr = from_addr
@@ -1686,8 +1735,9 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         filter=None,
         bubble=False,
         record_delimiter=None,
+        tz=timezone.utc,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tz)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.application_name = application_name
 
@@ -1768,7 +1818,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
             #           msgid structured-data message
             before = "<{}>1 {}Z {} {} {} - - ".format(
                 self.encode_priority(record),
-                record.time.isoformat(),
+                record.time.astimezone(timezone.utc).isoformat(),
                 socket.gethostname(),
                 self.application_name if self.application_name else "-",
                 record.process,
@@ -1817,8 +1867,9 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
         format_string=None,
         filter=None,
         bubble=False,
+        tz=timezone.utc,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tz)
         StringFormatterHandlerMixin.__init__(self, format_string)
 
         if os.name != "nt":
@@ -2023,12 +2074,9 @@ class FingersCrossedHandler(Handler):
         return self._action_triggered
 
     def emit(self, record):
-        self.lock.acquire()
-        try:
+        with self.lock:
             if self.enqueue(record):
                 self.rollover(record)
-        finally:
-            self.lock.release()
 
 
 class GroupHandler(WrapperHandler):

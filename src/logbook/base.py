@@ -12,7 +12,7 @@ import os
 import sys
 import traceback
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from itertools import chain
 from weakref import ref as weakref
 
@@ -21,10 +21,13 @@ from typing_extensions import deprecated
 from logbook.concurrency import greenlet_get_ident, thread_get_ident, thread_get_name
 from logbook.helpers import (
     cached_property,
-    datetime_utcnow,
-    parse_iso8601,
     to_safe_json,
 )
+
+if sys.version_info >= (3, 11):
+    isoparse = datetime.fromisoformat
+else:
+    from dateutil.parser import isoparse
 
 _has_speedups = False
 try:
@@ -44,82 +47,6 @@ except ImportError:
         StackedObject,
         group_reflected_property,
     )
-
-_datetime_factory = datetime_utcnow
-
-
-def set_datetime_format(datetime_format):
-    """
-    Set the format for the datetime objects created, which are then
-    made available as the :py:attr:`LogRecord.time` attribute of
-    :py:class:`LogRecord` instances.
-
-    :param datetime_format: Indicates how to generate datetime objects.
-
-    Possible values are:
-
-         "utc"
-             :py:attr:`LogRecord.time` will be a datetime in UTC time zone
-             (but not time zone aware)
-         "local"
-             :py:attr:`LogRecord.time` will be a datetime in local time zone
-             (but not time zone aware)
-         A `callable` returning datetime instances
-            :py:attr:`LogRecord.time` will be a datetime created by
-            :py:obj:`datetime_format` (possibly time zone aware)
-
-    This function defaults to creating datetime objects in UTC time,
-    using :func:`datetime.utcnow`,
-    so that logbook logs all times in UTC time by default.  This is
-    recommended in case you have multiple software modules or
-    instances running in different servers in different time zones, as
-    it makes it simple and less error prone to correlate logging
-    across the different servers.
-
-    On the other hand if all your software modules are running in the
-    same time zone and you have to correlate logging with third party
-    modules already logging in local time, it can be more convenient
-    to have logbook logging to local time instead of UTC.  Local time
-    logging can be enabled like this::
-
-       import logbook
-       from datetime import datetime
-
-       logbook.set_datetime_format("local")
-
-    Other uses rely on your supplied :py:obj:`datetime_format`.
-    Using `pytz <https://pypi.org/project/pytz>`_ for example::
-
-        from datetime import datetime
-        import logbook
-        import pytz
-
-
-        def utc_tz():
-            return datetime.now(tz=pytz.utc)
-
-
-        logbook.set_datetime_format(utc_tz)
-    """
-    global _datetime_factory
-    if datetime_format == "utc":
-        _datetime_factory = datetime_utcnow
-    elif datetime_format == "local":
-        _datetime_factory = datetime.now
-    elif callable(datetime_format):
-        inst = datetime_format()
-        if not isinstance(inst, datetime):
-            raise ValueError(
-                "Invalid callable value, valid callable "  # noqa: UP031
-                "should return datetime.datetime instances, "
-                "not %r" % (type(inst),)
-            )
-        _datetime_factory = datetime_format
-    else:
-        raise ValueError(
-            "Invalid value %r.  Valid values are 'utc' and "  # noqa: UP031
-            "'local'." % (datetime_format,)
-        )
 
 
 # make sure to sync these up with _speedups.pyx
@@ -460,7 +387,7 @@ class LogRecord:
         assert not self.late, "heavy init is no longer possible"
         self.heavy_initialized = True
         self.process = os.getpid()
-        self.time = _datetime_factory()
+        self.time = datetime.now(timezone.utc)
         if self.frame is None and Flags.get_flag("introspection", True):
             self.frame = sys._getframe(1)
         if self.exc_info is True:
@@ -509,6 +436,8 @@ class LogRecord:
         rv = {}
         for key, value in self.__dict__.items():
             if key[:1] != "_" and key not in self._noned_on_close:
+                if key == "time":
+                    value = value.astimezone(timezone.utc)
                 rv[key] = value
         # the extra dict is exported as regular dict
         rv["extra"] = dict(rv["extra"])
@@ -535,7 +464,7 @@ class LogRecord:
         self._information_pulled = True
         self._channel = None
         if isinstance(self.time, str):
-            self.time = parse_iso8601(self.time)
+            self.time = isoparse(self.time).astimezone(timezone.utc)
 
         self.extra = defaultdict(str, self.extra)
         return self

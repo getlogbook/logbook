@@ -28,6 +28,7 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
+    "python-dateutil>=2.9.0.post0; python_version<'3.11'",
     "typing-extensions>=4.14.0",
 ]
 

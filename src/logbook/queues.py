@@ -11,6 +11,7 @@ This module implements queue backends.
 import json
 import platform
 import threading
+from datetime import timezone
 from queue import Empty, Full
 from queue import Queue as ThreadQueue
 from threading import Lock, Thread
@@ -54,8 +55,9 @@ class RedisHandler(Handler):
         bubble=True,
         context=None,
         push_method="rpush",
+        tz=timezone.utc,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tz)
         try:
             import redis
             from redis import ResponseError
@@ -162,9 +164,15 @@ class MessageQueueHandler(Handler):
     """
 
     def __init__(
-        self, uri=None, queue="logging", level=NOTSET, filter=None, bubble=False
+        self,
+        uri=None,
+        queue="logging",
+        level=NOTSET,
+        filter=None,
+        bubble=False,
+        tz=timezone.utc,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tz)
         try:
             import kombu
         except ImportError:
@@ -216,8 +224,9 @@ class ZeroMQHandler(Handler):
         bubble=False,
         context=None,
         multi=False,
+        tz=timezone.utc,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tz)
         try:
             import zmq
         except ImportError:
