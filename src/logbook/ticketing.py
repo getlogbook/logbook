@@ -10,6 +10,7 @@ each logging message a ticket id.
 """
 
 import json
+from datetime import timezone
 from time import time
 
 from logbook.base import NOTSET, LogRecord, level_name_property
@@ -472,8 +473,10 @@ class TicketingBaseHandler(Handler, HashingHandlerMixin):
     would be compatible with the :class:`BackendBase` interface.
     """
 
-    def __init__(self, hash_salt, level=NOTSET, filter=None, bubble=False):
-        Handler.__init__(self, level, filter, bubble)
+    def __init__(
+        self, hash_salt, level=NOTSET, filter=None, bubble=False, tz=timezone.utc
+    ):
+        Handler.__init__(self, level, filter, bubble, tz)
         self.hash_salt = hash_salt
 
     def hash_record_raw(self, record):
@@ -520,11 +523,12 @@ class TicketingHandler(TicketingBaseHandler):
         bubble=False,
         hash_salt=None,
         backend=None,
+        tz=timezone.utc,
         **db_options,
     ):
         if hash_salt is None:
             hash_salt = "apphash-" + app_id
-        TicketingBaseHandler.__init__(self, hash_salt, level, filter, bubble)
+        TicketingBaseHandler.__init__(self, hash_salt, level, filter, bubble, tz)
         if backend is None:
             backend = self.default_backend
         db_options["uri"] = uri

@@ -11,21 +11,12 @@ Various helper functions
 import errno
 import os
 import random
-import re
 import sys
 import time
 from collections.abc import Callable, Iterator
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import TypeVar
 
-# this regexp also matches incompatible dates like 20070101 because
-# some libraries (like the python xmlrpclib modules) use this
-_iso8601_re = re.compile(
-    # date
-    r"(\d{4})(?:-?(\d{2})(?:-?(\d{2}))?)?"
-    # time
-    r"(?:T(\d{2}):(\d{2})(?::(\d{2}(?:\.\d+)?))?(Z|[+-]\d{2}:\d{2})?)?$"
-)
 _missing = object()
 
 T = TypeVar("T")
@@ -131,7 +122,7 @@ def to_safe_json(data):
         elif isinstance(obj, _JSON_SIMPLE_TYPES):
             return obj
         elif isinstance(obj, datetime):
-            return format_iso8601(obj)
+            return obj.astimezone(timezone.utc).isoformat()
         elif isinstance(obj, list):
             return [_convert(x) for x in obj]
         elif isinstance(obj, tuple):
@@ -145,73 +136,6 @@ def to_safe_json(data):
             return rv
 
     return _convert(data)
-
-
-if sys.version_info >= (3, 12):
-
-    def datetime_utcnow():
-        """datetime.utcnow() but doesn't emit a deprecation warning.
-
-        Will be fixed by https://github.com/getlogbook/logbook/issues/353
-        """
-        return datetime.now(timezone.utc).replace(tzinfo=None)
-
-    def datetime_utcfromtimestamp(timestamp):
-        """datetime.utcfromtimesetamp() but doesn't emit a deprecation warning.
-
-        Will be fixed by https://github.com/getlogbook/logbook/issues/353
-        """
-        return datetime.fromtimestamp(timestamp, timezone.utc).replace(tzinfo=None)
-
-else:
-    datetime_utcnow = datetime.utcnow
-    datetime_utcfromtimestamp = datetime.utcfromtimestamp
-
-
-def format_iso8601(d=None):
-    """Returns a date in iso8601 format."""
-    if d is None:
-        d = datetime_utcnow()
-    rv = d.strftime("%Y-%m-%dT%H:%M:%S")
-    if d.microsecond:
-        rv += "." + str(d.microsecond)
-    return rv + "Z"
-
-
-def parse_iso8601(value):
-    """Parse an iso8601 date into a datetime object.  The timezone is
-    normalized to UTC.
-    """
-    m = _iso8601_re.match(value)
-    if m is None:
-        raise ValueError("not a valid iso8601 date value")
-
-    groups = m.groups()
-    args = []
-    for group in groups[:-2]:
-        if group is not None:
-            group = int(group)
-        args.append(group)
-    seconds = groups[-2]
-    if seconds is not None:
-        if "." in seconds:
-            sec, usec = seconds.split(".")
-            args.append(int(sec))
-            args.append(int(usec.ljust(6, "0")))
-        else:
-            args.append(int(seconds))
-
-    rv = datetime(*args)
-    tz = groups[-1]
-    if tz and tz != "Z":
-        args = [int(x) for x in tz[1:].split(":")]
-        delta = timedelta(hours=args[0], minutes=args[1])
-        if tz[0] == "+":
-            rv -= delta
-        else:
-            rv += delta
-
-    return rv
 
 
 def get_application_name():
