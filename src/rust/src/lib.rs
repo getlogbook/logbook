@@ -6,11 +6,11 @@ use std::sync::Mutex;
 
 use contextvars::{PyContextVar, PyContextVarMethods};
 use pyo3::exceptions::{
-    PyAssertionError, PyException, PyKeyError, PyLookupError, PyNotImplementedError, PyTypeError,
+    PyAssertionError, PyKeyError, PyLookupError, PyNotImplementedError, PyTypeError,
 };
 use pyo3::prelude::*;
 use pyo3::sync::{MutexExt, PyOnceLock};
-use pyo3::types::{PyIterator, PyList, PyMapping, PyString, PyTraceback, PyTuple, PyType};
+use pyo3::types::{PyIterator, PyList, PyMapping, PyString, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
 
 mod contextvars;
@@ -292,9 +292,9 @@ impl ApplicationBound {
     fn __exit__(
         &self,
         py: Python<'_>,
-        _exc_type: Option<&Bound<'_, PyType>>,
-        _exc_val: Option<&Bound<'_, PyException>>,
-        _exc_tb: Option<&Bound<'_, PyTraceback>>,
+        _exc_type: &Bound<'_, PyAny>,
+        _exc_val: &Bound<'_, PyAny>,
+        _exc_tb: &Bound<'_, PyAny>,
     ) -> PyResult<()> {
         self.obj
             .bind(py)
@@ -338,9 +338,9 @@ impl StackedObject {
     fn __exit__(
         self_: Py<Self>,
         py: Python<'_>,
-        _exc_type: Option<&Bound<'_, PyType>>,
-        _exc_val: Option<&Bound<'_, PyException>>,
-        _exc_tb: Option<&Bound<'_, PyTraceback>>,
+        _exc_type: &Bound<'_, PyAny>,
+        _exc_val: &Bound<'_, PyAny>,
+        _exc_tb: &Bound<'_, PyAny>,
     ) -> PyResult<()> {
         self_.bind(py).call_method0(intern!(py, "pop_context"))?;
         Ok(())

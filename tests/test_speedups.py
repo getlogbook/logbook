@@ -67,6 +67,29 @@ def test_stacked_object(speedups_module):
     with pytest.raises(NotImplementedError):
         s.pop_application()
 
+    class ContextObject(StackedObject):
+        def push_context(self):
+            pass
+
+        def pop_context(self):
+            pass
+
+        def push_application(self):
+            pass
+
+        def pop_application(self):
+            pass
+
+    c = ContextObject()
+
+    # https://github.com/getlogbook/logbook/issues/500
+    with pytest.raises(SystemExit):
+        with c:
+            raise SystemExit
+    with pytest.raises(SystemExit):
+        with c.applicationbound():
+            raise SystemExit
+
 
 def test_context_stack_manager(speedups_module):
     class StackObject:
