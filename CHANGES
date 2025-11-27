@@ -1,6 +1,15 @@
 Logbook Changelog
 =================
 
+Version 1.9.2
+-------------
+
+Fixed
+~~~~~
+
+- When used as a context manager, handlers, flags, and processors would swallow
+  a raised ``BaseException`` and raise a ``TypeError`` `#500 <https://github.com/getlogbook/logbook/issues/500>`_.
+
 Version 1.9.1
 -------------
 
