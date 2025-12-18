@@ -45,7 +45,7 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
           allow-prereleases: true
-      - uses: "astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244" # v7.1.4
+      - uses: "astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867" # v7.1.6
         with:
           enable-cache: true
       - run: rustup component add llvm-tools-preview
@@ -90,7 +90,7 @@ jobs:
           python-version: "${{ matrix.python-version }}"
           architecture: "${{ matrix.arch }}"
           allow-prereleases: true
-      - uses: "astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244" # v7.1.4
+      - uses: "astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867" # v7.1.6
         with:
           enable-cache: true
 
@@ -126,7 +126,7 @@ jobs:
           python-version: "${{ matrix.python-version }}"
           architecture: "${{ matrix.arch }}"
           allow-prereleases: true
-      - uses: "astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244" # v7.1.4
+      - uses: "astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867" # v7.1.6
         with:
           enable-cache: true
       - run: rustup component add llvm-tools-preview
@@ -155,7 +155,7 @@ jobs:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
-      - uses: "astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244" # v7.1.4
+      - uses: "astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867" # v7.1.6
       - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
         with:
           python-version: "3.14"
@@ -177,7 +177,7 @@ jobs:
 
     steps:
       - uses: "actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8" # v6.0.1
-      - uses: "astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244" # v7.1.4
+      - uses: "astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867" # v7.1.6
       - uses: "actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548" # v6.1.0
         with:
           python-version: "${{ matrix.python-version }}"
