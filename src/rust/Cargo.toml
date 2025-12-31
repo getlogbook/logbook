@@ -8,6 +8,7 @@ rust-version = { workspace = true }
 license = { workspace = true }
 
 [dependencies]
+arc-swap = { workspace = true }
 pyo3 = { workspace = true }
 
 [features]

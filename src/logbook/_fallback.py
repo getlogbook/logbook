@@ -11,20 +11,15 @@ Fallback implementations in case speedups is not around.
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable, Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterator
 from contextvars import ContextVar
 from itertools import chain, count
-from typing import Any, Generic, SupportsIndex, TypeVar, overload
-from weakref import WeakKeyDictionary
-
-from typing_extensions import TypeAliasType
+from typing import Any, Generic, TypeVar
 
 from logbook.helpers import get_iterator_next_method
 
 _missing = object()
-_MAX_CONTEXT_OBJECT_CACHE = 256
 
-T_co = TypeVar("T_co", covariant=True)
 T = TypeVar("T")
 
 
@@ -105,57 +100,38 @@ class StackedObject:
         return ApplicationBound(self)
 
 
-class FrozenSequence(Sequence[T_co]):
-    __slots__ = ("__weakref__", "_hash", "_items")
+class _StackState(Generic[T]):
+    """The context stack, stored as a linked list.
 
-    def __init__(self, iterable: Iterable[T_co] = ()) -> None:
-        self._items = tuple(iterable)
-        self._hash: int | None = None
+    Each node holds one pushed object and points at the node below it.
+    Pushing creates a new node; popping goes back to the parent. Because
+    popping returns to the same node object rather than rebuilding the
+    stack, a merge result cached on that node (``merged``) is still there
+    if the context pops back to it later. The empty stack is a single
+    root node with ``item = parent = None``.
+    """
 
-    @overload
-    def __getitem__(self, index: SupportsIndex) -> T_co: ...
+    __slots__ = ("item", "merged", "parent", "size")
 
-    @overload
-    def __getitem__(self, index: slice) -> FrozenSequence[T_co]: ...
+    def __init__(
+        self, item: tuple[int, T] | None, parent: _StackState[T] | None
+    ) -> None:
+        self.item = item
+        self.parent = parent
+        self.size = 0 if parent is None else parent.size + 1
+        self.merged: tuple[tuple[tuple[int, T], ...], tuple[T, ...]] | None = None
 
-    def __getitem__(self, index: SupportsIndex | slice) -> T_co | FrozenSequence[T_co]:
-        if isinstance(index, slice):
-            return FrozenSequence(self._items[index])
-        return self._items[index]
-
-    def __len__(self) -> int:
-        return len(self._items)
-
-    def __iter__(self) -> Iterator[T_co]:
-        return iter(self._items)
-
-    def __reversed__(self) -> Iterator[T_co]:
-        return reversed(self._items)
-
-    def __contains__(self, item: object) -> bool:
-        return item in self._items
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, FrozenSequence):
-            return self._items == other._items
-        return NotImplemented
-
-    def __hash__(self) -> int:
-        if self._hash is None:
-            self._hash = hash(self._items)
-        return self._hash
+    def __iter__(self) -> Iterator[tuple[int, T]]:
+        items = []
+        node = self
+        while node.parent is not None:
+            assert node.item is not None
+            items.append(node.item)
+            node = node.parent
+        return iter(reversed(items))
 
     def __repr__(self) -> str:
-        if self._items:
-            items = repr(self._items)
-        else:
-            items = ""
-        return f"{self.__class__.__name__}({items})"
-
-
-FrozenStack = TypeAliasType(
-    "FrozenStack", FrozenSequence[tuple[int, T]], type_params=(T,)
-)
+        return f"<_StackState len={self.size}>"
 
 
 class ContextStackManager(Generic[T]):
@@ -164,57 +140,81 @@ class ContextStackManager(Generic[T]):
     """
 
     def __init__(self) -> None:
-        self._global: list[T] = []
-        self._context_stack: ContextVar[FrozenStack[T]] = ContextVar(
-            "stack", default=FrozenSequence()
+        self._write_lock = threading.Lock()
+        # iter_context_objects compares globals with "is". Python reuses
+        # one object for every (), so if the stack empties out again later,
+        # an old cache built against the earlier empty stack still matches.
+        # That is fine: both are empty, so the cached merge is the same.
+        self._global: tuple[tuple[int, T], ...] = ()
+        # Every context starts from this one root node. Sharing it across
+        # threads is safe: nodes never change after creation, except for
+        # "merged", which is written in a single assignment.
+        self._root: _StackState[T] = _StackState(None, None)
+        self._context_stack: ContextVar[_StackState[T]] = ContextVar(
+            "stack", default=self._root
         )
-        self._cache: WeakKeyDictionary[FrozenStack[T], list[T]] = WeakKeyDictionary()
         self._stackop: Callable[[], int] = get_iterator_next_method(count())
-        self._lock = threading.Lock()
 
     def iter_context_objects(self) -> Iterator[T]:
         """Returns an iterator over all objects for the combined
         application and context cache.
         """
+        node = self._context_stack.get()
+        current_global = self._global
 
-        with self._lock:
-            stack = self._context_stack.get()
-            objects = self._cache.get(stack)
-            if objects is None:
-                if len(self._cache) >= _MAX_CONTEXT_OBJECT_CACHE:
-                    self._cache.clear()
-                stack_objects = sorted(
-                    chain(
-                        self._global,
-                        stack,
-                    ),
-                    reverse=True,
-                )
-                objects = [x[1] for x in stack_objects]
-                self._cache[stack] = objects
+        memo = node.merged
+        if memo is not None and memo[0] is current_global:
+            return iter(memo[1])
+
+        stack_objects = sorted(chain(current_global, node), reverse=True)
+        objects = tuple(x[1] for x in stack_objects)
+        node.merged = (current_global, objects)
+
+        # Each node below keeps its own cache, ready for when the context
+        # pops back to that depth. But a cache built against an old global
+        # stack will never be used again, and it keeps that stack's handlers
+        # alive. Clear those out now rather than waiting for the context to
+        # unwind. If another thread stores a fresh cache at the same time,
+        # either outcome is fine; the worst case is one extra recompute.
+        ancestor = node.parent
+        while ancestor is not None:
+            memo = ancestor.merged
+            if memo is not None and memo[0] is not current_global:
+                ancestor.merged = None
+            ancestor = ancestor.parent
+
         return iter(objects)
 
     def push_context(self, obj: T) -> None:
-        item = (self._stackop(), obj)
-        stack = self._context_stack.get()
-        self._context_stack.set(FrozenSequence((*stack, item)))
+        node = self._context_stack.get()
+        self._context_stack.set(_StackState((self._stackop(), obj), node))
 
     def pop_context(self) -> T:
-        stack = self._context_stack.get()
-        assert stack, "no objects on stack"
-        *remaining, poppped = stack
-        self._context_stack.set(FrozenSequence(remaining))
-        return poppped[1]
+        node = self._context_stack.get()
+        if node.parent is None:
+            raise AssertionError("no objects on stack")
+        assert node.item is not None
+        self._context_stack.set(node.parent)
+        return node.item[1]
 
     def push_application(self, obj: T) -> None:
-        item = (self._stackop(), obj)
-        with self._lock:
-            self._global.append(item)
-            self._cache.clear()
+        with self._write_lock:
+            item = (self._stackop(), obj)
+            self._global = (*self._global, item)
+            # Not needed for correctness (the "is" check would reject it),
+            # but the root node lives as long as the manager, and its cache
+            # holds the old global stack alive. Clear it now instead of
+            # waiting for an iteration on an empty context stack, which may
+            # never happen.
+            self._root.merged = None
 
     def pop_application(self) -> T:
-        with self._lock:
-            assert self._global, "no objects on application stack"
-            popped = self._global.pop()
-            self._cache.clear()
-            return popped[1]
+        with self._write_lock:
+            current = self._global
+            if not current:
+                raise AssertionError("no objects on application stack")
+            self._global = current[:-1]
+            # See push_application. Here it matters more: without this,
+            # the root's cache would keep the popped handler alive.
+            self._root.merged = None
+            return current[-1][1]
