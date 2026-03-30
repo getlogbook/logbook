@@ -182,7 +182,7 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
           allow-prereleases: true
-      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
+      - uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9
         with:
           toolchain: ${{ matrix.rust-version }}
       - run: rustup component add llvm-tools-preview
