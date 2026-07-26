@@ -33,7 +33,7 @@ else:
             RustExtension(
                 "logbook._speedups",
                 "src/rust/Cargo.toml",
-                rust_version=">=1.74",
+                rust_version=">=1.83",
             )
         ]
     }

@@ -17,7 +17,17 @@ import nox
 nox.options.reuse_existing_virtualenvs = True
 nox.options.default_venv_backend = "uv"
 
-PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.14t"]
+PYTHON_VERSIONS = [
+    "3.9",
+    "3.10",
+    "3.11",
+    "3.12",
+    "3.13",
+    "3.14",
+    "3.14t",
+    "3.15",
+    "3.15t",
+]
 
 SUPPORTED_EXTRAS = [
     "brotli",
