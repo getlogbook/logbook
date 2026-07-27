@@ -132,7 +132,7 @@ ignore = [
 extend-immutable-calls = ["logbook._fallback.FrozenSequence"]
 
 [tool.cibuildwheel.macos]
-archs = ["x86_64", "universal2", "arm64"]
+archs = ["x86_64", "arm64"]
 
 [tool.cibuildwheel.macos.environment]
 MACOSX_DEPLOYMENT_TARGET = "10.12"
