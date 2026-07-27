@@ -132,10 +132,11 @@ ignore = [
 extend-immutable-calls = ["logbook._fallback.FrozenSequence"]
 
 [tool.cibuildwheel.macos]
-archs = ["x86_64", "universal2", "arm64"]
+archs = ["x86_64", "arm64"]
 
-[tool.cibuildwheel.macos.environment]
-MACOSX_DEPLOYMENT_TARGET = "10.12"
+[[tool.cibuildwheel.overrides]]
+select = "cp3{9,10,11}-macosx_x86_64"
+environment.MACOSX_DEPLOYMENT_TARGET = "10.12"
 
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux2014"
