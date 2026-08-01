@@ -28,8 +28,6 @@ This documents general purpose utility functions available in Logbook.
 
 .. autofunction:: log
 
-.. autofunction:: set_datetime_format
-
 Slow Operations Logging
 -----------------------
 

@@ -44,6 +44,7 @@ def test_datehelpers():
         parse_iso8601("foo")
     v = parse_iso8601("2000-01-01T00:00:00.12Z")
     assert v.microsecond == 120000
+    assert v.tzinfo is timezone.utc
     v = parse_iso8601("2000-01-01T12:00:00+01:00")
     assert v.hour == 11
     v = parse_iso8601("2000-01-01T12:00:00-01:00")
@@ -56,8 +57,9 @@ def test_format_iso8601_aware():
     d = datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone(timedelta(hours=2)))
     rv = format_iso8601(d)
     assert rv == "2000-01-01T12:00:00+02:00"
-    # the parsed value is normalized to naive UTC
-    assert parse_iso8601(rv) == datetime(2000, 1, 1, 10, 0, 0)
+    # the parsed value is normalized to UTC
+    assert parse_iso8601(rv) == d
+    assert parse_iso8601(rv).tzinfo is timezone.utc
 
     assert format_iso8601(datetime(2000, 1, 1, tzinfo=timezone.utc)) == (
         "2000-01-01T00:00:00+00:00"
@@ -72,4 +74,4 @@ def test_format_iso8601_microseconds_roundtrip():
     d = datetime(2000, 1, 1, 0, 0, 0, 5000)
     rv = format_iso8601(d)
     assert rv == "2000-01-01T00:00:00.005000Z"
-    assert parse_iso8601(rv) == d
+    assert parse_iso8601(rv) == d.replace(tzinfo=timezone.utc)

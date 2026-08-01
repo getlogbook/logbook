@@ -45,7 +45,7 @@ def test_syslog_handler(
             )
         else:
             expected = (
-                r"^<12>1 \d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z %s %s %d - - %sSyslog is weird%s$"  # noqa: UP031
+                r"^<12>1 \d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?\+00:00 %s %s %d - - %sSyslog is weird%s$"  # noqa: UP031
                 % (
                     socket.gethostname(),
                     app_name if app_name else "testlogger",
@@ -71,9 +71,9 @@ def test_syslog_handler(
 
 
 def test_syslog_handler_aware_timestamp():
-    """RFC 5424 timestamps of timezone-aware record times carry the UTC
-    offset from isoformat() instead of the hardcoded "Z" used for naive
-    times (which used to produce invalid values like ``+00:00Z``).
+    """RFC 5424 timestamps carry the UTC offset of the record time
+    (Logbook 1.x appended a hardcoded "Z", which produced invalid values
+    like ``+00:00Z`` for timezone-aware times).
     """
     with closing(socket.socket(socket.AF_INET, socket.SOCK_DGRAM)) as inc:
         inc.bind(("127.0.0.1", 0))

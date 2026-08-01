@@ -13,11 +13,9 @@ import logging
 import sys
 import warnings
 from collections.abc import Mapping
-from datetime import timezone
+from datetime import datetime, timezone
 
 import logbook
-
-from .helpers import datetime_utcfromtimestamp
 
 
 def redirect_logging(set_root_logger_level=True):
@@ -142,9 +140,9 @@ class RedirectLoggingHandler(logging.Handler):
 
     def convert_time(self, timestamp):
         """Converts the UNIX timestamp of the old record into a
-        datetime object as used by logbook.
+        timezone-aware datetime object in UTC as used by logbook.
         """
-        return datetime_utcfromtimestamp(timestamp)
+        return datetime.fromtimestamp(timestamp, timezone.utc)
 
     def convert_record(self, old_record):
         """Converts an old logging record into a logbook log record."""
@@ -215,10 +213,10 @@ class LoggingHandler(logbook.Handler):
         return logging.DEBUG
 
     def convert_time(self, dt):
-        """Converts a datetime object into a timestamp."""
-        if dt.tzinfo is None:
-            # Logbook uses naive datetimes to represent UTC (utcnow)
-            return dt.replace(tzinfo=timezone.utc).timestamp()
+        """Converts a datetime object into a timestamp.  Naive datetimes
+        on hand-constructed records are interpreted as local time, like
+        the standard library does.
+        """
         return dt.timestamp()
 
     def convert_record(self, old_record):

@@ -4,30 +4,47 @@ Logbook Changelog
 Unreleased
 ----------
 
+Changed
+~~~~~~~
+
+- ``LogRecord.time`` is now always a timezone-aware datetime in UTC
+  `#353 <https://github.com/getlogbook/logbook/issues/353>`_. Set the
+  ``tzinfo`` attribute of handlers to display record times in another
+  timezone. Note that the default format string renders the UTC offset
+  (``+0000``) now that record times carry one, and arithmetic between
+  ``LogRecord.time`` and naive datetimes (e.g. ``datetime.utcnow()``)
+  raises ``TypeError``; use ``datetime.now(timezone.utc)`` instead.
+- Naive datetimes on hand-constructed log records are now interpreted as
+  local time by ``logbook.compat.LoggingHandler`` and by the handler
+  ``tzinfo`` conversion, aligning with the standard library. Previously
+  ``LoggingHandler`` assumed naive record times were UTC.
+- ``logbook.helpers.parse_iso8601`` returns timezone-aware datetimes in
+  UTC. Records deserialized from Logbook 1.x payloads (e.g. via the queue
+  handlers) therefore also get aware UTC times.
+
+Removed
+~~~~~~~
+
+- ``logbook.set_datetime_format`` has been removed
+  `#353 <https://github.com/getlogbook/logbook/issues/353>`_. Record times
+  are always aware UTC; use the handler ``tzinfo`` attribute (e.g.
+  ``"local"``) to display them in another timezone, and freeze time with
+  a library like time-machine or freezegun in tests.
+- ``logbook.helpers.datetime_utcnow`` and
+  ``logbook.helpers.datetime_utcfromtimestamp`` have been removed.
+
 Added
 ~~~~~
 
 - Handlers accept a ``tzinfo`` attribute (also a keyword-only constructor
-  argument on the common handlers). When set, timezone-aware
-  ``LogRecord.time`` values are converted to that timezone when the handler
-  formats a record; the value is a ``datetime.tzinfo`` instance or the
-  string ``"local"`` for the system local timezone. This is part of the
-  migration towards timezone-aware datetimes in Logbook 2.0
+  argument on the common handlers). When set, ``LogRecord.time`` values
+  are converted to that timezone when the handler formats a record; the
+  value is a ``datetime.tzinfo`` instance or the string ``"local"`` for
+  the system local timezone
   `#353 <https://github.com/getlogbook/logbook/issues/353>`_.
-- ``TimedRotatingFileHandler`` converts timezone-aware record times using
-  its ``tzinfo`` attribute when computing rollover filenames, so e.g.
-  ``tzinfo="local"`` rolls over at local midnight.
-
-Deprecated
-~~~~~~~~~~
-
-- ``logbook.set_datetime_format`` is deprecated and will be removed in
-  Logbook 2.0, where ``LogRecord.time`` will always be a timezone-aware
-  datetime in UTC `#353 <https://github.com/getlogbook/logbook/issues/353>`_.
-  To adopt the future behavior today, use a factory that returns aware
-  datetimes: ``set_datetime_format(lambda: datetime.now(timezone.utc))``.
-  Users of ``set_datetime_format("local")`` should set ``tzinfo="local"``
-  on their handlers instead.
+- ``TimedRotatingFileHandler`` converts record times using its ``tzinfo``
+  attribute when computing rollover filenames, so e.g. ``tzinfo="local"``
+  rolls over at local midnight.
 
 Fixed
 ~~~~~

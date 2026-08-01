@@ -30,7 +30,6 @@ from .base import (
     dispatch_record,
     get_level_name,
     lookup_level,
-    set_datetime_format,
 )
 from .handlers import (
     BrotliCompressionHandler,
@@ -130,7 +129,6 @@ __all__ = (
     "log",
     "lookup_level",
     "notice",
-    "set_datetime_format",
     "trace",
     "warn",
     "warning",

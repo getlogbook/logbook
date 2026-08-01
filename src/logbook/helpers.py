@@ -147,42 +147,21 @@ def to_safe_json(data):
     return _convert(data)
 
 
-if sys.version_info >= (3, 12):
-
-    def datetime_utcnow():
-        """datetime.utcnow() but doesn't emit a deprecation warning.
-
-        Will be fixed by https://github.com/getlogbook/logbook/issues/353
-        """
-        return datetime.now(timezone.utc).replace(tzinfo=None)
-
-    def datetime_utcfromtimestamp(timestamp):
-        """datetime.utcfromtimesetamp() but doesn't emit a deprecation warning.
-
-        Will be fixed by https://github.com/getlogbook/logbook/issues/353
-        """
-        return datetime.fromtimestamp(timestamp, timezone.utc).replace(tzinfo=None)
-
-else:
-    datetime_utcnow = datetime.utcnow
-    datetime_utcfromtimestamp = datetime.utcfromtimestamp
-
-
 def format_iso8601(d=None):
     """Returns a date in iso8601 format.  Timezone-naive datetimes are
     assumed to be UTC and get a ``Z`` suffix; timezone-aware datetimes
     include their UTC offset.
     """
     if d is None:
-        d = datetime_utcnow()
+        d = datetime.now(timezone.utc)
     if d.tzinfo is None:
         return d.isoformat() + "Z"
     return d.isoformat()
 
 
 def parse_iso8601(value):
-    """Parse an iso8601 date into a datetime object.  The timezone is
-    normalized to UTC.
+    """Parse an iso8601 date into a timezone-aware datetime object in
+    UTC.  Values without an explicit UTC offset are assumed to be UTC.
     """
     m = _iso8601_re.match(value)
     if m is None:
@@ -213,7 +192,7 @@ def parse_iso8601(value):
         else:
             rv += delta
 
-    return rv
+    return rv.replace(tzinfo=timezone.utc)
 
 
 def get_application_name():

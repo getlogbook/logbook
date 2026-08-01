@@ -39,13 +39,12 @@ from logbook.base import (
     ContextObject,
     ContextStackManager,
     Flags,
-    _datetime_factory,
     _missing,
     level_name_property,
     lookup_level,
 )
 from logbook.concurrency import _new_fine_grained_lock
-from logbook.helpers import datetime_utcnow, rename
+from logbook.helpers import rename
 
 DEFAULT_FORMAT_STRING = (
     "[{record.time:%Y-%m-%d %H:%M:%S.%f%z}] "
@@ -217,13 +216,13 @@ class Handler(ContextObject, metaclass=_HandlerType):
         self.filter = filter
         #: the bubble flag of this handler
         self.bubble = bubble
-        #: the timezone that timezone-aware :attr:`LogRecord.time` values
-        #: are converted to when this handler formats a record.  ``None``
-        #: (the default) leaves record times unconverted, a
+        #: the timezone that :attr:`LogRecord.time` values are converted
+        #: to when this handler formats a record.  ``None`` (the default)
+        #: leaves record times unconverted (they are timezone-aware UTC), a
         #: :class:`~datetime.tzinfo` instance converts to that timezone and
         #: the string ``"local"`` converts to the system local timezone.
-        #: Timezone-naive record times (the default in Logbook 1.x) are
-        #: never converted.
+        #: Timezone-naive record times on hand-constructed records are
+        #: interpreted as local time, like the standard library does.
         self.tzinfo = tzinfo
 
     level_name = level_name_property()
@@ -238,17 +237,12 @@ class Handler(ContextObject, metaclass=_HandlerType):
         The combination of a handler and formatter might have the
         formatter return an XML element tree for example.
 
-        If :attr:`tzinfo` is set and the record time is timezone-aware,
-        the formatter is passed a wrapped record whose :attr:`LogRecord.time`
-        is converted to that timezone.
+        If :attr:`tzinfo` is set, the formatter is passed a wrapped record
+        whose :attr:`LogRecord.time` is converted to that timezone.
         """
         if self.formatter is None:
             return record.message
-        if (
-            self.tzinfo is not None
-            and record.time is not None
-            and record.time.tzinfo is not None
-        ):
+        if self.tzinfo is not None and record.time is not None:
             record = _TimeConvertedRecord(record, self.tzinfo)
         return self.formatter(record, self)
 
@@ -540,7 +534,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
         try:
             allow_delivery = None
             suppression_count = old_count = 0
-            first_count = now = datetime_utcnow()
+            first_count = now = datetime.now(timezone.utc)
 
             if hash in self._record_limits:
                 last_count, suppression_count = self._record_limits[hash]
@@ -1080,7 +1074,7 @@ class TimedRotatingFileHandler(FileHandler):
         # _get_timestamp consults self.tzinfo, which FileHandler.__init__
         # only sets at the end of this constructor.
         self.tzinfo = tzinfo
-        self._timestamp = self._get_timestamp(_datetime_factory())
+        self._timestamp = self._get_timestamp(datetime.now(timezone.utc))
         if self.timed_filename_for_current:
             filename = self.generate_timed_filename(self._timestamp)
         elif os.path.exists(filename):
@@ -1105,7 +1099,7 @@ class TimedRotatingFileHandler(FileHandler):
         """
         Fetches a formatted string witha timestamp of the given datetime
         """
-        if datetime.tzinfo is not None and self.tzinfo is not None:
+        if self.tzinfo is not None:
             datetime = _convert_record_time(datetime, self.tzinfo)
         return datetime.strftime(self.date_format)
 
@@ -1874,10 +1868,13 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
                 self.application_name = record.channel
             # RFC 5424: <PRIVAL>version timestamp hostname app-name procid
             #           msgid structured-data message
-            # Naive record times represent UTC and need an explicit "Z";
-            # aware times carry their own UTC offset in isoformat().
+            # Naive times on hand-constructed records are local time,
+            # like the standard library; astimezone() makes the UTC
+            # offset explicit either way.
             time = record.time
-            timestamp = time.isoformat() + ("Z" if time.tzinfo is None else "")
+            if time.tzinfo is None:
+                time = time.astimezone()
+            timestamp = time.isoformat()
             before = "<{}>1 {} {} {} {} - - ".format(
                 self.encode_priority(record),
                 timestamp,
