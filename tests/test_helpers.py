@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -48,3 +48,28 @@ def test_datehelpers():
     assert v.hour == 11
     v = parse_iso8601("2000-01-01T12:00:00-01:00")
     assert v.hour == 13
+
+
+def test_format_iso8601_aware():
+    from logbook.helpers import format_iso8601, parse_iso8601
+
+    d = datetime(2000, 1, 1, 12, 0, 0, tzinfo=timezone(timedelta(hours=2)))
+    rv = format_iso8601(d)
+    assert rv == "2000-01-01T12:00:00+02:00"
+    # the parsed value is normalized to naive UTC
+    assert parse_iso8601(rv) == datetime(2000, 1, 1, 10, 0, 0)
+
+    assert format_iso8601(datetime(2000, 1, 1, tzinfo=timezone.utc)) == (
+        "2000-01-01T00:00:00+00:00"
+    )
+
+
+def test_format_iso8601_microseconds_roundtrip():
+    from logbook.helpers import format_iso8601, parse_iso8601
+
+    # regression test: microseconds used to be formatted without zero
+    # padding, so 5000 microseconds roundtripped as 500000
+    d = datetime(2000, 1, 1, 0, 0, 0, 5000)
+    rv = format_iso8601(d)
+    assert rv == "2000-01-01T00:00:00.005000Z"
+    assert parse_iso8601(rv) == d

@@ -1,6 +1,55 @@
 Logbook Changelog
 =================
 
+Unreleased
+----------
+
+Added
+~~~~~
+
+- Handlers accept a ``tzinfo`` attribute (also a keyword-only constructor
+  argument on the common handlers). When set, timezone-aware
+  ``LogRecord.time`` values are converted to that timezone when the handler
+  formats a record; the value is a ``datetime.tzinfo`` instance or the
+  string ``"local"`` for the system local timezone. This is part of the
+  migration towards timezone-aware datetimes in Logbook 2.0
+  `#353 <https://github.com/getlogbook/logbook/issues/353>`_.
+- ``TimedRotatingFileHandler`` converts timezone-aware record times using
+  its ``tzinfo`` attribute when computing rollover filenames, so e.g.
+  ``tzinfo="local"`` rolls over at local midnight.
+
+Deprecated
+~~~~~~~~~~
+
+- ``logbook.set_datetime_format`` is deprecated and will be removed in
+  Logbook 2.0, where ``LogRecord.time`` will always be a timezone-aware
+  datetime in UTC `#353 <https://github.com/getlogbook/logbook/issues/353>`_.
+  To adopt the future behavior today, use a factory that returns aware
+  datetimes: ``set_datetime_format(lambda: datetime.now(timezone.utc))``.
+  Users of ``set_datetime_format("local")`` should set ``tzinfo="local"``
+  on their handlers instead.
+
+Fixed
+~~~~~
+
+- Timezone-aware datetimes with a non-zero UTC offset no longer shift by
+  their offset when serialized by ``LogRecord.to_dict(json_safe=True)``
+  (used by the queue handlers); the offset is now included in the
+  serialized value.
+- Microseconds are now zero-padded during serialization; previously e.g.
+  5000 microseconds deserialized as 500000.
+- ``SyslogHandler`` no longer appends ``Z`` to RFC 5424 timestamps of
+  timezone-aware record times, which used to produce invalid timestamps
+  like ``12:00:00+00:00Z``.
+- ``TimedRotatingFileHandler`` with ``timed_filename_for_current=False``
+  now interprets the existing log file's modification time in UTC,
+  matching the UTC record times used by default, instead of local wall
+  time.
+- The ticketing SQLAlchemy backend stores timezone-aware record times as
+  naive UTC instead of passing aware datetimes to naive datetime columns.
+- The CouchDB ticketing backend no longer produces invalid timestamps
+  like ``12:00:00+00:00Z`` for timezone-aware record times.
+
 Version 1.10.1
 --------------
 
@@ -51,6 +100,7 @@ Fixed
   now attributes the ``DeprecationWarning`` to the calling code instead of
   logbook internals.
 
+||||||| parent of 5ef7b99 (Prepare for timezone-aware datetimes in Logbook 2.0 (#353))
 Version 1.9.2
 -------------
 

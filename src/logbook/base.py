@@ -48,11 +48,32 @@ except ImportError:
 _datetime_factory = datetime_utcnow
 
 
+@deprecated(
+    "logbook.set_datetime_format() is deprecated and will be removed in "
+    "Logbook 2.0, where LogRecord.time is always a timezone-aware datetime "
+    "in UTC. Use timezone-aware datetimes in custom factories and set "
+    "Handler.tzinfo to display record times in another timezone."
+)
 def set_datetime_format(datetime_format):
     """
     Set the format for the datetime objects created, which are then
     made available as the :py:attr:`LogRecord.time` attribute of
     :py:class:`LogRecord` instances.
+
+    .. deprecated:: 1.10
+        This function will be removed in Logbook 2.0, where
+        :py:attr:`LogRecord.time` is always a timezone-aware datetime in
+        UTC.  To prepare:
+
+        - ``set_datetime_format("utc")`` calls can simply be removed; UTC
+          is already the default and becomes timezone-aware in 2.0.
+        - Instead of ``set_datetime_format("local")``, set the
+          :py:attr:`~logbook.Handler.tzinfo` attribute of your handlers to
+          ``"local"`` to display record times in the system local timezone.
+        - Custom callables should return timezone-aware datetimes, which
+          are fully supported today::
+
+              logbook.set_datetime_format(lambda: datetime.datetime.now(datetime.timezone.utc))
 
     :param datetime_format: Indicates how to generate datetime objects.
 

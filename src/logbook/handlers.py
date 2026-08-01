@@ -21,7 +21,7 @@ import traceback
 import warnings
 from collections import deque
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from textwrap import dedent
 
@@ -109,6 +109,30 @@ def create_syshandler(application_name, level=NOTSET):
     return SyslogHandler(application_name, level=level)
 
 
+def _convert_record_time(dt, tzinfo):
+    """Convert an aware datetime according to a handler ``tzinfo`` setting,
+    which is either a :class:`~datetime.tzinfo` instance or the string
+    ``"local"`` for the system local timezone.
+    """
+    return dt.astimezone(None if tzinfo == "local" else tzinfo)
+
+
+class _TimeConvertedRecord:
+    """A lightweight record wrapper that presents :attr:`time` converted
+    to a handler's :attr:`~logbook.Handler.tzinfo` without mutating the
+    record itself, which may be shared with other handlers.
+    """
+
+    __slots__ = ("_record", "time")
+
+    def __init__(self, record, tzinfo):
+        self._record = record
+        self.time = _convert_record_time(record.time, tzinfo)
+
+    def __getattr__(self, name):
+        return getattr(self._record, name)
+
+
 class _HandlerType(type):
     """The metaclass of handlers injects a destructor if the class has an
     overridden close method.  This makes it possible that the default
@@ -180,7 +204,7 @@ class Handler(ContextObject, metaclass=_HandlerType):
     #: flag is set for the :class:`NullHandler` for instance.
     blackhole = False
 
-    def __init__(self, level=NOTSET, filter=None, bubble=False):
+    def __init__(self, level=NOTSET, filter=None, bubble=False, *, tzinfo=None):
         #: the level for the handler.  Defaults to `NOTSET` which
         #: consumes all entries.
         self.level = lookup_level(level)
@@ -193,6 +217,14 @@ class Handler(ContextObject, metaclass=_HandlerType):
         self.filter = filter
         #: the bubble flag of this handler
         self.bubble = bubble
+        #: the timezone that timezone-aware :attr:`LogRecord.time` values
+        #: are converted to when this handler formats a record.  ``None``
+        #: (the default) leaves record times unconverted, a
+        #: :class:`~datetime.tzinfo` instance converts to that timezone and
+        #: the string ``"local"`` converts to the system local timezone.
+        #: Timezone-naive record times (the default in Logbook 1.x) are
+        #: never converted.
+        self.tzinfo = tzinfo
 
     level_name = level_name_property()
 
@@ -205,9 +237,19 @@ class Handler(ContextObject, metaclass=_HandlerType):
 
         The combination of a handler and formatter might have the
         formatter return an XML element tree for example.
+
+        If :attr:`tzinfo` is set and the record time is timezone-aware,
+        the formatter is passed a wrapped record whose :attr:`LogRecord.time`
+        is converted to that timezone.
         """
         if self.formatter is None:
             return record.message
+        if (
+            self.tzinfo is not None
+            and record.time is not None
+            and record.time.tzinfo is not None
+        ):
+            record = _TimeConvertedRecord(record, self.tzinfo)
         return self.formatter(record, self)
 
     def should_handle(self, record):
@@ -550,8 +592,10 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         encoding=None,
         filter=None,
         bubble=False,
+        *,
+        tzinfo=None,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tzinfo=tzinfo)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.encoding = encoding
         self.lock = _new_fine_grained_lock()
@@ -624,11 +668,13 @@ class FileHandler(StreamHandler):
         delay=False,
         filter=None,
         bubble=False,
+        *,
+        tzinfo=None,
     ):
         if encoding is None:
             encoding = "utf-8"
         StreamHandler.__init__(
-            self, None, level, format_string, encoding, filter, bubble
+            self, None, level, format_string, encoding, filter, bubble, tzinfo=tzinfo
         )
         self._filename = os.path.abspath(filename)
         self._mode = mode
@@ -681,6 +727,8 @@ class GZIPCompressionHandler(FileHandler):
         filter=None,
         bubble=False,
         compression_quality=9,
+        *,
+        tzinfo=None,
     ):
         self._compression_quality = compression_quality
         super().__init__(
@@ -692,6 +740,7 @@ class GZIPCompressionHandler(FileHandler):
             delay=delay,
             filter=filter,
             bubble=bubble,
+            tzinfo=tzinfo,
         )
 
     def _open(self, mode=None):
@@ -725,6 +774,8 @@ class BrotliCompressionHandler(FileHandler):
         bubble=False,
         compression_window_size=4 * 1024**2,
         compression_quality=11,
+        *,
+        tzinfo=None,
     ):
         super().__init__(
             filename,
@@ -735,6 +786,7 @@ class BrotliCompressionHandler(FileHandler):
             delay=delay,
             filter=filter,
             bubble=bubble,
+            tzinfo=tzinfo,
         )
         try:
             import brotlicffi as brotli
@@ -802,9 +854,20 @@ class MonitoringFileHandler(FileHandler):
         delay=False,
         filter=None,
         bubble=False,
+        *,
+        tzinfo=None,
     ):
         FileHandler.__init__(
-            self, filename, mode, encoding, level, format_string, delay, filter, bubble
+            self,
+            filename,
+            mode,
+            encoding,
+            level,
+            format_string,
+            delay,
+            filter,
+            bubble,
+            tzinfo=tzinfo,
         )
         if os.name == "nt":
             raise RuntimeError("MonitoringFileHandler does not support Windows")
@@ -851,9 +914,17 @@ class StderrHandler(StreamHandler):
     point to the old one.
     """
 
-    def __init__(self, level=NOTSET, format_string=None, filter=None, bubble=False):
+    def __init__(
+        self,
+        level=NOTSET,
+        format_string=None,
+        filter=None,
+        bubble=False,
+        *,
+        tzinfo=None,
+    ):
         StreamHandler.__init__(
-            self, _missing, level, format_string, None, filter, bubble
+            self, _missing, level, format_string, None, filter, bubble, tzinfo=tzinfo
         )
 
     @property
@@ -887,9 +958,20 @@ class RotatingFileHandler(FileHandler):
         backup_count=5,
         filter=None,
         bubble=False,
+        *,
+        tzinfo=None,
     ):
         FileHandler.__init__(
-            self, filename, mode, encoding, level, format_string, delay, filter, bubble
+            self,
+            filename,
+            mode,
+            encoding,
+            level,
+            format_string,
+            delay,
+            filter,
+            bubble,
+            tzinfo=tzinfo,
         )
         self.max_size = max_size
         self.backup_count = backup_count
@@ -983,6 +1065,8 @@ class TimedRotatingFileHandler(FileHandler):
         bubble=False,
         timed_filename_for_current=True,
         rollover_format="{basename}-{timestamp}{ext}",
+        *,
+        tzinfo=None,
     ):
         self.date_format = date_format
         self.backup_count = backup_count
@@ -993,22 +1077,36 @@ class TimedRotatingFileHandler(FileHandler):
         self.basename, self.ext = os.path.splitext(os.path.abspath(filename))
         self.timed_filename_for_current = timed_filename_for_current
 
+        # _get_timestamp consults self.tzinfo, which FileHandler.__init__
+        # only sets at the end of this constructor.
+        self.tzinfo = tzinfo
         self._timestamp = self._get_timestamp(_datetime_factory())
         if self.timed_filename_for_current:
             filename = self.generate_timed_filename(self._timestamp)
         elif os.path.exists(filename):
             self._timestamp = self._get_timestamp(
-                datetime.fromtimestamp(os.stat(filename).st_mtime)
+                datetime.fromtimestamp(os.stat(filename).st_mtime, timezone.utc)
             )
 
         FileHandler.__init__(
-            self, filename, mode, encoding, level, format_string, True, filter, bubble
+            self,
+            filename,
+            mode,
+            encoding,
+            level,
+            format_string,
+            True,
+            filter,
+            bubble,
+            tzinfo=tzinfo,
         )
 
     def _get_timestamp(self, datetime):
         """
         Fetches a formatted string witha timestamp of the given datetime
         """
+        if datetime.tzinfo is not None and self.tzinfo is not None:
+            datetime = _convert_record_time(datetime, self.tzinfo)
         return datetime.strftime(self.date_format)
 
     def generate_timed_filename(self, timestamp):
@@ -1097,8 +1195,10 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         filter=None,
         bubble=False,
         force_heavy_init=False,
+        *,
+        tzinfo=None,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tzinfo=tzinfo)
         StringFormatterHandlerMixin.__init__(self, format_string)
         #: captures the :class:`LogRecord`\s as instances
         self.records = []
@@ -1343,8 +1443,10 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
         filter=None,
         bubble=False,
         starttls=True,
+        *,
+        tzinfo=None,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tzinfo=tzinfo)
         StringFormatterHandlerMixin.__init__(self, format_string)
         LimitingHandlerMixin.__init__(self, record_limit, record_delta)
         self.from_addr = from_addr
@@ -1690,8 +1792,10 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         filter=None,
         bubble=False,
         record_delimiter=None,
+        *,
+        tzinfo=None,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tzinfo=tzinfo)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.application_name = application_name
 
@@ -1770,9 +1874,13 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
                 self.application_name = record.channel
             # RFC 5424: <PRIVAL>version timestamp hostname app-name procid
             #           msgid structured-data message
-            before = "<{}>1 {}Z {} {} {} - - ".format(
+            # Naive record times represent UTC and need an explicit "Z";
+            # aware times carry their own UTC offset in isoformat().
+            time = record.time
+            timestamp = time.isoformat() + ("Z" if time.tzinfo is None else "")
+            before = "<{}>1 {} {} {} {} - - ".format(
                 self.encode_priority(record),
-                record.time.isoformat(),
+                timestamp,
                 socket.gethostname(),
                 self.application_name if self.application_name else "-",
                 record.process,

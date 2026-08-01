@@ -2,6 +2,7 @@ import os
 import re
 import socket
 from contextlib import closing
+from datetime import datetime, timezone
 
 import pytest
 
@@ -67,6 +68,28 @@ def test_syslog_handler(
 
         rv = rv.decode("utf-8")
         assert re.match(expected, rv), f"expected {expected}, got {rv}"
+
+
+def test_syslog_handler_aware_timestamp():
+    """RFC 5424 timestamps of timezone-aware record times carry the UTC
+    offset from isoformat() instead of the hardcoded "Z" used for naive
+    times (which used to produce invalid values like ``+00:00Z``).
+    """
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_DGRAM)) as inc:
+        inc.bind(("127.0.0.1", 0))
+        inc.settimeout(1)
+
+        handler = logbook.SyslogHandler(
+            None, inc.getsockname(), socktype=socket.SOCK_DGRAM
+        )
+        record = logbook.LogRecord("testlogger", logbook.WARNING, "Syslog is weird")
+        record.heavy_init()
+        record.time = datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        handler.handle(record)
+
+        rv = inc.recvfrom(1024)[0].decode("utf-8")
+        assert " 2020-01-01T12:00:00+00:00 " in rv
+        assert "+00:00Z" not in rv
 
 
 @pytest.fixture

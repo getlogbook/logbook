@@ -28,6 +28,7 @@ from logbook.handlers import (
     StringFormatter,
     StringFormatterHandlerMixin,
 )
+from logbook.helpers import format_iso8601
 from logbook.ticketing import BackendBase
 
 try:
@@ -83,7 +84,7 @@ class CouchDBBackend(BackendBase):
         db = self.database
 
         ticket = record.to_dict()
-        ticket["time"] = ticket["time"].isoformat() + "Z"
+        ticket["time"] = format_iso8601(ticket["time"])
         ticket_id, _ = db.save(ticket)  # noqa: RUF059
 
         db.save(ticket)

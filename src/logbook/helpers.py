@@ -169,13 +169,15 @@ else:
 
 
 def format_iso8601(d=None):
-    """Returns a date in iso8601 format."""
+    """Returns a date in iso8601 format.  Timezone-naive datetimes are
+    assumed to be UTC and get a ``Z`` suffix; timezone-aware datetimes
+    include their UTC offset.
+    """
     if d is None:
         d = datetime_utcnow()
-    rv = d.strftime("%Y-%m-%dT%H:%M:%S")
-    if d.microsecond:
-        rv += "." + str(d.microsecond)
-    return rv + "Z"
+    if d.tzinfo is None:
+        return d.isoformat() + "Z"
+    return d.isoformat()
 
 
 def parse_iso8601(value):

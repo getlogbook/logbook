@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta, timezone
 from threading import get_ident
 
 import logbook
@@ -56,3 +57,30 @@ def test_basic_ticketing(logger):
     assert record.process == os.getpid()
     assert record.channel == "testlogger"
     assert "1 / 0" in record.formatted_exception
+
+
+def test_dbsafe_time():
+    from logbook.ticketing import _dbsafe_time
+
+    naive = datetime(2020, 1, 1, 12, 0)
+    assert _dbsafe_time(naive) is naive
+
+    aware = datetime(2020, 1, 1, 14, 30, tzinfo=timezone(timedelta(hours=2)))
+    assert _dbsafe_time(aware) == datetime(2020, 1, 1, 12, 30)
+
+
+@require_module("sqlalchemy")
+def test_ticketing_with_aware_time():
+    from logbook.ticketing import TicketingHandler
+
+    with TicketingHandler("sqlite:///") as handler:
+        record = logbook.LogRecord("testlogger", logbook.WARNING, "A warning")
+        record.heavy_init()
+        record.time = datetime(2020, 1, 1, 14, 30, tzinfo=timezone(timedelta(hours=2)))
+        handler.emit(record)
+
+    tickets = handler.db.get_tickets()
+    assert len(tickets) == 1
+    occurrence = tickets[0].last_occurrence
+    # aware times are stored as naive UTC
+    assert occurrence.time == datetime(2020, 1, 1, 12, 30)

@@ -10,11 +10,21 @@ each logging message a ticket id.
 """
 
 import json
+from datetime import timezone
 from time import time
 
 from logbook.base import NOTSET, LogRecord, level_name_property
 from logbook.handlers import Handler, HashingHandlerMixin
 from logbook.helpers import cached_property
+
+
+def _dbsafe_time(dt):
+    """Normalize timezone-aware record times to naive UTC, since the SQL
+    schema uses naive datetime columns which store UTC by convention.
+    """
+    if dt.tzinfo is None:
+        return dt
+    return dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 class Ticket:
@@ -230,7 +240,7 @@ class SQLAlchemyBackend(BackendBase):
             s.execute(
                 self.occurrences.insert().values(
                     ticket_id=ticket_id,
-                    time=record.time,
+                    time=_dbsafe_time(record.time),
                     app_id=app_id,
                     data=json.dumps(data),
                 )
@@ -240,7 +250,7 @@ class SQLAlchemyBackend(BackendBase):
                 .where(self.tickets.c.ticket_id == ticket_id)
                 .values(
                     occurrence_count=self.tickets.c.occurrence_count + 1,
-                    last_occurrence_time=record.time,
+                    last_occurrence_time=_dbsafe_time(record.time),
                     solved=False,
                 )
             )
