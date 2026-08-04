@@ -25,6 +25,9 @@ required-markers = [
     "platform_machine == 'ARM64' and sys_platform == 'win32'",
 ]
 
+[manifest]
+constraints = [{ name = "argcomplete", marker = "python_full_version < '3.10'", specifier = "!=3.7.1" }]
+
 [[package]]
 name = "accessible-pygments"
 version = "0.0.5"
@@ -73,8 +76,33 @@ wheels = [
 
 [[package]]
 name = "argcomplete"
+version = "3.7.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.10' and sys_platform == 'win32'",
+    "python_full_version < '3.10' and sys_platform != 'win32'",
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/c0/c8e94135e66fabf89a120d9b4b123fe6993506beca6c1938a74c24cfa5fd/argcomplete-3.7.0.tar.gz", hash = "sha256:afde224f753f874807b1dc1414e883ab8fe0cda9c04807b6047dcb8e1ac23913", size = 73284, upload-time = "2026-06-30T22:28:22.249Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/12/f6/5b8ec087cd9cfa9449491ec83f76fb6b7006b4dff57d2ba8aaab330fe8e4/argcomplete-3.7.0-py3-none-any.whl", hash = "sha256:d8f0f22d2a8a7caa383be1e22b6caf1ecaf0ebd10d8f83cc125e36540c95830c", size = 42575, upload-time = "2026-06-30T22:28:20.547Z" },
+]
+
+[[package]]
+name = "argcomplete"
 version = "3.7.1"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version == '3.14.*' and sys_platform == 'win32'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
+    "python_full_version == '3.10.*' and sys_platform == 'win32'",
+    "python_full_version >= '3.13' and sys_platform != 'win32'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32'",
+    "python_full_version == '3.10.*' and sys_platform != 'win32'",
+]
 sdist = { url = "https://files.pythonhosted.org/packages/d1/40/8a867253c9b8afa296ac22e426a157eebbe41dcac66f7f50bbbef931afed/argcomplete-3.7.1.tar.gz", hash = "sha256:6926a3a70ae70dce1f3dfb5cf1fc984278cd163e78ec18ad2ed7fa4fabd8f281", size = 74457, upload-time = "2026-08-04T15:03:59.399Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/11/56/1935d0692656f0bfc0c2336d4ce599dcf166abe4ec786ce1abdaefa19589/argcomplete-3.7.1-py3-none-any.whl", hash = "sha256:0bed095030f295599b1018a622a53ea22f4f253e134b87be396b51e59ee00954", size = 43301, upload-time = "2026-08-04T15:03:58.02Z" },
@@ -1605,7 +1633,7 @@ resolution-markers = [
     "python_full_version < '3.10' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "argcomplete" },
+    { name = "argcomplete", version = "3.7.0", source = { registry = "https://pypi.org/simple" } },
     { name = "attrs" },
     { name = "colorlog" },
     { name = "dependency-groups" },
@@ -1636,7 +1664,7 @@ resolution-markers = [
     "python_full_version == '3.10.*' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "argcomplete" },
+    { name = "argcomplete", version = "3.7.1", source = { registry = "https://pypi.org/simple" } },
     { name = "attrs" },
     { name = "colorlog" },
     { name = "dependency-groups" },

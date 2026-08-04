@@ -142,6 +142,10 @@ environment.MACOSX_DEPLOYMENT_TARGET = "10.12"
 manylinux-x86_64-image = "manylinux2014"
 
 [tool.uv]
+# https://github.com/kislyuk/argcomplete/issues/559 is released.
+constraint-dependencies = [
+    "argcomplete!=3.7.1; python_version < '3.10'",
+]
 cache-keys = [
     { file = "pyproject.toml" },
     { file = "setup.py" },
