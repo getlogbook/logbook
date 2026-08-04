@@ -70,7 +70,7 @@ dev = [
     { include-group = "coverage" },
     { include-group = "nox" },
     { include-group = "test" },
-    "ruff==0.13.1",
+    "ruff==0.16.1",
 ]
 docs = [
     "furo>=2025.7.19",
