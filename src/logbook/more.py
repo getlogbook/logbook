@@ -503,16 +503,18 @@ class DedupHandler(Handler):
         Handler.pop_application(self)
         self.flush()
 
+    @deprecated("Use pop_context instead")
     def pop_thread(self):
-        Handler.pop_thread(self)
+        Handler.pop_context(self)
         self.flush()
 
     def pop_context(self):
         Handler.pop_context(self)
         self.flush()
 
+    @deprecated("Use pop_context instead")
     def pop_greenlet(self):
-        Handler.pop_greenlet(self)
+        Handler.pop_context(self)
         self.flush()
 
     def handle(self, record):

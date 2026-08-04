@@ -25,6 +25,8 @@ from datetime import datetime, timedelta
 from hashlib import sha1
 from textwrap import dedent
 
+from typing_extensions import deprecated
+
 from logbook.base import (
     CRITICAL,
     DEBUG,
@@ -2074,16 +2076,18 @@ class GroupHandler(WrapperHandler):
         Handler.pop_application(self)
         self.rollover()
 
+    @deprecated("Use pop_context instead")
     def pop_thread(self):
-        Handler.pop_thread(self)
+        Handler.pop_context(self)
         self.rollover()
 
     def pop_context(self):
         Handler.pop_context(self)
         self.rollover()
 
+    @deprecated("Use pop_context instead")
     def pop_greenlet(self):
-        Handler.pop_greenlet(self)
+        Handler.pop_context(self)
         self.rollover()
 
     def emit(self, record):
