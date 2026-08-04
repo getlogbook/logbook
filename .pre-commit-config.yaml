@@ -18,14 +18,6 @@ repos:
     rev: 0.8.19
     hooks:
       - id: uv-lock
-      - id: uv-export
-        args:
-          - --frozen
-          - --no-dev
-          - --group=docs
-          - --no-emit-project
-          - --no-annotate
-          - --output-file=docs/requirements.txt
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.13.1 # also update pyproject.toml
     hooks:
