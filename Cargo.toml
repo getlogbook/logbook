@@ -13,4 +13,5 @@ rust-version = "1.83"
 license = "BSD-3-Clause"
 
 [workspace.dependencies]
+arc-swap = "1.7"
 pyo3 = "0.29"
