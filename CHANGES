@@ -1,6 +1,48 @@
 Logbook Changelog
 =================
 
+Version 1.10.0
+--------------
+
+Added
+~~~~~
+
+- Python 3.15 support.
+
+  Binary wheels are not published yet and will follow once cibuildwheel ships
+  support for the 3.15 release candidates.
+
+Changed
+~~~~~~~
+
+- Logging performance has improved significantly: resolving the active
+  handlers, flags, and processors is several times faster than in 1.9.x, and
+  multi-threaded logging no longer takes a shared lock. This especially
+  benefits free-threaded Python.
+  `#607 <https://github.com/getlogbook/logbook/pull/607>`_
+- ``manylinux2014`` wheels are provided once again on ``x86_64``, restoring
+  support for distributions with glibc 2.17 or newer.
+- ``universal2`` macOS wheels are no longer built. Separate ``x86_64`` and
+  ``arm64`` wheels continue to be provided.
+
+Deprecated
+~~~~~~~~~~
+
+- :func:`logbook.notifiers.create_notification_handler`
+- :class:`logbook.notifiers.LibNotifyHandler`
+- Support for ``x86_64`` macOS. Logbook 2.0 will only publish ``arm64`` wheels
+  for macOS.
+
+Fixed
+~~~~~
+
+- The queue subscribers no longer emit spurious deprecation warnings
+  from their background dispatch threads.
+- Calling the deprecated ``pop_thread`` or ``pop_greenlet`` on
+  :class:`~logbook.GroupHandler` and :class:`~logbook.more.DedupHandler`
+  now attributes the ``DeprecationWarning`` to the calling code instead of
+  logbook internals.
+
 Version 1.9.2
 -------------
 
