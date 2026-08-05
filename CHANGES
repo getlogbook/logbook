@@ -1,6 +1,14 @@
 Logbook Changelog
 =================
 
+Version 1.10.1
+--------------
+
+Added
+~~~~~
+
+- Binary wheels for Python 3.15.
+
 Version 1.10.0
 --------------
 
