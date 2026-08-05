@@ -22,10 +22,13 @@ from logbook.handlers import Handler, LimitingHandlerMixin
 from logbook.helpers import get_application_name
 
 
+@deprecated("create_notification_handler is deprecated")
 def create_notification_handler(application_name=None, level=NOTSET, icon=None):
     """Creates a handler perfectly fit the current platform.  On Linux
     systems this creates a :class:`LibNotifyHandler`, on OS X systems it
     will create a :class:`GrowlHandler`.
+
+    .. deprecated:: 1.10
     """
     if sys.platform == "darwin":
         return GrowlHandler(application_name, level=level, icon=icon)
@@ -156,9 +159,12 @@ class GrowlHandler(NotificationBaseHandler):
         )
 
 
+@deprecated("LibNotifyHandler is deprecated")
 class LibNotifyHandler(NotificationBaseHandler):
     """A handler that dispatches to libnotify.  Requires pynotify installed.
     If `no_init` is set to `True` the initialization of libnotify is skipped.
+
+    .. deprecated:: 1.10
     """
 
     def __init__(

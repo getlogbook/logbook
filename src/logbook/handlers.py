@@ -25,6 +25,8 @@ from datetime import datetime, timedelta
 from hashlib import sha1
 from textwrap import dedent
 
+from typing_extensions import deprecated
+
 from logbook.base import (
     CRITICAL,
     DEBUG,
@@ -144,11 +146,10 @@ class Handler(ContextObject, metaclass=_HandlerType):
     records as desired. By default, no formatter is specified; in this case,
     the 'raw' message as determined by record.message is logged.
 
-    To bind a handler you can use the :meth:`push_application`,
-    :meth:`push_thread` or :meth:`push_greenlet` methods.
-    This will push the handler on a stack of handlers.
-    To undo this, use the :meth:`pop_application`,
-    :meth:`pop_thread` methods and :meth:`pop_greenlet`::
+    To bind a handler you can use the :meth:`push_application` or
+    :meth:`push_context` methods.  This will push the handler on a stack of
+    handlers.  To undo this, use the :meth:`pop_application` and
+    :meth:`pop_context` methods::
 
         handler = MyHandler()
         handler.push_application()
@@ -159,16 +160,14 @@ class Handler(ContextObject, metaclass=_HandlerType):
     an outer level on the stack, if handled.  This can be changed by
     setting bubbling to `True`.
 
-    There are also context managers to setup the handler for the duration
+    There is also a context manager to setup the handler for the duration
     of a `with`-block::
 
         with handler.applicationbound():
             ...
 
-        with handler.contextbound():
-            ...
-
-    Because `contextbound` is a common operation, it is the default::
+    Because binding to the context is a common operation, it is the
+    default::
 
         with handler:
             ...
@@ -2074,16 +2073,18 @@ class GroupHandler(WrapperHandler):
         Handler.pop_application(self)
         self.rollover()
 
+    @deprecated("Use pop_context instead")
     def pop_thread(self):
-        Handler.pop_thread(self)
+        Handler.pop_context(self)
         self.rollover()
 
     def pop_context(self):
         Handler.pop_context(self)
         self.rollover()
 
+    @deprecated("Use pop_context instead")
     def pop_greenlet(self):
-        Handler.pop_greenlet(self)
+        Handler.pop_context(self)
         self.rollover()
 
     def emit(self, record):

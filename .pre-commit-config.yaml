@@ -10,24 +10,16 @@ repos:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.6.2
+    rev: v3.9.6
     hooks:
       - id: prettier
         exclude: docs/sheet/.*\.html$
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.19
+    rev: 0.12.1
     hooks:
       - id: uv-lock
-      - id: uv-export
-        args:
-          - --frozen
-          - --no-dev
-          - --group=docs
-          - --no-emit-project
-          - --no-annotate
-          - --output-file=docs/requirements.txt
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.1 # also update pyproject.toml
+    rev: v0.16.1 # also update pyproject.toml
     hooks:
       - id: ruff-check
         args: [--fix]
@@ -38,7 +30,7 @@ repos:
       - id: blacken-docs
         args: [--rst-literal-blocks]
         additional_dependencies:
-          - black==25.1
+          - black==26.5.1
   - repo: local
     hooks:
       - id: rustfmt
