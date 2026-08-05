@@ -61,3 +61,26 @@ jobs:
           # serving a signed TestPyPI asset in place of a release intended for
           # PyPI.
           attestations: ${{ env.PYPI_URL == 'https://upload.pypi.org/legacy/' }}
+
+  github-release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    needs: [publish]
+    # Tag pushes only
+    if: github.event.workflow_run.event == 'push'
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub release
+        run: |
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes "See [CHANGES](https://github.com/$GITHUB_REPOSITORY/blob/main/CHANGES)"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          # head_branch is the tag name since wheel-builder.yml only has push
+          # events for tags.
+          TAG: ${{ github.event.workflow_run.head_branch }}
