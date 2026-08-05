@@ -170,4 +170,4 @@ required-environments = [
 required-version = ">=0.8.19" # https://github.com/astral-sh/uv/pull/15921
 
 [tool.check-sdist]
-git-only = [".gitignore", ".readthedocs.yaml"]
+git-only = [".gitattributes", ".gitignore", ".readthedocs.yaml"]
