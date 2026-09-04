@@ -3,9 +3,9 @@ revision = 3
 requires-python = ">=3.9"
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -25,9 +25,6 @@ required-markers = [
     "platform_machine == 'AMD64' and sys_platform == 'win32'",
     "platform_machine == 'ARM64' and sys_platform == 'win32'",
 ]
-
-[manifest]
-constraints = [{ name = "argcomplete", marker = "python_full_version < '3.10'", specifier = "!=3.7.1" }]
 
 [[package]]
 name = "accessible-pygments"
@@ -60,9 +57,9 @@ version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -91,13 +88,13 @@ wheels = [
 
 [[package]]
 name = "argcomplete"
-version = "3.7.1"
+version = "3.7.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -106,9 +103,9 @@ resolution-markers = [
     "python_full_version == '3.10.*' and sys_platform == 'win32'",
     "python_full_version == '3.10.*' and sys_platform != 'win32'",
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d1/40/8a867253c9b8afa296ac22e426a157eebbe41dcac66f7f50bbbef931afed/argcomplete-3.7.1.tar.gz", hash = "sha256:6926a3a70ae70dce1f3dfb5cf1fc984278cd163e78ec18ad2ed7fa4fabd8f281", size = 74457, upload-time = "2026-08-04T15:03:59.399Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/87/6f/5a73f04007ca950701765949209f068da628bd11f9c2da287278ce91e0ee/argcomplete-3.7.2.tar.gz", hash = "sha256:aad8b69a0b9969edb62db0d1752354c0d50717b10e0cbb00e2a958381b9fc6b9", size = 74473, upload-time = "2026-08-06T04:53:21.662Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/11/56/1935d0692656f0bfc0c2336d4ce599dcf166abe4ec786ce1abdaefa19589/argcomplete-3.7.1-py3-none-any.whl", hash = "sha256:0bed095030f295599b1018a622a53ea22f4f253e134b87be396b51e59ee00954", size = 43301, upload-time = "2026-08-04T15:03:58.02Z" },
+    { url = "https://files.pythonhosted.org/packages/46/bd/551ee6af426af84ca33e02622be722925c196608e9127d731ef17c47f06e/argcomplete-3.7.2-py3-none-any.whl", hash = "sha256:6029205678bdd9c1c728a155f5f9ecf5812393f969eef58807641a2bc2aa5b19", size = 43294, upload-time = "2026-08-06T04:53:20.246Z" },
 ]
 
 [[package]]
@@ -272,9 +269,9 @@ version = "1.5.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -408,9 +405,9 @@ version = "2.1.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -787,9 +784,9 @@ version = "7.15.3"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -940,9 +937,9 @@ version = "0.22.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -994,9 +991,9 @@ version = "3.32.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -1156,9 +1153,9 @@ version = "3.5.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -1268,9 +1265,9 @@ version = "4.16.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -1312,9 +1309,9 @@ version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -1379,9 +1376,9 @@ version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -1668,9 +1665,9 @@ version = "2026.7.11"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -1680,7 +1677,7 @@ resolution-markers = [
     "python_full_version == '3.10.*' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "argcomplete", version = "3.7.1", source = { registry = "https://pypi.org/simple" } },
+    { name = "argcomplete", version = "3.7.2", source = { registry = "https://pypi.org/simple" } },
     { name = "attrs" },
     { name = "colorlog" },
     { name = "dependency-groups" },
@@ -1731,9 +1728,9 @@ version = "4.11.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -1775,9 +1772,9 @@ version = "3.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -1837,9 +1834,9 @@ version = "9.1.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -1885,9 +1882,9 @@ version = "16.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -2170,9 +2167,9 @@ version = "8.1.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -2214,9 +2211,9 @@ version = "2.34.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -2307,9 +2304,9 @@ version = "2.9.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -2426,9 +2423,9 @@ version = "9.1.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -2671,9 +2668,9 @@ version = "2.7.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -2753,9 +2750,9 @@ version = "6.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
@@ -2817,9 +2814,9 @@ version = "8.5"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.14.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
     "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'win32'",
