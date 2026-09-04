@@ -69,8 +69,10 @@ jobs:
           python -m site
           uv sync --only-group nox --only-group coverage
 
+      - name: "Create nox environment for ${{ matrix.python-version }}"
+        run: "uv run nox --python ${{ matrix.python-version }} -v --install-only"
       - name: "Run nox targets for ${{ matrix.python-version }}"
-        run: "uv run nox --python ${{ matrix.python-version }} -v -- -r aR"
+        run: "uv run nox --python ${{ matrix.python-version }} --no-install -- -r aR"
       - name: "Convert coverage"
         run: |
           uv run coverage combine
@@ -120,8 +122,10 @@ jobs:
       - run: python -VV
       - run: python -m site
       - run: uv sync --only-group nox --only-group coverage
+      - name: "Create nox environment for ${{ matrix.python-version }} on ${{ matrix.arch }}"
+        run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not rust' --install-only"
       - name: "Run nox targets for ${{ matrix.python-version }} on ${{ matrix.arch }}"
-        run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not rust' -- -r aR -k 'not redis'"
+        run: "uv run nox --python ${{ matrix.python-version }} --no-install -k 'not rust' -- -r aR -k 'not redis'"
       - run: uv run coverage combine
       - run: uv run coverage xml
       - name: "Upload coverage to Codecov"
@@ -168,8 +172,10 @@ jobs:
           python -m site
           uv sync --only-group nox --only-group coverage
 
+      - name: "Create nox environment for ${{ matrix.python-version }}"
+        run: "uv run nox --python ${{ matrix.python-version }} -v --install-only"
       - name: "Run nox targets for ${{ matrix.python-version }}"
-        run: "uv run nox --python ${{ matrix.python-version }} -v -- -r aR -k 'not redis'"
+        run: "uv run nox --python ${{ matrix.python-version }} --no-install -- -r aR -k 'not redis'"
       - name: "Convert coverage"
         run: |
           uv run coverage combine
@@ -234,5 +240,7 @@ jobs:
           python -m site
           uv --version
           uv sync --only-group nox --only-group coverage
+      - name: "Create nox environment"
+        run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not nospeedups' --install-only"
       - name: "Run nox"
-        run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not nospeedups' -- -r aR -k 'not redis'"
+        run: "uv run nox --python ${{ matrix.python-version }} --no-install -k 'not nospeedups' -- -r aR -k 'not redis'"
