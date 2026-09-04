@@ -56,7 +56,10 @@ nteventlog = [
 ]
 redis = ["redis>=4.6.0"]
 sqlalchemy = ["sqlalchemy>=1.4"]
-zmq = ["pyzmq>=27.0.2"]
+zmq = [
+    "pyzmq>=27.0.2; python_version < '3.15'",
+    "pyzmq>=27.2.0; python_version >= '3.15'",
+]
 
 [dependency-groups]
 check-sdist = [
