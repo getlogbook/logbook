@@ -20,6 +20,11 @@ on:
       - setup.py
       - pyproject.toml
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  # Never cancel a tag build, it's what pypi-publish.yml uploads.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   sdist:
     name: Build sdist
