@@ -163,8 +163,10 @@ class SlackHandler(Handler, StringFormatterHandlerMixin):
         format_string=None,
         filter=None,
         bubble=False,
+        *,
+        tzinfo=None,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tzinfo=tzinfo)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.api_token = api_token
 
@@ -225,8 +227,10 @@ class ExternalApplicationHandler(Handler):
         level=NOTSET,
         filter=None,
         bubble=False,
+        *,
+        tzinfo=None,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tzinfo=tzinfo)
         self.encoding = encoding
         self._arguments = list(arguments)
         if stdin_format is not None:
@@ -237,6 +241,7 @@ class ExternalApplicationHandler(Handler):
         self._subprocess = subprocess
 
     def emit(self, record):
+        record = self.apply_tzinfo(record)
         args = [arg.format(record=record) for arg in self._arguments]
         if self._stdin_format is not None:
             stdin_data = self._stdin_format.format(record=record).encode(self.encoding)
@@ -342,9 +347,16 @@ class ExceptionHandler(Handler, StringFormatterHandlerMixin):
     """
 
     def __init__(
-        self, exc_type, level=NOTSET, format_string=None, filter=None, bubble=False
+        self,
+        exc_type,
+        level=NOTSET,
+        format_string=None,
+        filter=None,
+        bubble=False,
+        *,
+        tzinfo=None,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tzinfo=tzinfo)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.exc_type = exc_type
 

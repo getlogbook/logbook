@@ -37,10 +37,12 @@ Added
 ~~~~~
 
 - Handlers accept a ``tzinfo`` attribute (also a keyword-only constructor
-  argument on the common handlers). When set, ``LogRecord.time`` values
-  are converted to that timezone when the handler formats a record; the
-  value is a ``datetime.tzinfo`` instance or the string ``"local"`` for
-  the system local timezone
+  argument on handlers that render records). When set, ``LogRecord.time``
+  values are converted to that timezone when the handler formats a record;
+  the value is a ``datetime.tzinfo`` instance or the string ``"local"``
+  for the system local timezone. Handlers that render records without
+  going through ``Handler.format`` can call ``Handler.apply_tzinfo`` to
+  get the converted record
   `#353 <https://github.com/getlogbook/logbook/issues/353>`_.
 - ``TimedRotatingFileHandler`` converts record times using its ``tzinfo``
   attribute when computing rollover filenames, so e.g. ``tzinfo="local"``

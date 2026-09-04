@@ -141,6 +141,33 @@ def test_external_application_handler(tmpdir, logger):
     assert contents == "this is a really bad idea"
 
 
+def test_external_application_handler_tzinfo(tmpdir, logger):
+    from datetime import timedelta, timezone
+
+    from logbook.more import ExternalApplicationHandler as Handler
+
+    fn = tmpdir.join("tempfile")
+    handler = Handler(
+        [
+            sys.executable,
+            "-c",
+            rf"""if 1:
+    f = open({str(fn)!r}, 'w')
+    try:
+        f.write('{{record.time:%z}}\n')
+    finally:
+        f.close()
+    """,
+        ],
+        tzinfo=timezone(timedelta(hours=5, minutes=30)),
+    )
+    with handler:
+        logger.error("this is a really bad idea")
+    with fn.open() as rf:
+        contents = rf.read().strip()
+    assert contents == "+0530"
+
+
 def test_exception_handler(logger):
     from logbook.more import ExceptionHandler
 

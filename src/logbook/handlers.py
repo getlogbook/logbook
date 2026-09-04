@@ -235,14 +235,26 @@ class Handler(ContextObject, metaclass=_HandlerType):
         The combination of a handler and formatter might have the
         formatter return an XML element tree for example.
 
-        If :attr:`tzinfo` is set, the formatter is passed a wrapped record
-        whose :attr:`LogRecord.time` is converted to that timezone.
+        If :attr:`tzinfo` is set, the formatter is passed the record as
+        returned by :meth:`apply_tzinfo`.
         """
         if self.formatter is None:
             return record.message
+        return self.formatter(self.apply_tzinfo(record), self)
+
+    def apply_tzinfo(self, record):
+        """Returns the record with :attr:`LogRecord.time` converted to
+        :attr:`tzinfo`, or the record itself if no conversion applies.
+        The record is never modified; a lightweight wrapper is returned
+        instead, since the record may be shared with other handlers.
+
+        :meth:`format` does this automatically.  Handlers that render a
+        record without going through :meth:`format` should pass it
+        through this method first.
+        """
         if self.tzinfo is not None and record.time is not None:
-            record = _TimeConvertedRecord(record, self.tzinfo)
-        return self.formatter(record, self)
+            return _TimeConvertedRecord(record, self.tzinfo)
+        return record
 
     def should_handle(self, record):
         """Returns `True` if this handler wants to handle the record.  The
@@ -1924,8 +1936,10 @@ class NTEventLogHandler(Handler, StringFormatterHandlerMixin):
         format_string=None,
         filter=None,
         bubble=False,
+        *,
+        tzinfo=None,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tzinfo=tzinfo)
         StringFormatterHandlerMixin.__init__(self, format_string)
 
         if os.name != "nt":

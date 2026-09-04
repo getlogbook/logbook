@@ -74,14 +74,33 @@ def test_handler_tzinfo_does_not_mutate_record():
 
 
 def test_handler_tzinfo_constructor():
+    from logbook.more import ExceptionHandler, ExternalApplicationHandler
+    from logbook.notifiers import NotificationBaseHandler, PushoverHandler
+
     zone = timezone(timedelta(hours=-7))
     for handler in [
         logbook.StreamHandler(None, tzinfo=zone),
         logbook.StderrHandler(tzinfo=zone),
         logbook.TestHandler(tzinfo=zone),
+        ExceptionHandler(ValueError, tzinfo=zone),
+        ExternalApplicationHandler(["true"], tzinfo=zone),
+        NotificationBaseHandler(tzinfo=zone),
+        PushoverHandler(tzinfo=zone),
     ]:
         assert handler.tzinfo is zone
     assert logbook.TestHandler().tzinfo is None
+
+
+def test_handler_apply_tzinfo():
+    record = _make_record(datetime(2020, 1, 1, 12, 0, tzinfo=timezone.utc))
+    assert logbook.TestHandler().apply_tzinfo(record) is record
+
+    handler = logbook.TestHandler(tzinfo=timezone(timedelta(hours=2)))
+    converted = handler.apply_tzinfo(record)
+    assert converted is not record
+    assert converted.time == record.time
+    assert converted.time.utcoffset() == timedelta(hours=2)
+    assert converted.message == record.message
 
 
 def test_handler_tzinfo_end_to_end(activation_strategy, logger):

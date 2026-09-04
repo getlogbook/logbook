@@ -27,8 +27,10 @@ class NotificationBaseHandler(Handler, LimitingHandlerMixin):
         level=NOTSET,
         filter=None,
         bubble=False,
+        *,
+        tzinfo=None,
     ):
-        Handler.__init__(self, level, filter, bubble)
+        Handler.__init__(self, level, filter, bubble, tzinfo=tzinfo)
         LimitingHandlerMixin.__init__(self, record_limit, record_delta)
         if application_name is None:
             application_name = get_application_name()
@@ -64,8 +66,12 @@ class PushoverHandler(NotificationBaseHandler):
         bubble=False,
         max_title_len=100,
         max_message_len=512,
+        *,
+        tzinfo=None,
     ):
-        super().__init__(None, record_limit, record_delta, level, filter, bubble)
+        super().__init__(
+            None, record_limit, record_delta, level, filter, bubble, tzinfo=tzinfo
+        )
 
         self.application_name = application_name
         self.apikey = apikey
