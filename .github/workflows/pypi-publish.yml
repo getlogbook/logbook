@@ -76,7 +76,7 @@ jobs:
           if ! gh release view "$TAG" > /dev/null 2>&1; then
             gh release create "$TAG" \
               --title "$TAG" \
-              --notes "See [CHANGES](https://github.com/$GITHUB_REPOSITORY/blob/main/CHANGES)"
+              --notes "See the [change log](https://logbook.readthedocs.io/en/$TAG/changelog.html) for the changes in this release."
           fi
         env:
           GH_TOKEN: ${{ github.token }}

@@ -4,6 +4,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 from importlib.metadata import distribution
+from pathlib import Path
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -20,7 +21,13 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
+    "sphinxcontrib.towncrier.ext",
 ]
+
+# Render pending newsfragments at the top of the changelog, so that previews
+# built from pull requests show their entries.
+towncrier_draft_include_empty = False
+towncrier_draft_working_directory = str(Path(__file__).resolve().parent.parent)
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
