@@ -35,6 +35,7 @@ dependencies = [
 [project.urls]
 Documentation = "https://logbook.readthedocs.io"
 "Source Code" = "https://github.com/getlogbook/logbook"
+Changelog = "https://logbook.readthedocs.io/en/latest/changelog.html"
 
 [project.optional-dependencies]
 all = ["Logbook[brotli,execnet,jinja,nteventlog,redis,sqlalchemy,zmq]"]
@@ -73,11 +74,13 @@ dev = [
     { include-group = "coverage" },
     { include-group = "nox" },
     { include-group = "test" },
+    { include-group = "towncrier" },
     "ruff==0.16.1",
 ]
 docs = [
     "furo>=2025.7.19",
     "sphinx>=7.4.7",
+    "sphinxcontrib-towncrier>=0.5.0a0",
 ]
 gevent = [
     "gevent>=26.5.0",
@@ -88,6 +91,9 @@ nox = [
 test = [
     "pytest>=8.4.0",
     "pytest-rerunfailures>=15.1",
+]
+towncrier = [
+    "towncrier>=25.8.0",
 ]
 
 [tool.setuptools]
@@ -168,5 +174,36 @@ required-environments = [
 ]
 required-version = ">=0.8.19" # https://github.com/astral-sh/uv/pull/15921
 
+[tool.towncrier]
+directory = "newsfragments"
+filename = "docs/changelog.rst"
+template = "newsfragments/template.rst.jinja"
+issue_format = "`#{issue} <https://github.com/getlogbook/logbook/issues/{issue}>`_"
+title_format = ""
+underlines = ["-", "~"]
+
+[[tool.towncrier.type]]
+name = "Added"
+
+[[tool.towncrier.type]]
+name = "Changed"
+
+[[tool.towncrier.type]]
+name = "Deprecated"
+
+[[tool.towncrier.type]]
+name = "Removed"
+
+[[tool.towncrier.type]]
+name = "Fixed"
+
+[[tool.towncrier.type]]
+name = "Security"
+
 [tool.check-sdist]
-git-only = [".gitattributes", ".gitignore", ".readthedocs.yaml"]
+git-only = [
+    ".gitattributes",
+    ".gitignore",
+    ".readthedocs.yaml",
+    "newsfragments/**",
+]

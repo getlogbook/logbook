@@ -1,4 +1,4 @@
-include CHANGES
+include CHANGELOG.md
 include README.md
 include noxfile.py
 include uv.lock
