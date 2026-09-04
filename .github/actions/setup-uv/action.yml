@@ -1,0 +1,28 @@
+name: Set up uv with dependency caching
+description: Restore compatible third-party dependency wheels across lockfile changes.
+
+inputs:
+  python-version:
+    description: Resolved Python version, including the free-threading suffix.
+    required: true
+  architecture:
+    description: Target Python architecture.
+    default: ${{ runner.arch }}
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        # actions/cache provides the fallback restore keys setup-uv lacks.
+        enable-cache: false
+        cache-local-path: ${{ runner.temp }}/uv-cache
+
+    # The caller must remove Logbook wheels and prune before the post-job save.
+    # No job or Rust version in the key: Linux and MSRV share third-party wheels.
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/uv-cache
+        key: uv-deps-${{ runner.os }}-${{ runner.arch }}-${{ inputs.architecture }}-${{ inputs.python-version }}-${{ hashFiles('uv.lock', 'pyproject.toml') }}
+        restore-keys: |
+          uv-deps-${{ runner.os }}-${{ runner.arch }}-${{ inputs.architecture }}-${{ inputs.python-version }}-

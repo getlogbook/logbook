@@ -1,0 +1,30 @@
+name: Clean up closed PR caches
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      # Do not check out or execute PR code in this privileged workflow.
+      - name: Delete caches scoped to the closed PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_CACHE_REF: refs/pull/${{ github.event.pull_request.number }}/merge
+        run: |
+          # Collect every page before deleting, so pagination cannot skip entries.
+          cache_ids=$(gh api --paginate --method GET \
+            "repos/$GH_REPO/actions/caches" \
+            -f ref="$PR_CACHE_REF" -f per_page=100 \
+            --jq '.actions_caches[].id')
+          while IFS= read -r cache_id; do
+            if [ -n "$cache_id" ]; then
+              gh cache delete "$cache_id" --repo "$GH_REPO"
+            fi
+          done <<< "$cache_ids"
