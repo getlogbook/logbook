@@ -19,7 +19,7 @@ repos:
     hooks:
       - id: uv-lock
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.1 # also update pyproject.toml
+    rev: v0.16.6 # also update pyproject.toml
     hooks:
       - id: ruff-check
         args: [--fix]
