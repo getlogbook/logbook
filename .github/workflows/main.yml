@@ -55,12 +55,13 @@ jobs:
         with:
           persist-credentials: false
       - uses: "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97" # v7.0.0
+        id: setup-python
         with:
           python-version: "${{ matrix.python-version }}"
           allow-prereleases: true
-      - uses: "astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d" # v10.0.1
+      - uses: $/.github/actions/setup-uv
         with:
-          enable-cache: true
+          python-version: ${{ matrix.python-version }}-${{ steps.setup-python.outputs.python-version }}
       - run: rustup component add llvm-tools-preview
       - name: "Install dependencies"
         run: |
@@ -82,6 +83,12 @@ jobs:
         with:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Prune dependency cache
+        shell: bash
+        run: |
+          uv cache clean logbook
+          uv cache prune --ci
 
   windows:
     name: "Windows (${{ matrix.python-version }}, ${{ matrix.arch }})"
@@ -110,13 +117,15 @@ jobs:
         with:
           persist-credentials: false
       - uses: "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97" # v7.0.0
+        id: setup-python
         with:
           python-version: "${{ matrix.python-version }}"
           architecture: "${{ matrix.arch }}"
           allow-prereleases: true
-      - uses: "astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d" # v10.0.1
+      - uses: $/.github/actions/setup-uv
         with:
-          enable-cache: true
+          python-version: ${{ matrix.python-version }}-${{ steps.setup-python.outputs.python-version }}
+          architecture: ${{ matrix.arch }}
 
       - run: rustup component add llvm-tools-preview
       - run: python -VV
@@ -133,6 +142,12 @@ jobs:
         with:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Prune dependency cache
+        shell: bash
+        run: |
+          uv cache clean logbook
+          uv cache prune --ci
 
   macos:
     name: "macOS (${{ matrix.python-version }})"
@@ -157,13 +172,14 @@ jobs:
         with:
           persist-credentials: false
       - uses: "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97" # v7.0.0
+        id: setup-python
         with:
           python-version: "${{ matrix.python-version }}"
           architecture: "${{ matrix.arch }}"
           allow-prereleases: true
-      - uses: "astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d" # v10.0.1
+      - uses: $/.github/actions/setup-uv
         with:
-          enable-cache: true
+          python-version: ${{ matrix.python-version }}-${{ steps.setup-python.outputs.python-version }}
       - run: rustup component add llvm-tools-preview
       - name: "Install dependencies"
         run: |
@@ -186,6 +202,12 @@ jobs:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
+      - name: Prune dependency cache
+        shell: bash
+        run: |
+          uv cache clean logbook
+          uv cache prune --ci
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -193,6 +215,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: "astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d" # v10.0.1
+        with:
+          enable-cache: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.14"
@@ -223,14 +247,17 @@ jobs:
 
     steps:
       - uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" # v7.0.1
-      - uses: "astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d" # v10.0.1
       - uses: "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97" # v7.0.0
+        id: setup-python
         with:
           python-version: "${{ matrix.python-version }}"
           allow-prereleases: true
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
         with:
           toolchain: ${{ matrix.rust-version }}
+      - uses: $/.github/actions/setup-uv
+        with:
+          python-version: ${{ matrix.python-version }}-${{ steps.setup-python.outputs.python-version }}
       - run: rustup component add llvm-tools-preview
       - name: "Install dependencies"
         run: |
@@ -244,3 +271,8 @@ jobs:
         run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not nospeedups' --install-only"
       - name: "Run nox"
         run: "uv run nox --python ${{ matrix.python-version }} --no-install -k 'not nospeedups' -- -r aR -k 'not redis'"
+      - name: Prune dependency cache
+        shell: bash
+        run: |
+          uv cache clean logbook
+          uv cache prune --ci
