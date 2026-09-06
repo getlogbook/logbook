@@ -10,6 +10,7 @@ The handler interface and builtin handlers.
 
 import errno
 import gzip
+import io
 import math
 import os
 import re
@@ -890,6 +891,10 @@ class StderrHandler(StreamHandler):
         return sys.stderr
 
 
+def _is_special_file(filename):
+    return os.path.exists(filename) and not os.path.isfile(filename)
+
+
 class RotatingFileHandler(FileHandler):
     """This handler rotates based on file size.  Once the maximum size
     is reached it will reopen the file and start with an empty file
@@ -925,9 +930,14 @@ class RotatingFileHandler(FileHandler):
         assert backup_count > 0, "at least one backup file has to be specified"
 
     def should_rollover(self, record, bytes):
-        self.stream.seek(0, 2)
+        try:
+            self.stream.seek(0, 2)
+        except io.UnsupportedOperation:
+            return False
         size = self.stream.tell()
-        return size > 0 and size + bytes >= self.max_size
+        if size == 0 or size + bytes < self.max_size:
+            return False
+        return not _is_special_file(self._filename)
 
     def perform_rollover(self):
         self.stream.close()
@@ -1075,6 +1085,9 @@ class TimedRotatingFileHandler(FileHandler):
             return files[:]
 
     def perform_rollover(self, new_timestamp):
+        if not self.timed_filename_for_current and _is_special_file(self._filename):
+            self._timestamp = new_timestamp
+            return
         if self.stream is not None:
             self.stream.close()
 

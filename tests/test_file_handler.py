@@ -297,3 +297,46 @@ def test_brotli_file_handler(logfile, activation_strategy, logger):
             brotli.decompress(in_f.read()).decode()
             == "WARNING:testlogger:warning message\n"
         )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Requires POSIX special files")
+@pytest.mark.parametrize("special_file", ["null", "fifo"])
+@pytest.mark.parametrize("timed", [False, True])
+def test_rotation_preserves_special_files(tmp_path, special_file, timed):
+    filename = tmp_path / "special.log"
+    reader = None
+    if special_file == "null":
+        filename.symlink_to(os.devnull)
+    else:
+        os.mkfifo(filename)
+        reader = os.open(filename, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        if timed:
+            handler = logbook.TimedRotatingFileHandler(
+                filename,
+                timed_filename_for_current=False,
+                backup_count=1,
+                format_string="{record.message}",
+            )
+        else:
+            handler = logbook.RotatingFileHandler(
+                filename,
+                max_size=1,
+                backup_count=1,
+                format_string="{record.message}",
+            )
+        with handler, logbook.Flags(errors="raise"):
+            for day in [1, 2]:
+                record = logbook.LogRecord("test", logbook.INFO, f"message {day}")
+                record.time = datetime(2020, 1, day)
+                handler.handle(record)
+        assert list(tmp_path.iterdir()) == [filename]
+        if special_file == "null":
+            assert filename.is_symlink()
+            assert os.fspath(filename.resolve()) == os.path.realpath(os.devnull)
+        else:
+            assert filename.is_fifo()
+            assert os.read(reader, 4096) == b"message 1\nmessage 2\n"
+    finally:
+        if reader is not None:
+            os.close(reader)
