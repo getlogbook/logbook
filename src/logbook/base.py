@@ -508,14 +508,11 @@ class LogRecord:
             # theory, and it should be the same as exc_info=None
             exc_info = None
         self.exc_info = exc_info
-        #: optional extra information as dictionary.  This is the place
-        #: where custom log processors can attach custom context sensitive
-        #: data.
-
-        # Passing the empty iterable through defaultdict's constructor costs
-        # noticeably more than building an empty one, and no extra data is the
-        # common case.
-        self.extra = defaultdict(str, extra) if extra else defaultdict(str)
+        # Most records carry no extra data and nothing ever reads
+        # ``record.extra``, so the mapping is left to the cached_property below
+        # and only materialised here when there is something to put in it.
+        if extra:
+            self.extra = defaultdict(str, extra)
         #: If available, optionally the interpreter frame that pulled the
         #: heavy init.  This usually points to somewhere in the dispatcher.
         #: Might not be available for all calls and is removed when the log
@@ -596,8 +593,9 @@ class LogRecord:
         for key, value in self.__dict__.items():
             if key[:1] != "_" and key not in self._noned_on_close:
                 rv[key] = value
-        # the extra dict is exported as regular dict
-        rv["extra"] = dict(rv["extra"])
+        # the extra dict is exported as regular dict, and read through the
+        # attribute rather than rv because it may not have been created yet
+        rv["extra"] = dict(self.extra)
         if json_safe:
             return to_safe_json(rv)
         return rv
@@ -631,6 +629,15 @@ class LogRecord:
         Subclasses can implement their own formatting.
         """
         return msg.format(*args, **kwargs)
+
+    @cached_property
+    def extra(self):
+        """Optional extra information as dictionary.  This is the place
+        where custom log processors can attach custom context sensitive
+        data.  It is created on first access, so a record that carries no
+        extra data and is never asked for it does not build one at all.
+        """
+        return defaultdict(str)
 
     @cached_property
     def message(self):
