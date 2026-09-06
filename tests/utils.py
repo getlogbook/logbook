@@ -8,6 +8,7 @@ test utils for logbook
 
 import functools
 import importlib.util
+import socket
 import sys
 from contextlib import contextmanager
 from io import StringIO
@@ -24,6 +25,13 @@ LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 def require_module(module_name):
     found = importlib.util.find_spec(module_name) is not None
     return pytest.mark.skipif(not found, reason=f"Module {module_name} is required")
+
+
+def unused_tcp_address():
+    """Return a loopback (host, port) that was free a moment ago."""
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return probe.getsockname()
 
 
 def make_fake_mail_handler(**kwargs):

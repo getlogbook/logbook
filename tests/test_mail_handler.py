@@ -1,15 +1,73 @@
 import base64
+import email
+import email.policy
 import re
+import socket
 import ssl
 from unittest.mock import ANY, patch
 
+import pytest
+from aiosmtpd.controller import Controller
+
 import logbook
 
-from .utils import capturing_stderr_context, make_fake_mail_handler
+from .utils import (
+    capturing_stderr_context,
+    make_fake_mail_handler,
+    unused_tcp_address,
+)
 
 __file_without_pyc__ = __file__
 if __file_without_pyc__.endswith(".pyc"):
     __file_without_pyc__ = __file_without_pyc__[:-1]
+
+
+@pytest.fixture
+def local_hostname(monkeypatch):
+    # Both smtplib and aiosmtpd look up this machine's fully qualified name
+    # before they say EHLO or send a banner. On some CI runners that reverse
+    # lookup hangs until the resolver gives up, which is long enough for the
+    # other end to stop waiting. The name needs a dot in it, or smtplib
+    # falls back to resolving the hostname instead, which hangs the same way.
+    monkeypatch.setattr(socket, "getfqdn", lambda name="": "localhost.localdomain")
+
+
+class SMTPCollector:
+    def __init__(self):
+        self.envelopes = []
+
+    async def handle_DATA(self, server, session, envelope):
+        self.envelopes.append(envelope)
+        return "250 OK"
+
+
+def test_mail_delivery_over_smtp(logger, local_hostname):
+    # Controller.start() confirms the server is up by connecting to the port
+    # it was given, so it cannot be asked for whatever happens to be free.
+    address = unused_tcp_address()
+    collector = SMTPCollector()
+    controller = Controller(collector, hostname=address[0], port=address[1])
+    try:
+        controller.start()
+        with (
+            logbook.MailHandler(
+                "from@example.test",
+                ["to@example.test"],
+                server_addr=address,
+                format_string="Subject: café\n\n{record.message}",
+            ),
+            logbook.Flags(errors="raise"),
+        ):
+            logger.error("café 日本語")
+    finally:
+        controller.stop()
+
+    (envelope,) = collector.envelopes
+    assert envelope.mail_from == "from@example.test"
+    assert envelope.rcpt_tos == ["to@example.test"]
+    message = email.message_from_bytes(envelope.content, policy=email.policy.default)
+    assert message["Subject"] == "café"
+    assert message.get_content() == "café 日本語"
 
 
 def test_mail_handler(activation_strategy, logger):
