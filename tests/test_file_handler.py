@@ -1,7 +1,10 @@
 import gzip
 import os
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 import pytest
 
@@ -67,6 +70,78 @@ def test_monitoring_file_handler(logfile, activation_strategy, logger):
     handler.close()
     with open(logfile) as f:
         assert f.read().strip() == "WARNING:testlogger:another warning message"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="MonitoringFileHandler requires POSIX")
+@pytest.mark.parametrize("recreate", [False, True])
+def test_monitoring_file_handler_rotation_during_write(tmp_path, logger, recreate):
+    filename = tmp_path / "monitor.log"
+    rotated_filename = tmp_path / "monitor.log.old"
+    written = threading.Event()
+    rotated = threading.Event()
+
+    class SynchronizedHandler(logbook.MonitoringFileHandler):
+        def write(self, item):
+            super().write(item)
+            if not written.is_set():
+                written.set()
+                assert rotated.wait(5), "external rotation did not finish"
+
+    def rotate():
+        assert written.wait(5), "first write did not start"
+        try:
+            filename.rename(rotated_filename)
+            if recreate:
+                filename.write_text("replacement\n")
+        finally:
+            rotated.set()
+
+    handler = SynchronizedHandler(filename, format_string="{record.message}")
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        rotation = executor.submit(rotate)
+        with handler, logbook.Flags(errors="raise"):
+            logger.info("before rotation")
+            rotation.result(timeout=5)
+            logger.info("after rotation")
+
+    assert rotated_filename.read_text() == "before rotation\n"
+    prefix = "replacement\n" if recreate else ""
+    assert filename.read_text() == prefix + "after rotation\n"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="MonitoringFileHandler requires POSIX")
+def test_monitoring_file_handler_rotation_after_open(tmp_path, logger):
+    filename = tmp_path / "monitor.log"
+    rotated_filename = tmp_path / "monitor.log.old"
+
+    class RotatedOnOpenHandler(logbook.MonitoringFileHandler):
+        opened = 0
+
+        def _open(self, mode=None):
+            super()._open(mode)
+            self.opened += 1
+            if self.opened == 1:
+                filename.rename(rotated_filename)
+                filename.write_text("replacement\n")
+
+    handler = RotatedOnOpenHandler(filename, format_string="{record.message}")
+    with handler, logbook.Flags(errors="raise"):
+        logger.info("first")
+        logger.info("second")
+
+    assert rotated_filename.read_text() == ""
+    assert filename.read_text() == "replacement\nfirst\nsecond\n"
+    assert handler.opened == 2
+
+
+def test_monitoring_file_handler_rejects_windows_before_open(tmp_path, monkeypatch):
+    filename = tmp_path / "rejected.log"
+    fake_os = SimpleNamespace(**vars(os))
+    fake_os.name = "nt"
+    monkeypatch.setattr(logbook.handlers, "os", fake_os)
+    with pytest.raises(RuntimeError, match="does not support Windows"):
+        logbook.MonitoringFileHandler(filename)
+    assert not filename.exists()
 
 
 def test_custom_formatter(activation_strategy, logfile, logger):
