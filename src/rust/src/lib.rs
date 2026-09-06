@@ -486,19 +486,25 @@ fn differs_from_fallback(rv: &Bound<'_, PyAny>, fallback: &Bound<'_, PyAny>) -> 
     rv.ne(fallback)
 }
 
-// `frozen` matters for more than immutability here: it removes PyO3's
-// runtime borrow check from `__get__`, which Logger.info and
-// RecordDispatcher.handle together reach four times per logging call.
-// The two names are therefore held in `OnceLock` rather than being
-// assigned through `&mut self`.
+/// The name the property was assigned to, and the private attribute it reads
+/// from the instance. Both are derived from the same `__set_name__` call, so
+/// they live in one cell: a reader can never see one without the other.
+struct PropertyNames {
+    prop_name: Py<PyString>,
+    attr_name: Py<PyString>,
+}
+
+// `frozen` matters for more than immutability here: it removes PyO3's runtime
+// borrow check from `__get__`, which Logger.info and RecordDispatcher.handle
+// together reach four times per logging call. The names are therefore
+// published through a `OnceLock` rather than assigned through `&mut self`.
 #[pyclass(
     name = "group_reflected_property",
     module = "logbook._speedups",
     frozen
 )]
 pub struct PyGroupReflectedProperty {
-    prop_name: OnceLock<Py<PyString>>,
-    attr_name: OnceLock<Py<PyString>>,
+    names: OnceLock<PropertyNames>,
     default: Py<PyAny>,
     fallback: Option<Py<PyAny>>,
 }
@@ -513,8 +519,7 @@ impl PyGroupReflectedProperty {
             Maybe::Missing => None,
         };
         Ok(Self {
-            prop_name: OnceLock::new(),
-            attr_name: OnceLock::new(),
+            names: OnceLock::new(),
             default,
             fallback,
         })
@@ -531,8 +536,10 @@ impl PyGroupReflectedProperty {
         name: Bound<'_, PyString>,
     ) -> PyResult<()> {
         let attr_name = intern!(py, "_").add(&name)?.cast_into()?.unbind();
-        let _ = self.attr_name.set(attr_name);
-        let _ = self.prop_name.set(name.unbind());
+        let _ = self.names.set(PropertyNames {
+            prop_name: name.unbind(),
+            attr_name,
+        });
         Ok(())
     }
 
@@ -546,10 +553,10 @@ impl PyGroupReflectedProperty {
             return self_.clone().into_py_any(py);
         };
         let self_ = self_.get();
-        let Some(attr_name) = self_.attr_name.get() else {
+        let Some(names) = self_.names.get() else {
             return Err(PyTypeError::new_err("property is not bound to a class"));
         };
-        let attr_name = attr_name.bind(py);
+        let attr_name = names.attr_name.bind(py);
 
         let rv = instance.getattr_opt(attr_name)?;
         match (&self_.fallback, rv) {
@@ -565,10 +572,7 @@ impl PyGroupReflectedProperty {
             return Ok(self_.default.clone_ref(py));
         }
 
-        let Some(prop_name) = self_.prop_name.get() else {
-            return Err(PyTypeError::new_err("property is not bound to a class"));
-        };
-        Ok(group.getattr(prop_name)?.unbind())
+        Ok(group.getattr(names.prop_name.bind(py))?.unbind())
     }
 
     fn __set__(
@@ -577,23 +581,41 @@ impl PyGroupReflectedProperty {
         instance: Bound<'_, PyAny>,
         value: Bound<'_, PyAny>,
     ) -> PyResult<()> {
-        let Some(attr_name) = self.attr_name.get() else {
+        let Some(names) = self.names.get() else {
             return Err(PyTypeError::new_err("property is not bound to a class"));
         };
-        let attr_name = attr_name.bind(py);
+        let attr_name = names.attr_name.bind(py);
         instance.setattr(attr_name, value)?;
         Ok(())
     }
 
     fn __delete__(&self, py: Python<'_>, instance: Bound<'_, PyAny>) -> PyResult<()> {
-        let Some(attr_name) = self.attr_name.get() else {
+        let Some(names) = self.names.get() else {
             return Err(PyTypeError::new_err("property is not bound to a class"));
         };
-        let attr_name = attr_name.bind(py);
+        let attr_name = names.attr_name.bind(py);
         instance.delattr(attr_name)?;
         Ok(())
     }
 }
+
+/// Every `#[pyclass]` here is either `frozen` or shared through `Py`, and this
+/// module declares `gil_used = false`, so instances can be reached from several
+/// threads at once with no GIL to serialise them. Every field must therefore be
+/// `Sync`, and any mutation must go through a thread-safe cell (`OnceLock`,
+/// `ArcSwap`, an atomic) rather than `Cell`/`RefCell`. PyO3 already requires
+/// this on `Bound::get`, but asserting it here makes a field that breaks the
+/// rule fail at the definition instead of at some distant call site.
+const _: () = {
+    const fn assert_sync<T: Sync + ?Sized>() {}
+    assert_sync::<StackState>();
+    assert_sync::<ContextStackManager>();
+    assert_sync::<ApplicationBound>();
+    assert_sync::<StackedObject>();
+    assert_sync::<PyGroupReflectedProperty>();
+    assert_sync::<Node>();
+    assert_sync::<StackItemFactory>();
+};
 
 #[pymodule(gil_used = false)]
 fn _speedups(m: &Bound<'_, PyModule>) -> PyResult<()> {
