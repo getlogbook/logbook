@@ -703,13 +703,20 @@ class FileHandler(StreamHandler):
     def close(self):
         self.lock.acquire()
         try:
-            if self.stream is not None:
-                self.flush()
-                self.stream.close()
-                self.stream = None
+            self._close_stream()
         finally:
             self._closed = True
             self.lock.release()
+
+    def _close_stream(self):
+        stream = self.stream
+        if stream is None:
+            return
+        try:
+            self.flush()
+        finally:
+            self.stream = None
+            stream.close()
 
     def encode(self, record):
         # encodes based on the stream settings, so the stream has to be
@@ -884,9 +891,7 @@ class MonitoringFileHandler(FileHandler):
         self.lock.acquire()
         try:
             if self.stream is not None and self._moved_away():
-                self.flush()
-                self.stream.close()
-                self.stream = None
+                self._close_stream()
             if self.stream is None:
                 self.ensure_stream_is_open()
                 self._last_stat = self._query_fd()
@@ -989,7 +994,7 @@ class RotatingFileHandler(FileHandler):
         return not _is_special_file(self._filename)
 
     def perform_rollover(self):
-        self.stream.close()
+        self._close_stream()
         for x in range(self.backup_count - 1, 0, -1):
             src = f"{self._filename}.{x}"
             dst = f"{self._filename}.{x + 1}"
@@ -1144,9 +1149,7 @@ class TimedRotatingFileHandler(FileHandler):
         if not self.timed_filename_for_current and _is_special_file(self._filename):
             self._timestamp = new_timestamp
             return
-        if self.stream is not None:
-            self.stream.close()
-            self.stream = None
+        self._close_stream()
 
         if not self.timed_filename_for_current and os.path.exists(self._filename):
             filename = self.generate_timed_filename(self._timestamp)

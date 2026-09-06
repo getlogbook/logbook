@@ -1,4 +1,6 @@
+import errno
 import gzip
+import io
 import os
 import threading
 import time
@@ -216,6 +218,139 @@ def test_rotating_file_handler(logfile, activation_strategy, logger):
         assert f.readline().rstrip() == ("D" * 256)
         assert f.readline().rstrip() == ("E" * 256)
         assert f.readline().rstrip() == ("F" * 256)
+
+
+class BrokenStream(io.TextIOWrapper):
+    """A text stream whose next flush or close fails like a disk error would."""
+
+    failing = None
+
+    def flush(self):
+        if self.failing == "flush":
+            self.failing = None
+            raise OSError(errno.EIO, "flush failed")
+        super().flush()
+
+    def close(self):
+        if self.failing == "close":
+            self.failing = None
+            try:
+                super().close()
+            finally:
+                raise OSError(errno.EIO, "close failed")
+        super().close()
+
+
+def break_stream(handler, failing):
+    handler.stream.flush()
+    stream = BrokenStream(handler.stream.detach(), encoding=handler.encoding)
+    stream.failing = failing
+    handler.stream = stream
+
+
+@pytest.mark.parametrize("failing", ["flush", "close"])
+def test_file_handler_keeps_file_after_failed_close(tmp_path, logger, failing):
+    filename = tmp_path / "app.log"
+    handler = logbook.FileHandler(filename, mode="w", format_string="{record.message}")
+    handler.write("before\n")
+    break_stream(handler, failing)
+    stream = handler.stream
+    with pytest.raises(OSError, match=f"{failing} failed"):
+        handler.close()
+    assert stream.closed
+
+    with handler, logbook.Flags(errors="raise"):
+        with pytest.raises(ValueError, match="closed file handler"):
+            logger.info("late")
+    assert filename.read_text() == "before\n"
+
+
+def test_file_handler_reopens_after_failed_close(tmp_path, logger):
+    filename = tmp_path / "app.log"
+    handler = logbook.FileHandler(filename, format_string="{record.message}")
+    handler.write("before\n")
+    break_stream(handler, "close")
+    with pytest.raises(OSError, match="close failed"):
+        handler.close()
+
+    with handler, logbook.Flags(errors="raise"):
+        logger.info("after")
+    assert filename.read_text() == "before\nafter\n"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="MonitoringFileHandler requires POSIX")
+def test_monitoring_file_handler_reopens_after_failed_close(tmp_path, logger):
+    filename = tmp_path / "app.log"
+    moved = tmp_path / "app.log.old"
+    handler = logbook.MonitoringFileHandler(filename, format_string="{record.message}")
+    with handler, logbook.Flags(errors="raise"):
+        logger.info("before")
+        filename.rename(moved)
+        break_stream(handler, "close")
+        with pytest.raises(OSError, match="close failed"):
+            logger.info("lost")
+        logger.info("after")
+
+    assert moved.read_text() == "before\n"
+    assert filename.read_text() == "after\n"
+
+
+def fail_once(monkeypatch, target, name, should_fail, error):
+    original = getattr(target, name)
+    failures = [error]
+
+    def replacement(*args):
+        if failures and should_fail(*args):
+            raise failures.pop()
+        return original(*args)
+
+    monkeypatch.setattr(target, name, replacement)
+
+
+def test_rotating_file_handler_resumes_failed_rollover(tmp_path, logger):
+    filename = tmp_path / "app.log"
+    for index in (1, 2):
+        (tmp_path / f"app.log.{index}").write_text(f"backup {index}\n")
+    handler = logbook.RotatingFileHandler(
+        filename, max_size=20, backup_count=3, format_string="{record.message}"
+    )
+    with handler, logbook.Flags(errors="raise"):
+        logger.info("current record")
+        break_stream(handler, "close")
+        with pytest.raises(OSError):
+            logger.info("trigger")
+        handler.write("written\n")
+        logger.info("retry")
+
+    assert (tmp_path / "app.log.3").read_text() == "backup 2\n"
+    assert (tmp_path / "app.log.2").read_text() == "backup 1\n"
+    assert (tmp_path / "app.log.1").read_text() == "current record\nwritten\n"
+    assert filename.read_text() == "retry\n"
+
+
+def test_rotating_file_handler_reopens_after_failed_open(tmp_path, monkeypatch, logger):
+    filename = tmp_path / "app.log"
+    handler = logbook.RotatingFileHandler(
+        filename, max_size=20, backup_count=2, format_string="{record.message}"
+    )
+    with handler, logbook.Flags(errors="raise"):
+        logger.info("current record")
+        fail_once(
+            monkeypatch,
+            handler,
+            "_open",
+            lambda mode=None: True,
+            OSError(errno.EMFILE, "open failed"),
+        )
+        with pytest.raises(OSError, match="open failed"):
+            logger.info("trigger")
+        handler.write("written\n")
+        logger.info("next")
+        logger.info("last record")
+
+    assert (tmp_path / "app.log.2").read_text() == "current record\n"
+    assert (tmp_path / "app.log.1").read_text() == "written\nnext\n"
+    assert filename.read_text() == "last record\n"
 
 
 @pytest.fixture
@@ -719,12 +854,20 @@ def _log_on_day(handler, day, message, hour=0):
     ("timed_filename_for_current", "failure", "old_period", "new_period"),
     [
         (False, "rename", "first\nlate\n", "second\n"),
+        (False, "close", "first\nlate\n", "second\n"),
         (True, "remove", "first\nlate\n", "second\n"),
         (False, "remove", "first\n", "late\nsecond\n"),
         (False, "open", "first\n", "late\nsecond\n"),
         (True, "open", "first\n", "late\nsecond\n"),
     ],
-    ids=["fixed-rename", "dated-remove", "fixed-remove", "fixed-open", "dated-open"],
+    ids=[
+        "fixed-rename",
+        "fixed-close",
+        "dated-remove",
+        "fixed-remove",
+        "fixed-open",
+        "dated-open",
+    ],
 )
 def test_timed_rollover_recovers_from_failure(
     tmp_path,
@@ -749,6 +892,8 @@ def test_timed_rollover_recovers_from_failure(
         _log_on_day(handler, 1, "first")
         if failure == "rename":
             old_file.mkdir()
+        elif failure == "close":
+            break_stream(handler, "close")
         elif failure == "remove":
             missing = (0, str(tmp_path / "missing.log"))
             monkeypatch.setattr(handler, "files_to_delete", lambda: [missing])
