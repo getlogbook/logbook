@@ -7,8 +7,9 @@ use arc_swap::{ArcSwap, ArcSwapOption};
 use contextvars::{PyContextVar, PyContextVarMethods};
 use pyo3::exceptions::{PyAssertionError, PyLookupError, PyNotImplementedError, PyTypeError};
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyInt, PyIterator, PyString, PyTuple, PyType};
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::types::{PyDateAccess, PyTimeAccess, PyTzInfoAccess};
+use pyo3::types::{PyDateTime, PyDict, PyInt, PyIterator, PyString, PyTuple, PyType};
+use pyo3::{intern, wrap_pyfunction, IntoPyObjectExt};
 
 mod contextvars;
 mod stack_item;
@@ -486,6 +487,104 @@ fn differs_from_fallback(rv: &Bound<'_, PyAny>, fallback: &Bound<'_, PyAny>) -> 
     rv.ne(fallback)
 }
 
+#[inline]
+fn push_digits(out: &mut String, value: u32, width: usize) {
+    let mut buf = [0u8; 6];
+    let mut v = value;
+    for i in (0..width).rev() {
+        buf[i] = b'0' + (v % 10) as u8;
+        v /= 10;
+    }
+    for &b in &buf[..width] {
+        out.push(b as char);
+    }
+}
+
+/// `YYYY-MM-DD HH:MM:SS.ffffff`, written a digit at a time.
+fn push_timestamp(out: &mut String, dt: &Bound<'_, PyDateTime>) {
+    push_digits(out, dt.get_year() as u32, 4);
+    out.push('-');
+    push_digits(out, dt.get_month() as u32, 2);
+    out.push('-');
+    push_digits(out, dt.get_day() as u32, 2);
+    out.push(' ');
+    push_digits(out, dt.get_hour() as u32, 2);
+    out.push(':');
+    push_digits(out, dt.get_minute() as u32, 2);
+    out.push(':');
+    push_digits(out, dt.get_second() as u32, 2);
+    out.push('.');
+    push_digits(out, dt.get_microsecond(), 6);
+}
+
+/// The same guard the Python fast path uses: an exact, naive datetime whose
+/// year strftime would not pad differently across platforms.
+#[inline]
+fn eligible(dt: &Bound<'_, PyDateTime>) -> bool {
+    dt.get_year() >= 1000 && dt.get_tzinfo().is_none()
+}
+
+/// Render a record with logbook's default format string.
+///
+/// Returns `None` whenever any part is not something this can reproduce
+/// exactly, and Python falls back: a timestamp that is not an exact naive
+/// `datetime`, a year below 1000 where strftime's zero-padding is platform
+/// dependent, or a level name, channel or message that is not a plain string.
+/// The point of the guard is that `str.format` semantics are never
+/// second-guessed here.
+#[pyfunction]
+pub fn format_default_record<'py>(
+    py: Python<'py>,
+    record: &Bound<'py, PyAny>,
+) -> PyResult<Option<Bound<'py, PyString>>> {
+    let time = record.getattr(intern!(py, "time"))?;
+    let Ok(dt) = time.cast_exact::<PyDateTime>() else {
+        return Ok(None);
+    };
+    if !eligible(dt) {
+        return Ok(None);
+    }
+    let level = record.getattr(intern!(py, "level_name"))?;
+    let channel = record.getattr(intern!(py, "channel"))?;
+    let message = record.getattr(intern!(py, "message"))?;
+
+    let (Ok(level), Ok(message)) = (
+        level.cast_exact::<PyString>(),
+        message.cast_exact::<PyString>(),
+    ) else {
+        return Ok(None);
+    };
+    // Python strings may contain unpaired surrogates, which Rust UTF-8
+    // strings cannot represent. Let the Python formatter handle those.
+    let (Ok(level), Ok(message)) = (level.to_str(), message.to_str()) else {
+        return Ok(None);
+    };
+
+    let channel_str;
+    let channel = if channel.is_none() {
+        "None"
+    } else if let Ok(s) = channel.cast_exact::<PyString>() {
+        let Ok(value) = s.to_str() else {
+            return Ok(None);
+        };
+        channel_str = value;
+        channel_str
+    } else {
+        return Ok(None);
+    };
+
+    let mut out = String::with_capacity(34 + level.len() + channel.len() + message.len());
+    out.push('[');
+    push_timestamp(&mut out, dt);
+    out.push_str("] ");
+    out.push_str(level);
+    out.push_str(": ");
+    out.push_str(channel);
+    out.push_str(": ");
+    out.push_str(message);
+    Ok(Some(PyString::new(py, &out)))
+}
+
 // A property that is lazily calculated and then cached in the instance
 // dictionary.
 //
@@ -713,6 +812,7 @@ fn _speedups(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<StackedObject>()?;
     m.add_class::<PyGroupReflectedProperty>()?;
     m.add_class::<PyCachedProperty>()?;
+    m.add_function(wrap_pyfunction!(format_default_record, m)?)?;
 
     Ok(())
 }

@@ -1,5 +1,7 @@
 import pickle
 import sys
+from datetime import datetime
+from types import SimpleNamespace
 
 import pytest
 
@@ -104,3 +106,15 @@ def test_formatter_preserves_cached_traceback(restore):
         record.close()
     assert record.exc_info is None
     assert StringFormatter(DEFAULT_FORMAT_STRING)(record, None) == expected
+
+
+@pytest.mark.parametrize("field", ["message", "channel", "level_name"])
+@pytest.mark.parametrize("text", ["bad\udcff", "\ud800", "é😀"])
+def test_default_formatter_preserves_python_strings(field, text):
+    record = SimpleNamespace(
+        channel="test", level_name="INFO", message="hello", time=datetime(2026, 1, 1)
+    )
+    setattr(record, field, text)
+    assert StringFormatter(DEFAULT_FORMAT_STRING).format_record(
+        record, None
+    ) == DEFAULT_FORMAT_STRING.format(record=record)

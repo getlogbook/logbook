@@ -47,6 +47,18 @@ from logbook.base import (
 from logbook.concurrency import _new_fine_grained_lock
 from logbook.helpers import datetime_utcnow, rename
 
+try:
+    if os.environ.get("DISABLE_LOGBOOK_CEXT_AT_RUNTIME"):
+        raise ImportError("Speedups disabled via DISABLE_LOGBOOK_CEXT_AT_RUNTIME")
+
+    from logbook._speedups import format_default_record
+except ImportError:
+    # No pure Python counterpart: the fast path in
+    # StringFormatter.format_record already covers this case, and None sends
+    # that code straight there rather than through a call that always returns
+    # None.
+    format_default_record = None
+
 DEFAULT_FORMAT_STRING = (
     "[{record.time:%Y-%m-%d %H:%M:%S.%f%z}] "
     "{record.level_name}: {record.channel}: {record.message}"
@@ -404,6 +416,10 @@ class StringFormatter:
 
     def format_record(self, record, handler):
         if self._is_default_format:
+            if format_default_record is not None:
+                line = format_default_record(record)
+                if line is not None:
+                    return line
             time = record.time
             # Formatting the default template with str.format spends most of
             # its time inside datetime.__format__, which goes through
