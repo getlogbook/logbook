@@ -307,7 +307,13 @@ def fail_once(monkeypatch, target, name, should_fail, error):
     monkeypatch.setattr(target, name, replacement)
 
 
-def test_rotating_file_handler_resumes_failed_rollover(tmp_path, logger):
+@pytest.mark.parametrize(
+    ("failing", "error"),
+    [("close", None), ("app.log", errno.EACCES)],
+)
+def test_rotating_file_handler_resumes_failed_rollover(
+    tmp_path, monkeypatch, logger, failing, error
+):
     filename = tmp_path / "app.log"
     for index in (1, 2):
         (tmp_path / f"app.log.{index}").write_text(f"backup {index}\n")
@@ -316,7 +322,16 @@ def test_rotating_file_handler_resumes_failed_rollover(tmp_path, logger):
     )
     with handler, logbook.Flags(errors="raise"):
         logger.info("current record")
-        break_stream(handler, "close")
+        if failing == "close":
+            break_stream(handler, "close")
+        else:
+            fail_once(
+                monkeypatch,
+                logbook.handlers,
+                "rename",
+                lambda src, dst: src == str(tmp_path / failing),
+                OSError(error, os.strerror(error)),
+            )
         with pytest.raises(OSError):
             logger.info("trigger")
         handler.write("written\n")

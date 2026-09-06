@@ -982,6 +982,7 @@ class RotatingFileHandler(FileHandler):
         self.max_size = max_size
         self.backup_count = backup_count
         assert backup_count > 0, "at least one backup file has to be specified"
+        self._next_backup = None
 
     def should_rollover(self, record, bytes):
         try:
@@ -994,17 +995,22 @@ class RotatingFileHandler(FileHandler):
         return not _is_special_file(self._filename)
 
     def perform_rollover(self):
+        if self._next_backup is None:
+            self._next_backup = self.backup_count - 1
         self._close_stream()
-        for x in range(self.backup_count - 1, 0, -1):
-            src = f"{self._filename}.{x}"
-            dst = f"{self._filename}.{x + 1}"
+        # A retry resumes here, so backups that were moved are not moved again.
+        while self._next_backup > 0:
+            src = f"{self._filename}.{self._next_backup}"
+            dst = f"{self._filename}.{self._next_backup + 1}"
             try:
                 rename(src, dst)
             except OSError:
                 e = sys.exc_info()[1]
                 if e.errno != errno.ENOENT:
                     raise
+            self._next_backup -= 1
         rename(self._filename, self._filename + ".1")
+        self._next_backup = None
         self._open("a")
 
     def emit(self, record):
