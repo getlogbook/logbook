@@ -427,6 +427,9 @@ def _create_log_record(cls, dict):
     return cls.from_dict(dict)
 
 
+_NONED_ON_CLOSE = frozenset(("exc_info", "frame", "calling_frame"))
+
+
 class LogRecord:
     """A LogRecord instance represents an event being logged.
 
@@ -451,7 +454,7 @@ class LogRecord:
             "exception_message",
         )
     )
-    _noned_on_close = frozenset(("exc_info", "frame", "calling_frame"))
+    _noned_on_close = _NONED_ON_CLOSE
 
     #: can be overriden by a handler to not close the record.  This could
     #: lead to memory leaks so it should be used carefully.
@@ -576,8 +579,17 @@ class LogRecord:
         This makes a log record safe for pickling and will clean up
         memory that might be still referenced by the frames.
         """
-        for key in self._noned_on_close:
-            setattr(self, key, None)
+        if self._noned_on_close is _NONED_ON_CLOSE:
+            # Written out for the default set, which is every record that has
+            # not had the attribute overridden: looping over the frozenset and
+            # going through setattr costs about four times as much as three
+            # direct stores, and this runs for every record logged.
+            self.exc_info = None
+            self.frame = None
+            self.calling_frame = None
+        else:
+            for key in self._noned_on_close:
+                setattr(self, key, None)
         self.late = True
 
     def __reduce_ex__(self, protocol):
