@@ -1,6 +1,7 @@
 import os
 import re
 import socket
+import tempfile
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
@@ -30,9 +31,17 @@ if UNIX_SOCKET_AVAILABLE:
 @pytest.mark.parametrize("sock_family,socktype,address", TO_TEST)
 @pytest.mark.parametrize("app_name", [None, "Testing"])
 def test_syslog_handler(
-    logger, activation_strategy, sock_family, socktype, address, app_name
+    logger,
+    activation_strategy,
+    sock_family,
+    socktype,
+    address,
+    app_name,
+    unix_sock_path,
 ):
     delimiter = DELIMITERS[sock_family]
+    if UNIX_SOCKET_AVAILABLE and sock_family == socket.AF_UNIX:
+        address = unix_sock_path
     with closing(socket.socket(sock_family, socktype)) as inc:
         inc.bind(address)
 
@@ -74,11 +83,10 @@ def test_syslog_handler(
 
 @pytest.fixture
 def unix_sock_path():
-    try:
-        yield UNIX_SOCKET
-    finally:
-        if os.path.exists(UNIX_SOCKET):
-            os.unlink(UNIX_SOCKET)
+    # The default temporary directory on macOS is too long for AF_UNIX paths.
+    parent = "/tmp" if os.name == "posix" and os.path.isdir("/tmp") else None
+    with tempfile.TemporaryDirectory(prefix="lb-", dir=parent) as directory:
+        yield os.path.join(directory, "socket")
 
 
 @pytest.fixture
@@ -172,3 +180,46 @@ def test_syslog_timestamp_is_utc(udp_server, record_time, set_clock):
         with handler, logbook.Flags(errors="raise"):
             logbook.Logger("chan").warning("hello")
     assert receive(udp_server)[0] == "2010-01-01T12:00:00Z"
+
+
+@pytest.mark.parametrize("unix", [False, True])
+@pytest.mark.parametrize("socktype", [socket.SOCK_DGRAM, socket.SOCK_STREAM])
+@pytest.mark.parametrize("message", ["first\nsecond", ""])
+def test_syslog_empty_record_delimiter(logger, unix_sock_path, unix, socktype, message):
+    if unix and not UNIX_SOCKET_AVAILABLE:
+        pytest.skip("Requires Unix sockets")
+    family = socket.AF_UNIX if unix else socket.AF_INET
+    address = unix_sock_path if unix else ("127.0.0.1", 0)
+    with socket.socket(family, socktype) as server:
+        server.bind(address)
+        server.settimeout(2)
+        if socktype == socket.SOCK_STREAM:
+            server.listen()
+        with closing(
+            logbook.SyslogHandler(
+                application_name="tests",
+                address=server.getsockname(),
+                socktype=socktype,
+                format_string="{record.message}",
+                record_delimiter="",
+            )
+        ) as handler:
+            with handler, logbook.Flags(errors="raise"):
+                logger.warning(message)
+            if socktype == socket.SOCK_STREAM:
+                with closing(server.accept()[0]) as connection:
+                    connection.settimeout(2)
+                    handler.close()
+                    chunks = []
+                    while chunk := connection.recv(1024):
+                        chunks.append(chunk)
+                    received = b"".join(chunks)
+            else:
+                received = server.recv(1024)
+                server.setblocking(False)
+                with pytest.raises(BlockingIOError):
+                    server.recv(1024)
+    body = (
+        received.removeprefix(b"<12>tests:") if unix else received.split(b" - - ", 1)[1]
+    )
+    assert body == message.encode()

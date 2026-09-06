@@ -1,0 +1,1 @@
+:class:`~logbook.SyslogHandler` with an empty ``record_delimiter`` sends each record without a terminator instead of raising :exc:`ValueError`.

@@ -1675,6 +1675,11 @@ class GMailHandler(MailHandler):
 class SyslogHandler(Handler, StringFormatterHandlerMixin):
     """A handler class which sends formatted logging records to a
     syslog server.  By default it will send to it via unix socket.
+
+    Set `record_delimiter` to an empty string to send each record without
+    splitting it or appending a terminator. This suits datagram transports;
+    on stream sockets consecutive records are sent back to back without
+    framing.
     """
 
     default_format_string = SYSLOG_FORMAT_STRING
@@ -1813,7 +1818,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
     def wrap_segments(self, record, before):
         msg = self.format(record)
-        segments = [segment for segment in msg.split(self.record_delimiter)]
+        segments = msg.split(self.record_delimiter) if self.record_delimiter else [msg]
         return (before + segment + self.record_delimiter for segment in segments)
 
     def unix_envelope(self, record):
