@@ -4,6 +4,7 @@ import socket
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
+from datetime import datetime, timezone
 
 import pytest
 
@@ -164,3 +165,10 @@ def test_syslog_keeps_attached_formatter(udp_server, formatter, app_name, messag
         assert handler.formatter is formatter
     assert receive(udp_server)[1:] == (app_name, message)
 
+
+def test_syslog_timestamp_is_utc(udp_server, record_time, set_clock):
+    set_clock(datetime(2010, 1, 1, 12, tzinfo=timezone.utc))
+    with closing(logbook.SyslogHandler(address=udp_server.getsockname())) as handler:
+        with handler, logbook.Flags(errors="raise"):
+            logbook.Logger("chan").warning("hello")
+    assert receive(udp_server)[0] == "2010-01-01T12:00:00Z"

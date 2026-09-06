@@ -1842,7 +1842,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
                 #           msgid structured-data message
                 before = "<{}>1 {}Z {} {} {} - - ".format(
                     self.encode_priority(record),
-                    record.time.isoformat(),
+                    _record_time_to_utc(record.time).replace(tzinfo=None).isoformat(),
                     socket.gethostname(),
                     self.application_name if self.application_name else "-",
                     record.process,

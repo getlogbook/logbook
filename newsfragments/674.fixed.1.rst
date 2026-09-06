@@ -1,0 +1,1 @@
+:class:`~logbook.SyslogHandler` sent the wrong RFC 5424 timestamp when record times were local or aware.
