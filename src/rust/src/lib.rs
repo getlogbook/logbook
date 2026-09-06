@@ -7,7 +7,7 @@ use arc_swap::{ArcSwap, ArcSwapOption};
 use contextvars::{PyContextVar, PyContextVarMethods};
 use pyo3::exceptions::{PyAssertionError, PyLookupError, PyNotImplementedError, PyTypeError};
 use pyo3::prelude::*;
-use pyo3::types::{PyIterator, PyString, PyTuple, PyType};
+use pyo3::types::{PyInt, PyIterator, PyString, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
 
 mod contextvars;
@@ -453,6 +453,22 @@ where
     }
 }
 
+/// `rv != fallback`, skipping the rich comparison when the two are the same
+/// `int` object.
+///
+/// Integer equality is reflexive, so an `int` is never unequal to itself and
+/// the comparison cannot be observed. This is the common case: levels are
+/// ints, and an untouched `_level` *is* the `NOTSET` fallback object, so the
+/// pointer check replaces a full `PyObject_RichCompare` plus truthiness test.
+/// Any other type still goes through `__ne__`, which matters for values that
+/// are not equal to themselves.
+fn differs_from_fallback(rv: &Bound<'_, PyAny>, fallback: &Bound<'_, PyAny>) -> PyResult<bool> {
+    if rv.is(fallback) && rv.is_exact_instance_of::<PyInt>() {
+        return Ok(false);
+    }
+    rv.ne(fallback)
+}
+
 #[pyclass(name = "group_reflected_property", module = "logbook._speedups")]
 pub struct PyGroupReflectedProperty {
     prop_name: Option<Py<PyString>>,
@@ -505,7 +521,9 @@ impl PyGroupReflectedProperty {
 
         let rv = instance.getattr_opt(attr_name)?;
         match (&self_.fallback, rv) {
-            (Some(fallback), Some(rv)) if rv.ne(fallback)? => return Ok(rv.unbind()),
+            (Some(fallback), Some(rv)) if differs_from_fallback(&rv, fallback.bind(py))? => {
+                return Ok(rv.unbind())
+            }
             (None, Some(rv)) => return Ok(rv.unbind()),
             _ => {}
         }
