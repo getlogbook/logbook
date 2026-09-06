@@ -398,8 +398,26 @@ class StringFormatter:
     def format_string(self, value):
         self._format_string = value
         self._formatter = value
+        # Whether format_record may take its fast path, worked out here so the
+        # per-record test is a single attribute read.
+        self._is_default_format = type(value) is str and value == DEFAULT_FORMAT_STRING
 
     def format_record(self, record, handler):
+        if self._is_default_format:
+            time = record.time
+            # Formatting the default template with str.format spends most of
+            # its time inside datetime.__format__, which goes through
+            # strftime. isoformat produces byte-identical text far more
+            # cheaply, but only for an exact, naive datetime: a tzinfo makes
+            # %z and isoformat disagree about the colon in the offset, %Y
+            # zero-padding below year 1000 is platform dependent, and a
+            # subclass may override either method. Anything else falls through
+            # to str.format below.
+            if type(time) is datetime and time.tzinfo is None and time.year >= 1000:
+                return (
+                    f"[{time.isoformat(' ', 'microseconds')}] "
+                    f"{record.level_name}: {record.channel}: {record.message}"
+                )
         try:
             return self._formatter.format(record=record, handler=handler)
         except UnicodeEncodeError:
