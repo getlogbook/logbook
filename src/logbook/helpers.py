@@ -220,23 +220,46 @@ def get_application_name():
     return os.path.basename(sys.argv[0]).title()
 
 
-class cached_property:
-    """A property that is lazily calculated and then cached."""
+try:
+    if os.environ.get("DISABLE_LOGBOOK_CEXT_AT_RUNTIME"):
+        raise ImportError("Speedups disabled via DISABLE_LOGBOOK_CEXT_AT_RUNTIME")
 
-    def __init__(self, func, name=None, doc=None):
-        self.__name__ = name or func.__name__
-        self.__module__ = func.__module__
-        self.__doc__ = doc or func.__doc__
-        self.func = func
+    from logbook._speedups import cached_property as _cached_property_base
+except ImportError:
 
-    def __get__(self, obj, type=None):
-        if obj is None:
-            return self
-        value = obj.__dict__.get(self.__name__, _missing)
-        if value is _missing:
-            value = self.func(obj)
-            obj.__dict__[self.__name__] = value
-        return value
+    class cached_property:
+        """A property that is lazily calculated and then cached."""
+
+        def __init__(self, func, name=None, doc=None):
+            self.__name__ = name or func.__name__
+            self.__module__ = func.__module__
+            self.__doc__ = doc or func.__doc__
+            self.func = func
+
+        def __get__(self, obj, type=None):
+            if obj is None:
+                return self
+            value = obj.__dict__.get(self.__name__, _missing)
+            if value is _missing:
+                value = self.func(obj)
+                obj.__dict__[self.__name__] = value
+            return value
+
+else:
+
+    class cached_property(_cached_property_base):
+        """A property that is lazily calculated and then cached."""
+
+        def __init__(self, func, name=None, doc=None):
+            # Set here rather than exposed from Rust. A pyclass getter is a
+            # read-only getset, and so a data descriptor: one named __doc__ or
+            # __module__ would shadow the class's own and reject assignment.
+            # Sphinx autodoc reads __doc__ off the descriptor to document the
+            # LogRecord attributes, so it has to be on the instance. __name__
+            # comes from the Rust getter, which is the name __get__ caches
+            # under, so there is only ever one source for it.
+            self.__doc__ = doc or func.__doc__
+            self.__module__ = func.__module__
 
 
 def get_iterator_next_method(it: Iterator[T]) -> Callable[[], T]:

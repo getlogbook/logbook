@@ -7,7 +7,7 @@ use arc_swap::{ArcSwap, ArcSwapOption};
 use contextvars::{PyContextVar, PyContextVarMethods};
 use pyo3::exceptions::{PyAssertionError, PyLookupError, PyNotImplementedError, PyTypeError};
 use pyo3::prelude::*;
-use pyo3::types::{PyInt, PyIterator, PyString, PyTuple, PyType};
+use pyo3::types::{PyDict, PyInt, PyIterator, PyString, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
 
 mod contextvars;
@@ -486,6 +486,94 @@ fn differs_from_fallback(rv: &Bound<'_, PyAny>, fallback: &Bound<'_, PyAny>) -> 
     rv.ne(fallback)
 }
 
+// A property that is lazily calculated and then cached in the instance
+// dictionary.
+//
+// Only `__get__` is defined, so this is a non-data descriptor and the instance
+// dictionary takes precedence over it. That means `__get__` runs at most once
+// per object and every later read is an ordinary attribute lookup, which is why
+// the cost of this one call matters: `LogRecord` has thirteen of these and
+// `pull_information` forces all of them.
+//
+// `__doc__` and `__module__` are deliberately absent. A pyclass getter is a
+// read-only getset, which is a data descriptor, so either one would shadow the
+// class's own dunder and reject assignment; pyo3 also writes its own `__doc__`
+// into the type dictionary from a `///` comment, which is why this block uses
+// `//`. The Python subclass in `logbook.helpers` sets both on the instance.
+#[pyclass(
+    module = "logbook._speedups",
+    name = "cached_property",
+    subclass,
+    frozen
+)]
+pub struct PyCachedProperty {
+    func: Py<PyAny>,
+    name: Py<PyString>,
+}
+
+#[pymethods]
+impl PyCachedProperty {
+    #[new]
+    #[pyo3(signature = (func, name = None, doc = None))]
+    fn __new__(
+        py: Python<'_>,
+        func: Bound<'_, PyAny>,
+        name: Option<Bound<'_, PyAny>>,
+        doc: Option<Bound<'_, PyAny>>,
+    ) -> PyResult<Self> {
+        // `name or func.__name__`, matching the Python implementation's
+        // truthiness rather than a None check. `doc` is accepted for signature
+        // parity and handled by the subclass.
+        let _ = doc;
+        let name = match name {
+            Some(name) if name.is_truthy()? => name.cast_into::<PyString>()?,
+            _ => func
+                .getattr(intern!(py, "__name__"))?
+                .cast_into::<PyString>()?,
+        };
+        Ok(Self {
+            func: func.unbind(),
+            name: name.unbind(),
+        })
+    }
+
+    // Safe to expose, unlike `__doc__` and `__module__`: `type.__name__` is a
+    // data descriptor on the metaclass, so this cannot shadow the class's own.
+    #[getter(__name__)]
+    fn get_name(&self, py: Python<'_>) -> Py<PyString> {
+        self.name.clone_ref(py)
+    }
+
+    #[getter]
+    fn func(&self, py: Python<'_>) -> Py<PyAny> {
+        self.func.clone_ref(py)
+    }
+
+    fn __get__(
+        self_: &Bound<'_, Self>,
+        py: Python<'_>,
+        obj: Option<&Bound<'_, PyAny>>,
+        _owner: Option<&Bound<'_, PyType>>,
+    ) -> PyResult<Py<PyAny>> {
+        let Some(obj) = obj else {
+            return self_.clone().into_py_any(py);
+        };
+        let self_ = self_.get();
+        let name = self_.name.bind(py);
+        // Written straight into the instance dictionary, as the Python
+        // implementation does, so a class defining __setattr__ is not invoked.
+        let dict = obj
+            .getattr(intern!(py, "__dict__"))?
+            .cast_into::<PyDict>()?;
+        if let Some(value) = dict.get_item(name)? {
+            return Ok(value.unbind());
+        }
+        let value = self_.func.bind(py).call1((obj,))?;
+        dict.set_item(name, &value)?;
+        Ok(value.unbind())
+    }
+}
+
 /// The name the property was assigned to, and the private attribute it reads
 /// from the instance. Both are derived from the same `__set_name__` call, so
 /// they live in one cell: a reader can never see one without the other.
@@ -613,6 +701,7 @@ const _: () = {
     assert_sync::<ApplicationBound>();
     assert_sync::<StackedObject>();
     assert_sync::<PyGroupReflectedProperty>();
+    assert_sync::<PyCachedProperty>();
     assert_sync::<Node>();
     assert_sync::<StackItemFactory>();
 };
@@ -623,6 +712,7 @@ fn _speedups(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ContextStackManager>()?;
     m.add_class::<StackedObject>()?;
     m.add_class::<PyGroupReflectedProperty>()?;
+    m.add_class::<PyCachedProperty>()?;
 
     Ok(())
 }
