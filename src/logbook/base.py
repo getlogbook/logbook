@@ -511,7 +511,10 @@ class LogRecord:
         #: where custom log processors can attach custom context sensitive
         #: data.
 
-        self.extra = defaultdict(str, extra or ())
+        # Passing the empty iterable through defaultdict's constructor costs
+        # noticeably more than building an empty one, and no extra data is the
+        # common case.
+        self.extra = defaultdict(str, extra) if extra else defaultdict(str)
         #: If available, optionally the interpreter frame that pulled the
         #: heavy init.  This usually points to somewhere in the dispatcher.
         #: Might not be available for all calls and is removed when the log
@@ -943,9 +946,15 @@ class LoggerMixin:
             raise AttributeError("The disabled property is read-only.")
 
     def _log(self, level, args, kwargs):
-        exc_info = kwargs.pop("exc_info", None)
-        extra = kwargs.pop("extra", None)
-        frame_correction = kwargs.pop("frame_correction", 0)
+        # Almost every call passes no keyword arguments at all, and three
+        # misses on an empty dict cost more than the check that skips them.
+        if kwargs:
+            exc_info = kwargs.pop("exc_info", None)
+            extra = kwargs.pop("extra", None)
+            frame_correction = kwargs.pop("frame_correction", 0)
+        else:
+            exc_info = extra = None
+            frame_correction = 0
         self.make_record_and_handle(
             level, args[0], args[1:], kwargs, exc_info, extra, frame_correction
         )
