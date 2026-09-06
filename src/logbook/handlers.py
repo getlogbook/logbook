@@ -592,8 +592,11 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         return Handler.__enter__(self)
 
     def __exit__(self, exc_type, exc_value, tb):
-        self.close()
-        return Handler.__exit__(self, exc_type, exc_value, tb)
+        try:
+            self.close()
+        finally:
+            popped = Handler.__exit__(self, exc_type, exc_value, tb)
+        return popped
 
     def ensure_stream_is_open(self):
         """this method should be overriden in sub-classes to ensure that the

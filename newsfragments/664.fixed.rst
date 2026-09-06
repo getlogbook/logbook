@@ -1,0 +1,1 @@
+A stream handler used in a ``with`` block is removed from the handler stack even when closing it fails.

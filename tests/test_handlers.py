@@ -1,3 +1,7 @@
+import io
+
+import pytest
+
 import logbook
 
 from .utils import capturing_stderr_context, make_fake_mail_handler
@@ -135,3 +139,18 @@ def test_default_handlers(logger):
         logger.warning("Aha!")
         captured = stream.getvalue()
     assert "WARNING: testlogger: Aha!" in captured
+
+
+def test_stream_handler_leaves_stack_when_close_fails():
+    class FailingFlush(io.StringIO):
+        def flush(self):
+            raise OSError("flush failed")
+
+    handler = logbook.StreamHandler(FailingFlush())
+    try:
+        with pytest.raises(OSError, match="flush failed"), handler:
+            pass
+        assert handler not in logbook.Handler.stack_manager.iter_context_objects()
+    finally:
+        if handler in logbook.Handler.stack_manager.iter_context_objects():
+            handler.pop_context()
