@@ -8,6 +8,7 @@ Base implementation for logbook.
 :license: BSD, see LICENSE for more details.
 """
 
+import copyreg
 import os
 import sys
 import traceback
@@ -969,6 +970,11 @@ class RecordDispatcher:
     #: for log records emitted from this logger.
     suppress_dispatcher = False
 
+    #: Cached weak reference to this dispatcher, handed to every record it
+    #: creates. Built on first use rather than in ``__init__`` so a subclass
+    #: that does not call up still works.
+    _self_ref = None
+
     def __init__(self, name=None, level=NOTSET):
         #: the name of the record dispatcher
         self.name = name
@@ -993,6 +999,32 @@ class RecordDispatcher:
         if not self.disabled and record.level >= self.level:
             self.call_handlers(record)
 
+    def __getstate__(self):
+        slots = {}
+        getstate = getattr(object, "__getstate__", None)
+        if getstate is not None:
+            state = getstate(self)
+            if isinstance(state, tuple):
+                state, slots = state
+        else:
+            # Python < 3.11 has no object.__getstate__.
+            state = self.__dict__
+            for name in copyreg._slotnames(type(self)):
+                try:
+                    slots[name] = getattr(self, name)
+                except AttributeError:
+                    pass
+
+        # The cached weak reference cannot be pickled, and is rebuilt on
+        # demand. Copy the instance dictionary before removing it.
+        if state is not None:
+            state = state.copy()
+            state.pop("_self_ref", None)
+        slots.pop("_self_ref", None)
+        if slots:
+            return state, slots
+        return state
+
     def make_record_and_handle(
         self, level, msg, args, kwargs, exc_info, extra, frame_correction
     ):
@@ -1004,10 +1036,6 @@ class RecordDispatcher:
         # only store a weak reference to the channel, so it might disappear
         # from one instruction to the other.  It will also disappear when
         # a log record is transmitted to another process etc.
-        channel = None
-        if not self.suppress_dispatcher:
-            channel = self
-
         record = LogRecord(
             self.name,
             level,
@@ -1017,9 +1045,19 @@ class RecordDispatcher:
             exc_info,
             extra,
             None,
-            channel,
+            None,
             frame_correction,
         )
+
+        if not self.suppress_dispatcher:
+            # LogRecord builds this weak reference itself when handed the
+            # dispatcher, but it is the same object every time, so keep one per
+            # dispatcher rather than asking the weakref machinery for it again
+            # on every record.
+            ref = self._self_ref
+            if ref is None:
+                ref = self._self_ref = weakref(self)
+            record._dispatcher = ref
 
         # after handling the log record is closed which will remove some
         # referenes that would require a GC run on cpython.  This includes
