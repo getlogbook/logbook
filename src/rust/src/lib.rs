@@ -1,6 +1,6 @@
 #![deny(rust_2018_idioms)]
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use arc_swap::{ArcSwap, ArcSwapOption};
 
@@ -486,10 +486,19 @@ fn differs_from_fallback(rv: &Bound<'_, PyAny>, fallback: &Bound<'_, PyAny>) -> 
     rv.ne(fallback)
 }
 
-#[pyclass(name = "group_reflected_property", module = "logbook._speedups")]
+// `frozen` matters for more than immutability here: it removes PyO3's
+// runtime borrow check from `__get__`, which Logger.info and
+// RecordDispatcher.handle together reach four times per logging call.
+// The two names are therefore held in `OnceLock` rather than being
+// assigned through `&mut self`.
+#[pyclass(
+    name = "group_reflected_property",
+    module = "logbook._speedups",
+    frozen
+)]
 pub struct PyGroupReflectedProperty {
-    prop_name: Option<Py<PyString>>,
-    attr_name: Option<Py<PyString>>,
+    prop_name: OnceLock<Py<PyString>>,
+    attr_name: OnceLock<Py<PyString>>,
     default: Py<PyAny>,
     fallback: Option<Py<PyAny>>,
 }
@@ -504,34 +513,40 @@ impl PyGroupReflectedProperty {
             Maybe::Missing => None,
         };
         Ok(Self {
-            prop_name: None,
-            attr_name: None,
+            prop_name: OnceLock::new(),
+            attr_name: OnceLock::new(),
             default,
             fallback,
         })
     }
 
+    /// Binds the property to the name it was assigned to. A single property
+    /// object assigned to two names keeps the first, where it previously kept
+    /// the last; either way only one of the two names can work, so logbook
+    /// gives each property its own object.
     fn __set_name__(
-        &mut self,
+        &self,
         py: Python<'_>,
         _owner: Option<&Bound<'_, PyType>>,
         name: Bound<'_, PyString>,
     ) -> PyResult<()> {
-        self.attr_name = Some(intern!(py, "_").add(&name)?.cast_into()?.unbind());
-        self.prop_name = Some(name.unbind());
+        let attr_name = intern!(py, "_").add(&name)?.cast_into()?.unbind();
+        let _ = self.attr_name.set(attr_name);
+        let _ = self.prop_name.set(name.unbind());
         Ok(())
     }
 
     fn __get__(
-        self_: PyRef<'_, Self>,
+        self_: &Bound<'_, Self>,
         py: Python<'_>,
         instance: Option<&Bound<'_, PyAny>>,
         _owner: Option<&Bound<'_, PyType>>,
     ) -> PyResult<Py<PyAny>> {
         let Some(instance) = instance else {
-            return self_.into_py_any(py);
+            return self_.clone().into_py_any(py);
         };
-        let Some(attr_name) = &self_.attr_name else {
+        let self_ = self_.get();
+        let Some(attr_name) = self_.attr_name.get() else {
             return Err(PyTypeError::new_err("property is not bound to a class"));
         };
         let attr_name = attr_name.bind(py);
@@ -550,7 +565,7 @@ impl PyGroupReflectedProperty {
             return Ok(self_.default.clone_ref(py));
         }
 
-        let Some(prop_name) = &self_.prop_name else {
+        let Some(prop_name) = self_.prop_name.get() else {
             return Err(PyTypeError::new_err("property is not bound to a class"));
         };
         Ok(group.getattr(prop_name)?.unbind())
@@ -562,7 +577,7 @@ impl PyGroupReflectedProperty {
         instance: Bound<'_, PyAny>,
         value: Bound<'_, PyAny>,
     ) -> PyResult<()> {
-        let Some(attr_name) = &self.attr_name else {
+        let Some(attr_name) = self.attr_name.get() else {
             return Err(PyTypeError::new_err("property is not bound to a class"));
         };
         let attr_name = attr_name.bind(py);
@@ -571,7 +586,7 @@ impl PyGroupReflectedProperty {
     }
 
     fn __delete__(&self, py: Python<'_>, instance: Bound<'_, PyAny>) -> PyResult<()> {
-        let Some(attr_name) = &self.attr_name else {
+        let Some(attr_name) = self.attr_name.get() else {
             return Err(PyTypeError::new_err("property is not bound to a class"));
         };
         let attr_name = attr_name.bind(py);
