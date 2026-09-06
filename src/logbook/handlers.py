@@ -614,8 +614,15 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
 
     def flush(self):
         """Flushes the inner stream."""
-        if self.stream is not None and hasattr(self.stream, "flush"):
-            self.stream.flush()
+        # Read the stream once: on StderrHandler it is a property returning the
+        # current sys.stderr, and hasattr only to then look the attribute up
+        # again doubles the work. One getattr also cannot see the stream
+        # change underneath it.
+        stream = self.stream
+        if stream is not None:
+            flush = getattr(stream, "flush", None)
+            if flush is not None:
+                flush()
 
     def encode(self, msg):
         """Encodes the message to the stream encoding."""
