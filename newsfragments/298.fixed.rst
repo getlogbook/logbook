@@ -1,0 +1,1 @@
+:class:`~logbook.RotatingFileHandler` and :class:`~logbook.TimedRotatingFileHandler` append to the log file after rollover instead of truncating it.

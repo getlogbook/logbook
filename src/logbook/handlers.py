@@ -951,7 +951,7 @@ class RotatingFileHandler(FileHandler):
                 if e.errno != errno.ENOENT:
                     raise
         rename(self._filename, self._filename + ".1")
-        self._open("w")
+        self._open("a")
 
     def emit(self, record):
         msg = self.format(record)
@@ -1103,7 +1103,7 @@ class TimedRotatingFileHandler(FileHandler):
             self._filename = self.generate_timed_filename(new_timestamp)
         self._timestamp = new_timestamp
 
-        self._open("w")
+        self._open("a")
 
     def emit(self, record):
         msg = self.format(record)
