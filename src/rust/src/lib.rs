@@ -210,6 +210,52 @@ impl ContextStackManager {
             None => Err(PyLookupError::new_err(context_stack.clone().unbind())),
         }
     }
+
+    /// The merged application and context stacks, most recently pushed
+    /// first. Rust callers use this directly; `iter_context_objects` wraps
+    /// it in a Python iterator for the Python-facing API.
+    pub(crate) fn context_objects(&self, py: Python<'_>) -> PyResult<Py<PyTuple>> {
+        let stack = self.current_stack(py)?;
+        let node = &stack.get().node;
+        // `load()` rather than `load_full()`: it skips bumping the shared
+        // reference count, which many reader threads would otherwise fight
+        // over. On a cache hit we only need to compare pointers.
+        let current_global = self.global.load();
+
+        let memo = node.merged.load();
+        if let Some(merged) = &*memo {
+            if Arc::ptr_eq(&merged.global, &current_global) {
+                return Ok(merged.objects.clone_ref(py));
+            }
+        }
+
+        let current_global = arc_swap::Guard::into_inner(current_global);
+        let objects = merged_objects(py, current_global.as_ref(), node)?;
+        node.merged.store(Some(Arc::new(Merged {
+            global: current_global.clone(),
+            objects: objects.clone_ref(py),
+        })));
+
+        // Each node below keeps its own cache, ready for when the context
+        // pops back to that depth. But a cache built against an old
+        // application stack will never be used again, and it keeps that
+        // stack's handlers alive. Clear those out now rather than waiting
+        // for the context to unwind. If another thread stores a fresh
+        // cache at the same time, either outcome is fine; the worst case
+        // is one extra recompute.
+        let mut ancestor = node.entry.as_ref().map(|entry| &entry.parent);
+        while let Some(parent) = ancestor {
+            let memo = parent.merged.load();
+            if let Some(merged) = &*memo {
+                if !Arc::ptr_eq(&merged.global, &current_global) {
+                    parent.merged.store(None);
+                }
+            }
+            ancestor = parent.entry.as_ref().map(|entry| &entry.parent);
+        }
+
+        Ok(objects)
+    }
 }
 
 #[pymethods]
@@ -255,46 +301,17 @@ impl ContextStackManager {
     }
 
     fn iter_context_objects(&self, py: Python<'_>) -> PyResult<Py<PyIterator>> {
-        let stack = self.current_stack(py)?;
-        let node = &stack.get().node;
-        // `load()` rather than `load_full()`: it skips bumping the shared
-        // reference count, which many reader threads would otherwise fight
-        // over. On a cache hit we only need to compare pointers.
-        let current_global = self.global.load();
-
-        let memo = node.merged.load();
-        if let Some(merged) = &*memo {
-            if Arc::ptr_eq(&merged.global, &current_global) {
-                return tuple_to_iter(py, &merged.objects);
-            }
-        }
-
-        let current_global = arc_swap::Guard::into_inner(current_global);
-        let objects = merged_objects(py, current_global.as_ref(), node)?;
-        node.merged.store(Some(Arc::new(Merged {
-            global: current_global.clone(),
-            objects: objects.clone_ref(py),
-        })));
-
-        // Each node below keeps its own cache, ready for when the context
-        // pops back to that depth. But a cache built against an old
-        // application stack will never be used again, and it keeps that
-        // stack's handlers alive. Clear those out now rather than waiting
-        // for the context to unwind. If another thread stores a fresh
-        // cache at the same time, either outcome is fine; the worst case
-        // is one extra recompute.
-        let mut ancestor = node.entry.as_ref().map(|entry| &entry.parent);
-        while let Some(parent) = ancestor {
-            let memo = parent.merged.load();
-            if let Some(merged) = &*memo {
-                if !Arc::ptr_eq(&merged.global, &current_global) {
-                    parent.merged.store(None);
-                }
-            }
-            ancestor = parent.entry.as_ref().map(|entry| &entry.parent);
-        }
-
+        let objects = self.context_objects(py)?;
         tuple_to_iter(py, &objects)
+    }
+
+    /// The same objects as `iter_context_objects`, but as the cached tuple
+    /// rather than a fresh iterator over it. Callers that simply loop over the
+    /// result save an iterator allocation on every call, and a tuple lets
+    /// CPython use its specialised `FOR_ITER_TUPLE`.
+    #[pyo3(name = "context_objects")]
+    fn py_context_objects(&self, py: Python<'_>) -> PyResult<Py<PyTuple>> {
+        self.context_objects(py)
     }
 
     fn push_context<'py>(&self, py: Python<'py>, obj: Bound<'py, PyAny>) -> PyResult<()> {

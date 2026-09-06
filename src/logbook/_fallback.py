@@ -159,12 +159,19 @@ class ContextStackManager(Generic[T]):
         """Returns an iterator over all objects for the combined
         application and context cache.
         """
+        return iter(self.context_objects())
+
+    def context_objects(self) -> tuple[T, ...]:
+        """The same objects as :meth:`iter_context_objects`, but as the cached
+        tuple rather than a fresh iterator over it. Callers that simply loop
+        over the result save an iterator allocation on every call.
+        """
         node = self._context_stack.get()
         current_global = self._global
 
         memo = node.merged
         if memo is not None and memo[0] is current_global:
-            return iter(memo[1])
+            return memo[1]
 
         stack_objects = sorted(chain(current_global, node), reverse=True)
         objects = tuple(x[1] for x in stack_objects)
@@ -183,7 +190,7 @@ class ContextStackManager(Generic[T]):
                 ancestor.merged = None
             ancestor = ancestor.parent
 
-        return iter(objects)
+        return objects
 
     def push_context(self, obj: T) -> None:
         node = self._context_stack.get()

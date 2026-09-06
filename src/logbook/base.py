@@ -412,7 +412,7 @@ class Flags(ContextObject):
     @staticmethod
     def get_flag(flag, default=None):
         """Looks up the current value of a specific flag."""
-        for flags in Flags.stack_manager.iter_context_objects():
+        for flags in Flags.stack_manager.context_objects():
             val = getattr(flags, flag, Inherit)
             if val is not Inherit:
                 return val
@@ -1044,10 +1044,12 @@ class RecordDispatcher:
 
         # Both logger attached handlers as well as context specific
         # handlers are handled one after another.  The latter also
-        # include global handlers.
-        for handler in chain(
-            self.handlers, Handler.stack_manager.iter_context_objects()
-        ):
+        # include global handlers.  Most loggers have no handlers of their
+        # own, and then the cached tuple of context handlers can be looped
+        # over directly, with no chain object and no iterator to allocate.
+        attached = self.handlers
+        context = Handler.stack_manager.context_objects()
+        for handler in chain(attached, context) if attached else context:
             # skip records that this handler is not interested in based
             # on the record and handler level or in case this method was
             # overridden on some custom logic.
@@ -1094,7 +1096,7 @@ class RecordDispatcher:
         """
         if self.group is not None:
             self.group.process_record(record)
-        for processor in Processor.stack_manager.iter_context_objects():
+        for processor in Processor.stack_manager.context_objects():
             processor.process(record)
 
 
