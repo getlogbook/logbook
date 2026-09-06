@@ -82,6 +82,42 @@ def test_custom_formatter(activation_strategy, logfile, logger):
         assert f.readline() == "WARNING:Custom formatters are awesome\n"
 
 
+@pytest.mark.parametrize("delay", [False, True])
+@pytest.mark.parametrize("max_size", [5, len("oversized first record\n")])
+@pytest.mark.parametrize("existing_backup", [False, True])
+def test_rotating_file_handler_does_not_back_up_empty_file(
+    tmp_path, logger, delay, max_size, existing_backup
+):
+    filename = tmp_path / "oversized.log"
+    backup = tmp_path / "oversized.log.1"
+    if existing_backup:
+        backup.write_text("previous generation\n")
+    with (
+        logbook.RotatingFileHandler(
+            filename,
+            max_size=max_size,
+            backup_count=1,
+            delay=delay,
+            format_string="{record.message}",
+        ),
+        logbook.Flags(errors="raise"),
+    ):
+        logger.info("oversized first record")
+        expected = (
+            ["oversized.log", "oversized.log.1"]
+            if existing_backup
+            else ["oversized.log"]
+        )
+        assert sorted(path.name for path in tmp_path.iterdir()) == expected
+        if existing_backup:
+            assert backup.read_text() == "previous generation\n"
+        assert filename.read_text() == "oversized first record\n"
+        logger.info("next")
+
+    assert filename.read_text() == "next\n"
+    assert (tmp_path / "oversized.log.1").read_text() == "oversized first record\n"
+
+
 def test_rotating_file_handler(logfile, activation_strategy, logger):
     basename = os.path.basename(logfile)
     handler = logbook.RotatingFileHandler(
