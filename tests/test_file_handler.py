@@ -368,6 +368,26 @@ def test_rotating_file_handler_reopens_after_failed_open(tmp_path, monkeypatch, 
     assert filename.read_text() == "last record\n"
 
 
+@pytest.mark.skipif(os.name != "nt", reason="Requires Windows file sharing")
+def test_rotating_file_handler_resumes_after_locked_file(tmp_path, logger):
+    filename = tmp_path / "app.log"
+    for index in (1, 2):
+        (tmp_path / f"app.log.{index}").write_text(f"backup {index}\n")
+    handler = logbook.RotatingFileHandler(
+        filename, max_size=20, backup_count=3, format_string="{record.message}"
+    )
+    with handler, logbook.Flags(errors="raise"):
+        logger.info("current record")
+        with open(tmp_path / "app.log.2"), pytest.raises(OSError):
+            logger.info("trigger")
+        logger.info("retry")
+
+    assert (tmp_path / "app.log.3").read_text() == "backup 2\n"
+    assert (tmp_path / "app.log.2").read_text() == "backup 1\n"
+    assert (tmp_path / "app.log.1").read_text() == "current record\n"
+    assert filename.read_text() == "retry\n"
+
+
 @pytest.fixture
 def started_in_2010(set_clock):
     # Timed handlers keep records from before they started in the current file.
