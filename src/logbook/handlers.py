@@ -1770,6 +1770,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         self.remote_address = self.address = address
         self.facility = facility
         self.socktype = socktype
+        self.lock = _new_fine_grained_lock()
 
         if isinstance(address, str):
             self._connect_unixsocket()
@@ -1824,29 +1825,33 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
     def net_envelope(self, record):
         # Gross but effective
-        try:
+        with self.lock:
+            formatter = self.formatter
             format_string = self.format_string
             application_name = self.application_name
-            if (
-                not application_name
-                and record.channel
-                and "{record.channel}: " in format_string
-            ):
-                self.format_string = format_string.replace("{record.channel}: ", "")
-                self.application_name = record.channel
-            # RFC 5424: <PRIVAL>version timestamp hostname app-name procid
-            #           msgid structured-data message
-            before = "<{}>1 {}Z {} {} {} - - ".format(
-                self.encode_priority(record),
-                record.time.isoformat(),
-                socket.gethostname(),
-                self.application_name if self.application_name else "-",
-                record.process,
-            )
-            return self.wrap_segments(record, before)
-        finally:
-            self.format_string = format_string
-            self.application_name = application_name
+            try:
+                if (
+                    not application_name
+                    and record.channel
+                    and format_string is not None
+                    and "{record.channel}: " in format_string
+                ):
+                    self.format_string = format_string.replace("{record.channel}: ", "")
+                    self.application_name = record.channel
+                # RFC 5424: <PRIVAL>version timestamp hostname app-name procid
+                #           msgid structured-data message
+                before = "<{}>1 {}Z {} {} {} - - ".format(
+                    self.encode_priority(record),
+                    record.time.isoformat(),
+                    socket.gethostname(),
+                    self.application_name if self.application_name else "-",
+                    record.process,
+                )
+                return self.wrap_segments(record, before)
+            finally:
+                self.format_string = format_string
+                self.formatter = formatter
+                self.application_name = application_name
 
     def emit(self, record):
         for segment in self.enveloper(record):
