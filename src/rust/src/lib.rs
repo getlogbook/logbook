@@ -386,7 +386,7 @@ impl ApplicationBound {
     }
 }
 
-#[pyclass(module = "logbook._speedups", subclass)]
+#[pyclass(module = "logbook._speedups", subclass, frozen)]
 pub struct StackedObject;
 
 #[pymethods]
