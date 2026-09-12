@@ -1540,20 +1540,24 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
         else:
             con = SMTP(host, port, timeout=self.timeout)
 
-        if self.secure and self.starttls:
-            con.starttls(context=context)
-            con.ehlo()
+        try:
+            if self.secure and self.starttls:
+                con.starttls(context=context)
+                con.ehlo()
 
-        if self.credentials is not None:
-            # Allow credentials to be a tuple or dict.
-            if isinstance(self.credentials, Mapping):
-                credentials_args = ()
-                credentials_kwargs = self.credentials
-            else:
-                credentials_args = self.credentials
-                credentials_kwargs = dict()
+            if self.credentials is not None:
+                # Allow credentials to be a tuple or dict.
+                if isinstance(self.credentials, Mapping):
+                    credentials_args = ()
+                    credentials_kwargs = self.credentials
+                else:
+                    credentials_args = self.credentials
+                    credentials_kwargs = dict()
 
-            con.login(*credentials_args, **credentials_kwargs)
+                con.login(*credentials_args, **credentials_kwargs)
+        except BaseException:
+            con.close()
+            raise
 
         return con
 

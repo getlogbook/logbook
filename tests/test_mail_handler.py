@@ -4,7 +4,8 @@ import email.policy
 import re
 import socket
 import ssl
-from smtplib import SMTPServerDisconnected
+from concurrent.futures import ThreadPoolExecutor
+from smtplib import SMTPResponseException, SMTPServerDisconnected
 from unittest.mock import ANY, patch
 
 import pytest
@@ -58,6 +59,63 @@ def test_mail_timeout_with_stalled_server(logger, local_hostname, secure, expect
             pytest.raises(expected, match="timed out"),
         ):
             logger.error("stalled mail server")
+
+
+def test_mail_connection_closed_when_setup_fails(logger, local_hostname):
+    with socket.socket() as server:
+        server.bind(("127.0.0.1", 0))
+        server.listen()
+        server.settimeout(3)
+        handler = logbook.MailHandler(
+            "from@example.test",
+            ["to@example.test"],
+            server_addr=server.getsockname(),
+            secure=True,
+        )
+
+        def refuse_starttls():
+            with server.accept()[0] as connection:
+                connection.settimeout(3)
+                with connection.makefile("rwb", buffering=0) as stream:
+                    stream.write(b"220 localhost test server\r\n")
+                    stream.readline()
+                    stream.write(b"250-localhost\r\n250 STARTTLS\r\n")
+                    stream.readline()
+                    stream.write(b"454 TLS unavailable\r\n")
+                    try:
+                        return stream.readline() == b""
+                    except socket.timeout:
+                        return False
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            receiver = executor.submit(refuse_starttls)
+            with (
+                handler,
+                logbook.Flags(errors="raise"),
+                pytest.raises(SMTPResponseException) as caught,
+            ):
+                logger.error("no TLS today")
+            # The traceback holds on to the connection object, so the socket
+            # outlives the failure unless the handler closes it.
+            assert receiver.result(timeout=5), "connection left open after failure"
+            assert caught.value.smtp_code == 454
+
+
+@pytest.mark.parametrize(
+    "failure", [SMTPResponseException(535, b"no"), KeyboardInterrupt()]
+)
+def test_mail_connection_closed_when_login_fails(failure):
+    with patch("smtplib.SMTP", autospec=True) as mock_smtp:
+        mock_smtp().login.side_effect = failure
+        handler = logbook.MailHandler(
+            "from@example.test",
+            ["to@example.test"],
+            server_addr=("server.example.test", 25),
+            credentials=("username", "password"),
+        )
+        with pytest.raises(type(failure)):
+            handler.get_connection()
+        mock_smtp().close.assert_called_once_with()
 
 
 class SMTPCollector:
