@@ -174,7 +174,7 @@ def format_iso8601(d=None):
         d = datetime_utcnow()
     rv = d.strftime("%Y-%m-%dT%H:%M:%S")
     if d.microsecond:
-        rv += "." + str(d.microsecond)
+        rv += f".{d.microsecond:06d}"
     return rv + "Z"
 
 

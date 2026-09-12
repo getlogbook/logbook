@@ -48,3 +48,18 @@ def test_datehelpers():
     assert v.hour == 11
     v = parse_iso8601("2000-01-01T12:00:00-01:00")
     assert v.hour == 13
+
+
+@pytest.mark.parametrize("microsecond", [1, 12, 123, 1234, 12345, 123456, 0])
+def test_iso8601_preserves_fractional_seconds(microsecond):
+    from logbook.helpers import format_iso8601, parse_iso8601
+
+    timestamp = datetime(2000, 1, 1, microsecond=microsecond)
+
+    formatted = format_iso8601(timestamp)
+
+    assert parse_iso8601(formatted) == timestamp
+    assert (
+        datetime.fromisoformat(formatted.replace("Z", "+00:00")).replace(tzinfo=None)
+        == timestamp
+    )

@@ -1,0 +1,1 @@
+Fix ``logbook.helpers.format_iso8601()`` to zero-pad microseconds to six digits, preserving timestamp precision in its output and JSON-safe log record exports.
