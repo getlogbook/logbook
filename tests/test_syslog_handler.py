@@ -34,7 +34,7 @@ def test_syslog_handler(
         inc.bind(address)
 
         if socktype == socket.SOCK_STREAM:
-            inc.listen(0)
+            inc.listen(1)
 
         inc.settimeout(1)
 
