@@ -430,7 +430,7 @@ def test_mail_handler_arguments():
             )
             assert isinstance(mock_smtp_ssl.call_args.kwargs["context"], ssl.SSLContext)
             mock_load_cert_chain.assert_called_once_with("certfile", "keyfile")
-            mock_smtp().login.assert_called_once_with("username", "password")
+            mock_smtp_ssl().login.assert_called_once_with("username", "password")
             mock_smtp_ssl.reset_mock()
             mock_load_cert_chain.reset_mock()
 
@@ -450,7 +450,7 @@ def test_mail_handler_arguments():
                 "server.example.com", 465, context=None, timeout=5.0
             )
             mock_smtp_ssl().starttls.assert_not_called()
-            mock_smtp().login.assert_called_once_with("username", "password")
+            mock_smtp_ssl().login.assert_called_once_with("username", "password")
             mock_load_cert_chain.assert_not_called()
             mock_smtp_ssl.reset_mock()
             mock_load_cert_chain.reset_mock()
@@ -490,7 +490,7 @@ def test_mail_handler_arguments():
                 "server.example.com", 465, context=context, timeout=5.0
             )
             mock_smtp_ssl().starttls.assert_not_called()
-            mock_smtp().login.assert_called_once_with("username", "password")
+            mock_smtp_ssl().login.assert_called_once_with("username", "password")
             mock_load_cert_chain.assert_not_called()
 
 
