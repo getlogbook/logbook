@@ -1,15 +1,159 @@
 import base64
+import email
+import email.policy
 import re
+import socket
 import ssl
+from concurrent.futures import ThreadPoolExecutor
+from smtplib import SMTPResponseException, SMTPServerDisconnected
 from unittest.mock import ANY, patch
+
+import pytest
+from aiosmtpd.controller import Controller
 
 import logbook
 
-from .utils import capturing_stderr_context, make_fake_mail_handler
+from .utils import (
+    capturing_stderr_context,
+    make_fake_mail_handler,
+    unused_tcp_address,
+)
 
 __file_without_pyc__ = __file__
 if __file_without_pyc__.endswith(".pyc"):
     __file_without_pyc__ = __file_without_pyc__[:-1]
+
+
+@pytest.fixture
+def local_hostname(monkeypatch):
+    # Both smtplib and aiosmtpd look up this machine's fully qualified name
+    # before they say EHLO or send a banner. On some CI runners that reverse
+    # lookup hangs until the resolver gives up, which is long enough for the
+    # other end to stop waiting. The name needs a dot in it, or smtplib
+    # falls back to resolving the hostname instead, which hangs the same way.
+    monkeypatch.setattr(socket, "getfqdn", lambda name="": "localhost.localdomain")
+
+
+@pytest.mark.parametrize(
+    ("secure", "expected"),
+    [(False, SMTPServerDisconnected), (True, socket.timeout)],
+)
+def test_mail_timeout_with_stalled_server(logger, local_hostname, secure, expected):
+    # A listening socket that is never accepted completes the TCP handshake
+    # in the kernel, so the client connects and then waits for a greeting
+    # (or a TLS hello) that never comes.
+    with socket.socket() as server:
+        server.bind(("127.0.0.1", 0))
+        server.listen()
+        handler = logbook.MailHandler(
+            "from@example.test",
+            ["to@example.test"],
+            server_addr=server.getsockname(),
+            secure=secure,
+            starttls=False,
+            timeout=0.05,
+        )
+        with (
+            handler,
+            logbook.Flags(errors="raise"),
+            pytest.raises(expected, match="timed out"),
+        ):
+            logger.error("stalled mail server")
+
+
+def test_mail_connection_closed_when_setup_fails(logger, local_hostname):
+    with socket.socket() as server:
+        server.bind(("127.0.0.1", 0))
+        server.listen()
+        server.settimeout(3)
+        handler = logbook.MailHandler(
+            "from@example.test",
+            ["to@example.test"],
+            server_addr=server.getsockname(),
+            secure=True,
+        )
+
+        def refuse_starttls():
+            with server.accept()[0] as connection:
+                connection.settimeout(3)
+                with connection.makefile("rwb", buffering=0) as stream:
+                    stream.write(b"220 localhost test server\r\n")
+                    stream.readline()
+                    stream.write(b"250-localhost\r\n250 STARTTLS\r\n")
+                    stream.readline()
+                    stream.write(b"454 TLS unavailable\r\n")
+                    try:
+                        return stream.readline() == b""
+                    except socket.timeout:
+                        return False
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            receiver = executor.submit(refuse_starttls)
+            with (
+                handler,
+                logbook.Flags(errors="raise"),
+                pytest.raises(SMTPResponseException) as caught,
+            ):
+                logger.error("no TLS today")
+            # The traceback holds on to the connection object, so the socket
+            # outlives the failure unless the handler closes it.
+            assert receiver.result(timeout=5), "connection left open after failure"
+            assert caught.value.smtp_code == 454
+
+
+@pytest.mark.parametrize(
+    "failure", [SMTPResponseException(535, b"no"), KeyboardInterrupt()]
+)
+def test_mail_connection_closed_when_login_fails(failure):
+    with patch("smtplib.SMTP", autospec=True) as mock_smtp:
+        mock_smtp().login.side_effect = failure
+        handler = logbook.MailHandler(
+            "from@example.test",
+            ["to@example.test"],
+            server_addr=("server.example.test", 25),
+            credentials=("username", "password"),
+        )
+        with pytest.raises(type(failure)):
+            handler.get_connection()
+        mock_smtp().close.assert_called_once_with()
+
+
+class SMTPCollector:
+    def __init__(self):
+        self.envelopes = []
+
+    async def handle_DATA(self, server, session, envelope):
+        self.envelopes.append(envelope)
+        return "250 OK"
+
+
+def test_mail_delivery_over_smtp(logger, local_hostname):
+    # Controller.start() confirms the server is up by connecting to the port
+    # it was given, so it cannot be asked for whatever happens to be free.
+    address = unused_tcp_address()
+    collector = SMTPCollector()
+    controller = Controller(collector, hostname=address[0], port=address[1])
+    try:
+        controller.start()
+        with (
+            logbook.MailHandler(
+                "from@example.test",
+                ["to@example.test"],
+                server_addr=address,
+                format_string="Subject: café\n\n{record.message}",
+            ),
+            logbook.Flags(errors="raise"),
+        ):
+            logger.error("café 日本語")
+    finally:
+        controller.stop()
+
+    (envelope,) = collector.envelopes
+    assert envelope.mail_from == "from@example.test"
+    assert envelope.rcpt_tos == ["to@example.test"]
+    message = email.message_from_bytes(envelope.content, policy=email.policy.default)
+    assert message["Subject"] == "café"
+    assert message.get_content() == "café 日本語"
 
 
 def test_mail_handler(activation_strategy, logger):
@@ -121,7 +265,7 @@ def test_mail_handler_arguments():
 
             mail_handler.get_connection()
 
-            mock_smtp.assert_called_once_with("server.example.com", 465)
+            mock_smtp.assert_called_once_with("server.example.com", 465, timeout=5.0)
             mock_smtp().starttls.assert_called_once_with(context=ANY)
             assert isinstance(
                 mock_smtp().starttls.call_args.kwargs["context"], ssl.SSLContext
@@ -142,7 +286,7 @@ def test_mail_handler_arguments():
 
             mail_handler.get_connection()
 
-            mock_smtp.assert_called_once_with("server.example.com", 465)
+            mock_smtp.assert_called_once_with("server.example.com", 465, timeout=5.0)
             mock_smtp().starttls.assert_called_once_with(context=None)
             mock_smtp().login.assert_called_once_with("username", "password")
             mock_load_cert_chain.assert_not_called()
@@ -161,7 +305,7 @@ def test_mail_handler_arguments():
 
             mail_handler.get_connection()
 
-            mock_smtp.assert_called_once_with("server.example.com", 587)
+            mock_smtp.assert_called_once_with("server.example.com", 587, timeout=5.0)
             mock_smtp().starttls.assert_called_once_with(context=ANY)
             assert isinstance(
                 mock_smtp().starttls.call_args.kwargs["context"], ssl.SSLContext
@@ -180,7 +324,7 @@ def test_mail_handler_arguments():
 
             mail_handler.get_connection()
 
-            mock_smtp.assert_called_once_with("server.example.com", 25)
+            mock_smtp.assert_called_once_with("server.example.com", 25, timeout=5.0)
             mock_smtp().starttls.assert_not_called()
             mock_load_cert_chain.assert_not_called()
             mock_smtp.reset_mock()
@@ -194,7 +338,7 @@ def test_mail_handler_arguments():
 
             mail_handler.get_connection()
 
-            mock_smtp.assert_called_once_with("127.0.0.1", 25)
+            mock_smtp.assert_called_once_with("127.0.0.1", 25, timeout=5.0)
             mock_smtp().starttls.assert_not_called()
             mock_load_cert_chain.assert_not_called()
             mock_smtp.reset_mock()
@@ -209,7 +353,7 @@ def test_mail_handler_arguments():
 
             mail_handler.get_connection()
 
-            mock_smtp.assert_called_once_with("127.0.0.1", 587)
+            mock_smtp.assert_called_once_with("127.0.0.1", 587, timeout=5.0)
             mock_smtp().starttls.assert_called_once_with(context=None)
             mock_load_cert_chain.assert_not_called()
             mock_smtp.reset_mock()
@@ -226,7 +370,7 @@ def test_mail_handler_arguments():
 
             mail_handler.get_connection()
 
-            mock_smtp.assert_called_once_with("server.example.com", 465)
+            mock_smtp.assert_called_once_with("server.example.com", 465, timeout=5.0)
             mock_smtp().starttls.assert_called_once_with(context=None)
             mock_smtp().login.assert_called_once_with("username", "password")
             mock_load_cert_chain.assert_not_called()
@@ -244,7 +388,7 @@ def test_mail_handler_arguments():
 
             mail_handler.get_connection()
 
-            mock_smtp.assert_called_once_with("server.example.com", 465)
+            mock_smtp.assert_called_once_with("server.example.com", 465, timeout=5.0)
             mock_smtp().starttls.assert_not_called()
             mock_smtp().login.assert_called_once_with("username", "password")
             mock_load_cert_chain.assert_not_called()
@@ -263,7 +407,7 @@ def test_mail_handler_arguments():
 
             mail_handler.get_connection()
 
-            mock_smtp.assert_called_once_with("server.example.com", 465)
+            mock_smtp.assert_called_once_with("server.example.com", 465, timeout=5.0)
             mock_smtp().starttls.assert_called_once_with(context=context)
             mock_smtp().login.assert_called_once_with("username", "password")
             mock_load_cert_chain.assert_not_called()
@@ -282,11 +426,11 @@ def test_mail_handler_arguments():
             mail_handler.get_connection()
 
             mock_smtp_ssl.assert_called_once_with(
-                "server.example.com", 465, context=ANY
+                "server.example.com", 465, context=ANY, timeout=5.0
             )
             assert isinstance(mock_smtp_ssl.call_args.kwargs["context"], ssl.SSLContext)
             mock_load_cert_chain.assert_called_once_with("certfile", "keyfile")
-            mock_smtp().login.assert_called_once_with("username", "password")
+            mock_smtp_ssl().login.assert_called_once_with("username", "password")
             mock_smtp_ssl.reset_mock()
             mock_load_cert_chain.reset_mock()
 
@@ -303,10 +447,10 @@ def test_mail_handler_arguments():
             mail_handler.get_connection()
 
             mock_smtp_ssl.assert_called_once_with(
-                "server.example.com", 465, context=None
+                "server.example.com", 465, context=None, timeout=5.0
             )
             mock_smtp_ssl().starttls.assert_not_called()
-            mock_smtp().login.assert_called_once_with("username", "password")
+            mock_smtp_ssl().login.assert_called_once_with("username", "password")
             mock_load_cert_chain.assert_not_called()
             mock_smtp_ssl.reset_mock()
             mock_load_cert_chain.reset_mock()
@@ -321,7 +465,9 @@ def test_mail_handler_arguments():
 
             mail_handler.get_connection()
 
-            mock_smtp_ssl.assert_called_once_with("127.0.0.1", 465, context=None)
+            mock_smtp_ssl.assert_called_once_with(
+                "127.0.0.1", 465, context=None, timeout=5.0
+            )
             mock_smtp_ssl().starttls.assert_not_called()
             mock_load_cert_chain.assert_not_called()
             mock_smtp_ssl.reset_mock()
@@ -341,8 +487,20 @@ def test_mail_handler_arguments():
             mail_handler.get_connection()
 
             mock_smtp_ssl.assert_called_once_with(
-                "server.example.com", 465, context=context
+                "server.example.com", 465, context=context, timeout=5.0
             )
             mock_smtp_ssl().starttls.assert_not_called()
-            mock_smtp().login.assert_called_once_with("username", "password")
+            mock_smtp_ssl().login.assert_called_once_with("username", "password")
             mock_load_cert_chain.assert_not_called()
+
+
+def test_mail_handler_timeout_none_disables_the_timeout():
+    with patch("smtplib.SMTP", autospec=True) as mock_smtp:
+        handler = logbook.MailHandler(
+            "from@example.com",
+            ["to@example.com"],
+            server_addr=("server.example.com", 25),
+            timeout=None,
+        )
+        handler.get_connection()
+        mock_smtp.assert_called_once_with("server.example.com", 25, timeout=None)

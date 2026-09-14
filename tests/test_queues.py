@@ -1,12 +1,11 @@
 import os
-import socket
 import time
 
 import pytest
 
 import logbook
 
-from .utils import LETTERS, missing, require_module
+from .utils import LETTERS, missing, require_module, unused_tcp_address
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
@@ -377,11 +376,7 @@ def subscriber(handlers_subscriber):
 def handlers_subscriber(multi):
     from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
 
-    # Get an unused port
-    tempsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tempsock.bind(("127.0.0.1", 0))
-    host, unused_port = tempsock.getsockname()
-    tempsock.close()
+    host, unused_port = unused_tcp_address()
 
     # Retrieve the ZeroMQ handler and subscriber
     uri = "tcp://%s:%d" % (host, unused_port)  # noqa: UP031
