@@ -1,8 +1,10 @@
 import pickle
+import sys
 
 import pytest
 
 import logbook
+from logbook.handlers import DEFAULT_FORMAT_STRING, StringFormatter
 
 
 class SlottedLogger(logbook.Logger):
@@ -80,3 +82,25 @@ def test_logger_pickle_preserves_inherited_slots(protocol, logged):
     with logbook.TestHandler() as handler:
         restored.info("after pickle")
     assert handler.records[0].dispatcher is restored
+
+
+@pytest.mark.parametrize("restore", ["dict", "pickle", "close"])
+def test_formatter_preserves_cached_traceback(restore):
+    try:
+        raise ValueError("preserve this traceback")
+    except ValueError:
+        record = logbook.LogRecord(
+            "test", logbook.ERROR, "oops", exc_info=sys.exc_info()
+        )
+    record.heavy_init()
+    record.pull_information()
+    expected = StringFormatter(DEFAULT_FORMAT_STRING)(record, None)
+    assert "ValueError: preserve this traceback" in expected
+    if restore == "dict":
+        record = logbook.LogRecord.from_dict(record.to_dict())
+    elif restore == "pickle":
+        record = pickle.loads(pickle.dumps(record))
+    else:
+        record.close()
+    assert record.exc_info is None
+    assert StringFormatter(DEFAULT_FORMAT_STRING)(record, None) == expected
