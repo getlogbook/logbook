@@ -4,6 +4,7 @@
 # SPDX-FileCopyrightText: Frazer McLean
 import glob
 import json
+import os
 import re
 import sys
 from collections.abc import Iterator
@@ -218,6 +219,37 @@ def rust(session: nox.Session) -> None:
                 rust_tests.extend(data["filenames"])
 
         process_rust_coverage(session, rust_tests, prof_location)
+
+
+@nox.session(default=False)
+def codspeed(session: nox.Session) -> None:
+    session.run_install(
+        "uv",
+        "sync",
+        "--no-editable",
+        "--no-dev",
+        "--group=benchmark",
+        f"--python={session.virtualenv.location}",
+        env={
+            "UV_PROJECT_ENVIRONMENT": session.virtualenv.location,
+            "SETUPTOOLS_RUST_CARGO_PROFILE": "profiling",
+        },
+    )
+    if not os.environ.get("CI"):
+        # pytest-codspeed 5.0.3 normalises times twice in the walltime results
+        # table printed for local runs; CI uses simulation, which doesn't print
+        # it. Remove once a release includes
+        # https://github.com/CodSpeedHQ/pytest-codspeed/pull/127
+        session.install(
+            "pytest-codspeed @ git+https://github.com/lukapeschke/pytest-codspeed"
+            "@4e234ae135baea2667deace02afcf026a98790bc"
+        )
+    session.run(
+        "pytest",
+        "--codspeed",
+        "benchmark/test_benchmarks.py",
+        *session.posargs,
+    )
 
 
 @contextmanager
