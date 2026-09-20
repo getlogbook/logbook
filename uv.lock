@@ -39,6 +39,20 @@ wheels = [
 ]
 
 [[package]]
+name = "aiosmtpd"
+version = "1.4.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "atpublic", version = "6.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "atpublic", version = "7.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "attrs" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c4/ca/b2b7cc880403ef24be77383edaadfcf0098f5d7b9ddbf3e2c17ef0a6af0d/aiosmtpd-1.4.6.tar.gz", hash = "sha256:5a811826e1a5a06c25ebc3e6c4a704613eb9a1bcf6b78428fbe865f4f6c9a4b8", size = 152775, upload-time = "2024-05-18T11:37:50.029Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/39/d401756df60a8344848477d54fdf4ce0f50531f6149f3b8eaae9c06ae3dc/aiosmtpd-1.4.6-py3-none-any.whl", hash = "sha256:72c99179ba5aa9ae0abbda6994668239b64a5ce054471955fe75f581d2592475", size = 154263, upload-time = "2024-05-18T11:37:47.877Z" },
+]
+
+[[package]]
 name = "alabaster"
 version = "0.7.16"
 source = { registry = "https://pypi.org/simple" }
@@ -115,6 +129,41 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a5/ae/136395dfbfe00dfc94da3f3e136d0b13f394cba8f4841120e34226265780/async_timeout-5.0.1.tar.gz", hash = "sha256:d9321a7a3d5a6a5e187e824d2fa0793ce379a202935782d555d6e9d2735677d3", size = 9274, upload-time = "2024-11-06T16:41:39.6Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fe/ba/e2081de779ca30d473f21f5b30e0e737c438205440784c7dfc81efc2b029/async_timeout-5.0.1-py3-none-any.whl", hash = "sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c", size = 6233, upload-time = "2024-11-06T16:41:37.9Z" },
+]
+
+[[package]]
+name = "atpublic"
+version = "6.0.2"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.10' and sys_platform == 'win32'",
+    "python_full_version < '3.10' and sys_platform != 'win32'",
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8c/78/a7c9b6d6581353204a7a099567783dd3352405b1662988892b9e67039c6c/atpublic-6.0.2.tar.gz", hash = "sha256:f90dcd17627ac21d5ce69e070d6ab89fb21736eb3277e8b693cc8484e1c7088c", size = 17708, upload-time = "2025-09-24T18:30:13.8Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/72/da/8916af0a074d24354d685fe4178a52d3fafd07b62e6f81124fdeac15594d/atpublic-6.0.2-py3-none-any.whl", hash = "sha256:156cfd3854e580ebfa596094a018fe15e4f3fa5bade74b39c3dabb54f12d6565", size = 6423, upload-time = "2025-09-24T18:30:15.214Z" },
+]
+
+[[package]]
+name = "atpublic"
+version = "7.0.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.15' and sys_platform == 'win32'",
+    "python_full_version >= '3.15' and sys_platform != 'win32'",
+    "python_full_version == '3.14.*' and sys_platform == 'win32'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32'",
+    "python_full_version >= '3.13' and python_full_version < '3.15' and sys_platform != 'win32'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
+    "python_full_version == '3.11.*' and sys_platform != 'win32'",
+    "python_full_version == '3.10.*' and sys_platform == 'win32'",
+    "python_full_version == '3.10.*' and sys_platform != 'win32'",
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a9/05/e2e131a0debaf0f01b8a1b586f5f11713f6affc3e711b406f15f11eafc92/atpublic-7.0.0.tar.gz", hash = "sha256:466ef10d0c8bbd14fd02a5fbd5a8b6af6a846373d91106d3a07c16d72d96b63e", size = 17801, upload-time = "2025-11-29T05:56:45.45Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/96/c0/271f3e1e3502a8decb8ee5c680dbed2d8dc2cd504f5e20f7ed491d5f37e1/atpublic-7.0.0-py3-none-any.whl", hash = "sha256:6702bd9e7245eb4e8220a3e222afcef7f87412154732271ee7deee4433b72b4b", size = 6421, upload-time = "2025-11-29T05:56:44.604Z" },
 ]
 
 [[package]]
@@ -1513,6 +1562,7 @@ coverage = [
     { name = "coverage", version = "7.15.3", source = { registry = "https://pypi.org/simple" }, extra = ["toml"], marker = "python_full_version >= '3.10'" },
 ]
 dev = [
+    { name = "aiosmtpd" },
     { name = "check-sdist" },
     { name = "coverage", version = "7.10.7", source = { registry = "https://pypi.org/simple" }, extra = ["toml"], marker = "python_full_version < '3.10'" },
     { name = "coverage", version = "7.15.3", source = { registry = "https://pypi.org/simple" }, extra = ["toml"], marker = "python_full_version >= '3.10'" },
@@ -1541,6 +1591,7 @@ nox = [
     { name = "nox", version = "2026.7.11", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
 test = [
+    { name = "aiosmtpd" },
     { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pytest", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pytest-rerunfailures", version = "16.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -1577,6 +1628,7 @@ provides-extras = ["all", "brotli", "compression", "execnet", "jinja", "nteventl
 check-sdist = [{ name = "check-sdist", specifier = ">=1.2.0" }]
 coverage = [{ name = "coverage", extras = ["toml"], specifier = ">=7.10.7" }]
 dev = [
+    { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "check-sdist", specifier = ">=1.2.0" },
     { name = "coverage", extras = ["toml"], specifier = ">=7.10.7" },
     { name = "nox", specifier = ">=2025.5.1" },
@@ -1593,6 +1645,7 @@ docs = [
 gevent = [{ name = "gevent", specifier = ">=26.5.0" }]
 nox = [{ name = "nox", specifier = ">=2025.5.1" }]
 test = [
+    { name = "aiosmtpd", specifier = ">=1.4.6" },
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "pytest-rerunfailures", specifier = ">=15.1" },
 ]

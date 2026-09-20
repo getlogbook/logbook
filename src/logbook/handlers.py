@@ -1299,6 +1299,9 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
     `server_addr` can be a tuple of host and port, or just a string containing
     the host to use the default port (25, or 465 if connecting securely.)
 
+    `timeout` configures the timeout passed to :class:`smtplib.SMTP`. Pass `None`
+    to disable.
+
     `credentials` can be a tuple or dictionary of arguments that will be passed
     to :py:meth:`smtplib.SMTP.login`.
 
@@ -1330,6 +1333,9 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
     .. versionchanged:: 1.7
         `secure` may be an :class:`ssl.SSLContext` (recommended). The tuple or
         dict form is deprecated.
+
+    .. versionadded:: 1.11
+       The `timeout` parameter.
     """
 
     default_format_string = MAIL_FORMAT_STRING
@@ -1360,6 +1366,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
         filter=None,
         bubble=False,
         starttls=True,
+        timeout=5.0,
     ):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
@@ -1376,6 +1383,7 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
             related_format_string = self.default_related_format_string
         self.related_format_string = related_format_string
         self.starttls = starttls
+        self.timeout = timeout
 
     def _adapt_secure(self, secure):
         if secure is None or isinstance(secure, (bool, ssl.SSLContext)):
@@ -1528,24 +1536,28 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
             context = None
 
         if self.secure and not self.starttls:
-            con = SMTP_SSL(host, port, context=context)
+            con = SMTP_SSL(host, port, context=context, timeout=self.timeout)
         else:
-            con = SMTP(host, port)
+            con = SMTP(host, port, timeout=self.timeout)
 
-        if self.secure and self.starttls:
-            con.starttls(context=context)
-            con.ehlo()
+        try:
+            if self.secure and self.starttls:
+                con.starttls(context=context)
+                con.ehlo()
 
-        if self.credentials is not None:
-            # Allow credentials to be a tuple or dict.
-            if isinstance(self.credentials, Mapping):
-                credentials_args = ()
-                credentials_kwargs = self.credentials
-            else:
-                credentials_args = self.credentials
-                credentials_kwargs = dict()
+            if self.credentials is not None:
+                # Allow credentials to be a tuple or dict.
+                if isinstance(self.credentials, Mapping):
+                    credentials_args = ()
+                    credentials_kwargs = self.credentials
+                else:
+                    credentials_args = self.credentials
+                    credentials_kwargs = dict()
 
-            con.login(*credentials_args, **credentials_kwargs)
+                con.login(*credentials_args, **credentials_kwargs)
+        except BaseException:
+            con.close()
+            raise
 
         return con
 

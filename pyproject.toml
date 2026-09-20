@@ -89,6 +89,7 @@ nox = [
     "nox>=2025.5.1",
 ]
 test = [
+    "aiosmtpd>=1.4.6",
     "pytest>=8.4.0",
     "pytest-rerunfailures>=15.1",
 ]
