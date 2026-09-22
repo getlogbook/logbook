@@ -695,6 +695,8 @@ class ThreadedWrapperHandler(WrapperHandler):
         self.handler.close()
 
     def emit(self, record):
+        # The producer closes the record before the worker may handle it.
+        record.pull_information()
         item = (TWHThreadController.Command.emit, record)
         try:
             self.queue.put_nowait(item)
@@ -703,6 +705,9 @@ class ThreadedWrapperHandler(WrapperHandler):
             pass
 
     def emit_batch(self, records, reason):
+        records = list(records)
+        for record in records:
+            record.pull_information()
         item = (TWHThreadController.Command.emit_batch, records, reason)
         try:
             self.queue.put_nowait(item)
