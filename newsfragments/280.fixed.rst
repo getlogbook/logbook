@@ -1,0 +1,3 @@
+Respect :func:`~logbook.set_datetime_format` when initializing
+:class:`~logbook.TimedRotatingFileHandler`, preventing an unnecessary rollover
+from overwriting the current log file when using a non-default datetime factory.

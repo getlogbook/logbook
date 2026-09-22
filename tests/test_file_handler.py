@@ -1,7 +1,7 @@
 import gzip
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -135,6 +135,41 @@ def test_timed_rotating_file_handler(tmpdir, activation_strategy, backup_count):
         with open(str(tmpdir.join("trot-2010-01-07.log"))) as f:
             assert f.readline().rstrip() == "[01:00] Third One"
             assert f.readline().rstrip() == "[02:00] Third One"
+
+
+@pytest.mark.parametrize(
+    "now",
+    [
+        datetime(2010, 1, 5, 12),
+        datetime(2010, 1, 5, 12, tzinfo=timezone(timedelta(hours=-5))),
+    ],
+)
+def test_timed_rotating_file_handler_datetime_factory(
+    tmp_path, activation_strategy, logger, now
+):
+    date_format = "%Y-%m-%d_%H%z"
+    log_path = tmp_path / f"trot-{now.strftime(date_format)}.log"
+    log_path.write_text("existing message\n", encoding="utf-8")
+
+    logbook.set_datetime_format(lambda: now)
+    try:
+        for message in ("first message", "second message"):
+            handler = logbook.TimedRotatingFileHandler(
+                tmp_path / "trot.log",
+                date_format=date_format,
+                format_string="{record.message}",
+            )
+            try:
+                with activation_strategy(handler):
+                    logger.info(message)
+            finally:
+                handler.close()
+    finally:
+        logbook.set_datetime_format("utc")
+
+    assert log_path.read_text(encoding="utf-8") == (
+        "existing message\nfirst message\nsecond message\n"
+    )
 
 
 @pytest.mark.parametrize("backup_count", [1, 3])
