@@ -7,6 +7,7 @@
 [![GitHub Actions][gha-img]][gha]
 [![PyPI Downloads][downloads-img]][pypi]
 [![codecov](https://codecov.io/github/getlogbook/logbook/graph/badge.svg?token=vDtvTkWVYW)](https://codecov.io/github/getlogbook/logbook)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://app.codspeed.io/getlogbook/logbook?utm_source=badge)
 
 Logbook is a nice logging replacement.
 
