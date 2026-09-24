@@ -19,6 +19,11 @@ env:
   FORCE_COLOR: "1"
   UV_PYTHON_DOWNLOADS: "false"
   UV_NO_SYNC: "1"
+  # The pytest-codspeed git source has a submodule with an SSH URL, which
+  # fails to clone on runners without an SSH key.
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: "url.https://github.com/.insteadOf"
+  GIT_CONFIG_VALUE_0: "git@github.com:"
 
 jobs:
   linux:

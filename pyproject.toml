@@ -63,6 +63,11 @@ zmq = [
 ]
 
 [dependency-groups]
+benchmark = [
+    { include-group = "test" },
+    "pytest-codspeed>=5.0.3",
+    "pytest-xdist[psutil]>=3.8.0",
+]
 check-sdist = [
     "check-sdist>=1.2.0",
 ]
@@ -174,6 +179,10 @@ required-environments = [
     "sys_platform == 'win32' and platform_machine == 'ARM64'",
 ]
 required-version = ">=0.8.19" # https://github.com/astral-sh/uv/pull/15921
+
+[tool.uv.sources]
+# https://github.com/CodSpeedHQ/pytest-codspeed/pull/127
+pytest-codspeed = { git = "https://github.com/lukapeschke/pytest-codspeed", branch = "fix-formatting-sub-ms-benchmarks" }
 
 [tool.towncrier]
 directory = "newsfragments"

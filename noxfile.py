@@ -220,6 +220,28 @@ def rust(session: nox.Session) -> None:
         process_rust_coverage(session, rust_tests, prof_location)
 
 
+@nox.session(default=False)
+def codspeed(session: nox.Session) -> None:
+    session.run_install(
+        "uv",
+        "sync",
+        "--no-editable",
+        "--no-dev",
+        "--group=benchmark",
+        f"--python={session.virtualenv.location}",
+        env={
+            "UV_PROJECT_ENVIRONMENT": session.virtualenv.location,
+            "SETUPTOOLS_RUST_CARGO_PROFILE": "profiling",
+        },
+    )
+    session.run(
+        "pytest",
+        "--codspeed",
+        "benchmark/test_benchmarks.py",
+        *session.posargs,
+    )
+
+
 @contextmanager
 def restore_file(path: str) -> Iterator[None]:
     with open(path, "rb") as f:
