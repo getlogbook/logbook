@@ -434,23 +434,22 @@ class LogRecord:
     main information passed in is in msg and args
     """
 
-    _pullable_information = frozenset(
-        (
-            "func_name",
-            "module",
-            "filename",
-            "lineno",
-            "process_name",
-            "thread",
-            "thread_name",
-            "greenlet",
-            "formatted_exception",
-            "message",
-            "exception_name",
-            "exception_message",
-        )
+    # Tuples: threads iterating a shared set contend on free-threaded builds.
+    _pullable_information = (
+        "func_name",
+        "module",
+        "filename",
+        "lineno",
+        "process_name",
+        "thread",
+        "thread_name",
+        "greenlet",
+        "formatted_exception",
+        "message",
+        "exception_name",
+        "exception_message",
     )
-    _noned_on_close = frozenset(("exc_info", "frame", "calling_frame"))
+    _noned_on_close = ("exc_info", "frame", "calling_frame")
 
     #: can be overriden by a handler to not close the record.  This could
     #: lead to memory leaks so it should be used carefully.
