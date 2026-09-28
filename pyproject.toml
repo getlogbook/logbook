@@ -44,7 +44,7 @@ brotli = [
     "brotlicffi>=1.1.0.0; platform_python_implementation != 'CPython'",
 ]
 compression = ["Logbook[brotli]"] # Deprecated: use brotli extra directly
-execnet = ["execnet>=1.5"]
+execnet = ["execnet>=2.1"]
 jinja = ["Jinja2>=2.11.3"]
 nteventlog = [
     "pywin32>=227; sys_platform == 'win32' and python_version=='3.9'",
@@ -63,6 +63,11 @@ zmq = [
 ]
 
 [dependency-groups]
+benchmark = [
+    "pytest>=8.4.0",
+    "pytest-codspeed>=5.0.3",
+    "pytest-xdist[psutil]>=3.8.0",
+]
 check-sdist = [
     "check-sdist>=1.2.0",
 ]
