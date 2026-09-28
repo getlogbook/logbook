@@ -1,3 +1,4 @@
+import gc
 import sys
 
 import logbook
@@ -56,3 +57,26 @@ def test_frame_correction(active_handler, logger):
 def test_dispatcher(active_handler, logger):
     logger.warning("Logbook is too awesome for stdlib")
     assert active_handler.records[0].dispatcher == logger
+
+
+class RecordKeeper(logbook.Handler):
+    def __init__(self):
+        super().__init__()
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+def test_dispatcher_is_weak():
+    # Not TestHandler: its open records' frames keep the logger alive.
+    logger = logbook.Logger("testlogger")
+    with RecordKeeper() as handler:
+        logger.warning("first")
+        logger.warning("second")
+    first, second = handler.records
+    assert first.dispatcher is second.dispatcher is logger
+    del logger
+    gc.collect()
+    assert first.dispatcher is None
+    assert second.dispatcher is None

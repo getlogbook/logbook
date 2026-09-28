@@ -1,0 +1,1 @@
+Loggers shared between threads scale better on free-threaded Python.
