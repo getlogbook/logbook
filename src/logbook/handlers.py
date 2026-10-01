@@ -10,6 +10,7 @@ The handler interface and builtin handlers.
 
 import errno
 import gzip
+import io
 import math
 import os
 import re
@@ -601,7 +602,13 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
 
     def encode(self, msg):
         """Encodes the message to the stream encoding."""
-        return msg + "\n"
+        msg += "\n"
+        mode = getattr(self.stream, "mode", "")
+        if isinstance(self.stream, (io.BufferedIOBase, io.RawIOBase)) or (
+            isinstance(mode, str) and "b" in mode
+        ):
+            return msg.encode(self.encoding or "utf-8")
+        return msg
 
     def write(self, item):
         """Writes a bytestring to the stream."""
