@@ -1,3 +1,5 @@
+import sys
+import warnings
 from time import sleep
 from unittest.mock import Mock, call
 
@@ -52,17 +54,87 @@ def test_logged_if_slow_level(test_handler):
     assert test_handler.records[0].level == logbook.WARNING
 
 
-@pytest.mark.flaky(reruns=5)
-def test_logged_if_slow_deprecated(logger, test_handler):
+@pytest.fixture
+def slow_timer(monkeypatch):
+    timer = Mock()
+    factory = Mock(return_value=timer)
+    monkeypatch.setattr("logbook.utils.threading.Timer", factory)
+    return factory, timer
+
+
+def test_logged_if_slow_deprecated(test_handler, slow_timer):
+    factory, timer = slow_timer
     with test_handler.applicationbound():
-        with logged_if_slow("checking...", threshold=_THRESHOLD, func=logbook.error):
-            sleep(2 * _THRESHOLD)
+        with pytest.warns(DeprecationWarning, match=r"func.*logger.*level") as seen:
+            lineno = sys._getframe().f_lineno + 1
+            notifier = logged_if_slow("checking...", func=logbook.error)
+        assert len(seen) == 1
+        assert seen[0].filename == __file__
+        assert seen[0].lineno == lineno
+        assert factory.call_args.args[0] == 1
+        with notifier:
+            timer.start.assert_called_once_with()
+            factory.call_args.args[1]()
+        timer.cancel.assert_called_once_with()
 
     assert test_handler.records[0].level == logbook.ERROR
     assert test_handler.records[0].message == "checking..."
 
-    with pytest.raises(TypeError):
-        logged_if_slow("checking...", logger=logger, func=logger.error)
+
+def test_logged_if_slow_callback_forwarding(slow_timer):
+    factory, timer = slow_timer
+    callback = Mock()
+    with pytest.warns(DeprecationWarning):
+        notifier = logged_if_slow(
+            "event {}", 42, value="kept", threshold=2.5, func=callback
+        )
+    assert factory.call_args.args[0] == 2.5
+    with notifier:
+        factory.call_args.args[1]()
+    callback.assert_called_once_with("event {}", 42, value="kept")
+    timer.start.assert_called_once_with()
+    timer.cancel.assert_called_once_with()
+
+
+def test_logged_if_slow_logger_level_stay_quiet(slow_timer):
+    factory, timer = slow_timer
+    logger = Mock()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        with logged_if_slow(
+            "event {}", 42, value="kept", logger=logger, level=logbook.WARNING
+        ):
+            factory.call_args.args[1]()
+    logger.log.assert_called_once_with(logbook.WARNING, "event {}", 42, value="kept")
+    timer.cancel.assert_called_once_with()
+
+
+def test_logged_if_slow_explicit_none_warns_and_preserves_dispatch(
+    test_handler, slow_timer
+):
+    factory, timer = slow_timer
+    with test_handler.applicationbound():
+        with pytest.warns(DeprecationWarning, match=r"func.*logger.*level") as seen:
+            lineno = sys._getframe().f_lineno + 1
+            notifier = logged_if_slow(
+                "operation {0} {key}",
+                42,
+                key="kept",
+                threshold=2.5,
+                func=None,
+            )
+        assert len(seen) == 1
+        assert seen[0].filename == __file__
+        assert seen[0].lineno == lineno
+        assert factory.call_args.args[0] == 2.5
+        with notifier:
+            factory.call_args.args[1]()
+    [record] = test_handler.records
+    assert record.channel == "Slow"
+    assert record.level == logbook.DEBUG
+    assert record.message == "operation 42 kept"
+    timer.start.assert_called_once_with()
+    timer.cancel.assert_called_once_with()
 
 
 def test_deprecated_func_called(capture):

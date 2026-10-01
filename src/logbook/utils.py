@@ -1,6 +1,7 @@
 import functools
 import sys
 import threading
+import warnings
 from contextlib import contextmanager
 
 from .base import DEBUG, Logger
@@ -19,34 +20,51 @@ class _SlowContextNotifier:
 
 
 _slow_logger = Logger("Slow")
+_slow_func_missing = object()
 
 
 def logged_if_slow(*args, **kwargs):
     """Context manager that logs if operations within take longer than
     `threshold` seconds.
 
-    :param threshold: Number of seconds (or fractions thereof) allwoed before
+    :param threshold: Number of seconds (or fractions thereof) allowed before
                       logging occurs. The default is 1 second.
     :param logger: :class:`~logbook.Logger` to use. The default is a 'slow'
                    logger.
     :param level: Log level. The default is `DEBUG`.
-    :param func: (Deprecated). Function to call to perform logging.
+    :param func: Deprecated. Function to call to perform logging.
 
     The remaining parameters are passed to the
     :meth:`~logbook.base.LoggerMixin.log` method.
+
+    .. deprecated:: 1.0
+       The ``func`` argument. Use ``logger`` and ``level``, or a
+       :class:`threading.Timer` for an arbitrary callback. Passing ``func``
+       emits a :class:`DeprecationWarning` from 1.11.
     """
     threshold = kwargs.pop("threshold", 1)
-    func = kwargs.pop("func", None)
-    if func is None:
+    func = kwargs.pop("func", _slow_func_missing)
+    if (
+        func is not _slow_func_missing
+        and func is not None
+        and ("logger" in kwargs or "level" in kwargs)
+    ):
+        raise TypeError(
+            "If using deprecated func parameter, 'logger' and"
+            " 'level' arguments cannot be passed."
+        )
+    if func is not _slow_func_missing:
+        warnings.warn(
+            "The func argument to logged_if_slow is deprecated; use logger= "
+            "and level= for logging, or threading.Timer for custom callbacks.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if func is _slow_func_missing or func is None:
         logger = kwargs.pop("logger", _slow_logger)
         level = kwargs.pop("level", DEBUG)
         func = functools.partial(logger.log, level, *args, **kwargs)
     else:
-        if "logger" in kwargs or "level" in kwargs:
-            raise TypeError(
-                "If using deprecated func parameter, 'logger' and"
-                " 'level' arguments cannot be passed."
-            )
         func = functools.partial(func, *args, **kwargs)
 
     return _SlowContextNotifier(threshold, func)

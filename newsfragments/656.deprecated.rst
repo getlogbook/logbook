@@ -1,0 +1,1 @@
+:func:`~logbook.utils.logged_if_slow` now warns when ``func`` is passed, which has been deprecated since 1.0. Use ``logger`` and ``level`` instead.
