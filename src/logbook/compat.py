@@ -14,11 +14,11 @@ import math
 import sys
 import warnings
 from collections.abc import Mapping
+from datetime import datetime, timezone
 
 import logbook
 
-from .base import _record_time_to_utc
-from .helpers import datetime_utcfromtimestamp
+from .base import _record_time_from_utc, _record_time_to_utc
 
 
 def redirect_logging(set_root_logger_level=True):
@@ -145,7 +145,7 @@ class RedirectLoggingHandler(logging.Handler):
         """Converts the UNIX timestamp of the old record into a
         datetime object as used by logbook.
         """
-        return datetime_utcfromtimestamp(timestamp)
+        return _record_time_from_utc(datetime.fromtimestamp(timestamp, timezone.utc))
 
     def convert_record(self, old_record):
         """Converts an old logging record into a logbook log record."""
@@ -166,7 +166,11 @@ class RedirectLoggingHandler(logging.Handler):
             self.find_extra(old_record),
             self.find_caller(old_record),
         )
+        # The stdlib record supplies what heavy_init would collect, and
+        # collecting it here would describe the thread delivering the record.
+        record.heavy_initialized = True
         record.time = self.convert_time(old_record.created)
+        record.process = old_record.process
         return record
 
     def emit(self, record):

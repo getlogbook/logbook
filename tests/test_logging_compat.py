@@ -140,3 +140,30 @@ def test_logging_handler_converted_time_override(created, msecs):
     record = EpochHandler().convert_record(old_record)
     assert record.created == created
     assert record.msecs == msecs
+
+
+def test_redirect_keeps_event_time(record_time):
+    # 01:10 EST, the second time the clocks show 01:10 that day.
+    event = datetime(2026, 11, 1, 6, 10, 0, 123456, tzinfo=timezone.utc)
+    source = logging.LogRecord(
+        "source", logging.WARNING, __file__, 1, "event", (), None
+    )
+    source.created = event.timestamp()
+    with logbook.TestHandler() as handler:
+        logbook.compat.RedirectLoggingHandler().handle(source)
+    [record] = handler.records
+    assert repr(record.time) == repr(record_time(event))
+
+
+def test_redirect_convert_time_override_sets_time():
+    class Custom(logbook.compat.RedirectLoggingHandler):
+        def convert_time(self, timestamp):
+            return datetime(2003, 2, 1)
+
+    source = logging.LogRecord(
+        "source", logging.WARNING, __file__, 1, "event", (), None
+    )
+    with logbook.TestHandler() as handler:
+        Custom().handle(source)
+    [record] = handler.records
+    assert record.time == datetime(2003, 2, 1)
