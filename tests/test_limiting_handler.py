@@ -164,3 +164,13 @@ def test_mail_limiter_disabled_does_not_cache():
 
     assert handler._record_limits == {}
     assert handler.deliveries == ["same", "other", "same", "another"]
+
+
+@pytest.mark.parametrize(("limit", "expected"), [(0, []), (1, ["same"] * 3)])
+def test_mail_limiter_record_limit_after_expiry(advance_clock, limit, expected):
+    handler = RecordingMailHandler(record_limit=limit)
+    for _ in range(3):
+        emit(handler, "same")
+        advance_clock(61)
+
+    assert handler.deliveries == expected

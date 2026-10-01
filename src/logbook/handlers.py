@@ -520,15 +520,12 @@ class LimitingHandlerMixin(HashingHandlerMixin):
         hash = self.hash_record(record)
         self._limit_lock.acquire()
         try:
-            allow_delivery = None
             suppression_count = old_count = 0
             first_count = now = datetime_utcnow()
 
             if hash in self._record_limits:
                 last_count, suppression_count = self._record_limits[hash]
-                if last_count + self.record_delta < now:
-                    allow_delivery = True
-                else:
+                if now <= last_count + self.record_delta:
                     first_count = last_count
                     old_count = suppression_count
 
@@ -549,9 +546,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
 
             self._record_limits[hash] = (first_count, old_count + 1)
 
-            if allow_delivery is None:
-                allow_delivery = old_count < self.record_limit
-            return suppression_count, allow_delivery
+            return suppression_count, old_count < self.record_limit
         finally:
             self._limit_lock.release()
 

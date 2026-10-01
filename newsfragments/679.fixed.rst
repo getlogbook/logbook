@@ -1,0 +1,1 @@
+``record_limit=0`` no longer lets a record through each time the rate limiting interval expires.
