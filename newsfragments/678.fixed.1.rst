@@ -1,0 +1,1 @@
+:class:`~logbook.notifiers.GrowlHandler` and :class:`~logbook.notifiers.LibNotifyHandler` no longer fail when ``record_limit`` is set.

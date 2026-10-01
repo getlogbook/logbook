@@ -493,11 +493,18 @@ class LimitingHandlerMixin(HashingHandlerMixin):
 
         handler = MailHandler(record_limit=1, record_delta=timedelta(minutes=1))
 
+    The cache holds up to ``max_record_cache`` record hashes, 512 by default.
     When a new record needs space in a full cache, the ``record_cache_prune``
     fraction of entries is removed, oldest limiting interval first, and always
     at least enough to make room. Pruned records can be delivered again before
     their interval ends.
     """
+
+    #: the maximum number of record hashes in the limiting cache.
+    max_record_cache = 512
+
+    #: the fraction of cached entries to prune when the cache is full.
+    record_cache_prune = 0.333
 
     def __init__(self, record_limit, record_delta):
         self.record_limit = record_limit
