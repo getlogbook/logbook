@@ -2056,7 +2056,6 @@ class FingersCrossedHandler(Handler):
         #: the maximum number of entries in the buffer.  If this is exhausted
         #: the oldest entries will be discarded to make place for new ones
         self.buffer_size = buffer_size
-        self._buffer_full = False
         self._pull_information = pull_information
         self._action_triggered = False
         self._reset = reset
@@ -2072,10 +2071,9 @@ class FingersCrossedHandler(Handler):
             self._handler.emit(record)
         else:
             self.buffered_records.append(record)
-            if self._buffer_full:
-                self.buffered_records.popleft()
-            elif self.buffer_size and len(self.buffered_records) >= self.buffer_size:
-                self._buffer_full = True
+            if self.buffer_size:
+                while len(self.buffered_records) > max(self.buffer_size, 1):
+                    self.buffered_records.popleft()
             return record.level >= self._level
         return False
 
