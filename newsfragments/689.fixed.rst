@@ -1,0 +1,1 @@
+:class:`~logbook.compat.LoggingHandler` gave forwarded records the milliseconds and ``relativeCreated`` of the moment they were forwarded instead of the original event.

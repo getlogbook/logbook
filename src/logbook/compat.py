@@ -10,6 +10,7 @@ warnings module.
 """
 
 import logging
+import math
 import sys
 import warnings
 from collections.abc import Mapping
@@ -232,7 +233,12 @@ class LoggingHandler(logbook.Handler):
         )
         for key, value in old_record.extra.items():
             record.__dict__.setdefault(key, value)
+        now = record.created
         record.created = self.convert_time(old_record.time)
+        created = float(record.created)
+        record.relativeCreated += (created - now) * 1000
+        # The nearest float to a time on a millisecond can fall just below it.
+        record.msecs = min(int((created % 1 + math.ulp(created)) * 1000), 999) + 0.0
         return record
 
     def emit(self, record):
