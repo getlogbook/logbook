@@ -1,0 +1,1 @@
+Passing ``encoding`` to :class:`~logbook.StreamHandler` is deprecated.

@@ -578,10 +578,8 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         with StreamHandler(my_stream):
             pass
 
-    .. admonition:: Notes on the encoding
-
-       On Python 3, the encoding parameter is only used if a stream was
-       passed that was opened in binary mode.
+    .. deprecated:: 1.11
+       The ``encoding`` argument. Configure the stream's encoding instead.
     """
 
     def __init__(
@@ -593,6 +591,13 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
         filter=None,
         bubble=False,
     ):
+        if encoding is not None:
+            warnings.warn(
+                "The encoding argument of StreamHandler is deprecated. Configure "
+                "the stream's encoding instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
         self.encoding = encoding
@@ -672,9 +677,8 @@ class FileHandler(StreamHandler):
     ):
         if encoding is None:
             encoding = "utf-8"
-        StreamHandler.__init__(
-            self, None, level, format_string, encoding, filter, bubble
-        )
+        StreamHandler.__init__(self, None, level, format_string, None, filter, bubble)
+        self.encoding = encoding
         self._filename = os.path.abspath(filename)
         self._mode = mode
         if delay:
