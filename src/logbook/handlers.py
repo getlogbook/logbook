@@ -490,6 +490,11 @@ class LimitingHandlerMixin(HashingHandlerMixin):
         from datetime import timedelta
 
         handler = MailHandler(record_limit=1, record_delta=timedelta(minutes=1))
+
+    When a new record needs space in a full cache, the ``record_cache_prune``
+    fraction of entries is removed, oldest limiting interval first, and always
+    at least enough to make room. Pruned records can be delivered again before
+    their interval ends.
     """
 
     def __init__(self, record_limit, record_delta):
@@ -529,8 +534,15 @@ class LimitingHandlerMixin(HashingHandlerMixin):
                 not suppression_count
                 and len(self._record_limits) >= self.max_record_cache
             ):
-                cache_items = sorted(self._record_limits.items())
-                del cache_items[: int(self._record_limits) * self.record_cache_prune]
+                cache_items = sorted(
+                    self._record_limits.items(), key=lambda item: item[1][0]
+                )
+                prune_count = max(
+                    1,
+                    len(cache_items) - self.max_record_cache + 1,
+                    int(len(cache_items) * self.record_cache_prune),
+                )
+                del cache_items[:prune_count]
                 self._record_limits = dict(cache_items)
 
             self._record_limits[hash] = (first_count, old_count + 1)
@@ -1342,12 +1354,12 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
     default_related_format_string = MAIL_RELATED_FORMAT_STRING
     default_subject = "Server Error in Application"
 
-    #: the maximum number of record hashes in the cache for the limiting
-    #: feature.  Afterwards, record_cache_prune percent of the oldest
-    #: entries are removed
+    #: the maximum number of record hashes in the limiting cache. When it is
+    #: full, the entries with the oldest limiting intervals are pruned.
     max_record_cache = 512
 
-    #: the number of items to prune on a cache overflow in percent.
+    #: the fraction of cached entries to prune when the cache is full. At
+    #: least enough entries are removed to make room for the new record.
     record_cache_prune = 0.333
 
     def __init__(
