@@ -1,0 +1,1 @@
+The quickstart lists the common format string fields and explains brace-style message placeholders. Two broken examples are fixed.

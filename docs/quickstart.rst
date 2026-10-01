@@ -92,7 +92,7 @@ Let's say you've registered a default handler to stderr:
 
     from logbook import StderrHandler
 
-    StderrHandler.push_application()
+    StderrHandler().push_application()
 
 If you want errors to go to syslog, you can set up logging like this:
 
@@ -200,11 +200,57 @@ with the record and handler as arguments:
 ...
 >>> handler.formatter = my_formatter
 
-The format string used for the default string formatter has one variable called
-`record` available which is the log record itself.  All attributes can be
-looked up using the dotted syntax, and items in the `extra` dict looked up
-using brackets.  Note that if you are accessing an item in the extra dict that
-does not exist, an empty string is returned.
+Log messages and output format strings use Python's :meth:`str.format` brace
+syntax. For example, ``log.info("Hello {}", "world")`` and
+``log.info("Hello {name}", name="world")`` both produce the message
+``Hello world``. When migrating native logging calls from stdlib logging,
+replace ``%s`` and ``%d`` placeholders with brace fields. Records redirected
+from stdlib logging keep their original percent-style message formatting; see
+:ref:`logging-compat`.
+
+Output format strings have two variables available: ``record`` is the
+:class:`LogRecord`, and ``handler`` is the handler formatting it. Attributes
+use dotted syntax, and items in the ``extra`` dictionary use brackets. A missing
+``extra`` item formats as an empty string.
+
+.. _common-formatting-fields:
+
+Common Formatting Fields
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 50 50
+
+   * - Field
+     - Value
+   * - ``{record.message}``
+     - The message after its positional and keyword arguments are formatted.
+   * - ``{record.channel}``
+     - The logger's name.
+   * - ``{record.level_name}``
+     - The level name, such as ``WARNING``.
+   * - ``{record.time:%Y-%m-%d %H:%M:%S.%f}``
+     - The event timestamp, using :meth:`datetime.datetime.__format__`.
+   * - ``{record.filename}``
+     - The source filename.
+   * - ``{record.lineno}``
+     - The source line number.
+   * - ``{record.func_name}``
+     - The name of the function that issued the log call.
+   * - ``{record.thread_name}``
+     - The name of the thread that issued the log call.
+   * - ``{record.process}``
+     - The process ID.
+   * - ``{record.extra[cwd]}``
+     - A context value added through ``extra`` or a processor.
+   * - ``{handler.level}``
+     - The formatting handler's numeric minimum level.
+
+See :class:`LogRecord` for the full attribute reference. Source location fields
+can be ``None`` when introspection is disabled or the caller is unavailable.
+In Logbook 1.x, the default ``record.time`` is a naive UTC datetime;
+:func:`set_datetime_format` controls the timestamp factory.
 
 Here is an example configuration that shows the current working directory from
 the example in the previous section:
@@ -212,9 +258,9 @@ the example in the previous section:
 .. code-block:: python
 
     handler = StderrHandler(
-        format_string="{record.channel}: {record.message) [{record.extra[cwd]}]"
+        format_string="{record.channel}: {record.message} [{record.extra[cwd]}]"
     )
 
 In the :mod:`~logbook.more` module there is a formatter that uses the Jinja2
 template engine to format log records, especially useful for multi-line log
-formatting such as mails (:class:`~logbook.more.JinjaFormatter`).
+formatting (:class:`~logbook.more.JinjaFormatter`).
