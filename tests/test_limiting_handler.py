@@ -16,12 +16,14 @@ class RecordingMailHandler(logbook.MailHandler):
         self.max_record_cache = capacity
         self.record_cache_prune = prune
         self.deliveries = []
+        self.suppressed = []
 
     def hash_record(self, record):
         # Known hashes distinguish age-based eviction from sorting by hash.
         return record.channel
 
     def generate_mail(self, record, suppressed=0):
+        self.suppressed.append(suppressed)
         message = super().generate_mail(record, suppressed)
         message["X-Channel"] = record.channel
         return message
@@ -71,6 +73,7 @@ def test_mail_limiter_prunes_at_capacity(
 
     assert set(handler._record_limits) == expected_hashes
     assert len(handler._record_limits) <= capacity
+    assert set(handler._record_suppressions) <= set(handler._record_limits)
     assert handler.deliveries == [
         *(f"old-{index}" for index in range(capacity)),
         "new",
@@ -174,3 +177,36 @@ def test_mail_limiter_record_limit_after_expiry(advance_clock, limit, expected):
         advance_clock(61)
 
     assert handler.deliveries == expected
+
+
+def test_mail_limiter_counts_only_suppressed_records(advance_clock):
+    handler = RecordingMailHandler(record_limit=2)
+    for _ in range(5):
+        emit(handler, "same")
+    advance_clock(61)
+    for _ in range(3):
+        emit(handler, "same")
+    advance_clock(61)
+    emit(handler, "same")
+
+    assert handler.suppressed == [0, 0, 3, 0, 1]
+
+
+def test_mail_limiter_failed_delivery_is_not_a_suppression(advance_clock):
+    class FailingOnce(RecordingMailHandler):
+        failed = False
+
+        def deliver(self, message, recipients):
+            if not self.failed:
+                self.failed = True
+                raise OSError("transport failed")
+            super().deliver(message, recipients)
+
+    handler = FailingOnce()
+    with pytest.raises(OSError, match="transport failed"):
+        emit(handler, "same")
+    emit(handler, "same")
+    advance_clock(61)
+    emit(handler, "same")
+
+    assert handler.suppressed == [0, 1]

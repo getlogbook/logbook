@@ -510,6 +510,7 @@ class LimitingHandlerMixin(HashingHandlerMixin):
         self.record_limit = record_limit
         self._limit_lock = _new_fine_grained_lock()
         self._record_limits = {}
+        self._record_suppressions = {}
         if record_delta is None:
             record_delta = timedelta(seconds=60)
         elif isinstance(record_delta, (int, float)):
@@ -527,19 +528,18 @@ class LimitingHandlerMixin(HashingHandlerMixin):
         hash = self.hash_record(record)
         self._limit_lock.acquire()
         try:
-            suppression_count = old_count = 0
+            suppression_count = old_count = old_suppression_count = record_count = 0
             first_count = now = datetime_utcnow()
 
             if hash in self._record_limits:
-                last_count, suppression_count = self._record_limits[hash]
+                last_count, record_count = self._record_limits[hash]
+                suppression_count = self._record_suppressions.get(hash, 0)
                 if now <= last_count + self.record_delta:
                     first_count = last_count
-                    old_count = suppression_count
+                    old_count = record_count
+                    old_suppression_count = suppression_count
 
-            if (
-                not suppression_count
-                and len(self._record_limits) >= self.max_record_cache
-            ):
+            if not record_count and len(self._record_limits) >= self.max_record_cache:
                 cache_items = sorted(
                     self._record_limits.items(), key=lambda item: item[1][0]
                 )
@@ -550,10 +550,19 @@ class LimitingHandlerMixin(HashingHandlerMixin):
                 )
                 del cache_items[:prune_count]
                 self._record_limits = dict(cache_items)
+                self._record_suppressions = {
+                    key: count
+                    for key, count in self._record_suppressions.items()
+                    if key in self._record_limits
+                }
 
             self._record_limits[hash] = (first_count, old_count + 1)
 
-            return suppression_count, old_count < self.record_limit
+            allow_delivery = old_count < self.record_limit
+            self._record_suppressions[hash] = old_suppression_count + (
+                not allow_delivery
+            )
+            return suppression_count, allow_delivery
         finally:
             self._limit_lock.release()
 
