@@ -467,7 +467,7 @@ class HashingHandlerMixin:
         hash = sha1()
         hash.update(("%d\x00" % record.level).encode("ascii"))  # noqa: UP031
         hash.update((record.channel or "").encode("utf-8") + b"\x00")
-        hash.update(record.filename.encode("utf-8") + b"\x00")
+        hash.update((record.filename or "").encode("utf-8") + b"\x00")
         hash.update(str(record.lineno).encode("utf-8"))
         return hash
 
