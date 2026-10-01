@@ -276,13 +276,17 @@ def test_mail_handler_arguments():
             mock_load_cert_chain.reset_mock()
 
             # Test secure=()
-            mail_handler = logbook.MailHandler(
-                from_addr="from@example.com",
-                recipients="to@example.com",
-                server_addr=("server.example.com", 465),
-                credentials=("username", "password"),
-                secure=(),
-            )
+            with pytest.warns(DeprecationWarning, match="secure=True") as caught:
+                mail_handler = logbook.MailHandler(
+                    from_addr="from@example.com",
+                    recipients="to@example.com",
+                    server_addr=("server.example.com", 465),
+                    credentials=("username", "password"),
+                    secure=(),
+                )
+            assert [w.filename for w in caught if "secure=" in str(w.message)] == [
+                __file__
+            ]
 
             mail_handler.get_connection()
 
