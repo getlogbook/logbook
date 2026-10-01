@@ -64,7 +64,6 @@ Here an example setup that logs into a postgres database:
         ...
 
 Alternative backends can be swapped in by providing the `backend`
-parameter.  There is a second implementation of a backend that is using
-MongoDB: :class:`~logbook.ticketing.MongoDBBackend`.
+parameter.
 
 .. _SQLAlchemy: https://www.sqlalchemy.org/

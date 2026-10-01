@@ -12,6 +12,8 @@ each logging message a ticket id.
 import json
 from time import time
 
+from typing_extensions import deprecated
+
 from logbook.base import NOTSET, LogRecord, level_name_property
 from logbook.handlers import Handler, HashingHandlerMixin
 from logbook.helpers import cached_property
@@ -319,8 +321,18 @@ class SQLAlchemyBackend(BackendBase):
             ]
 
 
+@deprecated(
+    "MongoDBBackend is deprecated because it does not work with any PyMongo "
+    "release that supports Python 3.",
+    stacklevel=3,
+)
 class MongoDBBackend(BackendBase):
-    """Implements a backend that writes into a MongoDB database."""
+    """Implements a backend that writes into a MongoDB database.
+
+    .. deprecated:: 1.11
+
+       It does not work with any PyMongo release that supports Python 3.
+    """
 
     class _FixedTicketClass(Ticket):
         @property
@@ -503,7 +515,7 @@ class TicketingHandler(TicketingBaseHandler):
     :param backend: A backend class that implements the proper database
                     handling.
                     Backends available are: :class:`SQLAlchemyBackend`,
-                    :class:`MongoDBBackend`.
+                    :class:`MongoDBBackend` (deprecated).
     """
 
     #: The default backend that is being used when no backend is specified.
