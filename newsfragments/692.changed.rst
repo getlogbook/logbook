@@ -1,0 +1,1 @@
+The ``module`` of records redirected from :mod:`logging` is now the file name without its extension, as :mod:`logging` records it, instead of the dotted module name.

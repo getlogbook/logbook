@@ -130,6 +130,8 @@ class RedirectLoggingHandler(logging.Handler):
 
     def find_caller(self, old_record):
         """Tries to find the caller that issued the call."""
+        if old_record.lineno:
+            return None
         frm = sys._getframe(2)
         while frm is not None:
             if (
@@ -170,7 +172,15 @@ class RedirectLoggingHandler(logging.Handler):
         # collecting it here would describe the thread delivering the record.
         record.heavy_initialized = True
         record.time = self.convert_time(old_record.created)
+        if record.frame is None:
+            record.filename = old_record.pathname
+            record.lineno = old_record.lineno
+            record.func_name = old_record.funcName
+            record.module = old_record.module
+        record.thread = old_record.thread
+        record.thread_name = old_record.threadName
         record.process = old_record.process
+        record.process_name = old_record.processName
         return record
 
     def emit(self, record):
