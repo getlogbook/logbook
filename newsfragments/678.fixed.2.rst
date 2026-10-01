@@ -1,0 +1,1 @@
+:class:`~logbook.notifiers.PushoverHandler` honours ``record_limit``.
