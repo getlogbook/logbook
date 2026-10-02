@@ -4,6 +4,7 @@ include noxfile.py
 include uv.lock
 include Cargo.lock
 include Cargo.toml
+include newsfragments/template.rst.jinja
 graft benchmark
 graft docs
 graft tests

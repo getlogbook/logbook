@@ -211,5 +211,6 @@ git-only = [
     ".gitattributes",
     ".gitignore",
     ".readthedocs.yaml",
-    "newsfragments/**",
+    "newsfragments/*.rst",
+    "newsfragments/.gitignore",
 ]
