@@ -1135,10 +1135,12 @@ class TimedRotatingFileHandler(FileHandler):
             return
         if self.stream is not None:
             self.stream.close()
+            self.stream = None
 
         if not self.timed_filename_for_current and os.path.exists(self._filename):
             filename = self.generate_timed_filename(self._timestamp)
             os.rename(self._filename, filename)
+            self._timestamp = new_timestamp
 
         if self.backup_count > 0:
             for _, filename in self.files_to_delete():
@@ -1158,8 +1160,11 @@ class TimedRotatingFileHandler(FileHandler):
             if new_timestamp != self._timestamp:
                 record_time = _record_time_to_utc(record.time)
                 if record_time > self._rollover_time:
-                    self.perform_rollover(new_timestamp)
-                    self._rollover_time = record_time
+                    try:
+                        self.perform_rollover(new_timestamp)
+                    finally:
+                        if self._timestamp == new_timestamp:
+                            self._rollover_time = record_time
             self.write(self.encode(msg))
             self.flush()
         finally:

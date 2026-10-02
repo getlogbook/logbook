@@ -1,0 +1,2 @@
+:class:`~logbook.TimedRotatingFileHandler` could fail later records, and fail to close, after an error during rollover.
+With ``timed_filename_for_current=False``, such an error could also lead a later rollover to overwrite the previous period's log file.
