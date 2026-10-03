@@ -926,7 +926,8 @@ class RotatingFileHandler(FileHandler):
 
     def should_rollover(self, record, bytes):
         self.stream.seek(0, 2)
-        return self.stream.tell() + bytes >= self.max_size
+        size = self.stream.tell()
+        return size > 0 and size + bytes >= self.max_size
 
     def perform_rollover(self):
         self.stream.close()

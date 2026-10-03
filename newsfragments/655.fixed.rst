@@ -1,0 +1,1 @@
+:class:`~logbook.RotatingFileHandler` no longer turns an empty log file into a backup when a single record reaches ``max_size``.
