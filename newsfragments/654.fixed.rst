@@ -1,0 +1,1 @@
+Rate-limited handlers such as :class:`~logbook.MailHandler` no longer fail on every new record once their record cache is full.
