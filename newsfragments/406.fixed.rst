@@ -1,0 +1,3 @@
+:class:`~logbook.queues.ThreadedWrapperHandler` now preserves exception details
+and caller information before passing records to its background thread.
+This also applies to batches of records.
