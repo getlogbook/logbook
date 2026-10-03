@@ -1,0 +1,1 @@
+Fix StreamHandler encoding for binary streams while preserving text stream behavior.
