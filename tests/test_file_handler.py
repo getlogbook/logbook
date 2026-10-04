@@ -340,3 +340,40 @@ def test_rotation_preserves_special_files(tmp_path, special_file, timed):
     finally:
         if reader is not None:
             os.close(reader)
+
+
+def test_size_rollover_appends_to_new_file(tmp_path, logger):
+    filename = tmp_path / "append.log"
+
+    class InterleavedHandler(logbook.RotatingFileHandler):
+        def write(self, item):
+            if item == "rollover\n":
+                with filename.open("a") as other_writer:
+                    other_writer.write("external\n")
+            super().write(item)
+
+    with (
+        InterleavedHandler(
+            filename, max_size=12, backup_count=1, format_string="{record.message}"
+        ),
+        logbook.Flags(errors="raise"),
+    ):
+        logger.info("before")
+        logger.info("rollover")
+
+    assert (tmp_path / "append.log.1").read_text() == "before\n"
+    assert filename.read_text() == "external\nrollover\n"
+
+
+def test_timed_rollover_appends_to_earlier_period(tmp_path):
+    handler = logbook.TimedRotatingFileHandler(
+        tmp_path / "append.log", format_string="{record.message}"
+    )
+    with handler, logbook.Flags(errors="raise"):
+        for day, message in [(1, "first"), (2, "second"), (1, "late")]:
+            record = logbook.LogRecord("test", logbook.INFO, message)
+            record.time = datetime(2010, 1, day)
+            handler.handle(record)
+
+    assert (tmp_path / "append-2010-01-01.log").read_text() == "first\nlate\n"
+    assert (tmp_path / "append-2010-01-02.log").read_text() == "second\n"
