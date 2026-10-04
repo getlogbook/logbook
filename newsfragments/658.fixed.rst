@@ -1,0 +1,2 @@
+Source distributions now include the Towncrier template required to build
+the bundled documentation.
