@@ -12,6 +12,9 @@ This implements the core interface.
 .. autoclass:: LoggerGroup
    :members:
 
+See :ref:`common-formatting-fields` for examples of record attributes in output
+format strings.
+
 .. autoclass:: LogRecord
    :members:
 
