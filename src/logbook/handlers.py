@@ -1417,7 +1417,11 @@ class MailHandler(Handler, StringFormatterHandlerMixin, LimitingHandlerMixin):
 
         if isinstance(secure, tuple):
             if not secure:
-                # For backwards compatibility, () translates to True
+                warnings.warn(
+                    "Passing secure=() is deprecated; use secure=True instead.",
+                    DeprecationWarning,
+                    stacklevel=3,
+                )
                 return True
             else:
                 keyfile, certfile = secure
