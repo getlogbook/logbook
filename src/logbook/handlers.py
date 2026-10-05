@@ -1009,7 +1009,8 @@ class RotatingFileHandler(FileHandler):
                 if e.errno != errno.ENOENT:
                     raise
             self._next_backup -= 1
-        rename(self._filename, self._filename + ".1")
+        if os.path.exists(self._filename):
+            rename(self._filename, self._filename + ".1")
         self._next_backup = None
         self._open("a")
 

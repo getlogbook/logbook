@@ -368,6 +368,21 @@ def test_rotating_file_handler_reopens_after_failed_open(tmp_path, monkeypatch, 
     assert filename.read_text() == "last record\n"
 
 
+@pytest.mark.skipif(os.name == "nt", reason="Windows cannot delete an open file")
+def test_rotating_file_handler_rolls_over_deleted_file(tmp_path, logger):
+    filename = tmp_path / "app.log"
+    handler = logbook.RotatingFileHandler(
+        filename, max_size=20, backup_count=1, format_string="{record.message}"
+    )
+    with handler, logbook.Flags(errors="raise"):
+        logger.info("deleted record")
+        filename.unlink()
+        logger.info("first")
+        logger.info("second")
+
+    assert filename.read_text() == "first\nsecond\n"
+
+
 @pytest.mark.skipif(os.name != "nt", reason="Requires Windows file sharing")
 def test_rotating_file_handler_resumes_after_locked_file(tmp_path, logger):
     filename = tmp_path / "app.log"
