@@ -1,0 +1,1 @@
+:func:`~logbook.set_datetime_format` is deprecated, and warns when there is something to change: remove ``set_datetime_format("utc")`` calls, since that is the default, and make callables return aware datetimes.

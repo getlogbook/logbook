@@ -12,6 +12,7 @@ import copyreg
 import os
 import sys
 import traceback
+import warnings
 from collections import defaultdict
 from datetime import datetime, timezone
 from itertools import chain
@@ -83,6 +84,10 @@ def set_datetime_format(datetime_format):
     made available as the :py:attr:`LogRecord.time` attribute of
     :py:class:`LogRecord` instances.
 
+    .. deprecated:: 1.11
+       Passing ``"utc"`` (the default) or a callable that returns naive
+       datetimes emits a :py:exc:`DeprecationWarning`.
+
     :param datetime_format: Indicates how to generate datetime objects.
 
     Possible values are:
@@ -93,9 +98,10 @@ def set_datetime_format(datetime_format):
          "local"
              :py:attr:`LogRecord.time` will be a datetime in local time zone
              (but not time zone aware)
-         A `callable` returning datetime instances
+         A `callable` returning time zone aware datetime instances
             :py:attr:`LogRecord.time` will be a datetime created by
-            :py:obj:`datetime_format` (possibly time zone aware)
+            :py:obj:`datetime_format`.  Callables returning naive
+            datetimes are not supported.
 
     This function defaults to creating datetime objects in UTC time,
     using :func:`datetime.utcnow`,
@@ -133,6 +139,12 @@ def set_datetime_format(datetime_format):
     global _datetime_factory, _datetime_mode, _datetime_tzinfo
     tzinfo = None
     if datetime_format == "utc":
+        warnings.warn(
+            "set_datetime_format('utc') is deprecated. It is the default, so "
+            "remove the call.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         factory, mode = datetime_utcnow, "utc"
     elif datetime_format == "local":
         factory, mode = datetime.now, "local"
@@ -145,7 +157,16 @@ def set_datetime_format(datetime_format):
                 "not %r" % (type(inst),)
             )
         factory, tzinfo = datetime_format, inst.tzinfo
-        mode = "utc" if inst.utcoffset() is None else "aware"
+        if inst.utcoffset() is None:
+            warnings.warn(
+                "set_datetime_format() with a callable that returns naive "
+                "datetimes is deprecated. Return aware datetimes instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            mode = "utc"
+        else:
+            mode = "aware"
     else:
         raise ValueError(
             "Invalid value %r.  Valid values are 'utc' and "  # noqa: UP031

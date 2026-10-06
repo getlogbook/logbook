@@ -250,7 +250,7 @@ Common Formatting Fields
 See :class:`LogRecord` for the full attribute reference. Source location fields
 can be ``None`` when introspection is disabled or the caller is unavailable.
 In Logbook 1.x, the default ``record.time`` is a naive UTC datetime;
-:func:`set_datetime_format` controls the timestamp factory.
+:func:`set_datetime_format` (deprecated) controls the timestamp factory.
 
 Here is an example configuration that shows the current working directory from
 the example in the previous section:
