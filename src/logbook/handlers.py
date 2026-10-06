@@ -28,6 +28,7 @@ from textwrap import dedent
 
 from typing_extensions import deprecated
 
+from logbook import base
 from logbook.base import (
     CRITICAL,
     DEBUG,
@@ -40,7 +41,6 @@ from logbook.base import (
     ContextObject,
     ContextStackManager,
     Flags,
-    _datetime_factory,
     _missing,
     level_name_property,
     lookup_level,
@@ -1036,7 +1036,7 @@ class TimedRotatingFileHandler(FileHandler):
         self.basename, self.ext = os.path.splitext(os.path.abspath(filename))
         self.timed_filename_for_current = timed_filename_for_current
 
-        self._timestamp = self._get_timestamp(_datetime_factory())
+        self._timestamp = self._get_timestamp(base._datetime_factory())
         if self.timed_filename_for_current:
             filename = self.generate_timed_filename(self._timestamp)
         elif os.path.exists(filename):

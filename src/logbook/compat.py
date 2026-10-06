@@ -13,10 +13,10 @@ import logging
 import sys
 import warnings
 from collections.abc import Mapping
-from datetime import timezone
 
 import logbook
 
+from .base import _record_time_to_utc
 from .helpers import datetime_utcfromtimestamp
 
 
@@ -216,10 +216,7 @@ class LoggingHandler(logbook.Handler):
 
     def convert_time(self, dt):
         """Converts a datetime object into a timestamp."""
-        if dt.tzinfo is None:
-            # Logbook uses naive datetimes to represent UTC (utcnow)
-            return dt.replace(tzinfo=timezone.utc).timestamp()
-        return dt.timestamp()
+        return _record_time_to_utc(dt).timestamp()
 
     def convert_record(self, old_record):
         """Converts a record from logbook to logging."""

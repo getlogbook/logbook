@@ -1,5 +1,6 @@
 import functools
 import warnings
+from datetime import datetime, timezone
 from io import StringIO
 from itertools import count
 from random import randrange
@@ -68,6 +69,14 @@ def test_redirect_logbook():
             assert pieces == ["testlogger", "WARNING", "This goes to logging"]
     finally:
         logger.handlers[:] = old_handlers
+
+
+def test_logging_handler_time_in_repeated_hour(record_time):
+    # 01:50 EDT, then 01:10 EST twenty minutes later.
+    for hour, minute in [(5, 50), (6, 10)]:
+        dt = datetime(2026, 11, 1, hour, minute, tzinfo=timezone.utc)
+        created = logbook.compat.LoggingHandler().convert_time(record_time(dt))
+        assert created == dt.timestamp()
 
 
 test_warning_redirections_i = count()

@@ -13,7 +13,7 @@ import os
 import sys
 import traceback
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from itertools import chain
 from weakref import ref as weakref
 
@@ -47,6 +47,34 @@ except ImportError:
     )
 
 _datetime_factory = datetime_utcnow
+_datetime_mode = "utc"
+_datetime_tzinfo = None
+
+
+def _record_time_to_utc(value):
+    """Return a record time as an aware datetime in UTC.
+
+    A naive time is local time after ``set_datetime_format("local")`` and UTC
+    otherwise.
+    """
+    if value.utcoffset() is not None or _datetime_mode == "local":
+        return value.astimezone(timezone.utc)
+    return value.replace(tzinfo=timezone.utc)
+
+
+def _record_time_from_utc(value):
+    """Return an aware UTC datetime in the form record times take under the
+    current set_datetime_format(): naive UTC, naive local time, or aware in
+    the factory's zone.
+    """
+    if _datetime_mode == "local":
+        # fromtimestamp preserves fold. A float timestamp can't hold every
+        # microsecond, so convert whole seconds and keep value's microseconds.
+        local = datetime.fromtimestamp(value.replace(microsecond=0).timestamp())
+        return local.replace(microsecond=value.microsecond)
+    if _datetime_mode == "aware":
+        return value.astimezone(_datetime_tzinfo or _datetime_factory().tzinfo)
+    return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 def set_datetime_format(datetime_format):
@@ -102,11 +130,12 @@ def set_datetime_format(datetime_format):
 
         logbook.set_datetime_format(utc_tz)
     """
-    global _datetime_factory
+    global _datetime_factory, _datetime_mode, _datetime_tzinfo
+    tzinfo = None
     if datetime_format == "utc":
-        _datetime_factory = datetime_utcnow
+        factory, mode = datetime_utcnow, "utc"
     elif datetime_format == "local":
-        _datetime_factory = datetime.now
+        factory, mode = datetime.now, "local"
     elif callable(datetime_format):
         inst = datetime_format()
         if not isinstance(inst, datetime):
@@ -115,12 +144,18 @@ def set_datetime_format(datetime_format):
                 "should return datetime.datetime instances, "
                 "not %r" % (type(inst),)
             )
-        _datetime_factory = datetime_format
+        factory, tzinfo = datetime_format, inst.tzinfo
+        mode = "utc" if inst.utcoffset() is None else "aware"
     else:
         raise ValueError(
             "Invalid value %r.  Valid values are 'utc' and "  # noqa: UP031
             "'local'." % (datetime_format,)
         )
+    if isinstance(tzinfo, timezone) and tzinfo != timezone.utc:
+        # A fixed offset, as from datetime.now().astimezone(), goes stale at
+        # the next DST change, so ask the factory each time instead.
+        tzinfo = None
+    _datetime_factory, _datetime_mode, _datetime_tzinfo = factory, mode, tzinfo
 
 
 # make sure to sync these up with _speedups.pyx
@@ -595,6 +630,8 @@ class LogRecord:
         # the extra dict is exported as regular dict
         rv["extra"] = dict(rv["extra"])
         if json_safe:
+            if isinstance(rv.get("time"), datetime):
+                rv["time"] = _record_time_to_utc(rv["time"]).replace(tzinfo=None)
             return to_safe_json(rv)
         return rv
 
@@ -617,7 +654,8 @@ class LogRecord:
         self._information_pulled = True
         self._channel = None
         if isinstance(self.time, str):
-            self.time = parse_iso8601(self.time)
+            utc = parse_iso8601(self.time).replace(tzinfo=timezone.utc)
+            self.time = _record_time_from_utc(utc)
 
         self.extra = defaultdict(str, self.extra)
         return self

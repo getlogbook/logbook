@@ -1,5 +1,9 @@
 import importlib.util
+import time
+import warnings
+from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -82,6 +86,37 @@ class CustomPathLike:
 def logfile(tmp_path, request):
     path = str(tmp_path / "logfile.log")
     return request.param(path)
+
+
+@pytest.fixture
+def new_york(monkeypatch):
+    if not hasattr(time, "tzset"):
+        pytest.skip("needs time.tzset()")
+    monkeypatch.setenv("TZ", "America/New_York")
+    time.tzset()
+    yield ZoneInfo("America/New_York")
+    monkeypatch.undo()
+    time.tzset()
+
+
+@pytest.fixture(params=["utc", "local", "aware"])
+def record_time(request, new_york):
+    """Selects each set_datetime_format() mode in New York, and returns a
+    function that gives the record time for an aware datetime in that mode.
+    """
+    mode = request.param
+    datetime_format = (lambda: datetime.now(new_york)) if mode == "aware" else mode
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        logbook.set_datetime_format(datetime_format)
+    yield {
+        "utc": lambda dt: dt.astimezone(timezone.utc).replace(tzinfo=None),
+        "local": lambda dt: datetime.fromtimestamp(dt.timestamp()),
+        "aware": lambda dt: dt.astimezone(new_york),
+    }[mode]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        logbook.set_datetime_format("utc")
 
 
 @pytest.fixture

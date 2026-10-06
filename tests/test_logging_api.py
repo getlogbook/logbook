@@ -1,5 +1,6 @@
 import pickle
 import sys
+from datetime import datetime, timezone
 
 import pytest
 
@@ -65,6 +66,48 @@ def test_to_dict(logger, active_handler):
         if key[0] == "_":
             continue
         assert value == getattr(imported, key)
+
+
+def test_json_export_time_in_repeated_hour(record_time):
+    record = logbook.LogRecord("test", logbook.INFO, "message")
+    # 01:10 EST, the second time the clocks show 01:10 that day.
+    dt = datetime(2026, 11, 1, 6, 10, 0, 123456, tzinfo=timezone.utc)
+    record.time = record_time(dt)
+
+    exported = record.to_dict(json_safe=True)
+    assert exported["time"] == "2026-11-01T06:10:00.123456Z"
+    imported = logbook.LogRecord.from_dict(exported)
+    assert (imported.time, imported.time.fold) == (record.time, record.time.fold)
+
+
+@pytest.mark.parametrize(
+    "utc",
+    [
+        # 01:10 EDT, then 01:10 EST an hour later.
+        datetime(2026, 11, 1, 5, 10, tzinfo=timezone.utc),
+        datetime(2026, 11, 1, 6, 10, tzinfo=timezone.utc),
+        # A float timestamp this late can't hold every microsecond.
+        datetime(3000, 1, 1, 12, 0, 0, 895989, tzinfo=timezone.utc),
+    ],
+)
+def test_local_record_time_round_trip(new_york, monkeypatch, utc):
+    monkeypatch.setattr(logbook.base, "_datetime_mode", "local")
+    local = logbook.base._record_time_from_utc(utc)
+    assert local.tzinfo is None
+    assert logbook.base._record_time_to_utc(local) == utc
+
+
+@pytest.mark.parametrize("zone", ["fixed offset", "time zone"])
+def test_aware_record_time_from_utc_across_dst(new_york, monkeypatch, zone):
+    for name in ("_datetime_factory", "_datetime_mode", "_datetime_tzinfo"):
+        monkeypatch.setattr(logbook.base, name, getattr(logbook.base, name))
+    tz = None if zone == "fixed offset" else new_york
+    # Set in summer, then read back a December record.
+    clock = datetime(2026, 7, 1, 12, tzinfo=timezone.utc)
+    logbook.set_datetime_format(lambda: clock.astimezone(tz))
+    clock = datetime(2026, 12, 15, 17, tzinfo=timezone.utc)
+    result = logbook.base._record_time_from_utc(clock)
+    assert result.isoformat() == "2026-12-15T12:00:00-05:00"
 
 
 def test_pickle(active_handler, logger):
