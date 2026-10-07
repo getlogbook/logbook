@@ -1,0 +1,2 @@
+:class:`~logbook.compat.LoggingHandler`, the queue handlers and :class:`~logbook.TimedRotatingFileHandler` now work with ``set_datetime_format("local")`` and with callables that return aware datetimes.
+If you use these with a queue, upgrade both ends together.

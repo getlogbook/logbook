@@ -1,8 +1,33 @@
+import warnings
 from datetime import datetime, timedelta, timezone, tzinfo
 
 import pytest
 
 import logbook
+
+pytestmark = pytest.mark.filterwarnings("ignore:set_datetime_format:DeprecationWarning")
+
+
+@pytest.mark.parametrize(
+    ("datetime_format", "warns"),
+    [
+        ("utc", True),
+        (datetime.now, True),
+        ("local", False),
+        (lambda: datetime.now(timezone.utc), False),
+    ],
+)
+def test_set_datetime_format_deprecation(monkeypatch, datetime_format, warns):
+    monkeypatch.setattr(
+        logbook.base, "_datetime_factory", logbook.base._datetime_factory
+    )
+    monkeypatch.setattr(logbook.base, "_datetime_mode", logbook.base._datetime_mode)
+    monkeypatch.setattr(logbook.base, "_datetime_tzinfo", logbook.base._datetime_tzinfo)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        logbook.set_datetime_format(datetime_format)
+    expected = [(DeprecationWarning, __file__)] if warns else []
+    assert [(w.category, w.filename) for w in caught] == expected
 
 
 def test_timedate_format(activation_strategy, logger):

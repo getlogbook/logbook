@@ -1,7 +1,7 @@
 import gzip
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -377,3 +377,23 @@ def test_timed_rollover_appends_to_earlier_period(tmp_path):
 
     assert (tmp_path / "append-2010-01-01.log").read_text() == "first\nlate\n"
     assert (tmp_path / "append-2010-01-02.log").read_text() == "second\n"
+
+
+def test_timed_rollover_restart_keeps_backups(tmp_path, record_time):
+    times = [
+        record_time(datetime(2026, 7, 15, hour, 30, tzinfo=timezone.utc))
+        for hour in (12, 13, 14)
+    ]
+    for t in times:
+        (tmp_path / f"app-{t:%Y-%m-%d-%H}.log").touch()
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(logbook.base, "_datetime_factory", lambda: times[-1])
+        handler = logbook.TimedRotatingFileHandler(
+            tmp_path / "app.log", date_format="%Y-%m-%d-%H", backup_count=3
+        )
+    with handler, logbook.Flags(errors="raise"):
+        record = logbook.LogRecord("test", logbook.INFO, "restarted")
+        record.time = times[-1]
+        handler.handle(record)
+
+    assert len(list(tmp_path.iterdir())) == 3
