@@ -42,6 +42,7 @@ from logbook.base import (
     ContextStackManager,
     Flags,
     _missing,
+    _record_time_to_utc,
     level_name_property,
     lookup_level,
 )
@@ -1036,7 +1037,10 @@ class TimedRotatingFileHandler(FileHandler):
         self.basename, self.ext = os.path.splitext(os.path.abspath(filename))
         self.timed_filename_for_current = timed_filename_for_current
 
-        self._timestamp = self._get_timestamp(base._datetime_factory())
+        now = base._datetime_factory()
+        # Records from before the handler started never roll it back.
+        self._rollover_time = _record_time_to_utc(now)
+        self._timestamp = self._get_timestamp(now)
         if self.timed_filename_for_current:
             filename = self.generate_timed_filename(self._timestamp)
         elif os.path.exists(filename):
@@ -1114,7 +1118,10 @@ class TimedRotatingFileHandler(FileHandler):
         try:
             new_timestamp = self._get_timestamp(record.time)
             if new_timestamp != self._timestamp:
-                self.perform_rollover(new_timestamp)
+                record_time = _record_time_to_utc(record.time)
+                if record_time > self._rollover_time:
+                    self.perform_rollover(new_timestamp)
+                    self._rollover_time = record_time
             self.write(self.encode(msg))
             self.flush()
         finally:

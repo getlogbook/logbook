@@ -1,0 +1,1 @@
+:class:`~logbook.TimedRotatingFileHandler` writes a record stamped before the handler started, or before its last rollover, to the current file instead of rolling back to the record's period, which could delete or overwrite earlier log files.

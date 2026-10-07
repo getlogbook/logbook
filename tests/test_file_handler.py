@@ -140,8 +140,16 @@ def test_rotating_file_handler(logfile, activation_strategy, logger):
         assert f.readline().rstrip() == ("F" * 256)
 
 
+@pytest.fixture
+def started_in_2010(monkeypatch):
+    # Timed handlers keep records from before they started in the current file.
+    monkeypatch.setattr(logbook.base, "_datetime_factory", lambda: datetime(2010, 1, 1))
+
+
 @pytest.mark.parametrize("backup_count", [1, 3])
-def test_timed_rotating_file_handler(tmpdir, activation_strategy, backup_count):
+def test_timed_rotating_file_handler(
+    tmpdir, activation_strategy, backup_count, started_in_2010
+):
     basename = str(tmpdir.join("trot.log"))
     handler = logbook.TimedRotatingFileHandler(basename, backup_count=backup_count)
     handler.format_string = "[{record.time:%H:%M}] {record.message}"
@@ -175,7 +183,7 @@ def test_timed_rotating_file_handler(tmpdir, activation_strategy, backup_count):
 
 @pytest.mark.parametrize("backup_count", [1, 3])
 def test_timed_rotating_file_handler__rollover_format(
-    tmpdir, activation_strategy, backup_count
+    tmpdir, activation_strategy, backup_count, started_in_2010
 ):
     basename = str(tmpdir.join("trot.log"))
     handler = logbook.TimedRotatingFileHandler(
@@ -215,7 +223,7 @@ def test_timed_rotating_file_handler__rollover_format(
 @pytest.mark.parametrize("backup_count", [1, 3])
 @pytest.mark.parametrize("preexisting_file", [True, False])
 def test_timed_rotating_file_handler__not_timed_filename_for_current(
-    tmpdir, activation_strategy, backup_count, preexisting_file
+    tmpdir, activation_strategy, backup_count, preexisting_file, started_in_2010
 ):
     basename = str(tmpdir.join("trot.log"))
 
@@ -365,18 +373,96 @@ def test_size_rollover_appends_to_new_file(tmp_path, logger):
     assert filename.read_text() == "external\nrollover\n"
 
 
-def test_timed_rollover_appends_to_earlier_period(tmp_path):
+@pytest.mark.parametrize("timed_filename_for_current", [True, False])
+def test_timed_rollover_keeps_late_record_in_current_file(
+    tmp_path, timed_filename_for_current, started_in_2010
+):
     handler = logbook.TimedRotatingFileHandler(
-        tmp_path / "append.log", format_string="{record.message}"
+        tmp_path / "app.log",
+        backup_count=2,
+        timed_filename_for_current=timed_filename_for_current,
+        format_string="{record.message}",
     )
     with handler, logbook.Flags(errors="raise"):
-        for day, message in [(1, "first"), (2, "second"), (1, "late")]:
+        for day, message in [(1, "first"), (2, "second"), (1, "late"), (2, "again")]:
             record = logbook.LogRecord("test", logbook.INFO, message)
             record.time = datetime(2010, 1, day)
             handler.handle(record)
 
-    assert (tmp_path / "append-2010-01-01.log").read_text() == "first\nlate\n"
-    assert (tmp_path / "append-2010-01-02.log").read_text() == "second\n"
+    current = "app-2010-01-02.log" if timed_filename_for_current else "app.log"
+    assert (tmp_path / current).read_text() == "second\nlate\nagain\n"
+    assert (tmp_path / "app-2010-01-01.log").read_text() == "first\n"
+
+
+def test_timed_rollover_keeps_record_from_before_start_in_current_file(
+    tmp_path, monkeypatch
+):
+    (tmp_path / "app-2010-01-01.log").write_text("day 1\n")
+    monkeypatch.setattr(
+        logbook.base, "_datetime_factory", lambda: datetime(2010, 1, 2, 0, 10)
+    )
+    handler = logbook.TimedRotatingFileHandler(
+        tmp_path / "app.log",
+        timed_filename_for_current=False,
+        format_string="{record.message}",
+    )
+    with handler, logbook.Flags(errors="raise"):
+        for message, when in [
+            ("late", datetime(2010, 1, 1, 23, 50)),
+            ("day 2", datetime(2010, 1, 2, 0, 20)),
+        ]:
+            record = logbook.LogRecord("test", logbook.INFO, message)
+            record.time = when
+            handler.handle(record)
+
+    assert (tmp_path / "app-2010-01-01.log").read_text() == "day 1\n"
+    assert (tmp_path / "app.log").read_text() == "late\nday 2\n"
+
+
+def test_timed_rollover_hourly_across_local_dst(tmp_path, monkeypatch):
+    if hasattr(time, "tzset"):
+        monkeypatch.setenv("TZ", "Europe/Berlin")
+        time.tzset()
+    monkeypatch.setattr(
+        logbook.base, "_datetime_factory", lambda: datetime(2026, 3, 29)
+    )
+    try:
+        handler = logbook.TimedRotatingFileHandler(
+            tmp_path / "app.log",
+            date_format="%Y-%m-%d-%H",
+            format_string="{record.message}",
+        )
+        with handler, logbook.Flags(errors="raise"):
+            for hour in range(5):
+                record = logbook.LogRecord("test", logbook.INFO, str(hour))
+                record.time = datetime(2026, 3, 29, hour, 30)
+                handler.handle(record)
+    finally:
+        monkeypatch.undo()
+        if hasattr(time, "tzset"):
+            time.tzset()
+
+    assert len(list(tmp_path.iterdir())) == 5
+
+
+def test_timed_rollover_in_repeated_hour(tmp_path, monkeypatch, record_time):
+    # Starts at 01:40 EDT; records at 01:50 EDT, then 01:10 and 01:20 EST.
+    start, *times = [
+        record_time(datetime(2026, 11, 1, hour, minute, tzinfo=timezone.utc))
+        for hour, minute in [(5, 40), (5, 50), (6, 10), (6, 20)]
+    ]
+    monkeypatch.setattr(logbook.base, "_datetime_factory", lambda: start)
+    handler = logbook.TimedRotatingFileHandler(
+        tmp_path / "app.log", date_format="%H-%M", format_string="{record.message}"
+    )
+    with handler, logbook.Flags(errors="raise"):
+        for t in times:
+            record = logbook.LogRecord("test", logbook.INFO, f"{t:%H-%M}")
+            record.time = t
+            handler.handle(record)
+
+    for t in times:
+        assert (tmp_path / f"app-{t:%H-%M}.log").read_text() == f"{t:%H-%M}\n"
 
 
 def test_timed_rollover_restart_keeps_backups(tmp_path, record_time):
