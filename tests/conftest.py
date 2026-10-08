@@ -120,6 +120,20 @@ def record_time(request, new_york):
 
 
 @pytest.fixture
+def set_clock():
+    """Fixes the time Logbook reads, keeping the current set_datetime_format() mode."""
+    base = logbook.base
+    saved = base._datetime_factory, base._datetime_mode, base._datetime_tzinfo
+
+    def set_clock(when):
+        now = base._record_time_from_utc(when)
+        base._datetime_factory = lambda: now
+
+    yield set_clock
+    base._datetime_factory, base._datetime_mode, base._datetime_tzinfo = saved
+
+
+@pytest.fixture
 def default_handler(request):
     returned = logbook.StderrHandler()
     returned.push_application()

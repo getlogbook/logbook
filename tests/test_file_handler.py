@@ -141,9 +141,9 @@ def test_rotating_file_handler(logfile, activation_strategy, logger):
 
 
 @pytest.fixture
-def started_in_2010(monkeypatch):
+def started_in_2010(set_clock):
     # Timed handlers keep records from before they started in the current file.
-    monkeypatch.setattr(logbook.base, "_datetime_factory", lambda: datetime(2010, 1, 1))
+    set_clock(datetime(2010, 1, 1, tzinfo=timezone.utc))
 
 
 @pytest.mark.parametrize("backup_count", [1, 3])
@@ -395,12 +395,10 @@ def test_timed_rollover_keeps_late_record_in_current_file(
 
 
 def test_timed_rollover_keeps_record_from_before_start_in_current_file(
-    tmp_path, monkeypatch
+    tmp_path, set_clock
 ):
     (tmp_path / "app-2010-01-01.log").write_text("day 1\n")
-    monkeypatch.setattr(
-        logbook.base, "_datetime_factory", lambda: datetime(2010, 1, 2, 0, 10)
-    )
+    set_clock(datetime(2010, 1, 2, 0, 10, tzinfo=timezone.utc))
     handler = logbook.TimedRotatingFileHandler(
         tmp_path / "app.log",
         timed_filename_for_current=False,
@@ -419,13 +417,11 @@ def test_timed_rollover_keeps_record_from_before_start_in_current_file(
     assert (tmp_path / "app.log").read_text() == "late\nday 2\n"
 
 
-def test_timed_rollover_hourly_across_local_dst(tmp_path, monkeypatch):
+def test_timed_rollover_hourly_across_local_dst(tmp_path, monkeypatch, set_clock):
     if hasattr(time, "tzset"):
         monkeypatch.setenv("TZ", "Europe/Berlin")
         time.tzset()
-    monkeypatch.setattr(
-        logbook.base, "_datetime_factory", lambda: datetime(2026, 3, 29)
-    )
+    set_clock(datetime(2026, 3, 29, tzinfo=timezone.utc))
     try:
         handler = logbook.TimedRotatingFileHandler(
             tmp_path / "app.log",
@@ -445,13 +441,13 @@ def test_timed_rollover_hourly_across_local_dst(tmp_path, monkeypatch):
     assert len(list(tmp_path.iterdir())) == 5
 
 
-def test_timed_rollover_in_repeated_hour(tmp_path, monkeypatch, record_time):
+def test_timed_rollover_in_repeated_hour(tmp_path, record_time, set_clock):
     # Starts at 01:40 EDT; records at 01:50 EDT, then 01:10 and 01:20 EST.
-    start, *times = [
+    set_clock(datetime(2026, 11, 1, 5, 40, tzinfo=timezone.utc))
+    times = [
         record_time(datetime(2026, 11, 1, hour, minute, tzinfo=timezone.utc))
-        for hour, minute in [(5, 40), (5, 50), (6, 10), (6, 20)]
+        for hour, minute in [(5, 50), (6, 10), (6, 20)]
     ]
-    monkeypatch.setattr(logbook.base, "_datetime_factory", lambda: start)
     handler = logbook.TimedRotatingFileHandler(
         tmp_path / "app.log", date_format="%H-%M", format_string="{record.message}"
     )
@@ -465,18 +461,17 @@ def test_timed_rollover_in_repeated_hour(tmp_path, monkeypatch, record_time):
         assert (tmp_path / f"app-{t:%H-%M}.log").read_text() == f"{t:%H-%M}\n"
 
 
-def test_timed_rollover_restart_keeps_backups(tmp_path, record_time):
+def test_timed_rollover_restart_keeps_backups(tmp_path, record_time, set_clock):
     times = [
         record_time(datetime(2026, 7, 15, hour, 30, tzinfo=timezone.utc))
         for hour in (12, 13, 14)
     ]
     for t in times:
         (tmp_path / f"app-{t:%Y-%m-%d-%H}.log").touch()
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(logbook.base, "_datetime_factory", lambda: times[-1])
-        handler = logbook.TimedRotatingFileHandler(
-            tmp_path / "app.log", date_format="%Y-%m-%d-%H", backup_count=3
-        )
+    set_clock(datetime(2026, 7, 15, 14, 30, tzinfo=timezone.utc))
+    handler = logbook.TimedRotatingFileHandler(
+        tmp_path / "app.log", date_format="%Y-%m-%d-%H", backup_count=3
+    )
     with handler, logbook.Flags(errors="raise"):
         record = logbook.LogRecord("test", logbook.INFO, "restarted")
         record.time = times[-1]
