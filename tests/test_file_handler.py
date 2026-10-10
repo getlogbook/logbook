@@ -472,6 +472,51 @@ def test_size_rollover_appends_to_new_file(tmp_path, logger):
     assert filename.read_text() == "external\nrollover\n"
 
 
+@pytest.mark.parametrize(
+    "handler_class",
+    [logbook.RotatingFileHandler, logbook.TimedRotatingFileHandler],
+    ids=lambda handler_class: handler_class.__name__,
+)
+@pytest.mark.parametrize(
+    ("args", "kwargs"),
+    [((), {}), ((), {"mode": "a"}), (("a",), {})],
+    ids=["default", "keyword", "positional"],
+)
+def test_rotating_mode_deprecation(tmp_path, recwarn, handler_class, args, kwargs):
+    handler_class(tmp_path / "app.log", *args, **kwargs).close()
+    caught = [
+        (w.category, w.filename) for w in recwarn if "mode argument" in str(w.message)
+    ]
+    assert caught == ([(DeprecationWarning, __file__)] if args or kwargs else [])
+
+
+@pytest.mark.filterwarnings("ignore:The mode argument:DeprecationWarning")
+@pytest.mark.parametrize(
+    ("handler_class", "current"),
+    [
+        (logbook.RotatingFileHandler, "app.log"),
+        (logbook.TimedRotatingFileHandler, "app-2010-01-01.log"),
+    ],
+    ids=["size", "timed"],
+)
+@pytest.mark.parametrize(
+    ("kwargs", "expected"),
+    [({}, "previous\nnew\n"), ({"mode": "w"}, "new\n")],
+    ids=["default", "w"],
+)
+def test_rotating_mode_on_first_open(
+    tmp_path, logger, handler_class, current, kwargs, expected, started_in_2010
+):
+    (tmp_path / current).write_text("previous\n")
+    with (
+        handler_class(tmp_path / "app.log", format_string="{record.message}", **kwargs),
+        logbook.Flags(errors="raise"),
+    ):
+        logger.info("new")
+
+    assert (tmp_path / current).read_text() == expected
+
+
 @pytest.mark.parametrize("timed_filename_for_current", [True, False])
 def test_timed_rollover_keeps_late_record_in_current_file(
     tmp_path, timed_filename_for_current, started_in_2010

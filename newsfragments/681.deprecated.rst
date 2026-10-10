@@ -1,0 +1,1 @@
+The ``mode`` argument of :class:`~logbook.RotatingFileHandler` and :class:`~logbook.TimedRotatingFileHandler` is deprecated.
