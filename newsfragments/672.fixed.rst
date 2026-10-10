@@ -1,0 +1,2 @@
+:class:`~logbook.FingersCrossedHandler` with a ``buffer_size`` and ``reset=True`` stopped buffering after its first escalation, so later escalations lost their records.
+The same happened after ``buffered_records`` was cleared or ``buffer_size`` was raised.

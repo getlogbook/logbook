@@ -1,3 +1,5 @@
+import pytest
+
 import logbook
 
 from .utils import capturing_stderr_context
@@ -75,3 +77,39 @@ def test_fingerscrossed_buffer_size(activation_strategy):
         "[WARNING] Test: Moar!",
         "[ERROR] Test: Pure hate!",
     ]
+
+
+def test_fingerscrossed_reset_cycles(activation_strategy, logger):
+    sink = logbook.TestHandler()
+    handler = logbook.FingersCrossedHandler(sink, buffer_size=2, reset=True)
+    with activation_strategy(handler):
+        for cycle in range(2):
+            logger.info(f"{cycle} a")
+            logger.info(f"{cycle} b")
+            logger.info(f"{cycle} c")
+            logger.error(f"{cycle} error")
+
+    assert [record.message for record in sink.records] == [
+        "0 c",
+        "0 error",
+        "1 c",
+        "1 error",
+    ]
+
+
+@pytest.mark.parametrize("change", ["clear", "grow"])
+def test_fingerscrossed_public_buffer_changes(activation_strategy, logger, change):
+    sink = logbook.TestHandler()
+    handler = logbook.FingersCrossedHandler(sink, buffer_size=2)
+    with activation_strategy(handler):
+        logger.info("a")
+        logger.info("b")
+        if change == "clear":
+            handler.buffered_records.clear()
+        else:
+            handler.buffer_size = 4
+        logger.info("c")
+        logger.error("error")
+
+    expected = ["c", "error"] if change == "clear" else ["a", "b", "c", "error"]
+    assert [record.message for record in sink.records] == expected
