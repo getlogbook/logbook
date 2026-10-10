@@ -1,0 +1,1 @@
+Logging to a closed ``GZIPCompressionHandler`` or ``BrotliCompressionHandler`` overwrote the file. It now raises :exc:`ValueError`.

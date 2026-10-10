@@ -4,6 +4,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+from functools import partial
 from types import SimpleNamespace
 
 import pytest
@@ -55,11 +56,13 @@ def test_file_handler_delay(logfile, activation_strategy, logger):
         assert f.readline() == "WARNING:testlogger:warning message\n"
 
 
-def test_monitoring_file_handler(logfile, activation_strategy, logger):
+@pytest.mark.parametrize("mode", ["a", "w"])
+def test_monitoring_file_handler(logfile, activation_strategy, logger, mode):
     if os.name == "nt":
         pytest.skip("unsupported on windows due to different IO (also unneeded)")
     handler = logbook.MonitoringFileHandler(
         logfile,
+        mode=mode,
         format_string="{record.level_name}:{record.channel}:{record.message}",
         delay=True,
     )
@@ -404,6 +407,88 @@ def test_brotli_file_handler(logfile, activation_strategy, logger):
             brotli.decompress(in_f.read()).decode()
             == "WARNING:testlogger:warning message\n"
         )
+
+
+def _read_write_file_handler(path, **kwargs):
+    path.touch()
+    return logbook.FileHandler(path, mode="r+", **kwargs)
+
+
+@pytest.mark.parametrize(
+    ("make_handler", "decompress"),
+    [
+        pytest.param(partial(logbook.FileHandler, mode="w"), lambda data: data),
+        pytest.param(_read_write_file_handler, lambda data: data),
+        pytest.param(partial(logbook.FileHandler, mode="x"), lambda data: data),
+        pytest.param(
+            partial(logbook.MonitoringFileHandler, mode="w"),
+            lambda data: data,
+            marks=pytest.mark.skipif(os.name == "nt", reason="unsupported on Windows"),
+        ),
+        pytest.param(logbook.GZIPCompressionHandler, gzip.decompress),
+        pytest.param(
+            logbook.BrotliCompressionHandler,
+            lambda data: brotli.decompress(data),
+            marks=pytest.mark.skipif(brotli is None, reason="brotli not installed"),
+        ),
+    ],
+    ids=["w", "r+", "x", "monitoring", "gzip", "brotli"],
+)
+def test_closed_handler_keeps_file(tmp_path, logger, make_handler, decompress):
+    path = tmp_path / "app.log"
+    handler = make_handler(path, format_string="{record.message}")
+    with handler.applicationbound(), logbook.Flags(errors="raise"):
+        logger.warning("kept")
+        handler.close()
+        with pytest.raises(ValueError, match="closed file handler"):
+            logger.warning("late")
+    assert decompress(path.read_bytes()).splitlines() == [b"kept"]
+
+
+def test_closed_delayed_handler_creates_no_file(tmp_path, logger):
+    path = tmp_path / "app.log"
+    handler = logbook.FileHandler(path, mode="w", delay=True)
+    handler.close()
+    with handler.applicationbound(), logbook.Flags(errors="raise"):
+        with pytest.raises(ValueError, match="closed file handler"):
+            logger.warning("late")
+    assert not path.exists()
+
+
+@pytest.mark.parametrize("mode", ["a", "a+"])
+def test_closed_append_handler_reopens(tmp_path, logger, mode):
+    path = tmp_path / "app.log"
+    handler = logbook.FileHandler(path, mode=mode, format_string="{record.message}")
+    with handler.applicationbound(), logbook.Flags(errors="raise"):
+        logger.warning("first")
+        handler.close()
+        logger.warning("second")
+    handler.close()
+    assert path.read_text() == "first\nsecond\n"
+
+
+@pytest.mark.parametrize(
+    "handler_class",
+    [
+        logbook.FileHandler,
+        pytest.param(
+            logbook.MonitoringFileHandler,
+            marks=pytest.mark.skipif(os.name == "nt", reason="unsupported on Windows"),
+        ),
+    ],
+)
+def test_closed_handler_reopens_explicitly(tmp_path, logger, handler_class):
+    path = tmp_path / "app.log"
+    handler = handler_class(path, mode="w", format_string="{record.message}")
+    with handler.applicationbound(), logbook.Flags(errors="raise"):
+        logger.warning("first")
+        handler.close()
+        path.rename(tmp_path / "app.log.1")
+        handler._open()
+        logger.warning("second")
+    handler.close()
+    assert (tmp_path / "app.log.1").read_text() == "first\n"
+    assert path.read_text() == "second\n"
 
 
 @pytest.mark.skipif(os.name == "nt", reason="Requires POSIX special files")

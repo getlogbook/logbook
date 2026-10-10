@@ -681,6 +681,7 @@ class FileHandler(StreamHandler):
         self.encoding = encoding
         self._filename = os.path.abspath(filename)
         self._mode = mode
+        self._closed = False
         if delay:
             self.stream = None
         else:
@@ -690,6 +691,7 @@ class FileHandler(StreamHandler):
         if mode is None:
             mode = self._mode
         self.stream = open(self._filename, mode, encoding=self.encoding)
+        self._closed = False
 
     def write(self, item):
         self.ensure_stream_is_open()
@@ -706,6 +708,7 @@ class FileHandler(StreamHandler):
                 self.stream.close()
                 self.stream = None
         finally:
+            self._closed = True
             self.lock.release()
 
     def encode(self, record):
@@ -716,6 +719,8 @@ class FileHandler(StreamHandler):
 
     def ensure_stream_is_open(self):
         if self.stream is None:
+            if self._closed and "a" not in self._mode:
+                raise ValueError("I/O operation on closed file handler")
             self._open()
 
 
@@ -749,6 +754,7 @@ class GZIPCompressionHandler(FileHandler):
         self.stream = gzip.open(
             self._filename, mode, compresslevel=self._compression_quality
         )
+        self._closed = False
 
     def write(self, item):
         if isinstance(item, str):
@@ -805,6 +811,7 @@ class BrotliCompressionHandler(FileHandler):
         if mode is None:
             mode = self._mode
         self.stream = open(self._filename, mode)
+        self._closed = False
 
     def write(self, item):
         if isinstance(item, str):

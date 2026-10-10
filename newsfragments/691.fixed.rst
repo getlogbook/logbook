@@ -1,0 +1,1 @@
+Logging to a closed :class:`~logbook.FileHandler` or :class:`~logbook.MonitoringFileHandler` whose mode doesn't append, such as ``"w"``, overwrote the file. It now raises :exc:`ValueError`.
