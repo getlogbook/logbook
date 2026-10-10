@@ -1,0 +1,1 @@
+:class:`~logbook.MonitoringFileHandler` detects a log file replaced during a write and sends the next record to the replacement.
