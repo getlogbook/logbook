@@ -1,0 +1,1 @@
+:class:`~logbook.SyslogHandler` could send a network record with another thread's app-name. It also replaced an attached formatter, or failed if the formatter was not a :class:`~logbook.StringFormatter`.
