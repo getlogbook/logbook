@@ -16,7 +16,6 @@ import os
 import re
 import socket
 import ssl
-import stat
 import sys
 import traceback
 import warnings
@@ -838,41 +837,39 @@ class MonitoringFileHandler(FileHandler):
         filter=None,
         bubble=False,
     ):
+        if os.name == "nt":
+            raise RuntimeError("MonitoringFileHandler does not support Windows")
         FileHandler.__init__(
             self, filename, mode, encoding, level, format_string, delay, filter, bubble
         )
-        if os.name == "nt":
-            raise RuntimeError("MonitoringFileHandler does not support Windows")
-        self._query_fd()
+        self._last_stat = self._query_fd()
 
     def _query_fd(self):
         if self.stream is None:
-            self._last_stat = None, None
-        else:
-            try:
-                st = os.stat(self._filename)
-            except OSError:
-                e = sys.exc_info()[1]
-                if e.errno != errno.ENOENT:
-                    raise
-                self._last_stat = None, None
-            else:
-                self._last_stat = st[stat.ST_DEV], st[stat.ST_INO]
+            return None
+        st = os.fstat(self.stream.fileno())
+        return st.st_dev, st.st_ino
+
+    def _moved_away(self):
+        try:
+            st = os.stat(self._filename)
+        except FileNotFoundError:
+            return True
+        return (st.st_dev, st.st_ino) != self._last_stat
 
     def emit(self, record):
         msg = self.format(record)
         self.lock.acquire()
         try:
-            last_stat = self._last_stat
-            self._query_fd()
-            if last_stat != self._last_stat and self.stream is not None:
+            if self.stream is not None and self._moved_away():
                 self.flush()
                 self.stream.close()
                 self.stream = None
-            self.ensure_stream_is_open()
+            if self.stream is None:
+                self.ensure_stream_is_open()
+                self._last_stat = self._query_fd()
             self.write(self.encode(msg))
             self.flush()
-            self._query_fd()
         finally:
             self.lock.release()
 
