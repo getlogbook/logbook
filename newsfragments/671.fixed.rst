@@ -1,0 +1,1 @@
+:class:`~logbook.TimedRotatingFileHandler` with ``timed_filename_for_current=False`` could rename the current log file over an earlier backup when restarted in a time zone other than UTC.

@@ -1,7 +1,7 @@
 import gzip
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -272,6 +272,30 @@ def test_timed_rotating_file_handler__not_timed_filename_for_current(
         with open(str(tmpdir.join("trot.log.2010-01-07"))) as f:
             assert f.readline().rstrip() == "[01:00] Third One"
             assert f.readline().rstrip() == "[02:00] Third One"
+
+
+def test_timed_rotating_file_handler_dates_existing_file_on_record_clock(
+    tmp_path, record_time, set_clock
+):
+    current = tmp_path / "app.log"
+    current.write_text("current\n")
+    backup = tmp_path / "app-2010-01-01.log"
+    backup.write_text("backup\n")
+    written = datetime(2010, 1, 2, 1, tzinfo=timezone.utc)
+    os.utime(current, (written.timestamp(), written.timestamp()))
+
+    # Restart 30 seconds after the file was last written.
+    set_clock(written + timedelta(seconds=30))
+    handler = logbook.TimedRotatingFileHandler(
+        current, timed_filename_for_current=False, format_string="{record.message}"
+    )
+    record = logbook.LogRecord("test", logbook.INFO, "new")
+    record.time = record_time(written + timedelta(minutes=1))
+    with handler, logbook.Flags(errors="raise"):
+        handler.handle(record)
+
+    assert backup.read_text() == "backup\n"
+    assert current.read_text() == "current\nnew\n"
 
 
 def _decompress(input_file_name, use_gzip=True):

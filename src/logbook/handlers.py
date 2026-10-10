@@ -22,7 +22,7 @@ import traceback
 import warnings
 from collections import deque
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from textwrap import dedent
 
@@ -42,6 +42,7 @@ from logbook.base import (
     ContextStackManager,
     Flags,
     _missing,
+    _record_time_from_utc,
     _record_time_to_utc,
     level_name_property,
     lookup_level,
@@ -1044,9 +1045,8 @@ class TimedRotatingFileHandler(FileHandler):
         if self.timed_filename_for_current:
             filename = self.generate_timed_filename(self._timestamp)
         elif os.path.exists(filename):
-            self._timestamp = self._get_timestamp(
-                datetime.fromtimestamp(os.stat(filename).st_mtime)
-            )
+            modified = datetime.fromtimestamp(os.stat(filename).st_mtime, timezone.utc)
+            self._timestamp = self._get_timestamp(_record_time_from_utc(modified))
 
         FileHandler.__init__(
             self, filename, mode, encoding, level, format_string, True, filter, bubble
