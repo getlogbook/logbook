@@ -190,6 +190,18 @@ def test_mail_handler(activation_strategy, logger):
         assert "This is not mailed" in fallback.getvalue()
 
 
+def test_mail_handler_without_introspection(logger):
+    handler = make_fake_mail_handler(
+        record_limit=1,
+        format_string="Subject: Without introspection\n\n{record.message}",
+    )
+    with logbook.Flags(errors="raise", introspection=False), handler:
+        for _ in range(3):
+            logger.error("a repeated error")
+
+    assert len(handler.mails) == 1
+
+
 def test_mail_handler_batching(activation_strategy, logger):
     mail_handler = make_fake_mail_handler()
     handler = logbook.FingersCrossedHandler(mail_handler, reset=True)

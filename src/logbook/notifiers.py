@@ -396,6 +396,8 @@ class PushoverHandler(NotificationBaseHandler):
             return msg
 
     def emit(self, record):
+        if not self.check_delivery(record)[1]:
+            return
         message = self._crop(record.message, self.max_message_len)
 
         body_dict = {

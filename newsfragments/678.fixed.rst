@@ -1,0 +1,1 @@
+Rate-limited handlers no longer fail when introspection is disabled.
