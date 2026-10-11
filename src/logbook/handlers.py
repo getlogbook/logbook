@@ -908,6 +908,26 @@ def _is_special_file(filename):
     return os.path.exists(filename) and not os.path.isfile(filename)
 
 
+class _Omitted:
+    def __repr__(self):
+        return "<omitted>"
+
+
+_omitted = _Omitted()
+
+
+def _rotating_mode(mode, handler):
+    if mode is _omitted:
+        return "a"
+    warnings.warn(
+        f"The mode argument to {handler} is deprecated. Leave it out; to start "
+        "with an empty file, remove or truncate it before creating the handler.",
+        DeprecationWarning,
+        stacklevel=3,
+    )
+    return mode
+
+
 class RotatingFileHandler(FileHandler):
     """This handler rotates based on file size.  Once the maximum size
     is reached it will reopen the file and start with an empty file
@@ -920,12 +940,16 @@ class RotatingFileHandler(FileHandler):
     the logging package, the backup count is mandatory because just
     reopening the file is dangerous as it deletes the log without
     asking on rollover.
+
+    .. deprecated:: 1.11
+       The `mode` argument. Leave it out; to start with an empty file,
+       remove or truncate it before creating the handler.
     """
 
     def __init__(
         self,
         filename,
-        mode="a",
+        mode=_omitted,
         encoding="utf-8",
         level=NOTSET,
         format_string=None,
@@ -935,6 +959,7 @@ class RotatingFileHandler(FileHandler):
         filter=None,
         bubble=False,
     ):
+        mode = _rotating_mode(mode, "RotatingFileHandler")
         FileHandler.__init__(
             self, filename, mode, encoding, level, format_string, delay, filter, bubble
         )
@@ -1021,12 +1046,16 @@ class TimedRotatingFileHandler(FileHandler):
     Finally, an optional argument `timed_filename_for_current` may be set to
     false if you wish to have the current log file match the supplied filename
     until it is rolled over
+
+    .. deprecated:: 1.11
+       The `mode` argument. Leave it out; to start with an empty file,
+       remove or truncate it before creating the handler.
     """
 
     def __init__(
         self,
         filename,
-        mode="a",
+        mode=_omitted,
         encoding="utf-8",
         level=NOTSET,
         format_string=None,
@@ -1037,6 +1066,7 @@ class TimedRotatingFileHandler(FileHandler):
         timed_filename_for_current=True,
         rollover_format="{basename}-{timestamp}{ext}",
     ):
+        mode = _rotating_mode(mode, "TimedRotatingFileHandler")
         self.date_format = date_format
         self.backup_count = backup_count
 
