@@ -1,0 +1,1 @@
+The "This message occurred additional N time(s) and was suppressed" note in :class:`~logbook.MailHandler` mails no longer counts records that were delivered.
