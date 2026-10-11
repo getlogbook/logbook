@@ -69,6 +69,21 @@ def docs(session: nox.Session) -> None:
         "docs",
         "docs/_build/html",
     )
+
+
+# don't specify python here or CI will pick it up
+@nox.session(default=False)
+def linkcheck(session: nox.Session) -> None:
+    session.run_install(
+        "uv",
+        "sync",
+        "--no-dev",
+        "--group=docs",
+        f"--python={session.virtualenv.location}",
+        env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
+    )
+
+    temp_dir = session.create_tmp()
     session.run(
         "sphinx-build",
         "-W",
