@@ -1,0 +1,1 @@
+:class:`~logbook.ticketing.MongoDBBackend` is deprecated. It does not work with any PyMongo release that supports Python 3.
