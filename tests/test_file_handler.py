@@ -55,6 +55,119 @@ def test_file_handler_delay(logfile, activation_strategy, logger):
         assert f.readline() == "WARNING:testlogger:warning message\n"
 
 
+@pytest.mark.parametrize("encoding", ["latin-1", "utf-16-le"])
+@pytest.mark.parametrize("delay", [False, True])
+def test_file_handler_encoding(tmp_path, logger, encoding, delay):
+    filename = tmp_path / "encoded.log"
+    handler = logbook.FileHandler(
+        filename, encoding=encoding, delay=delay, format_string="{record.message}"
+    )
+    with handler, logbook.Flags(errors="raise"):
+        assert filename.exists() is not delay
+        logger.info("caf\u00e9")
+        logger.info("d\u00e9j\u00e0")
+
+    expected = f"caf\u00e9{os.linesep}d\u00e9j\u00e0{os.linesep}"
+    assert filename.read_bytes() == expected.encode(encoding)
+
+
+@pytest.mark.parametrize("encoding", ["latin-1", "utf-16-le"])
+@pytest.mark.parametrize("delay", [False, True])
+def test_rotating_file_handler_encoding(tmp_path, logger, encoding, delay):
+    filename = tmp_path / "encoded.log"
+    with (
+        logbook.RotatingFileHandler(
+            filename,
+            encoding=encoding,
+            delay=delay,
+            max_size=1,
+            backup_count=1,
+            format_string="{record.message}",
+        ),
+        logbook.Flags(errors="raise"),
+    ):
+        logger.info("caf\u00e9")
+        logger.info("d\u00e9j\u00e0")
+
+    assert filename.read_bytes() == f"d\u00e9j\u00e0{os.linesep}".encode(encoding)
+    assert (tmp_path / "encoded.log.1").read_bytes() == f"caf\u00e9{os.linesep}".encode(
+        encoding
+    )
+
+
+@pytest.mark.parametrize("encoding", ["latin-1", "utf-16-le"])
+@pytest.mark.parametrize("timed_filename_for_current", [False, True])
+def test_timed_rotating_file_handler_encoding(
+    tmp_path, encoding, timed_filename_for_current, started_in_2010
+):
+    handler = logbook.TimedRotatingFileHandler(
+        tmp_path / "encoded.log",
+        encoding=encoding,
+        timed_filename_for_current=timed_filename_for_current,
+        format_string="{record.message}",
+    )
+    with handler, logbook.Flags(errors="raise"):
+        for day, message in [(1, "caf\u00e9"), (2, "d\u00e9j\u00e0")]:
+            record = logbook.LogRecord("test", logbook.INFO, message)
+            record.time = datetime(2010, 1, day)
+            handler.handle(record)
+
+    current = "encoded-2010-01-02.log" if timed_filename_for_current else "encoded.log"
+    assert (tmp_path / current).read_bytes() == f"d\u00e9j\u00e0{os.linesep}".encode(encoding)
+    assert (tmp_path / "encoded-2010-01-01.log").read_bytes() == (
+        f"caf\u00e9{os.linesep}".encode(encoding)
+    )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="MonitoringFileHandler requires POSIX")
+@pytest.mark.parametrize("encoding", ["latin-1", "utf-16-le"])
+@pytest.mark.parametrize("delay", [False, True])
+def test_monitoring_file_handler_encoding(tmp_path, logger, encoding, delay):
+    filename = tmp_path / "encoded.log"
+    rotated = tmp_path / "encoded.log.old"
+    with (
+        logbook.MonitoringFileHandler(
+            filename, encoding=encoding, delay=delay, format_string="{record.message}"
+        ),
+        logbook.Flags(errors="raise"),
+    ):
+        logger.info("caf\u00e9")
+        filename.rename(rotated)
+        logger.info("d\u00e9j\u00e0")
+
+    assert rotated.read_bytes() == "caf\u00e9\n".encode(encoding)
+    assert filename.read_bytes() == "d\u00e9j\u00e0\n".encode(encoding)
+
+
+@pytest.mark.parametrize("encoding", ["latin-1", "utf-16-le"])
+@pytest.mark.parametrize("delay", [False, True])
+@pytest.mark.parametrize(
+    ("handler_class", "decompress"),
+    [
+        (logbook.GZIPCompressionHandler, gzip.decompress),
+        pytest.param(
+            logbook.BrotliCompressionHandler,
+            brotli.decompress if brotli is not None else None,
+            marks=pytest.mark.skipif(brotli is None, reason="brotli not installed"),
+        ),
+    ],
+    ids=["gzip", "brotli"],
+)
+def test_compression_handler_encoding(
+    tmp_path, logger, encoding, delay, handler_class, decompress
+):
+    filename = tmp_path / "compressed.log"
+    handler = handler_class(
+        filename, encoding=encoding, delay=delay, format_string="{record.message}"
+    )
+    with handler, logbook.Flags(errors="raise"):
+        assert filename.exists() is not delay
+        logger.info("caf\u00e9")
+        logger.info("d\u00e9j\u00e0\n")
+
+    assert decompress(filename.read_bytes()) == "caf\u00e9\nd\u00e9j\u00e0\n\n".encode(encoding)
+
+
 def test_monitoring_file_handler(logfile, activation_strategy, logger):
     if os.name == "nt":
         pytest.skip("unsupported on windows due to different IO (also unneeded)")

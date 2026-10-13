@@ -1,0 +1,3 @@
+``StreamHandler`` now encodes messages for buffered and raw binary streams using
+the requested encoding (UTF-8 by default), while leaving text streams to handle
+their own encoding.

@@ -580,8 +580,9 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
 
     .. admonition:: Notes on the encoding
 
-       On Python 3, the encoding parameter is only used if a stream was
-       passed that was opened in binary mode.
+       The encoding parameter is used for binary streams derived from
+       :class:`io.BufferedIOBase` or :class:`io.RawIOBase` and defaults to
+       UTF-8. Text streams use their own encoding and ignore this parameter.
     """
 
     def __init__(
@@ -628,11 +629,14 @@ class StreamHandler(Handler, StringFormatterHandlerMixin):
             self.stream.flush()
 
     def encode(self, msg):
-        """Encodes the message to the stream encoding."""
-        return msg + "\n"
+        """Adds a newline and encodes the message for binary streams."""
+        msg += "\n"
+        if isinstance(self.stream, (io.BufferedIOBase, io.RawIOBase)):
+            return msg.encode(self.encoding or "utf-8")
+        return msg
 
     def write(self, item):
-        """Writes a bytestring to the stream."""
+        """Writes text or bytes to the stream."""
         self.stream.write(item)
 
     def emit(self, record):

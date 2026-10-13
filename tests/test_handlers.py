@@ -141,6 +141,92 @@ def test_default_handlers(logger):
     assert "WARNING: testlogger: Aha!" in captured
 
 
+@pytest.mark.parametrize("encoding", [None, "utf-8", "latin-1", "utf-16-le"])
+def test_stream_handler_binary_memory(logger, encoding):
+    stream = io.BytesIO()
+    with (
+        logbook.StreamHandler(
+            stream, encoding=encoding, format_string="{record.message}"
+        ),
+        logbook.Flags(errors="raise"),
+    ):
+        logger.info("caf\u00e9")
+        logger.info("d\u00e9j\u00e0\n")
+
+    assert not stream.closed
+    assert stream.getvalue() == "caf\u00e9\nd\u00e9j\u00e0\n\n".encode(encoding or "utf-8")
+
+
+@pytest.mark.parametrize("encoding", [None, "utf-8", "latin-1", "utf-16-le"])
+@pytest.mark.parametrize("buffering", [0, -1], ids=["raw", "buffered"])
+def test_stream_handler_binary_file(tmp_path, logger, encoding, buffering):
+    filename = tmp_path / "binary.log"
+    with filename.open("wb", buffering=buffering) as stream:
+        with (
+            logbook.StreamHandler(
+                stream, encoding=encoding, format_string="{record.message}"
+            ),
+            logbook.Flags(errors="raise"),
+        ):
+            logger.info("caf\u00e9")
+            logger.info("d\u00e9j\u00e0\n")
+        assert not stream.closed
+
+    assert filename.read_bytes() == "caf\u00e9\nd\u00e9j\u00e0\n\n".encode(encoding or "utf-8")
+
+
+@pytest.mark.parametrize("encoding", [None, "ascii", "latin-1"])
+def test_stream_handler_text_memory_ignores_encoding(logger, encoding):
+    stream = io.StringIO()
+    with (
+        logbook.StreamHandler(
+            stream, encoding=encoding, format_string="{record.message}"
+        ),
+        logbook.Flags(errors="raise"),
+    ):
+        logger.info("\u2603")
+        logger.info("caf\u00e9\n")
+
+    assert not stream.closed
+    assert stream.getvalue() == "\u2603\ncaf\u00e9\n\n"
+
+
+def test_stream_handler_text_file_uses_stream_encoding(tmp_path, logger):
+    filename = tmp_path / "text.log"
+    with filename.open("w", encoding="utf-16-le", newline="") as stream:
+        with (
+            logbook.StreamHandler(
+                stream, encoding="ascii", format_string="{record.message}"
+            ),
+            logbook.Flags(errors="raise"),
+        ):
+            logger.info("\u2603")
+            logger.info("caf\u00e9\n")
+        assert not stream.closed
+
+    assert filename.read_bytes() == "\u2603\ncaf\u00e9\n\n".encode("utf-16-le")
+
+
+def test_stream_handler_custom_text_stream(logger):
+    class TextStream:
+        def __init__(self):
+            self.items = []
+
+        def write(self, item):
+            self.items.append(item)
+
+    stream = TextStream()
+    with (
+        logbook.StreamHandler(
+            stream, encoding="ascii", format_string="{record.message}"
+        ),
+        logbook.Flags(errors="raise"),
+    ):
+        logger.info("\u2603")
+
+    assert stream.items == ["\u2603\n"]
+
+
 def test_stream_handler_leaves_stack_when_close_fails():
     class FailingFlush(io.StringIO):
         def flush(self):
