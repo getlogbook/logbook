@@ -622,3 +622,66 @@ def test_timed_rollover_restart_keeps_backups(tmp_path, record_time, set_clock):
         handler.handle(record)
 
     assert len(list(tmp_path.iterdir())) == 3
+
+
+def _log_on_day(handler, day, message, hour=0):
+    record = logbook.LogRecord("test", logbook.INFO, message)
+    record.time = datetime(2010, 1, day, hour)
+    handler.handle(record)
+
+
+@pytest.mark.parametrize(
+    ("timed_filename_for_current", "failure", "old_period", "new_period"),
+    [
+        (False, "rename", "first\nlate\n", "second\n"),
+        (True, "remove", "first\nlate\n", "second\n"),
+        (False, "remove", "first\n", "late\nsecond\n"),
+        (False, "open", "first\n", "late\nsecond\n"),
+        (True, "open", "first\n", "late\nsecond\n"),
+    ],
+    ids=["fixed-rename", "dated-remove", "fixed-remove", "fixed-open", "dated-open"],
+)
+def test_timed_rollover_recovers_from_failure(
+    tmp_path,
+    monkeypatch,
+    timed_filename_for_current,
+    failure,
+    old_period,
+    new_period,
+    started_in_2010,
+):
+    handler = logbook.TimedRotatingFileHandler(
+        tmp_path / "app.log",
+        backup_count=2,
+        timed_filename_for_current=timed_filename_for_current,
+        format_string="{record.message}",
+    )
+    old_file = tmp_path / "app-2010-01-01.log"
+    new_file = tmp_path / (
+        "app-2010-01-02.log" if timed_filename_for_current else "app.log"
+    )
+    with handler, logbook.Flags(errors="raise"):
+        _log_on_day(handler, 1, "first")
+        if failure == "rename":
+            old_file.mkdir()
+        elif failure == "remove":
+            missing = (0, str(tmp_path / "missing.log"))
+            monkeypatch.setattr(handler, "files_to_delete", lambda: [missing])
+        else:
+            real_open = handler._open
+
+            def open_fails_once(mode=None):
+                monkeypatch.setattr(handler, "_open", real_open)
+                raise OSError
+
+            monkeypatch.setattr(handler, "_open", open_fails_once)
+        with pytest.raises(OSError):
+            _log_on_day(handler, 2, "lost")
+        monkeypatch.undo()
+        if failure == "rename":
+            old_file.rmdir()
+        _log_on_day(handler, 1, "late", hour=12)
+        _log_on_day(handler, 2, "second")
+
+    assert old_file.read_text() == old_period
+    assert new_file.read_text() == new_period
