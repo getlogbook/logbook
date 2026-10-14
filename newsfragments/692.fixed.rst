@@ -1,0 +1,1 @@
+Records redirected from :mod:`logging` keep the time they were logged, even when delivered later from a queue. Overriding :meth:`~logbook.compat.RedirectLoggingHandler.convert_time` now takes effect.

@@ -14,11 +14,11 @@ import math
 import sys
 import warnings
 from collections.abc import Mapping
+from datetime import datetime, timezone
 
 import logbook
 
-from .base import _record_time_to_utc
-from .helpers import datetime_utcfromtimestamp
+from .base import _record_time_from_utc, _record_time_to_utc
 
 
 def redirect_logging(set_root_logger_level=True):
@@ -130,6 +130,8 @@ class RedirectLoggingHandler(logging.Handler):
 
     def find_caller(self, old_record):
         """Tries to find the caller that issued the call."""
+        if old_record.lineno:
+            return None
         frm = sys._getframe(2)
         while frm is not None:
             if (
@@ -145,7 +147,7 @@ class RedirectLoggingHandler(logging.Handler):
         """Converts the UNIX timestamp of the old record into a
         datetime object as used by logbook.
         """
-        return datetime_utcfromtimestamp(timestamp)
+        return _record_time_from_utc(datetime.fromtimestamp(timestamp, timezone.utc))
 
     def convert_record(self, old_record):
         """Converts an old logging record into a logbook log record."""
@@ -166,7 +168,19 @@ class RedirectLoggingHandler(logging.Handler):
             self.find_extra(old_record),
             self.find_caller(old_record),
         )
+        # The stdlib record supplies what heavy_init would collect, and
+        # collecting it here would describe the thread delivering the record.
+        record.heavy_initialized = True
         record.time = self.convert_time(old_record.created)
+        if record.frame is None:
+            record.filename = old_record.pathname
+            record.lineno = old_record.lineno
+            record.func_name = old_record.funcName
+            record.module = old_record.module
+        record.thread = old_record.thread
+        record.thread_name = old_record.threadName
+        record.process = old_record.process
+        record.process_name = old_record.processName
         return record
 
     def emit(self, record):

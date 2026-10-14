@@ -1,5 +1,6 @@
 import functools
 import logging
+import logging.handlers
 import sys
 import warnings
 from datetime import datetime, timedelta, timezone
@@ -140,3 +141,123 @@ def test_logging_handler_converted_time_override(created, msecs):
     record = EpochHandler().convert_record(old_record)
     assert record.created == created
     assert record.msecs == msecs
+
+
+def test_redirect_keeps_event_time(record_time):
+    # 01:10 EST, the second time the clocks show 01:10 that day.
+    event = datetime(2026, 11, 1, 6, 10, 0, 123456, tzinfo=timezone.utc)
+    source = logging.LogRecord(
+        "source", logging.WARNING, __file__, 1, "event", (), None
+    )
+    source.created = event.timestamp()
+    with logbook.TestHandler() as handler:
+        logbook.compat.RedirectLoggingHandler().handle(source)
+    [record] = handler.records
+    assert repr(record.time) == repr(record_time(event))
+
+
+def test_redirect_convert_time_override_sets_time():
+    class Custom(logbook.compat.RedirectLoggingHandler):
+        def convert_time(self, timestamp):
+            return datetime(2003, 2, 1)
+
+    source = logging.LogRecord(
+        "source", logging.WARNING, __file__, 1, "event", (), None
+    )
+    with logbook.TestHandler() as handler:
+        Custom().handle(source)
+    [record] = handler.records
+    assert record.time == datetime(2003, 2, 1)
+
+
+@pytest.mark.parametrize("stacklevel", [1, 2])
+def test_redirect_preserves_stdlib_caller(stacklevel):
+    def helper():
+        logging.getLogger("source").warning("event", stacklevel=stacklevel)
+
+    def caller():
+        helper()
+
+    with logbook.TestHandler() as handler, logbook.compat.redirected_logging():
+        caller()
+    [record] = handler.records
+    code = (helper if stacklevel == 1 else caller).__code__
+    assert (record.func_name, record.lineno) == (
+        code.co_name,
+        code.co_firstlineno + 1,
+    )
+
+
+def test_redirect_buffered_records_keep_their_own_caller():
+    logger = logging.Logger("buffered")
+    redirect = logbook.compat.RedirectLoggingHandler()
+    logger.addHandler(logging.handlers.MemoryHandler(2, target=redirect))
+
+    def load():
+        logger.warning("loading")
+
+    def fail():
+        logger.warning("failed")
+
+    with logbook.TestHandler() as handler:
+        load()
+        fail()
+    assert [(r.func_name, r.lineno) for r in handler.records] == [
+        ("load", load.__code__.co_firstlineno + 1),
+        ("fail", fail.__code__.co_firstlineno + 1),
+    ]
+
+
+def test_redirect_replayed_record_keeps_source_metadata():
+    source = logging.LogRecord(
+        "source",
+        logging.WARNING,
+        "/application/original.py",
+        123,
+        "event",
+        (),
+        None,
+        func="original_caller",
+    )
+    source.thread, source.threadName = 12345, "origin-thread"
+    source.process, source.processName = 54321, "origin-process"
+    with logbook.TestHandler() as handler:
+        logbook.compat.RedirectLoggingHandler().handle(source)
+    [record] = handler.records
+    assert (record.filename, record.lineno, record.func_name, record.module) == (
+        "/application/original.py",
+        123,
+        "original_caller",
+        "original",
+    )
+    assert (record.thread, record.thread_name, record.process, record.process_name) == (
+        12345,
+        "origin-thread",
+        54321,
+        "origin-process",
+    )
+
+
+def test_redirect_uses_frame_when_stdlib_caller_is_unknown(monkeypatch):
+    monkeypatch.setattr(logging, "_srcfile", None)
+
+    def app_function():
+        logging.getLogger("source").warning("without caller lookup")
+
+    with logbook.TestHandler() as handler, logbook.compat.redirected_logging():
+        app_function()
+    [record] = handler.records
+    assert record.func_name == "app_function"
+
+
+def test_redirect_find_caller_override_sets_location():
+    class CustomHandler(logbook.compat.RedirectLoggingHandler):
+        def find_caller(self, old_record):
+            return frame
+
+    frame = sys._getframe()
+    source = logging.LogRecord(
+        "source", logging.WARNING, "/application/source.py", 42, "event", (), None
+    )
+    record = CustomHandler().convert_record(source)
+    assert record.func_name == "test_redirect_find_caller_override_sets_location"

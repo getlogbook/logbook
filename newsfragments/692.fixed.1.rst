@@ -1,0 +1,1 @@
+Records redirected from :mod:`logging` keep their original file, line, function, thread and process, including calls with ``stacklevel`` and records delivered later from a queue.
