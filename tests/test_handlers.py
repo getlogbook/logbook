@@ -154,3 +154,14 @@ def test_stream_handler_leaves_stack_when_close_fails():
     finally:
         if handler in logbook.Handler.stack_manager.iter_context_objects():
             handler.pop_context()
+
+
+@pytest.mark.filterwarnings("error:The encoding argument")
+def test_file_handler_encoding_does_not_warn(tmp_path, logger):
+    filename = tmp_path / "events.log"
+    handler = logbook.FileHandler(
+        filename, encoding="latin-1", format_string="{record.message}"
+    )
+    with handler:
+        logger.warning("café")
+    assert filename.read_text(encoding="latin-1") == "café\n"
