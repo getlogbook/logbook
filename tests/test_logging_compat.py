@@ -1,6 +1,9 @@
 import functools
+import logging
+import sys
 import warnings
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from io import StringIO
 from itertools import count
 from random import randrange
@@ -94,3 +97,46 @@ def test_warning_redirections():
     assert len(handler.formatted_records) == 1
     assert handler.formatted_records[0].startswith("[WARNING] RuntimeWarning: Testing")
     assert __file_without_pyc__ in handler.records[0].filename
+
+
+@pytest.mark.parametrize(
+    "time, created, msecs",
+    [
+        (datetime(2023, 11, 14, 22, 13, 20, 123456), 1700000000.123456, 123.0),
+        (
+            datetime(2023, 11, 14, 23, 13, 20, 1000, timezone(timedelta(hours=1))),
+            1700000000.001,
+            1.0,
+        ),
+        (datetime(1969, 12, 31, 23, 59, 59, 123456), -0.876544, 123.0),
+    ],
+)
+def test_logging_handler_event_time(time, created, msecs):
+    old_record = logbook.LogRecord("source", logbook.INFO, "event")
+    old_record.time = time
+    record = logbook.compat.LoggingHandler().convert_record(old_record)
+    assert record.created == created
+    assert record.msecs == msecs
+    start = logging._startTime
+    if sys.version_info >= (3, 13):
+        start /= 1e9
+    assert record.relativeCreated == pytest.approx((created - start) * 1000, abs=0.01)
+
+
+@pytest.mark.parametrize(
+    "created, msecs",
+    [
+        (1700000000.1239996, 123.0),
+        (1700000000.9999998, 999.0),
+        (Decimal("1700000000.125"), 125.0),
+    ],
+)
+def test_logging_handler_converted_time_override(created, msecs):
+    class EpochHandler(logbook.compat.LoggingHandler):
+        def convert_time(self, dt):
+            return created
+
+    old_record = logbook.LogRecord("source", logbook.INFO, "event")
+    record = EpochHandler().convert_record(old_record)
+    assert record.created == created
+    assert record.msecs == msecs
