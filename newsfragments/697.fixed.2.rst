@@ -1,0 +1,1 @@
+On Windows, :class:`~logbook.RotatingFileHandler` overwrote a backup that another process had open.

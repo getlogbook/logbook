@@ -103,7 +103,7 @@ if os.name == "nt":
             os.rename(src, dst)
         except OSError:
             e = sys.exc_info()[1]
-            if e.errno not in (errno.EEXIST, errno.EACCES):
+            if e.errno != errno.EEXIST:
                 raise
             old = f"{dst}-{random.randint(0, 2**31 - 1):08x}"
             os.rename(dst, old)

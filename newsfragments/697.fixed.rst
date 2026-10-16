@@ -1,0 +1,1 @@
+:class:`~logbook.FileHandler` and its subclasses could fail on every later record after closing the file failed. :class:`~logbook.RotatingFileHandler` did the same after a failed rollover.

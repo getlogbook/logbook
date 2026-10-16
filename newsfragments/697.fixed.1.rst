@@ -1,0 +1,1 @@
+:class:`~logbook.RotatingFileHandler` could overwrite a backup when a failed rollover was retried.

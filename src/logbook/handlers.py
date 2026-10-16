@@ -703,13 +703,20 @@ class FileHandler(StreamHandler):
     def close(self):
         self.lock.acquire()
         try:
-            if self.stream is not None:
-                self.flush()
-                self.stream.close()
-                self.stream = None
+            self._close_stream()
         finally:
             self._closed = True
             self.lock.release()
+
+    def _close_stream(self):
+        stream = self.stream
+        if stream is None:
+            return
+        try:
+            self.flush()
+        finally:
+            self.stream = None
+            stream.close()
 
     def encode(self, record):
         # encodes based on the stream settings, so the stream has to be
@@ -884,9 +891,7 @@ class MonitoringFileHandler(FileHandler):
         self.lock.acquire()
         try:
             if self.stream is not None and self._moved_away():
-                self.flush()
-                self.stream.close()
-                self.stream = None
+                self._close_stream()
             if self.stream is None:
                 self.ensure_stream_is_open()
                 self._last_stat = self._query_fd()
@@ -977,6 +982,7 @@ class RotatingFileHandler(FileHandler):
         self.max_size = max_size
         self.backup_count = backup_count
         assert backup_count > 0, "at least one backup file has to be specified"
+        self._next_backup = None
 
     def should_rollover(self, record, bytes):
         try:
@@ -989,17 +995,23 @@ class RotatingFileHandler(FileHandler):
         return not _is_special_file(self._filename)
 
     def perform_rollover(self):
-        self.stream.close()
-        for x in range(self.backup_count - 1, 0, -1):
-            src = f"{self._filename}.{x}"
-            dst = f"{self._filename}.{x + 1}"
+        if self._next_backup is None:
+            self._next_backup = self.backup_count - 1
+        self._close_stream()
+        # A retry resumes here, so backups that were moved are not moved again.
+        while self._next_backup > 0:
+            src = f"{self._filename}.{self._next_backup}"
+            dst = f"{self._filename}.{self._next_backup + 1}"
             try:
                 rename(src, dst)
             except OSError:
                 e = sys.exc_info()[1]
                 if e.errno != errno.ENOENT:
                     raise
-        rename(self._filename, self._filename + ".1")
+            self._next_backup -= 1
+        if os.path.exists(self._filename):
+            rename(self._filename, self._filename + ".1")
+        self._next_backup = None
         self._open("a")
 
     def emit(self, record):
@@ -1144,9 +1156,7 @@ class TimedRotatingFileHandler(FileHandler):
         if not self.timed_filename_for_current and _is_special_file(self._filename):
             self._timestamp = new_timestamp
             return
-        if self.stream is not None:
-            self.stream.close()
-            self.stream = None
+        self._close_stream()
 
         if not self.timed_filename_for_current and os.path.exists(self._filename):
             filename = self.generate_timed_filename(self._timestamp)

@@ -1,0 +1,1 @@
+:class:`~logbook.RotatingFileHandler` lost the record that triggered a rollover if the log file had been deleted.
