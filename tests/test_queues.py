@@ -1,5 +1,7 @@
 import os
 import time
+from io import StringIO
+from threading import Event, current_thread
 
 import pytest
 
@@ -393,3 +395,75 @@ def handlers_subscriber(multi):
 @pytest.fixture(params=[True, False], ids=["multi", "nomulti"])
 def multi(request):
     return request.param
+
+
+@pytest.mark.parametrize("exception_method", [False, True])
+def test_threaded_wrapper_preserves_closed_record(logger, exception_method):
+    from logbook.queues import ThreadedWrapperHandler
+
+    release = Event()
+    stream = StringIO()
+    records = []
+
+    class DelayedStreamHandler(logbook.StreamHandler):
+        def emit(self, record):
+            assert release.wait(5)
+            records.append(record)
+            super().emit(record)
+
+    sink = DelayedStreamHandler(
+        stream,
+        format_string="{record.thread_name}|{record.func_name}|{record.message}",
+    )
+    with ThreadedWrapperHandler(sink) as handler:
+        try:
+            try:
+                raise ValueError("threaded exception")
+            except ValueError:
+                if exception_method:
+                    logger.exception("Failed")
+                else:
+                    logger.error("Failed", exc_info=True)
+        finally:
+            # The logging call has closed the record before the worker formats it.
+            release.set()
+    handler.close()
+
+    assert "ValueError: threaded exception" in stream.getvalue()
+    assert stream.getvalue().startswith(
+        f"{current_thread().name}|test_threaded_wrapper_preserves_closed_record|Failed"
+    )
+    assert len(records) == 1
+    assert records[0].exc_info is None
+    assert records[0].frame is None
+    assert records[0].exception_message == "threaded exception"
+
+
+def test_threaded_wrapper_preserves_closed_batch():
+    from logbook.queues import ThreadedWrapperHandler
+
+    release = Event()
+    stream = StringIO()
+
+    class DelayedStreamHandler(logbook.StreamHandler):
+        def emit(self, record):
+            assert release.wait(5)
+            super().emit(record)
+
+    record = logbook.LogRecord("test", logbook.ERROR, "Batched", exc_info=True)
+    try:
+        raise ValueError("batched exception")
+    except ValueError:
+        record.heavy_init()
+
+    with ThreadedWrapperHandler(DelayedStreamHandler(stream)) as handler:
+        try:
+            handler.emit_batch((item for item in [record]), "group")
+            record.close()
+        finally:
+            release.set()
+    handler.close()
+
+    assert "ValueError: batched exception" in stream.getvalue()
+    assert record.exc_info is None
+    assert record.frame is None
