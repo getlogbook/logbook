@@ -272,7 +272,7 @@ def test_syslog_timeout_keeps_unix_datagram_socket(monkeypatch):
     sockets = []
 
     class Datagram(FakeStream):
-        def __init__(self, family, type):
+        def __init__(self, family, type, proto=0):
             super().__init__()
             self.type = type
             sockets.append(self)
@@ -335,6 +335,100 @@ def test_syslog_timeout_applies_before_connecting(monkeypatch):
         address=("127.0.0.1", 514), socktype=socket.SOCK_STREAM, timeout=0.5
     )
     assert handler.socket.connect_timeout == 0.5
+
+
+def test_syslog_stream_connect_error_raises(monkeypatch):
+    sockets = []
+
+    class Stream(FakeStream):
+        def __init__(self, *args):
+            super().__init__()
+            sockets.append(self)
+
+        def connect(self, address):
+            raise socket.timeout
+
+    monkeypatch.setattr(socket, "socket", Stream)
+    with pytest.raises(socket.timeout):
+        logbook.SyslogHandler(address=("127.0.0.1", 514), socktype=socket.SOCK_STREAM)
+    assert sockets[0].closed
+
+
+def ipv6_server(socktype):
+    try:
+        server = socket.socket(socket.AF_INET6, socktype)
+    except OSError:
+        pytest.skip("Requires IPv6")
+    try:
+        server.bind(("::1", 0))
+    except OSError:
+        server.close()
+        pytest.skip("Requires the IPv6 loopback address")
+    server.settimeout(2)
+    if socktype == socket.SOCK_STREAM:
+        server.listen()
+    return server
+
+
+def receive_raw(server, socktype):
+    if socktype == socket.SOCK_STREAM:
+        with closing(server.accept()[0]) as connection:
+            connection.settimeout(2)
+            return connection.recv(1024)
+    return server.recv(1024)
+
+
+@pytest.mark.parametrize("socktype", [socket.SOCK_DGRAM, socket.SOCK_STREAM])
+def test_syslog_ipv6_address(logger, socktype):
+    with closing(ipv6_server(socktype)) as server:
+        handler = logbook.SyslogHandler(
+            address=server.getsockname()[:2], socktype=socktype
+        )
+        with closing(handler), handler, logbook.Flags(errors="raise"):
+            logger.warning("over ipv6")
+        assert receive_raw(server, socktype).endswith(b"over ipv6\n")
+
+
+@pytest.mark.parametrize("ipv4_fails", ["connect", "socket"])
+def test_syslog_stream_tries_each_resolved_address(logger, monkeypatch, ipv4_fails):
+    with closing(ipv6_server(socket.SOCK_STREAM)) as server:
+        if ipv4_fails == "socket":
+            real_socket = socket.socket
+
+            def ipv6_only(family, *args, **kwargs):
+                if family == socket.AF_INET:
+                    raise OSError("IPv4 is unavailable")
+                return real_socket(family, *args, **kwargs)
+
+            monkeypatch.setattr(socket, "socket", ipv6_only)
+        port = server.getsockname()[1]
+        resolved = [
+            (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("127.0.0.1", port)),
+            (socket.AF_INET6, socket.SOCK_STREAM, 0, "", ("::1", port, 0, 0)),
+        ]
+        monkeypatch.setattr(socket, "getaddrinfo", lambda *args: resolved)
+        handler = logbook.SyslogHandler(
+            address=("syslog.invalid", port), socktype=socket.SOCK_STREAM
+        )
+        with closing(handler), handler, logbook.Flags(errors="raise"):
+            logger.warning("over ipv6")
+        assert receive_raw(server, socket.SOCK_STREAM).endswith(b"over ipv6\n")
+
+
+@pytest.mark.parametrize("socktype", [socket.SOCK_DGRAM, socket.SOCK_STREAM])
+def test_syslog_unresolved_host_connects_on_first_record(logger, monkeypatch, socktype):
+    def unresolvable(*args):
+        raise socket.gaierror(socket.EAI_NONAME, "unresolvable")
+
+    with closing(ipv6_server(socktype)) as server:
+        with monkeypatch.context() as patch:
+            patch.setattr(socket, "getaddrinfo", unresolvable)
+            handler = logbook.SyslogHandler(
+                address=server.getsockname()[:2], socktype=socktype
+            )
+        with closing(handler), handler, logbook.Flags(errors="raise"):
+            logger.warning("resolved later")
+        assert receive_raw(server, socktype).endswith(b"resolved later\n")
 
 
 @pytest.mark.skipif(not UNIX_SOCKET_AVAILABLE, reason="Requires Unix sockets")

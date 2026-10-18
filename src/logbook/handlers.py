@@ -1762,7 +1762,8 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
        The `timeout` parameter.
 
     .. versionchanged:: 1.11
-       `address` can be bytes or a path-like object for a Unix socket.
+       `address` can be an IPv6 host, or bytes or a path-like object for a
+       Unix socket.
     """
 
     default_format_string = SYSLOG_FORMAT_STRING
@@ -1862,6 +1863,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         self.facility = facility
         self.socktype = socktype
         self.timeout = timeout
+        self.socket = None
         self.lock = _new_fine_grained_lock()
 
         if isinstance(address, (str, bytes)):
@@ -1869,7 +1871,11 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
             self.enveloper = self.unix_envelope
             default_delimiter = "\x00"
         else:
-            self._connect_netsocket()
+            # The host is looked up again when a record is sent.
+            try:
+                self._connect_netsocket()
+            except socket.gaierror:
+                pass
             self.enveloper = self.net_envelope
             default_delimiter = "\n"
 
@@ -1881,8 +1887,8 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
             __builtins__, "BrokenPipeError", socket.error
         )
 
-    def _create_socket(self, family, socktype):
-        sock = socket.socket(family, socktype)
+    def _create_socket(self, family, socktype, proto=0):
+        sock = socket.socket(family, socktype, proto)
         if self.timeout:
             sock.settimeout(self.timeout)
         return sock
@@ -1899,10 +1905,26 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
     def _connect_netsocket(self):
         self.unixsocket = False
-        self.socket = self._create_socket(socket.AF_INET, self.socktype)
-        if self.socktype == socket.SOCK_STREAM:
-            self.socket.connect(self.remote_address)
-            self.address = self.socket.getsockname()
+        host, port = self.remote_address
+        addresses = socket.getaddrinfo(host, port, 0, self.socktype)
+        if not addresses:
+            raise OSError("getaddrinfo returns an empty list")
+        for family, socktype, proto, _, sockaddr in addresses:
+            sock = None
+            try:
+                sock = self._create_socket(family, socktype, proto)
+                if socktype == socket.SOCK_STREAM:
+                    sock.connect(sockaddr)
+            except OSError as exc:
+                error = exc
+                if sock is not None:
+                    sock.close()
+            else:
+                self.socket = sock
+                if socktype == socket.SOCK_STREAM:
+                    self.address = sock.getsockname()
+                return
+        raise error
 
     def encode_priority(self, record):
         facility = self.facility_names[self.facility]

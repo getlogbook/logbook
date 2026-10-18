@@ -1,0 +1,1 @@
+:class:`~logbook.SyslogHandler` can send to IPv6 hosts.
