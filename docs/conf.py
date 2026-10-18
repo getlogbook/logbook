@@ -19,10 +19,38 @@ version = release = distribution("Logbook").version
 
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
     "sphinxcontrib.towncrier.ext",
 ]
+
+doctest_test_doctest_blocks = ""
+doctest_default_flags = 0
+doctest_global_setup = """
+import logging as _logging
+
+import logbook.base as _logbook_base
+
+_record_factory = _logging.getLogRecordFactory()
+_datetime_factory = _logbook_base._datetime_factory
+
+
+def set_record_time(when):
+    def record_factory(*args, **kwargs):
+        record = _record_factory(*args, **kwargs)
+        record.created = when.timestamp()
+        return record
+
+    record_time = _logbook_base._record_time_from_utc(when)
+    _logging.setLogRecordFactory(record_factory)
+    _logbook_base._datetime_factory = lambda: record_time
+
+
+def reset_record_time():
+    _logging.setLogRecordFactory(_record_factory)
+    _logbook_base._datetime_factory = _datetime_factory
+"""
 
 # Render pending newsfragments at the top of the changelog, so that previews
 # built from pull requests show their entries.

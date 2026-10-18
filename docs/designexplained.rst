@@ -51,12 +51,24 @@ You don't need a record dispatcher to dispatch a log record though.  The
 default dispatching can be triggered from a function
 :func:`~logbook.base.dispatch_record`:
 
->>> from logbook import dispatch_record, LogRecord, INFO, StreamHandler
->>> import sys
->>> StreamHandler(sys.stdout).push_application()
->>> record = LogRecord('My channel', INFO, 'Hello World!')
->>> dispatch_record(record)
-[2015-10-05 19:18:52.211472] INFO: My channel: Hello World!
+.. testsetup::
+
+    from datetime import datetime, timezone
+
+    set_record_time(datetime(2015, 10, 5, 19, 18, 52, 211472, tzinfo=timezone.utc))
+
+.. doctest::
+
+    >>> from logbook import dispatch_record, LogRecord, INFO, StreamHandler
+    >>> import sys
+    >>> StreamHandler(sys.stdout).push_application()
+    >>> record = LogRecord("My channel", INFO, "Hello World!")
+    >>> dispatch_record(record)
+    [2015-10-05 19:18:52.211472] INFO: My channel: Hello World!
+
+.. testcleanup::
+
+    reset_record_time()
 
 It is pretty common for log records to be created without a dispatcher.
 Here some common use cases for log records without a dispatcher:

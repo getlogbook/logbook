@@ -69,6 +69,16 @@ def docs(session: nox.Session) -> None:
         "docs",
         "docs/_build/html",
     )
+    session.run(
+        "sphinx-build",
+        "-W",
+        "-b",
+        "doctest",
+        "-d",
+        f"{temp_dir}/doctrees",
+        "docs",
+        "docs/_build/doctest",
+    )
 
 
 # don't specify python here or CI will pick it up
