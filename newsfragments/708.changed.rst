@@ -1,0 +1,1 @@
+:class:`~logbook.SyslogHandler` now sends to host names with both IPv4 and IPv6 addresses in the system's preferred order, usually IPv6 first, as :mod:`logging` does, instead of always using IPv4.
