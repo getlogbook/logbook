@@ -594,6 +594,32 @@ def test_brotli_file_handler(logfile, activation_strategy, logger):
         )
 
 
+@pytest.mark.skipif(brotli is None, reason="brotli not installed")
+def test_brotli_finish_failure_closes_file(tmp_path):
+    path = tmp_path / "test.br"
+    handler = logbook.BrotliCompressionHandler(path, format_string="{record.message}")
+    handler.emit(logbook.LogRecord("test", logbook.INFO, "saved record"))
+    handler.flush()
+    contents = path.read_bytes()
+    stream = handler.stream
+    error = OSError("finish failed")
+
+    class FailingCompressor:
+        def finish(self):
+            raise error
+
+    handler._compressor = FailingCompressor()
+    with pytest.raises(OSError) as caught:
+        handler.close()
+    assert caught.value is error
+    assert stream.closed
+    with pytest.raises(ValueError, match="closed file handler"):
+        handler.emit(logbook.LogRecord("test", logbook.INFO, "later record"))
+    assert path.read_bytes() == contents
+    handler.flush()
+    handler.close()
+
+
 def _read_write_file_handler(path, **kwargs):
     path.touch()
     return logbook.FileHandler(path, mode="r+", **kwargs)

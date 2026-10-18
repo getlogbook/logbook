@@ -1,0 +1,1 @@
+``BrotliCompressionHandler`` closes its file when writing the final trailer fails.
