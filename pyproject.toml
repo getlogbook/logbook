@@ -119,6 +119,7 @@ source_pkgs = ["logbook"]
 source_dirs = ["tests/"]
 parallel = true
 concurrency = ["thread"]
+patch = ["_exit", "subprocess"]
 
 [tool.coverage.paths]
 crabwalk = [
