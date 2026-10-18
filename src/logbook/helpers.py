@@ -172,10 +172,9 @@ def format_iso8601(d=None):
     """Returns a date in iso8601 format."""
     if d is None:
         d = datetime_utcnow()
-    rv = d.strftime("%Y-%m-%dT%H:%M:%S")
-    if d.microsecond:
-        rv += f".{d.microsecond:06d}"
-    return rv + "Z"
+    if d.utcoffset() is None:
+        return d.isoformat() + "Z"
+    return d.isoformat()
 
 
 def parse_iso8601(value):
