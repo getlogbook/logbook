@@ -3,7 +3,7 @@ import re
 import socket
 import tempfile
 import threading
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from contextlib import closing
 from datetime import datetime, timezone
 
@@ -151,6 +151,77 @@ def test_syslog_stream_retry_sends_whole_record(monkeypatch, unix):
     handler.send_to_socket(b"whole record\n")
     assert sockets[0].closed
     assert sockets[1].data == b"whole record\n"
+
+
+def test_syslog_serializes_stream_sends(monkeypatch):
+    first_started = threading.Event()
+    release_first = threading.Event()
+    calls = []
+
+    class Stream(FakeStream):
+        def sendall(self, data):
+            calls.append(("start", data))
+            if data == b"first":
+                first_started.set()
+                release_first.wait(2)
+            calls.append(("end", data))
+
+    monkeypatch.setattr(socket, "socket", Stream)
+    handler = logbook.SyslogHandler(
+        address=("127.0.0.1", 514), socktype=socket.SOCK_STREAM
+    )
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(handler.send_to_socket, b"first")
+        assert first_started.wait(2)
+        second = executor.submit(handler.send_to_socket, b"second")
+        try:
+            assert not wait([second], timeout=0.2).done
+        finally:
+            release_first.set()
+        first.result(timeout=2)
+        second.result(timeout=2)
+    assert calls == [
+        ("start", b"first"),
+        ("end", b"first"),
+        ("start", b"second"),
+        ("end", b"second"),
+    ]
+
+
+def test_syslog_keeps_multiline_records_together(monkeypatch):
+    first_sent = threading.Event()
+    second_sent = threading.Event()
+    sent = []
+
+    class Stream(FakeStream):
+        def sendall(self, data):
+            sent.append(data)
+            if data == b"c":
+                second_sent.set()
+
+    class Lines(logbook.SyslogHandler):
+        def net_envelope(self, record):
+            return record.message.split("\n")
+
+        def send_to_socket(self, data):
+            super().send_to_socket(data)
+            if data == b"a":
+                first_sent.set()
+                second_sent.wait(0.2)
+
+    monkeypatch.setattr(socket, "socket", Stream)
+    handler = Lines(address=("127.0.0.1", 514), socktype=socket.SOCK_STREAM)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(
+            handler.emit, logbook.LogRecord("app", logbook.WARNING, "a\nb")
+        )
+        assert first_sent.wait(2)
+        second = executor.submit(
+            handler.emit, logbook.LogRecord("app", logbook.WARNING, "c\nd")
+        )
+        first.result(timeout=2)
+        second.result(timeout=2)
+    assert sent == [b"a", b"b", b"c", b"d"]
 
 
 @pytest.fixture
