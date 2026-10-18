@@ -22,7 +22,8 @@ after this call will transparently be redirected to Logbook:
 
 This also means you don't have to call :func:`logging.basicConfig`:
 
->>> from logbook.compat import redirect_logging, StreamHandler
+>>> from logbook import StreamHandler
+>>> from logbook.compat import redirect_logging
 >>> import sys
 >>> StreamHandler(sys.stdout).push_application()
 >>> redirect_logging()
@@ -40,15 +41,16 @@ the old logging system that sends records via an internal logbook logger to the
 active logbook handlers.  This handler can then be added to specific logging
 loggers if you want:
 
->>> from logging import getLogger, StreamHandler
+>>> from logging import getLogger
+>>> from logbook import StreamHandler
 >>> import sys
 >>> StreamHandler(sys.stdout).push_application()
 >>> mylog = getLogger('My Log')
 >>> from logbook.compat import RedirectLoggingHandler
 >>> mylog.addHandler(RedirectLoggingHandler())
 >>> otherlog = getLogger('Other Log')
->>> otherlog.warning('logging is deprecated')
-No handlers could be found for logger "Other Log"
+>>> otherlog.warning('logging is deprecated')  # via logging.lastResort
+logging is deprecated
 >>> mylog.warning('but logbook is awesome')
 [2015-10-05 19:13:37.524346] WARNING: My Log: but logbook is awesome
 

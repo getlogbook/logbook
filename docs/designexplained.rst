@@ -53,6 +53,7 @@ default dispatching can be triggered from a function
 
 >>> from logbook import dispatch_record, LogRecord, INFO, StreamHandler
 >>> import sys
+>>> StreamHandler(sys.stdout).push_application()
 >>> record = LogRecord('My channel', INFO, 'Hello World!')
 >>> dispatch_record(record)
 [2015-10-05 19:18:52.211472] INFO: My channel: Hello World!
