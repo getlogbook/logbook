@@ -66,7 +66,8 @@ def _record_time_to_utc(value):
 def _record_time_from_utc(value):
     """Return an aware UTC datetime in the form record times take under the
     current set_datetime_format(): naive UTC, naive local time, or aware in
-    the factory's zone.
+    the factory's zone. A factory's fixed offset other than UTC gives aware
+    local time.
     """
     if _datetime_mode == "local":
         # fromtimestamp preserves fold. A float timestamp can't hold every
@@ -74,7 +75,7 @@ def _record_time_from_utc(value):
         local = datetime.fromtimestamp(value.replace(microsecond=0).timestamp())
         return local.replace(microsecond=value.microsecond)
     if _datetime_mode == "aware":
-        return value.astimezone(_datetime_tzinfo or _datetime_factory().tzinfo)
+        return value.astimezone(_datetime_tzinfo)
     return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
@@ -174,7 +175,7 @@ def set_datetime_format(datetime_format):
         )
     if isinstance(tzinfo, timezone) and tzinfo != timezone.utc:
         # A fixed offset, as from datetime.now().astimezone(), goes stale at
-        # the next DST change, so ask the factory each time instead.
+        # the next DST change, so use local time instead.
         tzinfo = None
     _datetime_factory, _datetime_mode, _datetime_tzinfo = factory, mode, tzinfo
 
