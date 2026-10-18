@@ -1,0 +1,1 @@
+Queues and ticket databases marked aware datetimes in a record's ``extra`` as UTC without converting them. They now keep their UTC offset.

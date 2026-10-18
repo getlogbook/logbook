@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -63,3 +63,11 @@ def test_iso8601_preserves_fractional_seconds(microsecond):
         datetime.fromisoformat(formatted.replace("Z", "+00:00")).replace(tzinfo=None)
         == timestamp
     )
+
+
+def test_iso8601_keeps_aware_offset():
+    from logbook.helpers import format_iso8601
+
+    moment = datetime(2020, 1, 2, 9, tzinfo=timezone(timedelta(hours=5, minutes=30)))
+
+    assert format_iso8601(moment) == "2020-01-02T09:00:00+05:30"
