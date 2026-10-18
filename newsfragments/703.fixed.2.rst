@@ -1,0 +1,1 @@
+A UDP :class:`~logbook.SyslogHandler` failed on every record after it was closed.

@@ -1929,28 +1929,41 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
                 self.application_name = application_name
 
     def emit(self, record):
-        for segment in self.enveloper(record):
-            self.send_to_socket(segment.encode("utf-8"))
+        segments = [segment.encode("utf-8") for segment in self.enveloper(record)]
+        with self.lock:
+            for segment in segments:
+                self.send_to_socket(segment)
 
     def send_to_socket(self, data):
-        if self.unixsocket:
-            try:
-                self.socket.send(data)
-            except OSError:
-                self._connect_unixsocket()
-                self.socket.send(data)
-        elif self.socktype == socket.SOCK_DGRAM:
-            # the flags are no longer optional on Python 3
-            self.socket.sendto(data, 0, self.address)
-        else:
-            try:
-                self.socket.sendall(data)
-            except self.connection_exception:
-                self._connect_netsocket()
-                self.socket.send(data)
+        with self.lock:
+            if self.socket is None:
+                if self.unixsocket:
+                    self._connect_unixsocket()
+                else:
+                    self._connect_netsocket()
+            if self.unixsocket:
+                try:
+                    self.socket.sendall(data)
+                except OSError:
+                    self.socket.close()
+                    self._connect_unixsocket()
+                    self.socket.sendall(data)
+            elif self.socktype == socket.SOCK_DGRAM:
+                # the flags are no longer optional on Python 3
+                self.socket.sendto(data, 0, self.address)
+            else:
+                try:
+                    self.socket.sendall(data)
+                except self.connection_exception:
+                    self.socket.close()
+                    self._connect_netsocket()
+                    self.socket.sendall(data)
 
     def close(self):
-        self.socket.close()
+        with self.lock:
+            sock, self.socket = self.socket, None
+            if sock is not None:
+                sock.close()
 
 
 class NTEventLogHandler(Handler, StringFormatterHandlerMixin):

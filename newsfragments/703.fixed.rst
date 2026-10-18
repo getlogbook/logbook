@@ -1,0 +1,1 @@
+:class:`~logbook.SyslogHandler` could send incomplete records over a stream socket.
