@@ -976,32 +976,6 @@ class LoggerMixin:
             args = ("Uncaught exception occurred",)
         return _ExceptionCatcher(self, args, kwargs)
 
-    def enable(self):
-        """Convenience method to enable this logger.
-
-        :raises AttributeError: The disabled property is read-only, typically
-                                because it was overridden in a subclass.
-
-        .. versionadded:: 1.0
-        """
-        try:
-            self.disabled = False
-        except AttributeError:
-            raise AttributeError("The disabled property is read-only.")
-
-    def disable(self):
-        """Convenience method to disable this logger.
-
-        :raises AttributeError: The disabled property is read-only, typically
-                                because it was overridden in a subclass.
-
-        .. versionadded:: 1.0
-        """
-        try:
-            self.disabled = True
-        except AttributeError:
-            raise AttributeError("The disabled property is read-only.")
-
     def _log(self, level, args, kwargs):
         exc_info = kwargs.pop("exc_info", None)
         extra = kwargs.pop("extra", None)
@@ -1035,6 +1009,32 @@ class RecordDispatcher:
 
     disabled = group_reflected_property(False)
     level = group_reflected_property(NOTSET, fallback=NOTSET)
+
+    def enable(self):
+        """Convenience method to enable this logger.
+
+        :raises AttributeError: The disabled property is read-only, typically
+                                because it was overridden in a subclass.
+
+        .. versionadded:: 1.0
+        """
+        try:
+            self.disabled = False
+        except AttributeError:
+            raise AttributeError("The disabled property is read-only.")
+
+    def disable(self):
+        """Convenience method to disable this logger.
+
+        :raises AttributeError: The disabled property is read-only, typically
+                                because it was overridden in a subclass.
+
+        .. versionadded:: 1.0
+        """
+        try:
+            self.disabled = True
+        except AttributeError:
+            raise AttributeError("The disabled property is read-only.")
 
     def handle(self, record):
         """Call the handlers for the specified record.  This is

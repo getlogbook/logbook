@@ -1,4 +1,5 @@
 import logbook
+from logbook.more import TaggingLogger
 
 
 def test_groups(logger):
@@ -90,3 +91,15 @@ def test_group_disabled():
 
     assert handler.has_warning("Warning 1")
     assert handler.has_warning("Warning 2")
+
+
+def test_group_force_with_tagging_logger():
+    tagged = TaggingLogger("tagged")
+    tagged.disabled = True
+    group = logbook.LoggerGroup([tagged])
+
+    group.enable(force=True)
+    assert not tagged.disabled
+
+    group.disable(force=True)
+    assert tagged.disabled

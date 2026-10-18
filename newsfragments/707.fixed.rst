@@ -1,0 +1,1 @@
+:class:`~logbook.more.TaggingLogger` has ``enable()`` and ``disable()`` like :class:`~logbook.Logger`, so :meth:`LoggerGroup.enable() <logbook.LoggerGroup.enable>` and :meth:`LoggerGroup.disable() <logbook.LoggerGroup.disable>` with ``force=True`` no longer fail on it.
