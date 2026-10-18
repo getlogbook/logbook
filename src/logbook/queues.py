@@ -272,6 +272,8 @@ class ThreadController:
 
     def start(self):
         """Starts the task thread."""
+        if self._thread is not None:
+            raise RuntimeError("Thread already started")
         self.running = True
         self._thread = Thread(target=self._target)
         self._thread.daemon = True
@@ -279,7 +281,7 @@ class ThreadController:
 
     def stop(self):
         """Stops the task thread."""
-        if self.running:
+        if self._thread is not None:
             self.running = False
             self._thread.join()
             self._thread = None
@@ -638,6 +640,8 @@ class TWHThreadController:
 
     def start(self):
         """Starts the task thread."""
+        if self._thread is not None:
+            raise RuntimeError("Thread already started")
         self.running = True
         self._thread = Thread(target=self._target)
         self._thread.daemon = True
