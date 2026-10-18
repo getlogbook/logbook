@@ -1746,6 +1746,9 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
     """A handler class which sends formatted logging records to a
     syslog server.  By default it will send to it via unix socket.
 
+    `address` is the path of a Unix socket, as a string, bytes or path-like
+    object, or a ``(host, port)`` tuple.
+
     Set `record_delimiter` to an empty string to send each record without
     splitting it or appending a terminator. This suits datagram transports;
     on stream sockets consecutive records are sent back to back without
@@ -1757,6 +1760,9 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
     .. versionadded:: 1.11
        The `timeout` parameter.
+
+    .. versionchanged:: 1.11
+       `address` can be bytes or a path-like object for a Unix socket.
     """
 
     default_format_string = SYSLOG_FORMAT_STRING
@@ -1850,13 +1856,15 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
             else:
                 address = "/dev/log"
 
+        if isinstance(address, os.PathLike):
+            address = os.fspath(address)
         self.remote_address = self.address = address
         self.facility = facility
         self.socktype = socktype
         self.timeout = timeout
         self.lock = _new_fine_grained_lock()
 
-        if isinstance(address, str):
+        if isinstance(address, (str, bytes)):
             self._connect_unixsocket()
             self.enveloper = self.unix_envelope
             default_delimiter = "\x00"

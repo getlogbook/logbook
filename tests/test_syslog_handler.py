@@ -6,6 +6,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, wait
 from contextlib import closing
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
@@ -334,6 +335,18 @@ def test_syslog_timeout_applies_before_connecting(monkeypatch):
         address=("127.0.0.1", 514), socktype=socket.SOCK_STREAM, timeout=0.5
     )
     assert handler.socket.connect_timeout == 0.5
+
+
+@pytest.mark.skipif(not UNIX_SOCKET_AVAILABLE, reason="Requires Unix sockets")
+@pytest.mark.parametrize("convert", [os.fsencode, Path])
+def test_syslog_unix_address_types(logger, unix_sock_path, convert):
+    with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as server:
+        server.bind(unix_sock_path)
+        server.settimeout(2)
+        handler = logbook.SyslogHandler(address=convert(unix_sock_path))
+        with closing(handler), handler, logbook.Flags(errors="raise"):
+            logger.warning("unix")
+        assert server.recv(1024) == b"<12>testlogger: unix\x00"
 
 
 @pytest.fixture

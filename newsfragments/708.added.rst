@@ -1,0 +1,1 @@
+:class:`~logbook.SyslogHandler` accepts a Unix socket address as bytes or a path-like object.
