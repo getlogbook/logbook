@@ -1933,6 +1933,11 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
     def send_to_socket(self, data):
         with self.lock:
+            if self.socket is None:
+                if self.unixsocket:
+                    self._connect_unixsocket()
+                else:
+                    self._connect_netsocket()
             if self.unixsocket:
                 try:
                     self.socket.sendall(data)
@@ -1952,7 +1957,10 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
                     self.socket.sendall(data)
 
     def close(self):
-        self.socket.close()
+        with self.lock:
+            sock, self.socket = self.socket, None
+            if sock is not None:
+                sock.close()
 
 
 class NTEventLogHandler(Handler, StringFormatterHandlerMixin):

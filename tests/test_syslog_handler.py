@@ -81,6 +81,14 @@ def test_syslog_handler(
         assert re.match(expected, rv), f"expected {expected}, got {rv}"
 
 
+def test_syslog_udp_reopens_after_close(logger, udp_server):
+    handler = logbook.SyslogHandler(address=udp_server.getsockname())
+    handler.close()
+    with closing(handler), handler, logbook.Flags(errors="raise"):
+        logger.warning("after close")
+    assert udp_server.recv(1024).endswith(b"after close\n")
+
+
 @pytest.mark.skipif(not UNIX_SOCKET_AVAILABLE, reason="Requires Unix sockets")
 def test_syslog_unix_stream_sends_whole_record(logger, unix_sock_path):
     def receive(server):
@@ -153,7 +161,8 @@ def test_syslog_stream_retry_sends_whole_record(monkeypatch, unix):
     assert sockets[1].data == b"whole record\n"
 
 
-def test_syslog_serializes_stream_sends(monkeypatch):
+@pytest.mark.parametrize("close", [False, True])
+def test_syslog_serializes_stream_sends(monkeypatch, close):
     first_started = threading.Event()
     release_first = threading.Event()
     calls = []
@@ -166,6 +175,9 @@ def test_syslog_serializes_stream_sends(monkeypatch):
                 release_first.wait(2)
             calls.append(("end", data))
 
+        def close(self):
+            calls.append(("close", None))
+
     monkeypatch.setattr(socket, "socket", Stream)
     handler = logbook.SyslogHandler(
         address=("127.0.0.1", 514), socktype=socket.SOCK_STREAM
@@ -173,19 +185,19 @@ def test_syslog_serializes_stream_sends(monkeypatch):
     with ThreadPoolExecutor(max_workers=2) as executor:
         first = executor.submit(handler.send_to_socket, b"first")
         assert first_started.wait(2)
-        second = executor.submit(handler.send_to_socket, b"second")
+        if close:
+            second = executor.submit(handler.close)
+            expected = [("close", None)]
+        else:
+            second = executor.submit(handler.send_to_socket, b"second")
+            expected = [("start", b"second"), ("end", b"second")]
         try:
             assert not wait([second], timeout=0.2).done
         finally:
             release_first.set()
         first.result(timeout=2)
         second.result(timeout=2)
-    assert calls == [
-        ("start", b"first"),
-        ("end", b"first"),
-        ("start", b"second"),
-        ("end", b"second"),
-    ]
+    assert calls == [("start", b"first"), ("end", b"first"), *expected]
 
 
 def test_syslog_keeps_multiline_records_together(monkeypatch):
