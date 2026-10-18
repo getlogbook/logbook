@@ -1750,6 +1750,13 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
     splitting it or appending a terminator. This suits datagram transports;
     on stream sockets consecutive records are sent back to back without
     framing.
+
+    `timeout` sets a timeout in seconds for connecting and sending. A record
+    that times out is not sent again, and on a stream socket the next record
+    opens a new connection.
+
+    .. versionadded:: 1.11
+       The `timeout` parameter.
     """
 
     default_format_string = SYSLOG_FORMAT_STRING
@@ -1831,6 +1838,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         filter=None,
         bubble=False,
         record_delimiter=None,
+        timeout=None,
     ):
         Handler.__init__(self, level, filter, bubble)
         StringFormatterHandlerMixin.__init__(self, format_string)
@@ -1845,6 +1853,7 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
         self.remote_address = self.address = address
         self.facility = facility
         self.socktype = socktype
+        self.timeout = timeout
         self.lock = _new_fine_grained_lock()
 
         if isinstance(address, str):
@@ -1864,19 +1873,25 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
             __builtins__, "BrokenPipeError", socket.error
         )
 
+    def _create_socket(self, family, socktype):
+        sock = socket.socket(family, socktype)
+        if self.timeout:
+            sock.settimeout(self.timeout)
+        return sock
+
     def _connect_unixsocket(self):
         self.unixsocket = True
-        self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        self.socket = self._create_socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         try:
             self.socket.connect(self.address)
         except OSError:
             self.socket.close()
-            self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.socket = self._create_socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self.socket.connect(self.address)
 
     def _connect_netsocket(self):
         self.unixsocket = False
-        self.socket = socket.socket(socket.AF_INET, self.socktype)
+        self.socket = self._create_socket(socket.AF_INET, self.socktype)
         if self.socktype == socket.SOCK_STREAM:
             self.socket.connect(self.remote_address)
             self.address = self.socket.getsockname()
@@ -1936,28 +1951,47 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
 
     def send_to_socket(self, data):
         with self.lock:
-            if self.socket is None:
-                if self.unixsocket:
-                    self._connect_unixsocket()
-                else:
-                    self._connect_netsocket()
+            try:
+                self._send_to_socket(data)
+            except socket.timeout:
+                # Part of the record may have been sent, so the next one
+                # would arrive appended to it.
+                sock = self.socket
+                if (
+                    sock is not None
+                    and getattr(sock, "type", None) != socket.SOCK_DGRAM
+                ):
+                    sock.close()
+                    self.socket = None
+                raise
+
+    def _send_to_socket(self, data):
+        if self.socket is None:
             if self.unixsocket:
-                try:
-                    self.socket.sendall(data)
-                except OSError:
-                    self.socket.close()
-                    self._connect_unixsocket()
-                    self.socket.sendall(data)
-            elif self.socktype == socket.SOCK_DGRAM:
-                # the flags are no longer optional on Python 3
-                self.socket.sendto(data, 0, self.address)
+                self._connect_unixsocket()
             else:
-                try:
-                    self.socket.sendall(data)
-                except self.connection_exception:
-                    self.socket.close()
-                    self._connect_netsocket()
-                    self.socket.sendall(data)
+                self._connect_netsocket()
+        if self.unixsocket:
+            try:
+                self.socket.sendall(data)
+            except socket.timeout:
+                raise
+            except OSError:
+                self.socket.close()
+                self._connect_unixsocket()
+                self.socket.sendall(data)
+        elif self.socktype == socket.SOCK_DGRAM:
+            # the flags are no longer optional on Python 3
+            self.socket.sendto(data, 0, self.address)
+        else:
+            try:
+                self.socket.sendall(data)
+            except socket.timeout:
+                raise
+            except self.connection_exception:
+                self.socket.close()
+                self._connect_netsocket()
+                self.socket.sendall(data)
 
     def close(self):
         with self.lock:
