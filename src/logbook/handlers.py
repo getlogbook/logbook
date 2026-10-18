@@ -839,11 +839,14 @@ class BrotliCompressionHandler(FileHandler):
         super().flush()
 
     def close(self):
-        if self._compressor is not None:
-            self.ensure_stream_is_open()
-            self.stream.write(self._compressor.finish())
-            self._compressor = None
-        super().close()
+        with self.lock:
+            compressor, self._compressor = self._compressor, None
+            try:
+                if compressor is not None:
+                    self.ensure_stream_is_open()
+                    self.stream.write(compressor.finish())
+            finally:
+                super().close()
 
 
 class MonitoringFileHandler(FileHandler):
