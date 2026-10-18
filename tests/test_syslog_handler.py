@@ -236,6 +236,106 @@ def test_syslog_keeps_multiline_records_together(monkeypatch):
     assert sent == [b"a", b"b", b"c", b"d"]
 
 
+@pytest.mark.parametrize("unix", [False, True])
+def test_syslog_timeout_drops_stalled_stream(logger, unix_sock_path, unix):
+    if unix and not UNIX_SOCKET_AVAILABLE:
+        pytest.skip("Requires Unix sockets")
+    family = socket.AF_UNIX if unix else socket.AF_INET
+    address = unix_sock_path if unix else ("127.0.0.1", 0)
+    with socket.socket(family, socket.SOCK_STREAM) as server:
+        server.bind(address)
+        server.listen()
+        server.settimeout(2)
+        handler = logbook.SyslogHandler(
+            address=server.getsockname(), socktype=socket.SOCK_STREAM, timeout=0.1
+        )
+        with closing(handler), closing(server.accept()[0]):
+            with handler, logbook.Flags(errors="raise"):
+                with pytest.raises(socket.timeout):
+                    for _ in range(256):
+                        logger.warning("x" * 1_000_000)
+                assert handler.socket is None
+                server.settimeout(0.2)
+                with pytest.raises(socket.timeout):
+                    server.accept()
+                logger.warning("next record")
+            server.settimeout(2)
+            with closing(server.accept()[0]) as connection:
+                connection.settimeout(2)
+                received = connection.recv(1024)
+    assert received.endswith(b"next record\x00" if unix else b"next record\n")
+
+
+@pytest.mark.skipif(not UNIX_SOCKET_AVAILABLE, reason="Requires Unix sockets")
+def test_syslog_timeout_keeps_unix_datagram_socket(monkeypatch):
+    sockets = []
+
+    class Datagram(FakeStream):
+        def __init__(self, family, type):
+            super().__init__()
+            self.type = type
+            sockets.append(self)
+
+        def settimeout(self, timeout):
+            pass
+
+        def sendall(self, data):
+            raise socket.timeout
+
+    monkeypatch.setattr(socket, "socket", Datagram)
+    handler = logbook.SyslogHandler(address="/syslog", timeout=1)
+    with pytest.raises(socket.timeout):
+        handler.send_to_socket(b"record")
+    assert sockets == [handler.socket]
+    assert not handler.socket.closed
+
+
+def test_syslog_timeout_drops_socket_of_unknown_type(monkeypatch):
+    class Stream(FakeStream):
+        def sendall(self, data):
+            raise socket.timeout
+
+    monkeypatch.setattr(socket, "socket", Stream)
+    handler = logbook.SyslogHandler(
+        address=("127.0.0.1", 514), socktype=socket.SOCK_STREAM
+    )
+    sock = handler.socket
+    with pytest.raises(socket.timeout):
+        handler.send_to_socket(b"record")
+    assert sock.closed
+    assert handler.socket is None
+
+
+@pytest.mark.parametrize("unix", [False, True])
+def test_syslog_timeout_applies_to_datagram_sockets(unix_sock_path, unix):
+    if unix and not UNIX_SOCKET_AVAILABLE:
+        pytest.skip("Requires Unix sockets")
+    family = socket.AF_UNIX if unix else socket.AF_INET
+    address = unix_sock_path if unix else ("127.0.0.1", 0)
+    with socket.socket(family, socket.SOCK_DGRAM) as server:
+        server.bind(address)
+        handler = logbook.SyslogHandler(address=server.getsockname(), timeout=0.5)
+        with closing(handler):
+            assert handler.socket.gettimeout() == 0.5
+
+
+def test_syslog_timeout_applies_before_connecting(monkeypatch):
+    class Stream(FakeStream):
+        timeout = None
+
+        def settimeout(self, timeout):
+            self.timeout = timeout
+
+        def connect(self, address):
+            self.connect_timeout = self.timeout
+
+    monkeypatch.setattr(socket, "socket", Stream)
+    handler = logbook.SyslogHandler(
+        address=("127.0.0.1", 514), socktype=socket.SOCK_STREAM, timeout=0.5
+    )
+    assert handler.socket.connect_timeout == 0.5
+
+
 @pytest.fixture
 def unix_sock_path():
     # The default temporary directory on macOS is too long for AF_UNIX paths.

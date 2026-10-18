@@ -1,0 +1,1 @@
+:class:`~logbook.SyslogHandler` has a ``timeout`` parameter that limits how long connecting and sending can block.
