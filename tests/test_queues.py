@@ -173,6 +173,15 @@ def test_threaded_wrapper_handler_emit_batched():
     assert test_handler.has_error("More testing")
 
 
+def test_threaded_wrapper_handler_start_twice():
+    from logbook.queues import ThreadedWrapperHandler
+
+    handler = ThreadedWrapperHandler(logbook.TestHandler())
+    with pytest.raises(RuntimeError):
+        handler.controller.start()
+    handler.close()
+
+
 @require_module("execnet")
 def test_execnet_handler():
     def run_on_remote(channel):
@@ -231,6 +240,31 @@ def test_subscriber_group():
         p2.join()
         messages = [subscriber.recv().message for i in (1, 2)]
         assert sorted(messages) == ["bar", "foo"]
+
+
+def test_thread_controller_start_twice():
+    from logbook.queues import SubscriberGroup
+
+    controller = SubscriberGroup().dispatch_in_background()
+    with pytest.raises(RuntimeError):
+        controller.start()
+    controller.stop()
+
+
+def test_thread_controller_restart_after_interrupted_stop(monkeypatch):
+    from logbook.queues import SubscriberGroup
+
+    def interrupted_join():
+        raise KeyboardInterrupt
+
+    controller = SubscriberGroup().dispatch_in_background()
+    with monkeypatch.context() as m:
+        m.setattr(controller._thread, "join", interrupted_join)
+        with pytest.raises(KeyboardInterrupt):
+            controller.stop()
+    controller.stop()
+    controller.start()
+    controller.stop()
 
 
 @require_module("redis")

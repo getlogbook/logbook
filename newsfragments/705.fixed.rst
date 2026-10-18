@@ -1,0 +1,1 @@
+A second ``start()`` on a :class:`~logbook.queues.ThreadController` or :class:`~logbook.queues.TWHThreadController` now raises :exc:`RuntimeError`, as :class:`logging.handlers.QueueListener` does.
