@@ -16,6 +16,7 @@ from contextvars import ContextVar
 from itertools import chain, count
 from typing import Any, Generic, TypeVar
 
+from logbook.concurrency import _register_at_fork_reinit_lock
 from logbook.helpers import get_iterator_next_method
 
 _missing = object()
@@ -141,6 +142,7 @@ class ContextStackManager(Generic[T]):
 
     def __init__(self) -> None:
         self._write_lock = threading.Lock()
+        _register_at_fork_reinit_lock(self._write_lock)
         # iter_context_objects compares globals with "is". Python reuses
         # one object for every (), so if the stack empties out again later,
         # an old cache built against the earlier empty stack still matches.
