@@ -22,14 +22,27 @@ after this call will transparently be redirected to Logbook:
 
 This also means you don't have to call :func:`logging.basicConfig`:
 
->>> from logbook.compat import redirect_logging, StreamHandler
->>> import sys
->>> StreamHandler(sys.stdout).push_application()
->>> redirect_logging()
->>> from logging import getLogger
->>> log = getLogger('My Logger')
->>> log.warning('This is a warning')
-[2015-10-05 19:13:37.524346] WARNING: My Logger: This is a warning
+.. testsetup::
+
+    from datetime import datetime, timezone
+
+    set_record_time(datetime(2015, 10, 5, 19, 13, 37, 524346, tzinfo=timezone.utc))
+
+.. doctest::
+
+    >>> from logbook import StreamHandler
+    >>> from logbook.compat import redirect_logging
+    >>> import sys
+    >>> StreamHandler(sys.stdout).push_application()
+    >>> redirect_logging()
+    >>> from logging import getLogger
+    >>> log = getLogger("My Logger")
+    >>> log.warning("This is a warning")
+    [2015-10-05 19:13:37.524346] WARNING: My Logger: This is a warning
+
+.. testcleanup::
+
+    reset_record_time()
 
 Advanced Setup
 --------------
@@ -40,17 +53,41 @@ the old logging system that sends records via an internal logbook logger to the
 active logbook handlers.  This handler can then be added to specific logging
 loggers if you want:
 
->>> from logging import getLogger, StreamHandler
->>> import sys
->>> StreamHandler(sys.stdout).push_application()
->>> mylog = getLogger('My Log')
->>> from logbook.compat import RedirectLoggingHandler
->>> mylog.addHandler(RedirectLoggingHandler())
->>> otherlog = getLogger('Other Log')
->>> otherlog.warning('logging is deprecated')
-No handlers could be found for logger "Other Log"
->>> mylog.warning('but logbook is awesome')
-[2015-10-05 19:13:37.524346] WARNING: My Log: but logbook is awesome
+.. testsetup:: advanced
+
+    import logging
+    import sys
+    from datetime import datetime, timezone
+
+    import logbook
+
+    set_record_time(datetime(2015, 10, 5, 19, 13, 37, 524346, tzinfo=timezone.utc))
+    logging.root.handlers.clear()
+    null_handler = logbook.NullHandler()
+    null_handler.push_context()
+    stderr = sys.stderr
+    sys.stderr = sys.stdout
+
+.. doctest:: advanced
+
+    >>> from logging import getLogger
+    >>> from logbook import StreamHandler
+    >>> import sys
+    >>> StreamHandler(sys.stdout).push_application()
+    >>> mylog = getLogger("My Log")
+    >>> from logbook.compat import RedirectLoggingHandler
+    >>> mylog.addHandler(RedirectLoggingHandler())
+    >>> otherlog = getLogger("Other Log")
+    >>> otherlog.warning("logging is deprecated")  # via logging.lastResort
+    logging is deprecated
+    >>> mylog.warning("but logbook is awesome")
+    [2015-10-05 19:13:37.524346] WARNING: My Log: but logbook is awesome
+
+.. testcleanup:: advanced
+
+    sys.stderr = stderr
+    null_handler.pop_context()
+    reset_record_time()
 
 Reverse Redirects
 -----------------
