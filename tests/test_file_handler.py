@@ -561,6 +561,36 @@ def test_timed_rotating_file_handler_dates_existing_file_on_record_clock(
     assert current.read_text() == "current\nnew\n"
 
 
+def test_timed_rotating_file_handler_dates_existing_file_across_dst(
+    tmp_path, new_york, monkeypatch
+):
+    for name in ("_datetime_factory", "_datetime_mode", "_datetime_tzinfo"):
+        monkeypatch.setattr(logbook.base, name, getattr(logbook.base, name))
+    current = tmp_path / "app.log"
+    current.write_text("current\n")
+    backup = tmp_path / "app-2010-07-15-13.log"
+    backup.write_text("backup\n")
+    # 14:30 EDT, then a restart at 09:00 EST.
+    written = datetime(2010, 7, 15, 18, 30, tzinfo=timezone.utc)
+    os.utime(current, (written.timestamp(), written.timestamp()))
+    restart = datetime(2010, 12, 1, 14, tzinfo=timezone.utc)
+    logbook.set_datetime_format(lambda: restart.astimezone())
+
+    handler = logbook.TimedRotatingFileHandler(
+        current,
+        date_format="%Y-%m-%d-%H",
+        timed_filename_for_current=False,
+        format_string="{record.message}",
+    )
+    record = logbook.LogRecord("test", logbook.INFO, "new")
+    record.time = (restart + timedelta(minutes=1)).astimezone()
+    with handler, logbook.Flags(errors="raise"):
+        handler.handle(record)
+
+    assert backup.read_text() == "backup\n"
+    assert (tmp_path / "app-2010-07-15-14.log").read_text() == "current\n"
+
+
 def _decompress(input_file_name, use_gzip=True):
     if use_gzip:
         with gzip.open(input_file_name, "rb") as in_f:
