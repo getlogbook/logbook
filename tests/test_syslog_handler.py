@@ -81,6 +81,78 @@ def test_syslog_handler(
         assert re.match(expected, rv), f"expected {expected}, got {rv}"
 
 
+@pytest.mark.skipif(not UNIX_SOCKET_AVAILABLE, reason="Requires Unix sockets")
+def test_syslog_unix_stream_sends_whole_record(logger, unix_sock_path):
+    def receive(server):
+        with closing(server.accept()[0]) as connection:
+            connection.settimeout(5)
+            chunks = []
+            while chunk := connection.recv(65536):
+                chunks.append(chunk)
+            return b"".join(chunks)
+
+    message = "x" * 1_000_000
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as server:
+        server.bind(unix_sock_path)
+        server.listen()
+        server.settimeout(5)
+        handler = logbook.SyslogHandler(address=unix_sock_path)
+        handler.socket.settimeout(5)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            received = executor.submit(receive, server)
+            with closing(handler), handler, logbook.Flags(errors="raise"):
+                logger.warning(message)
+            expected = f"<12>testlogger: {message}\x00".encode()
+            assert received.result(timeout=5) == expected
+
+
+class FakeStream:
+    def __init__(self, *args):
+        self.closed = False
+
+    def connect(self, address):
+        pass
+
+    def getsockname(self):
+        return ("127.0.0.1", 12345)
+
+    def close(self):
+        self.closed = True
+
+
+@pytest.mark.parametrize("unix", [False, True])
+def test_syslog_stream_retry_sends_whole_record(monkeypatch, unix):
+    if unix and not UNIX_SOCKET_AVAILABLE:
+        pytest.skip("Requires Unix sockets")
+    sockets = []
+
+    class Stream(FakeStream):
+        def __init__(self, *args):
+            super().__init__()
+            self.broken = not sockets
+            self.data = b""
+            sockets.append(self)
+
+        def send(self, data):
+            if self.broken:
+                raise BrokenPipeError
+            self.data += data[:3]
+            return min(len(data), 3)
+
+        def sendall(self, data):
+            while data:
+                data = data[self.send(data) :]
+
+    monkeypatch.setattr(socket, "socket", Stream)
+    handler = logbook.SyslogHandler(
+        address="/syslog" if unix else ("127.0.0.1", 514),
+        socktype=socket.SOCK_STREAM,
+    )
+    handler.send_to_socket(b"whole record\n")
+    assert sockets[0].closed
+    assert sockets[1].data == b"whole record\n"
+
+
 @pytest.fixture
 def unix_sock_path():
     # The default temporary directory on macOS is too long for AF_UNIX paths.

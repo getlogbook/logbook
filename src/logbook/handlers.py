@@ -1932,10 +1932,11 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
     def send_to_socket(self, data):
         if self.unixsocket:
             try:
-                self.socket.send(data)
+                self.socket.sendall(data)
             except OSError:
+                self.socket.close()
                 self._connect_unixsocket()
-                self.socket.send(data)
+                self.socket.sendall(data)
         elif self.socktype == socket.SOCK_DGRAM:
             # the flags are no longer optional on Python 3
             self.socket.sendto(data, 0, self.address)
@@ -1943,8 +1944,9 @@ class SyslogHandler(Handler, StringFormatterHandlerMixin):
             try:
                 self.socket.sendall(data)
             except self.connection_exception:
+                self.socket.close()
                 self._connect_netsocket()
-                self.socket.send(data)
+                self.socket.sendall(data)
 
     def close(self):
         self.socket.close()
