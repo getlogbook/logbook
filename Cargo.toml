@@ -19,4 +19,4 @@ debug = true
 
 [workspace.dependencies]
 arc-swap = "1.7"
-pyo3 = "0.29"
+pyo3 = "0.30"
