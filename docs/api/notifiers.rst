@@ -8,7 +8,7 @@ that depend on external libraries.
 The more module implements special handlers and other things that are
 beyond the scope of Logbook itself or depend on external libraries.
 
-.. currentmodule:: logbook.notifiers
+.. module:: logbook.notifiers
 
 .. autofunction:: create_notification_handler
 

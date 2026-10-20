@@ -6,7 +6,7 @@ log records are categorized by location and for every emitted log record a
 count is added.  That way you know how often certain messages are
 triggered, at what times and when the last occurrence was.
 
-.. currentmodule:: logbook.ticketing
+.. module:: logbook.ticketing
 
 .. autoclass:: TicketingBaseHandler
    :members:
@@ -17,6 +17,13 @@ triggered, at what times and when the last occurrence was.
 .. autoclass:: BackendBase
    :members:
 
+.. autoclass:: Ticket
+   :members:
+
+.. autoclass:: Occurrence
+
 .. autoclass:: SQLAlchemyBackend
 
 .. autoclass:: MongoDBBackend
+
+.. autoclass:: logbook.more.CouchDBBackend

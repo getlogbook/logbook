@@ -183,7 +183,7 @@ format string or hook in a custom format function.
 
 All the handlers that come with logbook and that log into a string use the
 :class:`~logbook.StringFormatter` by default.  Their constructors accept a
-format string which sets the :attr:`logbook.Handler.format_string` attribute.
+format string which sets the :attr:`~logbook.StringFormatterHandlerMixin.format_string` attribute.
 You can override this attribute in which case a new string formatter is set:
 
 >>> from logbook import StderrHandler

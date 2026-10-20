@@ -6,7 +6,7 @@ beyond the scope of Logbook itself or depend on external libraries.
 Additionally there are some handlers in :mod:`logbook.ticketing`,
 :mod:`logbook.queues` and :mod:`logbook.notifiers`.
 
-.. currentmodule:: logbook.more
+.. module:: logbook.more
 
 Tagged Logging
 --------------
@@ -34,6 +34,9 @@ Special Handlers
    :members:
 
 .. autoclass:: DedupHandler
+   :members:
+
+.. autoclass:: RiemannHandler
    :members:
 
 Colorized Handlers

@@ -33,8 +33,10 @@ format strings.
 .. data:: CRITICAL
           ERROR
           WARNING
+          NOTICE
           INFO
           DEBUG
+          TRACE
           NOTSET
 
    The log level constants

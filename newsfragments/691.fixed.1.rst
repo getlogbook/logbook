@@ -1,1 +1,1 @@
-Logging to a closed ``GZIPCompressionHandler`` or ``BrotliCompressionHandler`` overwrote the file. It now raises :exc:`ValueError`.
+Logging to a closed :class:`~logbook.GZIPCompressionHandler` or :class:`~logbook.BrotliCompressionHandler` overwrote the file. It now raises :exc:`ValueError`.

@@ -8,6 +8,8 @@ This documents general purpose utility functions available in Logbook.
 
 .. currentmodule:: logbook
 
+.. autofunction:: trace
+
 .. autofunction:: debug
 
 .. autofunction:: info
