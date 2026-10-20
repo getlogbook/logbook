@@ -1,5 +1,9 @@
+import gc
 import os
+import threading
 import time
+import weakref
+from unittest.mock import Mock
 
 import pytest
 
@@ -9,6 +13,99 @@ from .utils import LETTERS, missing, require_module, unused_tcp_address
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
+
+
+@pytest.fixture
+def redis_handler_without_network(monkeypatch):
+    import redis
+
+    from logbook.queues import RedisHandler
+
+    connection = Mock()
+    monkeypatch.setattr(redis, "Redis", Mock(return_value=connection))
+    handler = RedisHandler(flush_time=60)
+    try:
+        yield handler, connection
+    finally:
+        handler._stop_event.set()
+        handler._flushing_t.join(timeout=1)
+        assert not handler._flushing_t.is_alive()
+
+
+@require_module("redis")
+@pytest.mark.parametrize("disable_buffering", [False, True])
+def test_redis_handler_close_stops_flusher(
+    redis_handler_without_network, disable_buffering
+):
+    handler, _ = redis_handler_without_network
+    if disable_buffering:
+        handler.disable_buffering()
+
+    handler.close()
+
+    assert handler._stop_event.is_set()
+    assert not handler._flushing_t.is_alive()
+
+
+@require_module("redis")
+def test_redis_handler_close_flushes_once(redis_handler_without_network):
+    import json
+
+    handler, connection = redis_handler_without_network
+    record = logbook.LogRecord("test", logbook.INFO, "pending")
+    record.heavy_init()
+    handler.emit(record)
+
+    handler.close()
+    handler.close()
+
+    connection.rpush.assert_called_once()
+    key, message = connection.rpush.call_args.args
+    assert key == handler.key
+    assert json.loads(message)["message"] == "pending"
+    assert handler.queue == []
+    assert not handler._flushing_t.is_alive()
+
+
+@require_module("redis")
+def test_redis_handler_worker_can_finalize_handler(monkeypatch):
+    import redis
+
+    from logbook.queues import RedisHandler
+
+    started = threading.Event()
+    proceed = threading.Event()
+    original_flush_task = RedisHandler._flush_task
+
+    def flush_task(self, interval, stop_event):
+        started.set()
+        proceed.wait(5)
+        original_flush_task(self, interval, stop_event)
+
+    connection = Mock()
+    monkeypatch.setattr(redis, "Redis", Mock(return_value=connection))
+    monkeypatch.setattr(RedisHandler, "_flush_task", flush_task)
+    handler = RedisHandler(flush_time=60)
+    worker = handler._flushing_t
+    reference = weakref.ref(handler)
+    try:
+        assert started.wait(1)
+        with handler.lock:
+            handler.queue.append("pending")
+        handler.disable_buffering()
+        del handler
+        proceed.set()
+        worker.join(timeout=1)
+
+        assert not worker.is_alive()
+        gc.collect()
+        assert reference() is None
+        connection.rpush.assert_called_once_with("redis", "pending")
+    finally:
+        if (remaining := reference()) is not None:
+            remaining._stop_event.set()
+        proceed.set()
+        worker.join(timeout=1)
 
 
 @require_module("zmq")
