@@ -149,7 +149,7 @@ Deprecated
 - ``logbook.concurrency.is_gevent_enabled``.
 - ``logbook.concurrency.new_fine_grained_lock``.
 - The ``compression`` extra. Replace ``Logbook[compression]`` with
-  ``Logbook[brotli]`` if you are using ``BrotliCompressionHandler``
+  ``Logbook[brotli]`` if you are using :class:`~logbook.BrotliCompressionHandler`
 - :meth:`Logger.warn <logbook.Logger.warn>`. Use
   :meth:`Logger.warning <logbook.Logger.warning>` instead.
 - :class:`logbook.notifiers.GrowlHandler`

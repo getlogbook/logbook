@@ -325,7 +325,7 @@ class ExternalApplicationHandler(Handler):
 
     Note that the above example is blocking until ``say`` finished, so it's
     recommended to combine this handler with the
-    :class:`logbook.ThreadedWrapperHandler` to move the execution into
+    :class:`logbook.queues.ThreadedWrapperHandler` to move the execution into
     a background thread.
 
     .. versionadded:: 0.3

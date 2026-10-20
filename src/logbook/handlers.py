@@ -732,6 +732,8 @@ class FileHandler(StreamHandler):
 
 
 class GZIPCompressionHandler(FileHandler):
+    """A file handler that writes a gzip-compressed file."""
+
     def __init__(
         self,
         filename,
@@ -776,6 +778,10 @@ class GZIPCompressionHandler(FileHandler):
 
 
 class BrotliCompressionHandler(FileHandler):
+    """A file handler that writes a Brotli-compressed file.  Requires the
+    ``Logbook[brotli]`` extra.
+    """
+
     def __init__(
         self,
         filename,

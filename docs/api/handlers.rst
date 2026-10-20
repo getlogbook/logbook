@@ -30,6 +30,12 @@ Core Handlers
 .. autoclass:: FileHandler
    :members:
 
+.. autoclass:: GZIPCompressionHandler
+   :members:
+
+.. autoclass:: BrotliCompressionHandler
+   :members:
+
 .. autoclass:: MonitoringFileHandler
    :members:
 

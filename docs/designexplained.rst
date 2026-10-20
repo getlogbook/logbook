@@ -113,5 +113,5 @@ longer time.  Logbook provides three different ways to accomplish that:
     recreated from these.  It is also possible to make these dictionaries
     safe for JSON export which is used by the
     :class:`~logbook.ticketing.TicketingHandler` to store information in a
-    database or the :class:`~logbook.more.MultiProcessingHandler` to send
+    database or the :class:`~logbook.queues.MultiProcessingHandler` to send
     information between processes.
