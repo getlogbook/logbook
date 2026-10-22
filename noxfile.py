@@ -43,6 +43,7 @@ SUPPORTED_EXTRAS_FREETHREADING = [
     "execnet",
     "jinja",
     "redis",
+    "sqlalchemy",
     "zmq",
 ]
 
@@ -155,6 +156,9 @@ def test_min_deps(session: nox.Session) -> None:
     supported_extras = (
         SUPPORTED_EXTRAS_FREETHREADING if is_freethreaded else SUPPORTED_EXTRAS
     )
+    if is_freethreaded:
+        # SQLAlchemy enables the GIL before 2.0.54
+        supported_extras = [e for e in supported_extras if e != "sqlalchemy"]
     with restore_file("uv.lock"):
         session.run_install(
             "uv",
