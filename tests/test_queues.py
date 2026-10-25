@@ -11,6 +11,39 @@ REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
 
 
+def test_redis_handler_includes_channel(monkeypatch):
+    import json
+    import sys
+    from types import ModuleType
+
+    class FakeRedis:
+        def __init__(self, **kwargs):
+            self.messages = []
+
+        def ping(self):
+            return True
+
+        def rpush(self, key, *values):
+            self.messages.extend(values)
+
+    redis = ModuleType("redis")
+    redis.Redis = FakeRedis
+    redis.ResponseError = type("ResponseError", (Exception,), {})
+    monkeypatch.setitem(sys.modules, "redis", redis)
+
+    from logbook.queues import RedisHandler
+
+    handler = RedisHandler(flush_threshold=1, flush_time=3600)
+    try:
+        with handler:
+            logbook.Logger("test.channel").info("test message")
+
+        record = json.loads(handler.redis.messages[0])
+        assert record["channel"] == "test.channel"
+    finally:
+        handler.disable_buffering()
+
+
 @require_module("zmq")
 def test_zeromq_handler(logger, handlers, subscriber):
     tests = [
