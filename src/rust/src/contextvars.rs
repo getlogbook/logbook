@@ -13,9 +13,6 @@ pub struct PyContextVar(PyAny);
 impl DerefToPyAny for PyContextVar {}
 
 unsafe impl PyTypeInfo for PyContextVar {
-    const NAME: &'static str = "ContextVar";
-    const MODULE: Option<&'static str> = Some("_contextvars");
-
     #[inline]
     fn type_object_raw(_py: Python<'_>) -> *mut PyTypeObject {
         #[allow(unused_unsafe)] // https://github.com/rust-lang/rust/pull/125834
@@ -111,9 +108,6 @@ pub struct PyContextToken(PyAny);
 impl DerefToPyAny for PyContextToken {}
 
 unsafe impl PyTypeInfo for PyContextToken {
-    const NAME: &'static str = "Token";
-    const MODULE: Option<&'static str> = Some("_contextvars");
-
     #[inline]
     fn type_object_raw(_py: Python<'_>) -> *mut PyTypeObject {
         #[allow(unused_unsafe)] // https://github.com/rust-lang/rust/pull/125834

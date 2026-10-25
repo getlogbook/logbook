@@ -9,7 +9,7 @@ version = "0.1.0"
 authors = ["Frazer McLean <frazer@frazermclean.co.uk>"]
 edition = "2021"
 publish = false
-rust-version = "1.83"
+rust-version = "1.85"
 license = "BSD-3-Clause"
 
 # Release build with debug info, so benchmark profiles resolve inlined frames.
