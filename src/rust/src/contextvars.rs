@@ -15,10 +15,7 @@ impl DerefToPyAny for PyContextVar {}
 unsafe impl PyTypeInfo for PyContextVar {
     #[inline]
     fn type_object_raw(_py: Python<'_>) -> *mut PyTypeObject {
-        #[allow(unused_unsafe)] // https://github.com/rust-lang/rust/pull/125834
-        unsafe {
-            addr_of_mut!(ffi::PyContextVar_Type)
-        }
+        addr_of_mut!(ffi::PyContextVar_Type)
     }
 
     #[inline]
@@ -110,10 +107,7 @@ impl DerefToPyAny for PyContextToken {}
 unsafe impl PyTypeInfo for PyContextToken {
     #[inline]
     fn type_object_raw(_py: Python<'_>) -> *mut PyTypeObject {
-        #[allow(unused_unsafe)] // https://github.com/rust-lang/rust/pull/125834
-        unsafe {
-            addr_of_mut!(ffi::PyContextToken_Type)
-        }
+        addr_of_mut!(ffi::PyContextToken_Type)
     }
 
     #[inline]
