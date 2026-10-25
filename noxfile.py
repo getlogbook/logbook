@@ -229,7 +229,6 @@ def rust(session: nox.Session) -> None:
     build_output = session.run(
         "cargo",
         "test",
-        "--no-default-features",
         "--all",
         "--no-run",
         "--quiet",
@@ -237,7 +236,7 @@ def rust(session: nox.Session) -> None:
         external=True,
         silent=True,
     )
-    session.run("cargo", "test", "--no-default-features", "--all", external=True)
+    session.run("cargo", "test", "--all", external=True)
 
     if build_output is not None:
         assert isinstance(build_output, str)

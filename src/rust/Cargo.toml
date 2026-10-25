@@ -11,10 +11,6 @@ license = { workspace = true }
 arc-swap = { workspace = true }
 pyo3 = { workspace = true }
 
-[features]
-extension-module = ["pyo3/extension-module"]
-default = ["extension-module"]
-
 [lib]
 name = "logbook_rust"
 crate-type = ["cdylib"]
