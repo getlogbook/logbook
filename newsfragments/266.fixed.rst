@@ -1,0 +1,1 @@
+:class:`~logbook.queues.RedisHandler` now includes the record's channel in serialized Redis messages.
