@@ -120,6 +120,7 @@ class RedisHandler(Handler):
         with self.lock:
             r = {
                 "message": record.msg,
+                "channel": record.channel,
                 "host": platform.node(),
                 "level": record.level_name,
                 "time": record.time.isoformat(),
