@@ -8,7 +8,7 @@ use contextvars::{PyContextVar, PyContextVarMethods};
 use pyo3::exceptions::{PyAssertionError, PyLookupError, PyNotImplementedError, PyTypeError};
 use pyo3::prelude::*;
 use pyo3::types::{PyIterator, PyString, PyTuple, PyType};
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 
 mod contextvars;
 mod stack_item;

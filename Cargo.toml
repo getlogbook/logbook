@@ -7,7 +7,7 @@ members = [
 [workspace.package]
 version = "0.1.0"
 authors = ["Frazer McLean <frazer@frazermclean.co.uk>"]
-edition = "2021"
+edition = "2024"
 publish = false
 rust-version = "1.85"
 license = "BSD-3-Clause"
