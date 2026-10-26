@@ -131,7 +131,13 @@ class RedisHandler(Handler):
                 self._flush_buffer()
 
     def close(self):
-        self._flush_buffer()
+        """Stop the background flusher and send any remaining records."""
+        self._stop_event.set()
+        # The worker can drop the last reference and invoke the destructor itself.
+        if self._flushing_t is not threading.current_thread():
+            self._flushing_t.join()
+        with self.lock:
+            self._flush_buffer()
 
 
 class MessageQueueHandler(Handler):
