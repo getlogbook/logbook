@@ -5,7 +5,7 @@ use pyo3::ffi::{self, PyTypeObject};
 use pyo3::prelude::*;
 use pyo3::sync::PyOnceLock;
 use pyo3::types::DerefToPyAny;
-use pyo3::{intern, IntoPyObjectExt, PyTypeInfo};
+use pyo3::{IntoPyObjectExt, PyTypeInfo, intern};
 
 #[repr(transparent)]
 pub struct PyContextVar(PyAny);
@@ -13,15 +13,9 @@ pub struct PyContextVar(PyAny);
 impl DerefToPyAny for PyContextVar {}
 
 unsafe impl PyTypeInfo for PyContextVar {
-    const NAME: &'static str = "ContextVar";
-    const MODULE: Option<&'static str> = Some("_contextvars");
-
     #[inline]
     fn type_object_raw(_py: Python<'_>) -> *mut PyTypeObject {
-        #[allow(unused_unsafe)] // https://github.com/rust-lang/rust/pull/125834
-        unsafe {
-            addr_of_mut!(ffi::PyContextVar_Type)
-        }
+        addr_of_mut!(ffi::PyContextVar_Type)
     }
 
     #[inline]
@@ -64,7 +58,7 @@ impl PyContextVar {
 
 pub trait PyContextVarMethods<'py> {
     fn get(&self, default_value: Option<&Bound<'py, PyAny>>)
-        -> PyResult<Option<Bound<'py, PyAny>>>;
+    -> PyResult<Option<Bound<'py, PyAny>>>;
     fn set<V>(&self, value: V) -> PyResult<Bound<'py, PyContextToken>>
     where
         V: IntoPyObject<'py>;
@@ -111,15 +105,9 @@ pub struct PyContextToken(PyAny);
 impl DerefToPyAny for PyContextToken {}
 
 unsafe impl PyTypeInfo for PyContextToken {
-    const NAME: &'static str = "Token";
-    const MODULE: Option<&'static str> = Some("_contextvars");
-
     #[inline]
     fn type_object_raw(_py: Python<'_>) -> *mut PyTypeObject {
-        #[allow(unused_unsafe)] // https://github.com/rust-lang/rust/pull/125834
-        unsafe {
-            addr_of_mut!(ffi::PyContextToken_Type)
-        }
+        addr_of_mut!(ffi::PyContextToken_Type)
     }
 
     #[inline]
