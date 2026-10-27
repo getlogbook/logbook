@@ -65,7 +65,7 @@ jobs:
         run: uv run --only-group nox nox -s codspeed --install-only
 
       - name: Run CodSpeed benchmarks
-        uses: CodSpeedHQ/action@821a40cd6c80e3cfe387caf55668287addd808da # v5.5.0
+        uses: CodSpeedHQ/action@78102a468f96d8e0ccb92d0ec49425753fc42062 # v5.6.0
         with:
           mode: simulation
           run: uv run --only-group nox nox -s codspeed --no-install -- --codspeed-mode=simulation --numprocesses=auto
