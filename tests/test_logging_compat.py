@@ -261,3 +261,64 @@ def test_redirect_find_caller_override_sets_location():
     )
     record = CustomHandler().convert_record(source)
     assert record.func_name == "test_redirect_find_caller_override_sets_location"
+
+
+def test_redirect_preserves_cached_exception():
+    try:
+        raise ValueError("job failed")
+    except ValueError:
+        source = logging.LogRecord(
+            "source",
+            logging.ERROR,
+            "/application/worker.py",
+            42,
+            "Failed job %s",
+            ("example",),
+            sys.exc_info(),
+            func="run_job",
+        )
+    logging.Formatter().format(source)
+    # Transported records retain the formatted traceback, not the traceback object.
+    transported = logging.makeLogRecord(
+        dict(source.__dict__, msg=source.getMessage(), args=None, exc_info=None)
+    )
+    with logbook.TestHandler() as handler:
+        logbook.compat.RedirectLoggingHandler().handle(transported)
+    [record] = handler.records
+    assert record.message == "Failed job example"
+    assert record.exc_info is None
+    assert record.formatted_exception == source.exc_text
+    assert (record.filename, record.lineno, record.func_name) == (
+        "/application/worker.py",
+        42,
+        "run_job",
+    )
+    [formatted] = handler.formatted_records
+    assert formatted.count("ValueError: job failed") == 1
+    assert formatted.count("Failed job example") == 1
+
+
+def test_redirect_prefers_exception_info_to_cached_text():
+    try:
+        raise ValueError("job failed")
+    except ValueError:
+        source = logging.LogRecord(
+            "source", logging.ERROR, __file__, 1, "event", (), sys.exc_info()
+        )
+    source.exc_text = "previous formatter's exception text"
+    with logbook.TestHandler() as handler:
+        logbook.compat.RedirectLoggingHandler().handle(source)
+    [record] = handler.records
+    assert record.exc_info == source.exc_info
+    assert record.formatted_exception.endswith("ValueError: job failed")
+    assert source.exc_text not in handler.formatted_records[0]
+
+
+def test_redirect_without_exception():
+    source = logging.LogRecord("source", logging.ERROR, __file__, 1, "event", (), None)
+    with logbook.TestHandler() as handler:
+        logbook.compat.RedirectLoggingHandler().handle(source)
+    [record] = handler.records
+    assert record.exc_info is None
+    assert record.formatted_exception is None
+    assert handler.formatted_records == ["[ERROR] source: event"]
