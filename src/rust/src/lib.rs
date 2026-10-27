@@ -386,29 +386,35 @@ impl ApplicationBound {
     }
 }
 
+/// Baseclass for all objects that provide stack manipulation
+/// operations.
 #[pyclass(module = "logbook._speedups", subclass)]
 pub struct StackedObject;
 
 #[pymethods]
 impl StackedObject {
     #[new]
-    #[pyo3(signature = (*_args, **_kwargs))]
+    #[pyo3(signature = (*_args, **_kwargs), text_signature = "()")]
     fn __new__(_args: &Bound<'_, PyAny>, _kwargs: Option<&Bound<'_, PyAny>>) -> Self {
         Self
     }
 
+    /// Pushes the stacked object to the context stack.
     fn push_context(&self) -> PyResult<()> {
         Err(PyNotImplementedError::new_err(()))
     }
 
+    /// Pops the stacked object from the context stack.
     fn pop_context(&self) -> PyResult<()> {
         Err(PyNotImplementedError::new_err(()))
     }
 
+    /// Pushes the stacked object to the application stack.
     fn push_application(&self) -> PyResult<()> {
         Err(PyNotImplementedError::new_err(()))
     }
 
+    /// Pops the stacked object from the application stack.
     fn pop_application(&self) -> PyResult<()> {
         Err(PyNotImplementedError::new_err(()))
     }
@@ -429,6 +435,8 @@ impl StackedObject {
         Ok(())
     }
 
+    /// Can be used in combination with the `with` statement to
+    /// execute code while the object is bound to the application.
     fn applicationbound(self_: Py<Self>) -> ApplicationBound {
         ApplicationBound::new(self_.into_any())
     }
