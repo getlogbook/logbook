@@ -2240,7 +2240,7 @@ class FingersCrossedHandler(Handler):
     def rollover(self, record):
         if self._handler is None:
             self._handler = self._handler_factory(record, self)
-        self._handler.emit_batch(iter(self.buffered_records), "escalation")
+        self._handler.emit_batch(iter(self.buffered_records), self.batch_emit_reason)
         self.buffered_records.clear()
         self._action_triggered = not self._reset
 
