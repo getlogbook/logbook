@@ -113,3 +113,33 @@ def test_fingerscrossed_public_buffer_changes(activation_strategy, logger, chang
 
     expected = ["c", "error"] if change == "clear" else ["a", "b", "c", "error"]
     assert [record.message for record in sink.records] == expected
+
+
+@pytest.mark.parametrize("reset", [False, True])
+@pytest.mark.parametrize("reason", ["escalation", "group", "custom"])
+def test_fingerscrossed_batch_reason(activation_strategy, logger, reset, reason):
+    class RecordingHandler(logbook.TestHandler):
+        def __init__(self):
+            super().__init__()
+            self.reasons = []
+
+        def emit_batch(self, records, reason):
+            self.reasons.append(reason)
+            super().emit_batch(records, reason)
+
+    sink = RecordingHandler()
+    handler = logbook.FingersCrossedHandler(sink, reset=reset)
+    handler.batch_emit_reason = reason
+    with activation_strategy(handler):
+        logger.info("first context")
+        logger.error("first trigger")
+        logger.info("second context")
+        logger.error("second trigger")
+
+    assert sink.reasons == [reason] * (2 if reset else 1)
+    assert [record.message for record in sink.records] == [
+        "first context",
+        "first trigger",
+        "second context",
+        "second trigger",
+    ]
