@@ -202,6 +202,6 @@ def deprecated(func=None, message=None):
 def _get_caller_location(frame_correction):
     frame = sys._getframe(frame_correction + 1)  # pylint: disable=protected-access
     try:
-        return (frame.f_code.co_name, frame.f_lineno)
+        return (frame.f_code.co_filename, frame.f_code.co_name, frame.f_lineno)
     finally:
         del frame
