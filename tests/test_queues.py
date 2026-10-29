@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -9,39 +10,6 @@ from .utils import LETTERS, missing, require_module, unused_tcp_address
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
-
-
-def test_redis_handler_includes_channel(monkeypatch):
-    import json
-    import sys
-    from types import ModuleType
-
-    class FakeRedis:
-        def __init__(self, **kwargs):
-            self.messages = []
-
-        def ping(self):
-            return True
-
-        def rpush(self, key, *values):
-            self.messages.extend(values)
-
-    redis = ModuleType("redis")
-    redis.Redis = FakeRedis
-    redis.ResponseError = type("ResponseError", (Exception,), {})
-    monkeypatch.setitem(sys.modules, "redis", redis)
-
-    from logbook.queues import RedisHandler
-
-    handler = RedisHandler(flush_threshold=1, flush_time=3600)
-    try:
-        with handler:
-            logbook.Logger("test.channel").info("test message")
-
-        record = json.loads(handler.redis.messages[0])
-        assert record["channel"] == "test.channel"
-    finally:
-        handler.disable_buffering()
 
 
 @require_module("zmq")
@@ -365,6 +333,14 @@ def test_redis_handler():
     for field in FIELDS:
         assert message.find(field)
     assert message.find("This works")
+
+    # The record's channel is serialized alongside the message.
+    with null_handler.applicationbound():
+        with redis_handler:
+            logbook.Logger("test.channel").info(LETTERS)
+
+    key, message = r.blpop(KEY)
+    assert json.loads(message)["channel"] == "test.channel"
 
 
 @require_module("redis")
