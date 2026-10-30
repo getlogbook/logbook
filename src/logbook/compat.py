@@ -181,6 +181,9 @@ class RedirectLoggingHandler(logging.Handler):
         record.thread_name = old_record.threadName
         record.process = old_record.process
         record.process_name = old_record.processName
+        # Transported records can retain only the already formatted traceback.
+        if old_record.exc_info is None and old_record.exc_text:
+            record.formatted_exception = old_record.exc_text
         return record
 
     def emit(self, record):
