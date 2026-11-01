@@ -1,6 +1,7 @@
 include CHANGELOG.md
 include README.md
 include noxfile.py
+include codspeed.yml
 include uv.lock
 include Cargo.lock
 include Cargo.toml

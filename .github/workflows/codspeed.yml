@@ -14,6 +14,7 @@ on:
       - pyproject.toml
       - uv.lock
       - noxfile.py
+      - codspeed.yml
       - .github/workflows/codspeed.yml
   workflow_dispatch:
 
@@ -69,3 +70,37 @@ jobs:
         with:
           mode: simulation
           run: uv run --only-group nox nox -s codspeed --no-install -- --codspeed-mode=simulation --numprocesses=auto
+
+  imports:
+    name: Measure import time
+    # Python 3.15 is the first with lazy imports (PEP 810).
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.15.0"
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
+          prune-cache: true
+          cache-suffix: codspeed-imports
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
+        with:
+          toolchain: "1.98.1"
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - name: Install Logbook
+        run: uv pip install --system --compile-bytecode .
+
+      # Runs the exec benchmark in codspeed.yml.
+      - name: Run import benchmark
+        uses: CodSpeedHQ/action@78102a468f96d8e0ccb92d0ec49425753fc42062 # v5.6.0
+        with:
+          mode: simulation
