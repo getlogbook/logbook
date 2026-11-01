@@ -4,6 +4,7 @@ import io
 import os
 import threading
 import time
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from functools import partial
@@ -12,6 +13,7 @@ from types import SimpleNamespace
 import pytest
 
 import logbook
+from logbook.handlers import _timed_rollover_regex
 
 from .utils import LETTERS, capturing_stderr_context
 
@@ -1021,3 +1023,168 @@ def test_timed_rollover_recovers_from_failure(
 
     assert old_file.read_text() == old_period
     assert new_file.read_text() == new_period
+
+
+def test_timed_rotating_file_handler_deletes_only_own_backups(
+    tmp_path, started_in_2010
+):
+    others = ["app-2010-01-01.log.gz", "app-errors-2010-01-01.log"]
+    for filename in others:
+        (tmp_path / filename).write_text("old\n")
+        os.utime(tmp_path / filename, (0, 0))
+    (tmp_path / "app-2010-01-02.log").mkdir()
+    handler = logbook.TimedRotatingFileHandler(tmp_path / "app.log", backup_count=2)
+    with handler, logbook.Flags(errors="raise"):
+        for day in (3, 4, 5):
+            _log_on_day(handler, day, "record")
+
+    kept = [*others, "app-2010-01-02.log", "app-2010-01-04.log", "app-2010-01-05.log"]
+    assert sorted(os.listdir(tmp_path)) == sorted(kept)
+
+
+def test_timed_rotating_file_handler_warns_for_unrecognised_names(
+    tmp_path, started_in_2010
+):
+    (tmp_path / "app-notes.log").touch()
+    with pytest.warns(UserWarning, match="will not remove any"):
+        handler = logbook.TimedRotatingFileHandler(
+            tmp_path / "app.log", date_format="%Y-%m-%d-%Z", backup_count=1
+        )
+    with handler, logbook.Flags(errors="raise"):
+        for day in (1, 2):
+            _log_on_day(handler, day, "record")
+
+    assert len(os.listdir(tmp_path)) == 3
+
+
+def test_timed_rotating_file_handler_warns_only_with_backup_count(tmp_path):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        handler = logbook.TimedRotatingFileHandler(
+            tmp_path / "app.log", date_format="%Y-%m-%d-%Z"
+        )
+    handler.close()
+
+
+DEFAULT_ROLLOVER = "{basename}-{timestamp}{ext}"
+
+
+@pytest.mark.parametrize(
+    ("date_format", "filename"),
+    [
+        pytest.param("%Y-%G", "app-2010-2009.log", id="4-digit"),
+        pytest.param("%y-%m-%d", "app-10-01-31.log", id="2-digit-date"),
+        pytest.param("%H-%I-%M-%S", "app-23-11-59-58.log", id="2-digit-time"),
+        pytest.param("%U-%W-%V", "app-05-04-53.log", id="2-digit-week"),
+        pytest.param("%j", "app-031.log", id="day-of-year"),
+        pytest.param("%u-%w", "app-7-0.log", id="weekday-number"),
+        pytest.param("%F", "app-2010-01-31.log", id="iso-date"),
+        pytest.param("%Y-%f", "app-2010-000017.log", id="microsecond"),
+        pytest.param("%Y%%", "app-2010%.log", id="percent"),
+        pytest.param("%Y%z", "app-2010+0100.log", id="offset-east"),
+        pytest.param("%Y%z", "app-2010-0530.log", id="offset-west"),
+        pytest.param("%Y%z", "app-2010.log", id="offset-absent"),
+        pytest.param("%Y%z", "app-2010+000030.log", id="offset-seconds"),
+        pytest.param("%Y%z", "app-2010+000030.000001.log", id="offset-microseconds"),
+        pytest.param("%a-%b-%p", "app-Mon-Jan-AM.log", id="short-names"),
+        pytest.param("%A-%B-%p", "app-Sunday-December-PM.log", id="long-names"),
+        pytest.param("%Y.%m", "app-2010.01.log", id="literal"),
+    ],
+)
+def test_timed_rollover_regex_date_format_matches(date_format, filename):
+    regex = _timed_rollover_regex(DEFAULT_ROLLOVER, date_format, "app", ".log")
+    assert regex.fullmatch(filename) is not None
+
+
+@pytest.mark.parametrize(
+    ("date_format", "filename"),
+    [
+        pytest.param("%Y", "app-201.log", id="4-digit-short"),
+        pytest.param("%Y", "app-20100.log", id="4-digit-long"),
+        pytest.param("%Y-%m-%d", "app-2010-1-01.log", id="2-digit-short"),
+        pytest.param("%j", "app-31.log", id="day-of-year-short"),
+        pytest.param("%u", "app-07.log", id="weekday-number-long"),
+        pytest.param("%F", "app-2010-1-31.log", id="iso-date-short"),
+        pytest.param("%f", "app-17.log", id="microsecond-short"),
+        pytest.param("%Y%z", "app-2010+01:00.log", id="offset-colon"),
+        pytest.param("%Y%z", "app-2010+00003.log", id="offset-odd-digits"),
+        pytest.param("%Y%z", "app-2010-old.log", id="offset-word"),
+        pytest.param("%Y-%b", "app-2010-old.log", id="names-other-word"),
+        pytest.param("%Y.%m", "app-2010x01.log", id="literal-escaped"),
+        pytest.param("%Y", "app-\u0662\u0660\u0661\u0660.log", id="non-ascii-digits"),
+    ],
+)
+def test_timed_rollover_regex_date_format_rejects(date_format, filename):
+    regex = _timed_rollover_regex(DEFAULT_ROLLOVER, date_format, "app", ".log")
+    assert regex.fullmatch(filename) is None
+
+
+@pytest.mark.parametrize(
+    ("basename", "ext", "filename"),
+    [
+        pytest.param("a.p+p", ".log", "a.p+p-2010.log", id="basename"),
+        pytest.param("app", ".l+g", "app-2010.l+g", id="ext"),
+        pytest.param("app", "", "app-2010", id="no-ext"),
+    ],
+)
+def test_timed_rollover_regex_path_matches(basename, ext, filename):
+    regex = _timed_rollover_regex(DEFAULT_ROLLOVER, "%Y", basename, ext)
+    assert regex.fullmatch(filename) is not None
+
+
+@pytest.mark.parametrize(
+    ("basename", "ext", "filename"),
+    [
+        pytest.param("a.p+p", ".log", "axppp-2010.log", id="basename-escaped"),
+        pytest.param("app", ".l+g", "app-2010xllg", id="ext-escaped"),
+        pytest.param("app", "", "app-2010.json", id="no-ext-suffix"),
+    ],
+)
+def test_timed_rollover_regex_path_rejects(basename, ext, filename):
+    regex = _timed_rollover_regex(DEFAULT_ROLLOVER, "%Y", basename, ext)
+    assert regex.fullmatch(filename) is None
+
+
+@pytest.mark.parametrize(
+    ("rollover_format", "filename"),
+    [
+        pytest.param("{basename}{ext}({timestamp})", "app.log(2010)", id="literal"),
+        pytest.param("{basename}.{timestamp}", "app.2010", id="no-ext-field"),
+    ],
+)
+def test_timed_rollover_regex_template_matches(rollover_format, filename):
+    regex = _timed_rollover_regex(rollover_format, "%Y", "app", ".log")
+    assert regex.fullmatch(filename) is not None
+
+
+@pytest.mark.parametrize(
+    ("rollover_format", "filename"),
+    [
+        pytest.param(
+            "{basename}{ext}({timestamp})", "app.log2010", id="literal-escaped"
+        ),
+        pytest.param(DEFAULT_ROLLOVER, "app-2010.log.gz", id="suffix"),
+        pytest.param(
+            "{basename}{ext}.{timestamp}",
+            "app.log.2010.12",
+            id="longer-timestamp",
+        ),
+    ],
+)
+def test_timed_rollover_regex_template_rejects(rollover_format, filename):
+    regex = _timed_rollover_regex(rollover_format, "%Y", "app", ".log")
+    assert regex.fullmatch(filename) is None
+
+
+@pytest.mark.parametrize(
+    ("rollover_format", "date_format"),
+    [
+        pytest.param(DEFAULT_ROLLOVER, "%Y-%Z", id="zone-name"),
+        pytest.param(DEFAULT_ROLLOVER, "%c", id="locale-datetime"),
+        pytest.param("{basename}-{timestamp:>12}{ext}", "%Y", id="spec"),
+        pytest.param("{basename}-{timestamp!r}{ext}", "%Y", id="conversion"),
+        pytest.param("{basename}-{date}{ext}", "%Y", id="unknown-field"),
+    ],
+)
+def test_timed_rollover_regex_unsupported(rollover_format, date_format):
+    assert _timed_rollover_regex(rollover_format, date_format, "app", ".log") is None
