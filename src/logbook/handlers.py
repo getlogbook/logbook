@@ -23,6 +23,7 @@ from collections import deque
 from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
+from string import Formatter as StrFormatter
 from textwrap import dedent
 
 from typing_extensions import deprecated
@@ -1036,6 +1037,69 @@ class RotatingFileHandler(FileHandler):
             self.lock.release()
 
 
+_TIMESTAMP_PATTERNS = {
+    "Y": r"\d{4}",
+    "G": r"\d{4}",
+    "y": r"\d\d",
+    "m": r"\d\d",
+    "d": r"\d\d",
+    "H": r"\d\d",
+    "I": r"\d\d",
+    "M": r"\d\d",
+    "S": r"\d\d",
+    "U": r"\d\d",
+    "W": r"\d\d",
+    "V": r"\d\d",
+    "j": r"\d{3}",
+    "u": r"\d",
+    "w": r"\d",
+    "F": r"\d{4}-\d\d-\d\d",
+    "f": r"\d{6}",
+    "z": r"(?:[+-]\d{4}(?:\d\d(?:\.\d{6})?)?)?",
+    "%": "%",
+}
+_TIMESTAMP_NAME_SAMPLES = {
+    "a": tuple(datetime(2001, 1, day) for day in range(1, 8)),
+    "A": tuple(datetime(2001, 1, day) for day in range(1, 8)),
+    "b": tuple(datetime(2001, month, 1) for month in range(1, 13)),
+    "B": tuple(datetime(2001, month, 1) for month in range(1, 13)),
+    "p": (datetime(2001, 1, 1, 0), datetime(2001, 1, 1, 12)),
+}
+
+
+def _timed_rollover_regex(rollover_format, date_format, basename, ext):
+    """Returns a regex matching the names of rolled over files, or
+    ``None`` for a `rollover_format` or `date_format` it cannot match.
+    """
+    timestamp = ""
+    for directive, literal in re.findall(r"%(.)|(.)", date_format, re.S):
+        if literal:
+            timestamp += re.escape(literal)
+        elif directive in _TIMESTAMP_NAME_SAMPLES:
+            names = (
+                sample.strftime("%" + directive)
+                for sample in _TIMESTAMP_NAME_SAMPLES[directive]
+            )
+            timestamp += "(?:" + "|".join(map(re.escape, names)) + ")"
+        elif directive in _TIMESTAMP_PATTERNS:
+            timestamp += _TIMESTAMP_PATTERNS[directive]
+        else:
+            return None
+    fields = {
+        "basename": re.escape(basename),
+        "timestamp": timestamp,
+        "ext": re.escape(ext),
+    }
+    pattern = ""
+    for literal, field, spec, conversion in StrFormatter().parse(rollover_format):
+        pattern += re.escape(literal)
+        if field is not None:
+            if spec or conversion or field not in fields:
+                return None
+            pattern += fields[field]
+    return re.compile(pattern, re.ASCII)
+
+
 class TimedRotatingFileHandler(FileHandler):
     """This handler rotates based on dates.  It will name the file
     after the filename you specify and the `date_format` pattern.
@@ -1107,6 +1171,12 @@ class TimedRotatingFileHandler(FileHandler):
         self.original_filename = filename
         self.basename, self.ext = os.path.splitext(os.path.abspath(filename))
         self.timed_filename_for_current = timed_filename_for_current
+        if backup_count > 0 and self._rollover_regex() is None:
+            warnings.warn(
+                "backup_count cannot recognise old log files from rollover_format "
+                "and date_format, so it will not remove any",
+                stacklevel=2,
+            )
 
         now = base._datetime_factory()
         # Records from before the handler started never roll it back.
@@ -1144,22 +1214,23 @@ class TimedRotatingFileHandler(FileHandler):
         """
         directory = os.path.dirname(self._filename)
         files = []
-        rollover_regex = re.compile(
-            self.rollover_format.format(
-                basename=re.escape(self.basename),
-                timestamp=".+",
-                ext=re.escape(self.ext),
-            )
-        )
+        rollover_regex = self._rollover_regex()
+        if rollover_regex is None:
+            return files
         for filename in os.listdir(directory):
             filename = os.path.join(directory, filename)
-            if rollover_regex.match(filename):
+            if rollover_regex.fullmatch(filename) and os.path.isfile(filename):
                 files.append((os.path.getmtime(filename), filename))
         files.sort()
         if self.backup_count > 1:
             return files[: -self.backup_count + 1]
         else:
             return files[:]
+
+    def _rollover_regex(self):
+        return _timed_rollover_regex(
+            self.rollover_format, self.date_format, self.basename, self.ext
+        )
 
     def perform_rollover(self, new_timestamp):
         if not self.timed_filename_for_current and _is_special_file(self._filename):

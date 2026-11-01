@@ -1,0 +1,1 @@
+:class:`~logbook.TimedRotatingFileHandler` with ``backup_count`` could delete other files whose names started like its old log files, such as another handler's logs. If it cannot recognise its old log files, for example because ``date_format`` uses ``%Z``, it now warns and deletes none.

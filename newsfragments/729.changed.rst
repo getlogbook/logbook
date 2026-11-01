@@ -1,0 +1,1 @@
+:class:`~logbook.TimedRotatingFileHandler` no longer counts compressed copies of its old log files, such as ``app-2010-01-01.log.gz``, towards ``backup_count``, and never deletes them.
