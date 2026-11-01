@@ -1057,7 +1057,6 @@ class TimedRotatingFileHandler(FileHandler):
 
     You may supply an optional `rollover_format`. This allows you to specify
     the format for the filenames of rolled-over files.
-    the format as
 
     So for example if you configure your handler like this::
 
@@ -1067,7 +1066,7 @@ class TimedRotatingFileHandler(FileHandler):
             rollover_format="{basename}{ext}.{timestamp}",
         )
 
-    The filenames for the logfiles will look like this::
+    The filenames for the logfiles will look like this:
 
     .. code-block:: text
 
