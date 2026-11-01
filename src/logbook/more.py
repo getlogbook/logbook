@@ -82,10 +82,8 @@ class CouchDBBackend(BackendBase):
         """Records a log record as ticket."""
         db = self.database
 
-        ticket = record.to_dict()
-        ticket["time"] = ticket["time"].isoformat() + "Z"
-        ticket_id, _ = db.save(ticket)  # noqa: RUF059
-
+        # copy data because db.save mutates it
+        ticket = dict(data)
         db.save(ticket)
 
 

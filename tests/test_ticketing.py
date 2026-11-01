@@ -1,5 +1,9 @@
+import json
 import os
+from datetime import datetime, timezone
 from threading import get_ident
+
+import pytest
 
 import logbook
 
@@ -56,3 +60,85 @@ def test_basic_ticketing(logger):
     assert record.process == os.getpid()
     assert record.channel == "testlogger"
     assert "1 / 0" in record.formatted_exception
+
+
+@pytest.fixture
+def couchdb_backend():
+    from logbook.more import CouchDBBackend
+
+    class JSONDatabase:
+        def __init__(self):
+            self.documents = []
+
+        def save(self, document):
+            # Like the real client: documents must be JSON, and save() adds
+            # _id and _rev to the dict it is given.
+            self.documents.append(json.loads(json.dumps(document)))
+            document.setdefault("_id", "ticket-id")
+            document["_rev"] = str(len(self.documents))
+            return document["_id"], document["_rev"]
+
+    database = JSONDatabase()
+
+    class Backend(CouchDBBackend):
+        def setup_backend(self):
+            self.database = database
+
+    return Backend, database
+
+
+def test_couchdb_stores_json_safe_processed_record(couchdb_backend):
+    from logbook.ticketing import TicketingHandler
+
+    backend, database = couchdb_backend
+    handler = TicketingHandler("http://example.invalid/", backend=backend)
+    record = logbook.LogRecord(
+        "test",
+        logbook.WARNING,
+        "message",
+        extra={
+            "nested": {"when": datetime(2020, 1, 2, 3, 4, 5, 123456)},
+            "values": (None, object(), 42),
+        },
+    )
+    record.heavy_init()
+    handler.emit(record)
+
+    stored = database.documents[0]
+    assert stored["extra"]["nested"]["when"] == "2020-01-02T03:04:05.123456Z"
+    assert stored["extra"]["values"] == [None, None, 42]
+
+
+def test_couchdb_process_record_hook(couchdb_backend):
+    from logbook.ticketing import TicketingHandler
+
+    backend, database = couchdb_backend
+
+    class ProcessedHandler(TicketingHandler):
+        def process_record(self, record, hash):
+            data = super().process_record(record, hash)
+            data["processed_marker"] = {"source": "application"}
+            self.processed = data
+            return data
+
+    handler = ProcessedHandler("http://example.invalid/", backend=backend)
+    record = logbook.LogRecord("test", logbook.WARNING, "message")
+    record.heavy_init()
+    handler.emit(record)
+
+    assert database.documents[0] == json.loads(json.dumps(handler.processed))
+    assert "_id" not in handler.processed
+    assert "_rev" not in handler.processed
+
+
+def test_couchdb_stores_record_time_in_utc(couchdb_backend, record_time):
+    from logbook.ticketing import TicketingHandler
+
+    backend, database = couchdb_backend
+    handler = TicketingHandler("http://example.invalid/", backend=backend)
+    record = logbook.LogRecord("test", logbook.WARNING, "event")
+    record.heavy_init()
+    record.time = record_time(datetime(2020, 1, 2, 3, 4, 5, 17, tzinfo=timezone.utc))
+    handler.emit(record)
+
+    assert database.documents[0]["time"] == "2020-01-02T03:04:05.000017Z"

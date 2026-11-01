@@ -1,0 +1,1 @@
+The CouchDB ticketing backend stores the payload from ``process_record`` instead of the raw record, so overrides take effect and nested datetimes no longer break saving. It also stores record times in UTC when :func:`~logbook.set_datetime_format` makes them local or aware.
