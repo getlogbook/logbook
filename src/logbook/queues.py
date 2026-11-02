@@ -650,8 +650,15 @@ class TWHThreadController:
 
     def stop(self):
         """Stops the task thread."""
-        if self.running:
-            self.wrapper_handler.queue.put_nowait((self.Command.stop,))
+        if self._thread is not None:
+            if self._thread is threading.current_thread():
+                raise RuntimeError("cannot close the handler from its worker thread")
+            while self._thread.is_alive():
+                try:
+                    self.wrapper_handler.queue.put((self.Command.stop,), timeout=0.05)
+                    break
+                except Full:
+                    pass
             self._thread.join()
             self._thread = None
 

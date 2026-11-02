@@ -1,4 +1,5 @@
 import os
+import threading
 import time
 
 import pytest
@@ -226,6 +227,104 @@ def test_threaded_wrapper_handler_error(logger, capsys):
     err = capsys.readouterr().err
     assert err.count("ValueError: emit failed") == 2
     assert err.count("Logged from file") == 2
+
+
+def release_when_close_waits(monkeypatch, handler, release):
+    queue_put = handler.queue.put
+
+    def put(item, block=True, timeout=None):
+        if block:
+            release.set()
+        return queue_put(item, block, timeout)
+
+    monkeypatch.setattr(handler.queue, "put", put)
+
+
+def test_threaded_wrapper_handler_close_full_queue(logger, monkeypatch):
+    from logbook.queues import ThreadedWrapperHandler
+
+    started = threading.Event()
+    release = threading.Event()
+
+    class BlockingTestHandler(logbook.TestHandler):
+        def emit(self, record):
+            started.set()
+            assert release.wait(5)
+            super().emit(record)
+
+    test_handler = BlockingTestHandler()
+    with ThreadedWrapperHandler(test_handler, maxsize=1) as handler:
+        logger.warning("Just testing")
+        assert started.wait(5)
+        logger.error("More testing")
+
+    release_when_close_waits(monkeypatch, handler, release)
+    handler.close()
+
+    assert test_handler.has_warning("Just testing")
+    assert test_handler.has_error("More testing")
+
+
+def test_threaded_wrapper_handler_close_dead_worker(logger, monkeypatch):
+    from logbook.queues import ThreadedWrapperHandler
+
+    started = threading.Event()
+    release = threading.Event()
+
+    class SlowFailingTestHandler(logbook.TestHandler):
+        def emit(self, record):
+            started.set()
+            assert release.wait(5)
+            raise ValueError("emit failed")
+
+    errors = []
+    monkeypatch.setattr(threading, "excepthook", errors.append)
+    with logbook.Flags(errors="raise").applicationbound():
+        with ThreadedWrapperHandler(SlowFailingTestHandler(), maxsize=1) as handler:
+            logger.warning("Just testing")
+            assert started.wait(5)
+            logger.error("More testing")
+
+        release_when_close_waits(monkeypatch, handler, release)
+        closer = threading.Thread(target=handler.close, daemon=True)
+        closer.start()
+        closer.join(5)
+    assert not closer.is_alive()
+    handler.close()
+    assert [error.exc_type for error in errors] == [ValueError]
+
+
+def test_threaded_wrapper_handler_close_from_worker(logger):
+    from logbook.queues import ThreadedWrapperHandler
+
+    started = threading.Event()
+    queued = threading.Event()
+    errors = []
+
+    class ClosingTestHandler(logbook.TestHandler):
+        def emit(self, record):
+            if record.msg == "Close":
+                started.set()
+                assert queued.wait(5)
+                try:
+                    handler.close()
+                except RuntimeError as e:
+                    errors.append(e)
+            super().emit(record)
+
+    test_handler = ClosingTestHandler()
+    with ThreadedWrapperHandler(test_handler, maxsize=1) as handler:
+        logger.warning("Close")
+        assert started.wait(5)
+        logger.error("More testing")
+        queued.set()
+
+    closer = threading.Thread(target=handler.close, daemon=True)
+    closer.start()
+    closer.join(5)
+    assert not closer.is_alive()
+    assert len(errors) == 1
+    assert test_handler.has_error("More testing")
 
 
 @require_module("execnet")
