@@ -293,6 +293,7 @@ def test_redis_handler():
         assert message.find(field)
     assert key == KEY
     assert message.find(LETTERS)
+    assert json.loads(message)["channel"] == "Generic"
 
     # Change the key of the handler and check on redis
     KEY = f"test_another_key-{os.getpid()}"
@@ -333,14 +334,6 @@ def test_redis_handler():
     for field in FIELDS:
         assert message.find(field)
     assert message.find("This works")
-
-    # The record's channel is serialized alongside the message.
-    with null_handler.applicationbound():
-        with redis_handler:
-            logbook.Logger("test.channel").info(LETTERS)
-
-    key, message = r.blpop(KEY)
-    assert json.loads(message)["channel"] == "test.channel"
 
 
 @require_module("redis")

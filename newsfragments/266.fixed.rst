@@ -1,1 +1,1 @@
-:class:`~logbook.queues.RedisHandler` now includes the record's channel in serialized Redis messages.
+:class:`~logbook.queues.RedisHandler` messages now include the record's channel as ``channel``.
