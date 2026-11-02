@@ -1,0 +1,2 @@
+:class:`~logbook.queues.ThreadedWrapperHandler` keeps delivering records after
+its handler fails, and reports the error as other handlers do.

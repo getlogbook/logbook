@@ -1,0 +1,3 @@
+:meth:`~logbook.queues.ThreadedWrapperHandler.close` waits for room in a full
+queue instead of raising :exc:`queue.Full`, and calling it again after the
+worker thread died no longer raises :exc:`AttributeError`.
