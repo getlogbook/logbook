@@ -80,7 +80,7 @@ dev = [
     { include-group = "nox" },
     { include-group = "test" },
     { include-group = "towncrier" },
-    "ruff==0.16.1",
+    "ruff==0.17.3",
 ]
 docs = [
     "furo>=2025.7.19",
