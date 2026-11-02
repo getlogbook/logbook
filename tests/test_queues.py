@@ -197,6 +197,37 @@ def test_threaded_wrapper_handler_escalation(logger):
     assert test_handler.has_error("More testing")
 
 
+def test_threaded_wrapper_handler_error(logger, capsys):
+    from logbook.queues import ThreadedWrapperHandler
+
+    class FailingTestHandler(logbook.TestHandler):
+        def emit(self, record):
+            if record.msg == "Failing":
+                raise ValueError("emit failed")
+            super().emit(record)
+
+        def emit_batch(self, records, reason):
+            if not records:
+                raise ValueError("empty batch")
+            super().emit_batch(records, reason)
+
+    test_handler = FailingTestHandler()
+    with ThreadedWrapperHandler(test_handler) as handler:
+        logger.warning("Failing")
+        handler.emit_batch(
+            [logbook.LogRecord("Test Logger", logbook.WARNING, "Failing")], "group"
+        )
+        handler.emit_batch([], "group")
+        logger.error("More testing")
+
+    handler.close()
+
+    assert test_handler.has_error("More testing")
+    err = capsys.readouterr().err
+    assert err.count("ValueError: emit failed") == 2
+    assert err.count("Logged from file") == 2
+
+
 @require_module("execnet")
 def test_execnet_handler():
     def run_on_remote(channel):

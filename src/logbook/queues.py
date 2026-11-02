@@ -10,6 +10,7 @@ This module implements queue backends.
 
 import json
 import platform
+import sys
 import threading
 from queue import Empty, Full
 from queue import Queue as ThreadQueue
@@ -661,12 +662,16 @@ class TWHThreadController:
             if command is self.Command.stop:
                 self.running = False
                 break
-            elif command is self.Command.emit:
-                (record,) = data
-                self.wrapper_handler.handler.emit(record)
-            elif command is self.Command.emit_batch:
-                record, reason = data
-                self.wrapper_handler.handler.emit_batch(record, reason)
+            try:
+                if command is self.Command.emit:
+                    (record,) = data
+                    self.wrapper_handler.handler.emit(record)
+                elif command is self.Command.emit_batch:
+                    records, reason = data
+                    record = records[-1]
+                    self.wrapper_handler.handler.emit_batch(records, reason)
+            except Exception:
+                self.wrapper_handler.handler.handle_error(record, sys.exc_info())
 
 
 class ThreadedWrapperHandler(WrapperHandler):
@@ -708,6 +713,8 @@ class ThreadedWrapperHandler(WrapperHandler):
 
     def emit_batch(self, records, reason):
         records = list(records)
+        if not records:
+            return
         item = (TWHThreadController.Command.emit_batch, records, reason)
         try:
             self.queue.put_nowait(item)
