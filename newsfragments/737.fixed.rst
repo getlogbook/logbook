@@ -1,0 +1,4 @@
+When a :class:`~logbook.FingersCrossedHandler` escalates into a
+:class:`~logbook.queues.ThreadedWrapperHandler`, the buffered records are now
+delivered. Previously the wrapper stopped with ``RuntimeError: deque mutated
+during iteration``, losing them and every later record.

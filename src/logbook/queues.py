@@ -707,6 +707,7 @@ class ThreadedWrapperHandler(WrapperHandler):
             pass
 
     def emit_batch(self, records, reason):
+        records = list(records)
         item = (TWHThreadController.Command.emit_batch, records, reason)
         try:
             self.queue.put_nowait(item)

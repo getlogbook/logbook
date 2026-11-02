@@ -182,6 +182,21 @@ def test_threaded_wrapper_handler_start_twice():
     handler.close()
 
 
+def test_threaded_wrapper_handler_escalation(logger):
+    from logbook.queues import ThreadedWrapperHandler
+
+    test_handler = logbook.TestHandler()
+    handler = logbook.FingersCrossedHandler(ThreadedWrapperHandler(test_handler))
+    with handler:
+        logger.warning("Just testing")
+        logger.error("More testing")
+
+    handler.close()
+
+    assert test_handler.has_warning("Just testing")
+    assert test_handler.has_error("More testing")
+
+
 @require_module("execnet")
 def test_execnet_handler():
     def run_on_remote(channel):
