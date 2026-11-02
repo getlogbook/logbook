@@ -398,7 +398,10 @@ class MessageQueueSubscriber(SubscriberBase):
             except Exception:
                 return
         else:
-            rv = self.queue.get(timeout=timeout)
+            try:
+                rv = self.queue.get(timeout=timeout)
+            except Empty:
+                return None
 
         log_record = rv.payload
         rv.ack()

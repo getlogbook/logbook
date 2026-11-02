@@ -1,5 +1,6 @@
 import os
 import time
+from queue import Queue
 
 import pytest
 
@@ -265,6 +266,14 @@ def test_thread_controller_restart_after_interrupted_stop(monkeypatch):
     controller.stop()
     controller.start()
     controller.stop()
+
+
+def test_message_queue_subscriber_recv_timeout():
+    from logbook.queues import MessageQueueSubscriber
+
+    subscriber = object.__new__(MessageQueueSubscriber)
+    subscriber.queue = Queue()
+    assert subscriber.recv(0.01) is None
 
 
 @require_module("redis")
