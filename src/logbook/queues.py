@@ -728,7 +728,7 @@ class GroupMember(ThreadController):
             self.setup.push_context()
         try:
             while self.running:
-                if record := self.subscriber.recv():
+                if record := self.subscriber.recv(0.05):
                     try:
                         self.queue.put(record, timeout=0.05)
                     except Full:
