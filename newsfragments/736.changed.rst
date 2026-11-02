@@ -1,0 +1,1 @@
+:class:`~logbook.TimedRotatingFileHandler` with ``backup_count`` finds its old log files faster when it rolls over.

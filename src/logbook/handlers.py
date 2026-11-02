@@ -1218,10 +1218,14 @@ class TimedRotatingFileHandler(FileHandler):
         rollover_regex = self._rollover_regex()
         if rollover_regex is None:
             return files
-        for filename in os.listdir(directory):
-            filename = os.path.join(directory, filename)
-            if rollover_regex.fullmatch(filename) and os.path.isfile(filename):
-                files.append((os.path.getmtime(filename), filename))
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                if rollover_regex.fullmatch(entry.path):
+                    try:
+                        if entry.is_file():
+                            files.append((entry.stat().st_mtime, entry.path))
+                    except OSError:
+                        pass
         files.sort()
         if self.backup_count > 1:
             return files[: -self.backup_count + 1]

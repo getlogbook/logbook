@@ -1042,6 +1042,33 @@ def test_timed_rotating_file_handler_deletes_only_own_backups(
     assert sorted(os.listdir(tmp_path)) == sorted(kept)
 
 
+def test_timed_rotating_file_handler_deletes_least_recently_modified(
+    tmp_path, started_in_2010
+):
+    for day, mtime in ((1, 2), (2, 1)):
+        path = tmp_path / f"app-2010-01-0{day}.log"
+        path.touch()
+        os.utime(path, (mtime, mtime))
+    handler = logbook.TimedRotatingFileHandler(tmp_path / "app.log", backup_count=2)
+    with handler, logbook.Flags(errors="raise"):
+        _log_on_day(handler, 3, "record")
+
+    assert sorted(os.listdir(tmp_path)) == ["app-2010-01-01.log", "app-2010-01-03.log"]
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Requires POSIX symlinks")
+def test_timed_rotating_file_handler_skips_unreadable_backups(
+    tmp_path, started_in_2010
+):
+    loop = tmp_path / "app-2009-12-31.log"
+    loop.symlink_to(loop)
+    handler = logbook.TimedRotatingFileHandler(tmp_path / "app.log", backup_count=2)
+    with handler, logbook.Flags(errors="raise"):
+        _log_on_day(handler, 2, "record")
+
+    assert sorted(os.listdir(tmp_path)) == [loop.name, "app-2010-01-02.log"]
+
+
 def test_timed_rotating_file_handler_warns_for_unrecognised_names(
     tmp_path, started_in_2010
 ):
