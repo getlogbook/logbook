@@ -1,0 +1,1 @@
+On Python 3.15 and later, ``import logbook`` is faster because modules that only some features need, such as :mod:`ssl`, are imported lazily.

@@ -8,6 +8,8 @@ The handler interface and builtin handlers.
 :license: BSD, see LICENSE for more details.
 """
 
+__lazy_modules__ = ["gzip", "hashlib", "math", "ssl"]
+
 import errno
 import gzip
 import io

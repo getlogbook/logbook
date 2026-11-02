@@ -139,6 +139,7 @@ select = [
     "UP", # pyupgrade
     "B0", # flake8-bugbear
     "RUF", # ruff-specific
+    "TID255", # lazy imports resolved at import time
 ]
 ignore = [
     "RUF012", # maybe once we have more type annotations

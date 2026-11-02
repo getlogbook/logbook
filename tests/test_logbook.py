@@ -1,3 +1,6 @@
+import subprocess
+import sys
+
 import pytest
 
 import logbook
@@ -31,3 +34,28 @@ def test_level_lookup_failures():
         logbook.get_level_name(37)
     with pytest.raises(LookupError):
         logbook.lookup_level("FOO")
+
+
+IMPORT_LOGBOOK = """\
+import sys
+
+before = set(sys.modules)
+import logbook
+
+imported = set(sys.modules) - before
+print(*imported)
+"""
+
+
+@pytest.mark.skipif(sys.version_info < (3, 15), reason="requires Python 3.15")
+def test_import_defers_modules():
+    result = subprocess.run(
+        [sys.executable, "-c", IMPORT_LOGBOOK],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    imported = set(result.stdout.split())
+    deferred = {"gzip", "hashlib", "math", "random", "ssl"}
+    loaded = deferred & imported
+    assert not loaded
