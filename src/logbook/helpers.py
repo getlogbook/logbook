@@ -8,6 +8,8 @@ Various helper functions
 :license: BSD, see LICENSE for more details.
 """
 
+__lazy_modules__ = ["random"]
+
 import errno
 import os
 import random

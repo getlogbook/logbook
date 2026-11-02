@@ -80,7 +80,7 @@ dev = [
     { include-group = "nox" },
     { include-group = "test" },
     { include-group = "towncrier" },
-    "ruff==0.16.1",
+    "ruff==0.17.3",
 ]
 docs = [
     "furo>=2025.7.19",
@@ -139,6 +139,7 @@ select = [
     "UP", # pyupgrade
     "B0", # flake8-bugbear
     "RUF", # ruff-specific
+    "TID255", # lazy imports resolved at import time
 ]
 ignore = [
     "RUF012", # maybe once we have more type annotations
