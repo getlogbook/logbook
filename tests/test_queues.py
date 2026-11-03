@@ -1,6 +1,7 @@
 import os
 import threading
 import time
+from queue import Queue
 
 import pytest
 
@@ -410,6 +411,24 @@ def test_thread_controller_restart_after_interrupted_stop(monkeypatch):
     controller.stop()
     controller.start()
     controller.stop()
+
+
+def test_subscriber_group_stops_while_idle():
+    from logbook.queues import MultiProcessingSubscriber, SubscriberGroup
+
+    group = SubscriberGroup([MultiProcessingSubscriber()])
+    stopper = threading.Thread(target=group.stop, daemon=True)
+    stopper.start()
+    stopper.join(2)
+    assert not stopper.is_alive()
+
+
+def test_message_queue_subscriber_recv_timeout():
+    from logbook.queues import MessageQueueSubscriber
+
+    subscriber = object.__new__(MessageQueueSubscriber)
+    subscriber.queue = Queue()
+    assert subscriber.recv(0.01) is None
 
 
 @require_module("redis")

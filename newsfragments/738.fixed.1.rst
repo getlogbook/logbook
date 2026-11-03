@@ -1,0 +1,1 @@
+:meth:`SubscriberGroup.stop() <logbook.queues.SubscriberGroup.stop>` returns while its subscribers are idle, instead of waiting for each of them to receive another record.

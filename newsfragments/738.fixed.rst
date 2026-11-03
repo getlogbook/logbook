@@ -1,0 +1,1 @@
+:class:`~logbook.queues.MessageQueueSubscriber` returns ``None`` when a receive times out instead of raising :exc:`queue.Empty`, so its :meth:`~logbook.queues.SubscriberBase.dispatch_in_background` thread keeps running while the queue is empty.
