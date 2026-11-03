@@ -1,3 +1,4 @@
+import json
 import os
 import threading
 import time
@@ -456,6 +457,7 @@ def test_redis_handler():
         assert message.find(field)
     assert key == KEY
     assert message.find(LETTERS)
+    assert json.loads(message)["channel"] == "Generic"
 
     # Change the key of the handler and check on redis
     KEY = f"test_another_key-{os.getpid()}"

@@ -1,0 +1,1 @@
+:class:`~logbook.queues.RedisHandler` messages now include the record's channel as ``channel``.
