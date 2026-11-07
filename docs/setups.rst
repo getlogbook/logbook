@@ -159,6 +159,108 @@ it was a single handler:
         ...
 
 
+.. _configuration-from-dictionaries:
+
+Configuration from Dictionaries and Files
+-----------------------------------------
+
+:meth:`NestedSetup.from_dict <logbook.NestedSetup.from_dict>` creates a setup
+from a mapping. The ``objects`` list follows the same order as the objects
+passed to :class:`~logbook.NestedSetup`: handlers later in the list see a
+record first. Each entry contains a fully qualified ``class`` name and
+keyword arguments for that class::
+
+    from logbook import NestedSetup
+
+    config = {
+        "objects": [
+            {"class": "logbook.NullHandler"},
+            {"class": "logbook.StderrHandler", "level": "WARNING"},
+        ]
+    }
+    setup = NestedSetup.from_dict(config)
+    with setup.applicationbound():
+        main()
+
+This setup writes warnings and errors to standard error and discards lower
+levels. Construction does not activate the setup. Use ``with setup`` for the
+current context, or ``setup.applicationbound()`` for the whole application.
+As with a manually constructed nested setup, popping it does not close its
+handlers; close handlers that own resources when you are finished using them.
+
+The mapping may be loaded from a file using a parser of your choice. For
+example, a JSON file named ``logging.json`` can contain:
+
+.. code-block:: json
+
+    {
+        "objects": [
+            {"class": "logbook.NullHandler"},
+            {"class": "logbook.StderrHandler", "level": "WARNING"}
+        ]
+    }
+
+Load it with the standard library::
+
+    import json
+    from logbook import NestedSetup
+
+    with open("logging.json", encoding="utf-8") as stream:
+        setup = NestedSetup.from_dict(json.load(stream))
+
+The equivalent YAML file is:
+
+.. code-block:: yaml
+
+    objects:
+      - class: logbook.NullHandler
+      - class: logbook.StderrHandler
+        level: WARNING
+
+If your application uses PyYAML, load it with ``yaml.safe_load``::
+
+    import yaml
+    from logbook import NestedSetup
+
+    with open("logging.yaml", encoding="utf-8") as stream:
+        setup = NestedSetup.from_dict(yaml.safe_load(stream))
+
+Logbook does not require a YAML parser. In both examples, activate ``setup``
+as shown above. Only use trusted configuration files: class names cause
+Python modules to be imported and the classes to be instantiated.
+
+Classes must derive from :class:`~logbook.base.ContextObject`, which includes
+handlers, processors, and flags. Python dictionaries can also supply class
+objects and values such as callbacks directly::
+
+    from logbook import NestedSetup, Processor, StderrHandler
+
+
+    def inject_environment(record):
+        record.extra["environment"] = "production"
+
+
+    setup = NestedSetup.from_dict(
+        {
+            "objects": [
+                {
+                    "class": StderrHandler,
+                    "format_string": "{record.extra[environment]}: {record.message}",
+                },
+                {"class": Processor, "callback": inject_environment},
+            ]
+        }
+    )
+
+Keyword argument values are passed unchanged. Strings in those values are
+not imported, and nested mappings are not interpreted as object definitions.
+For callbacks or wrapped handlers, supply the Python objects after loading
+the file, or use a custom handler class with suitable constructor arguments.
+The input mapping is not modified. Invalid configuration raises an exception;
+if construction fails, already created handlers are closed before the
+exception is propagated.
+
+
 Distributed Logging
 -------------------
 
