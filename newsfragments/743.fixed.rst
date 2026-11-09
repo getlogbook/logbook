@@ -1,0 +1,1 @@
+:class:`~logbook.ticketing.TicketingHandler` works with an existing SQLAlchemy engine again. It had been broken since Logbook 0.11.0: with SQLAlchemy 2.0 the handler rejected the engine, and with earlier versions the first ticket failed to record.

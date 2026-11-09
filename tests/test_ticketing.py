@@ -62,6 +62,25 @@ def test_basic_ticketing(logger):
     assert "1 / 0" in record.formatted_exception
 
 
+@require_module("sqlalchemy")
+def test_engine_ticketing():
+    from sqlalchemy import create_engine
+
+    from logbook.ticketing import TicketingHandler
+
+    engine = create_engine("sqlite:///")
+    try:
+        handler = TicketingHandler(engine)
+        assert handler.db.engine is engine
+        record = logbook.LogRecord("test", logbook.WARNING, "engine")
+        record.heavy_init()
+        handler.emit(record)
+        [ticket] = handler.db.get_tickets()
+        assert ticket.last_occurrence.message == "engine"
+    finally:
+        engine.dispose()
+
+
 @pytest.fixture
 def couchdb_backend():
     from logbook.more import CouchDBBackend
