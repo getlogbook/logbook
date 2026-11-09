@@ -9,6 +9,7 @@ This module implements queue backends.
 """
 
 import json
+import os
 import platform
 import sys
 import threading
@@ -37,6 +38,12 @@ class RedisHandler(Handler):
     Example::
 
         handler = RedisHandler(password="your_redis_password")
+
+    If the flush thread cannot push, the records stay buffered and it tries
+    again later. The first of consecutive failures is reported through
+    :meth:`~logbook.Handler.handle_error` when the handler next emits a
+    record. Call :meth:`close` before the process exits, or the records still
+    buffered are lost.
 
     More info about the default buffer size: wp.me/p3tYJu-3b
     """
@@ -75,22 +82,60 @@ class RedisHandler(Handler):
         self.flush_threshold = flush_threshold
         self.queue = []
         self.lock = Lock()
+        self._buffering = True
         self.push_method = push_method
 
         # Set up a thread that flushes the queue every specified seconds
+        self._flush_time = flush_time
+        self._start_flushing()
+
+    def _start_flushing(self):
+        self._failing = False
+        self._error = None
         self._stop_event = threading.Event()
-        self._flushing_t = threading.Thread(
-            target=self._flush_task, args=(flush_time, self._stop_event)
+        self._flush_event = threading.Event()
+        thread = threading.Thread(
+            target=self._flush_task, args=(self._flush_time, self._stop_event)
         )
-        self._flushing_t.daemon = True
-        self._flushing_t.start()
+        thread.daemon = True
+        thread.start()
+        self._flushing_t = thread
+        self._pid = os.getpid()
 
     def _flush_task(self, time, stop_event):
-        """Calls the method _flush_buffer every certain time."""
-        while not self._stop_event.is_set():
+        pid, flush_event = os.getpid(), self._flush_event
+        while not stop_event.is_set() and os.getpid() == pid:
+            failing = self._failing
+            try:
+                self._push()
+            except Exception as e:
+                if not failing:
+                    with self.lock:
+                        self._error = e
+            flush_event.wait(time)
+            flush_event.clear()
+
+    def _stop_flushing(self):
+        self._stop_event.set()
+        self._flush_event.set()
+        if self._flushing_t is not threading.current_thread():
+            self._flushing_t.join()
+        self._buffering = False
+        self._error = None
+
+    def _push(self):
+        with self.lock:
+            batch, self.queue = self.queue, []
+        if not batch:
+            return
+        try:
+            getattr(self.redis, self.push_method)(self.key, *batch)
+        except BaseException:
             with self.lock:
-                self._flush_buffer()
-            self._stop_event.wait(time)
+                self.queue[:0] = batch
+            self._failing = True
+            raise
+        self._failing = False
 
     def _flush_buffer(self):
         """Flushes the messaging queue into Redis.
@@ -110,7 +155,7 @@ class RedisHandler(Handler):
         Buffered records are pushed first. If that fails, the error is raised
         and they stay buffered.
         """
-        self._stop_event.set()
+        self._stop_flushing()
         self.flush_threshold = 1
         with self.lock:
             self._flush_buffer()
@@ -133,11 +178,33 @@ class RedisHandler(Handler):
             r.update(self.extra_fields)
             r.update(record.kwargs)
             self.queue.append(json.dumps(r))
-            if len(self.queue) == self.flush_threshold:
+            if not self._buffering:
                 self._flush_buffer()
+            elif self._pid != os.getpid():
+                self._start_flushing()
+            elif len(self.queue) >= self.flush_threshold and not self._failing:
+                self._flush_event.set()
+            error, self._error = self._error, None
+        if error is not None:
+            raise error
+
+    def emit_batch(self, records, reason):
+        """Handles each record as a logging call would, so a failure is
+        reported through :meth:`~logbook.Handler.handle_error` with that
+        record.
+        """
+        for record in records:
+            self.handle(record)
 
     def close(self):
-        self._flush_buffer()
+        """Stop periodic flushing and push the buffered records.
+
+        If that fails, the error is raised and the records stay buffered.
+        Records emitted after closing are pushed immediately.
+        """
+        self._stop_flushing()
+        with self.lock:
+            self._flush_buffer()
 
 
 class MessageQueueHandler(Handler):

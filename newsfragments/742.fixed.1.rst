@@ -1,0 +1,1 @@
+:class:`~logbook.queues.RedisHandler` made logging calls wait while Redis was unreachable, and could stop pushing records after a push failed.

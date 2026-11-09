@@ -8,6 +8,7 @@ import pytest
 
 import logbook
 
+from .fork_locks import fork
 from .utils import LETTERS, missing, require_module, unused_tcp_address
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
@@ -572,6 +573,96 @@ def redis_messages(r, key):
     return [json.loads(value)["message"] for value in r.lrange(key, 0, -1)]
 
 
+def wait_for_redis_messages(r, key, messages):
+    deadline = time.monotonic() + 2
+    while redis_messages(r, key) != messages and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert redis_messages(r, key) == messages
+
+
+@require_module("redis")
+def test_redis_handler_flushes_without_blocking_emit(monkeypatch):
+    import redis
+
+    from logbook.queues import RedisHandler
+
+    KEY = f"redis-{os.getpid()}-flush"
+    r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
+    r.delete(KEY)
+    handler = RedisHandler(key=KEY, flush_threshold=1, flush_time=60)
+    entered = threading.Event()
+    release = threading.Event()
+    rpush = handler.redis.rpush
+
+    def blocking_rpush(*args):
+        entered.set()
+        assert release.wait(2)
+        return rpush(*args)
+
+    monkeypatch.setattr(handler.redis, "rpush", blocking_rpush)
+    handler.emit(redis_record("a"))
+    assert entered.wait(2)
+    handler.emit(redis_record("b"))
+    closer = threading.Thread(target=handler.close)
+    closer.start()
+    closer.join(0.1)
+    assert closer.is_alive()
+    release.set()
+    closer.join(2)
+    assert redis_messages(r, KEY) == ["a", "b"]
+    assert not handler._flushing_t.is_alive()
+    r.delete(KEY)
+
+
+@require_module("redis")
+def test_redis_handler_retries_failed_flush(monkeypatch, capsys):
+    import redis
+
+    from logbook.queues import RedisHandler
+
+    KEY = f"redis-{os.getpid()}-retry"
+    r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
+    r.delete(KEY)
+    handler = RedisHandler(key=KEY, flush_time=0.01)
+    failures = 2
+    entered = threading.Event()
+    release = threading.Event()
+    rpush = handler.redis.rpush
+
+    def failing_rpush(*args):
+        nonlocal failures
+        if failures:
+            failures -= 1
+            if not failures:
+                entered.set()
+                assert release.wait(2)
+            raise redis.ConnectionError("Redis is down")
+        return rpush(*args)
+
+    monkeypatch.setattr(handler.redis, "rpush", failing_rpush)
+    handler.emit(redis_record("a"))
+    assert entered.wait(2)
+    assert capsys.readouterr().err == ""
+    handler.emit_batch([redis_record("b"), redis_record("c")], "group")
+    err = capsys.readouterr().err
+    assert err.count("ConnectionError: Redis is down") == 1
+    assert f"Logged from file {os.path.abspath(__file__)}, line " in err
+    release.set()
+    wait_for_redis_messages(r, KEY, ["a", "b", "c"])
+    handler.handle(redis_record("d"))
+    assert capsys.readouterr().err == ""
+    wait_for_redis_messages(r, KEY, ["a", "b", "c", "d"])
+    failures = 1
+    handler.emit(redis_record("e"))
+    wait_for_redis_messages(r, KEY, ["a", "b", "c", "d", "e"])
+    with logbook.Flags(errors="raise"), pytest.raises(redis.ConnectionError):
+        handler.handle(redis_record("f"))
+    handler.close()
+    assert redis_messages(r, KEY) == ["a", "b", "c", "d", "e", "f"]
+    assert capsys.readouterr().err == ""
+    r.delete(KEY)
+
+
 @require_module("redis")
 def test_redis_handler_pushes_directly_when_not_buffering():
     import redis
@@ -586,6 +677,33 @@ def test_redis_handler_pushes_directly_when_not_buffering():
     handler.disable_buffering()
     handler.emit(redis_record("b"))
     assert redis_messages(r, KEY) == ["a", "b"]
+    handler.close()
+
+    handler = RedisHandler(key=KEY, flush_time=60)
+    handler.close()
+    handler.emit(redis_record("c"))
+    assert redis_messages(r, KEY) == ["a", "b", "c"]
+    r.delete(KEY)
+
+
+@require_module("redis")
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires os.fork")
+@pytest.mark.filterwarnings("ignore:This process:DeprecationWarning")
+def test_redis_handler_pushes_from_forked_child():
+    import redis
+
+    from logbook.queues import RedisHandler
+
+    KEY = f"redis-{os.getpid()}-fork"
+    r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
+    r.delete(KEY)
+    handler = RedisHandler(key=KEY, flush_threshold=1, flush_time=60)
+
+    def child():
+        handler.emit(redis_record("a"))
+        wait_for_redis_messages(r, KEY, ["a"])
+
+    fork(child)
     handler.close()
     r.delete(KEY)
 
