@@ -1,0 +1,1 @@
+:class:`~logbook.ticketing.SQLAlchemyBackend` no longer loses an occurrence when two writers create the same ticket at once.
