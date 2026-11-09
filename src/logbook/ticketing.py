@@ -117,6 +117,9 @@ class SQLAlchemyBackend(BackendBase):
     """Implements a backend that is writing into a database SQLAlchemy can
     interface.
 
+    The ``uri`` option accepts a database URL or an existing SQLAlchemy
+    :class:`~sqlalchemy.engine.Engine`.
+
     This backend takes some additional options:
 
     `table_prefix`
@@ -134,29 +137,19 @@ class SQLAlchemyBackend(BackendBase):
 
     def setup_backend(self):
         from sqlalchemy import MetaData, create_engine
-        from sqlalchemy.orm import scoped_session, sessionmaker
+        from sqlalchemy.engine import Engine
 
         engine_or_uri = self.options.pop("uri", None)
         metadata = self.options.pop("metadata", None)
         table_prefix = self.options.pop("table_prefix", "logbook_")
 
-        if hasattr(engine_or_uri, "execute"):
+        if isinstance(engine_or_uri, Engine):
             self.engine = engine_or_uri
         else:
             # Pool recycle keeps connections from going stale,
             # which happens in MySQL Databases
             # Pool size is more custom for out stack
             self.engine = create_engine(engine_or_uri, pool_recycle=360, pool_size=1000)
-
-            # Create session factory using session maker
-            session = sessionmaker()
-
-            # Bind to the engined
-            session.configure(bind=self.engine)
-
-            # Scoped session is a thread safe solution for
-            # interaction with the Database
-            self.session = scoped_session(session)
 
         if metadata is None:
             metadata = MetaData()
@@ -208,13 +201,11 @@ class SQLAlchemyBackend(BackendBase):
 
     def record_ticket(self, record, data, hash, app_id):
         """Records a log record as ticket."""
-        # Can use the session instead engine.connection and transaction
-        s = self.session
-        try:
+        with self.engine.begin() as conn:
             q = self.tickets.select().where(self.tickets.c.record_hash == hash)
-            row = s.execute(q).one_or_none()
+            row = conn.execute(q).one_or_none()
             if row is None:
-                row = s.execute(
+                row = conn.execute(
                     self.tickets.insert().values(
                         record_hash=hash,
                         level=record.level,
@@ -229,7 +220,7 @@ class SQLAlchemyBackend(BackendBase):
                 ticket_id = row.inserted_primary_key[0]
             else:
                 ticket_id = row.ticket_id
-            s.execute(
+            conn.execute(
                 self.occurrences.insert().values(
                     ticket_id=ticket_id,
                     time=record.time,
@@ -237,7 +228,7 @@ class SQLAlchemyBackend(BackendBase):
                     data=json.dumps(data),
                 )
             )
-            s.execute(
+            conn.execute(
                 self.tickets.update()
                 .where(self.tickets.c.ticket_id == ticket_id)
                 .values(
@@ -246,12 +237,6 @@ class SQLAlchemyBackend(BackendBase):
                     solved=False,
                 )
             )
-            s.commit()
-        except Exception:
-            s.rollback()
-            raise
-        # Closes the session and removes it from the pool
-        s.remove()
 
     def count_tickets(self):
         """Returns the number of tickets."""

@@ -63,6 +63,15 @@ Here an example setup that logs into a postgres database:
         # the ticketing database handler
         ...
 
+To choose the engine's options, such as its pool, pass an existing SQLAlchemy
+engine instead of a URL::
+
+    from sqlalchemy import create_engine
+    from logbook.ticketing import TicketingHandler
+
+    engine = create_engine("sqlite:///application.db")
+    handler = TicketingHandler(engine)
+
 Alternative backends can be swapped in by providing the `backend`
 parameter.
 
