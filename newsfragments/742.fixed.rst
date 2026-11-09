@@ -1,0 +1,1 @@
+:meth:`~logbook.queues.RedisHandler.disable_buffering` could leave records buffered until the handler was closed.
