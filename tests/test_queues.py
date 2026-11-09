@@ -562,6 +562,34 @@ def test_redis_handler_rpush():
     r.delete(KEY)
 
 
+def redis_record(message):
+    record = logbook.LogRecord("redis", logbook.INFO, message)
+    record.heavy_init()
+    return record
+
+
+def redis_messages(r, key):
+    return [json.loads(value)["message"] for value in r.lrange(key, 0, -1)]
+
+
+@require_module("redis")
+def test_redis_handler_pushes_directly_when_not_buffering():
+    import redis
+
+    from logbook.queues import RedisHandler
+
+    KEY = f"redis-{os.getpid()}-direct"
+    r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
+    r.delete(KEY)
+    handler = RedisHandler(key=KEY, flush_time=60)
+    handler.emit(redis_record("a"))
+    handler.disable_buffering()
+    handler.emit(redis_record("b"))
+    assert redis_messages(r, KEY) == ["a", "b"]
+    handler.close()
+    r.delete(KEY)
+
+
 @pytest.fixture
 def handlers(handlers_subscriber):
     return handlers_subscriber[0]

@@ -107,9 +107,13 @@ class RedisHandler(Handler):
         """Disables buffering.
 
         If called, every single message will be directly pushed to Redis.
+        Buffered records are pushed first. If that fails, the error is raised
+        and they stay buffered.
         """
         self._stop_event.set()
         self.flush_threshold = 1
+        with self.lock:
+            self._flush_buffer()
 
     def emit(self, record):
         """Emits a pair (key, value) to redis.
