@@ -201,6 +201,16 @@ class SQLAlchemyBackend(BackendBase):
 
     def record_ticket(self, record, data, hash, app_id):
         """Records a log record as ticket."""
+        from sqlalchemy.exc import IntegrityError
+
+        try:
+            self._record_ticket(record, data, hash, app_id)
+        except IntegrityError:
+            # Another writer may have created this ticket after the select.
+            # A new transaction sees it; any other conflict raises again.
+            self._record_ticket(record, data, hash, app_id)
+
+    def _record_ticket(self, record, data, hash, app_id):
         with self.engine.begin() as conn:
             q = self.tickets.select().where(self.tickets.c.record_hash == hash)
             row = conn.execute(q).one_or_none()

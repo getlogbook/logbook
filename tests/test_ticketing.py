@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime, timezone
-from threading import get_ident
+from threading import Barrier, Thread, get_ident
 
 import pytest
 
@@ -79,6 +79,68 @@ def test_engine_ticketing():
         assert ticket.last_occurrence.message == "engine"
     finally:
         engine.dispose()
+
+
+@require_module("sqlalchemy")
+def test_concurrent_ticket_creation(tmp_path):
+    """Two writers can both find no ticket for a new call site. The one whose
+    insert then fails must record its occurrence on the other's ticket.
+    """
+    from sqlalchemy import create_engine, event
+
+    from logbook.ticketing import TicketingHandler
+
+    engine = create_engine("sqlite:///" + str(tmp_path / "tickets.db"))
+    handler = TicketingHandler(engine)
+    barrier = Barrier(2, timeout=10)
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def before_cursor_execute(conn, cursor, statement, *args):
+        if statement.startswith("INSERT INTO logbook_tickets"):
+            barrier.wait()
+
+    def emit(message):
+        record = logbook.LogRecord("test", logbook.WARNING, message)
+        record.heavy_init()
+        handler.emit(record)
+
+    threads = [Thread(target=emit, args=(message,)) for message in ("1", "2")]
+    try:
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        [ticket] = handler.db.get_tickets()
+        assert ticket.occurrence_count == 2
+        messages = {occurrence.message for occurrence in ticket.get_occurrences()}
+        assert messages == {"1", "2"}
+    finally:
+        engine.dispose()
+
+
+@require_module("sqlalchemy")
+def test_ticket_insert_unrelated_integrity_error():
+    from sqlalchemy import Index
+    from sqlalchemy.exc import IntegrityError
+
+    from logbook.ticketing import TicketingHandler
+
+    handler = TicketingHandler("sqlite:///")
+    try:
+        tickets = handler.db.tickets
+        Index("unique_channel", tickets.c.channel, unique=True).create(
+            handler.db.engine
+        )
+        warning = logbook.LogRecord("test", logbook.WARNING, "first")
+        warning.heavy_init()
+        handler.emit(warning)
+        error = logbook.LogRecord("test", logbook.ERROR, "second")
+        error.heavy_init()
+        with pytest.raises(IntegrityError):
+            handler.emit(error)
+    finally:
+        handler.close()
+        handler.db.engine.dispose()
 
 
 @pytest.fixture
