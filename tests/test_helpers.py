@@ -18,6 +18,7 @@ def test_jsonhelper():
             1,
             datetime(2000, 1, 1),
             {"jäger1": 1, "jäger2": 2, Bogus(): 3, "invalid": object()},
+            (1, object()),
             object(),  # invalid
         ]
     )
@@ -29,6 +30,7 @@ def test_jsonhelper():
         1,
         "2000-01-01T00:00:00Z",
         {"jäger1": 1, "jäger2": 2, "bogus": 3, "invalid": None},
+        (1, None),
         None,
     ]
 

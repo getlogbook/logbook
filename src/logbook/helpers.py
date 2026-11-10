@@ -127,26 +127,23 @@ def to_safe_json(data):
     objects from nested structures.  This also converts dates.
     """
 
-    def _convert(obj):
-        if obj is None:
-            return None
-        elif isinstance(obj, _JSON_SIMPLE_TYPES):
-            return obj
-        elif isinstance(obj, datetime):
-            return format_iso8601(obj)
-        elif isinstance(obj, list):
-            return [_convert(x) for x in obj]
-        elif isinstance(obj, tuple):
-            return tuple(_convert(x) for x in obj)
-        elif isinstance(obj, dict):
-            rv = {}
-            for key, value in obj.items():
-                if not isinstance(key, str):
-                    key = str(key)
-                rv[key] = _convert(value)
-            return rv
-
-    return _convert(data)
+    if data is None:
+        return None
+    elif isinstance(data, _JSON_SIMPLE_TYPES):
+        return data
+    elif isinstance(data, datetime):
+        return format_iso8601(data)
+    elif isinstance(data, list):
+        return [to_safe_json(x) for x in data]
+    elif isinstance(data, tuple):
+        return tuple(to_safe_json(x) for x in data)
+    elif isinstance(data, dict):
+        rv = {}
+        for key, value in data.items():
+            if not isinstance(key, str):
+                key = str(key)
+            rv[key] = to_safe_json(value)
+        return rv
 
 
 if sys.version_info >= (3, 12):
