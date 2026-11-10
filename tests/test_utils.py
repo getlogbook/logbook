@@ -211,6 +211,25 @@ def test_deprecations_same_sources(capture):
     assert len(capture.records) == 1
 
 
+@pytest.mark.parametrize(
+    "invocation", ["deprecated_func(1, 2)", "log_deprecation_message('message')"]
+)
+def test_deprecations_different_files(capture, tmp_path, invocation):
+    for filename in ("first.py", "second.py"):
+        namespace = {
+            "deprecated_func": deprecated_func,
+            "log_deprecation_message": log_deprecation_message,
+        }
+        code = compile(
+            f"def caller():\n    {invocation}\n", str(tmp_path / filename), "exec"
+        )
+        exec(code, namespace)
+        namespace["caller"]()
+        namespace["caller"]()
+
+    assert len(capture.records) == 2
+
+
 def test_deprecation_message_different_sources(capture):
     def f(flag):
         if flag:
