@@ -1,0 +1,3 @@
+:class:`~logbook.compat.RedirectLoggingHandler` preserves cached exception text
+from standard-library logging records when raw exception information is absent,
+so tracebacks survive redirection after transport.
