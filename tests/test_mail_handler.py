@@ -520,3 +520,20 @@ def test_mail_handler_timeout_none_disables_the_timeout():
         )
         handler.get_connection()
         mock_smtp.assert_called_once_with("server.example.com", 25, timeout=None)
+
+
+def test_fingerscrossed_custom_mail_batch_reason(activation_strategy, logger):
+    class GroupedFingersCrossedHandler(logbook.FingersCrossedHandler):
+        batch_emit_reason = "group"
+
+    mail_handler = make_fake_mail_handler()
+    handler = GroupedFingersCrossedHandler(mail_handler)
+    with activation_strategy(handler):
+        logger.warning("The first record describes the group")
+        logger.error("The error flushes the group")
+
+    assert len(mail_handler.mails) == 1
+    mail = mail_handler.mails[0][2]
+    body, related = mail.split("Other log records in the same group:")
+    assert "The first record describes the group" in body
+    assert "The error flushes the group" in related
