@@ -14,7 +14,10 @@ import sys
 import traceback
 import warnings
 from collections import defaultdict
+from collections.abc import Mapping
+from contextlib import suppress
 from datetime import datetime, timezone
+from importlib import import_module
 from itertools import chain
 from weakref import ref as weakref
 
@@ -343,6 +346,73 @@ class NestedSetup(StackedObject):
 
     def __init__(self, objects=None):
         self.objects = list(objects or ())
+
+    @classmethod
+    def from_dict(cls, config):
+        """Create a setup from a configuration mapping.
+
+        The optional ``objects`` key contains a list of mappings, in the
+        same order as the objects passed to the constructor. Each mapping
+        has a ``class`` key containing a :class:`ContextObject` subclass
+        or its fully qualified name, such as ``"logbook.StderrHandler"``.
+        Remaining keys are passed unchanged as keyword arguments.
+
+        This does not bind the setup to a stack. Use the returned setup as
+        a context manager or call :meth:`push_application` explicitly.
+        The input mappings are not modified.
+
+        Only load trusted configurations: resolving classes imports Python
+        modules and constructing them can execute arbitrary code.
+
+        See :ref:`configuration-from-dictionaries` for dictionary and file
+        examples.
+        """
+        if not isinstance(config, Mapping):
+            raise TypeError("config must be a mapping")
+        unknown_keys = config.keys() - {"objects"}
+        if unknown_keys:
+            raise ValueError(f"unknown configuration key: {next(iter(unknown_keys))!r}")
+        specs = config.get("objects", [])
+        if not isinstance(specs, (list, tuple)):
+            raise TypeError("objects must be a list or tuple")
+
+        constructors = []
+        for index, spec in enumerate(specs):
+            if not isinstance(spec, Mapping):
+                raise TypeError(f"objects[{index}] must be a mapping")
+            kwargs = dict(spec)
+            if "class" not in kwargs:
+                raise ValueError(f"objects[{index}] is missing 'class'")
+            object_class = kwargs.pop("class")
+            if isinstance(object_class, str):
+                module_name, separator, class_name = object_class.rpartition(".")
+                if not separator or not module_name or not class_name:
+                    raise ValueError(
+                        f"objects[{index}].class must be a fully qualified name"
+                    )
+                object_class = getattr(import_module(module_name), class_name)
+            if not isinstance(object_class, type) or not issubclass(
+                object_class, ContextObject
+            ):
+                raise TypeError(
+                    f"objects[{index}].class must be a ContextObject subclass"
+                )
+            constructors.append((object_class, kwargs))
+
+        objects = []
+        try:
+            for object_class, kwargs in constructors:
+                objects.append(object_class(**kwargs))
+            return cls(objects)
+        except BaseException:
+            # A later constructor may fail after a handler has opened a file.
+            # Preserve that error even if closing one of the handlers fails.
+            for obj in reversed(objects):
+                with suppress(Exception):
+                    close = getattr(obj, "close", None)
+                    if close is not None:
+                        close()
+            raise
 
     def push_application(self):
         for obj in self.objects:
