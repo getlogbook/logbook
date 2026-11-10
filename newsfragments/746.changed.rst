@@ -1,0 +1,1 @@
+:meth:`LogRecord.to_dict(json_safe=True) <logbook.LogRecord.to_dict>` is faster, and so are handlers that send records as JSON, such as :class:`~logbook.queues.ZeroMQHandler`.
