@@ -1,0 +1,1 @@
+:meth:`LogRecord.from_dict() <logbook.LogRecord.from_dict>` raises :exc:`ValueError` for out-of-range UTC offsets instead of shifting the time.
