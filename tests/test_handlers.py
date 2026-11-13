@@ -156,6 +156,20 @@ def test_stream_handler_leaves_stack_when_close_fails():
             handler.pop_context()
 
 
+def test_contextbound_keeps_handler_open(tmp_path, logger):
+    """A handler bound for each request stays open between requests. Closed, a
+    handler in mode "w" would refuse the second record."""
+    path = tmp_path / "app.log"
+    handler = logbook.FileHandler(path, mode="w", format_string="{record.message}")
+    with logbook.Flags(errors="raise"):
+        with handler.contextbound():
+            logger.warning("first")
+        with handler.contextbound():
+            logger.warning("second")
+    handler.close()
+    assert path.read_text() == "first\nsecond\n"
+
+
 @pytest.mark.filterwarnings("error:The encoding argument")
 def test_file_handler_encoding_does_not_warn(tmp_path, logger):
     filename = tmp_path / "events.log"

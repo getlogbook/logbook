@@ -258,6 +258,18 @@ class _ExceptionCatcher:
         return True
 
 
+class _ContextBound:
+    def __init__(self, obj):
+        self.__obj = obj
+
+    def __enter__(self):
+        self.__obj.push_context()
+        return self.__obj
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.__obj.pop_context()
+
+
 class ContextObject(StackedObject):
     """An object that can be bound to a context.  It is managed by the
     :class:`ContextStackManager`"""
@@ -323,17 +335,28 @@ class ContextObject(StackedObject):
         popped = self.stack_manager.pop_application()
         assert popped is self, "popped unexpected object"
 
-    @deprecated("`with obj.greenletbound()` is deprecated, use `with obj:` instead")
+    @deprecated(
+        "`with obj.greenletbound()` is deprecated, "
+        "use `with obj.contextbound()` instead"
+    )
     def greenletbound(self):
-        return self
+        return _ContextBound(self)
 
-    @deprecated("`with obj.contextbound()` is deprecated, use `with obj:` instead")
     def contextbound(self):
-        return self
+        """Can be used in combination with the `with` statement to
+        execute code while the object is bound to the context.
 
-    @deprecated("`with obj.threadbound()` is deprecated, use `with obj:` instead")
+        Use it for a handler that outlives the block, such as one bound for
+        each request, and close the handler when you are done with it.
+        ``with handler:`` closes the handler at the end of the block.
+        """
+        return _ContextBound(self)
+
+    @deprecated(
+        "`with obj.threadbound()` is deprecated, use `with obj.contextbound()` instead"
+    )
     def threadbound(self):
-        return self
+        return _ContextBound(self)
 
 
 class NestedSetup(StackedObject):
@@ -380,17 +403,24 @@ class NestedSetup(StackedObject):
         for obj in reversed(self.objects):
             obj.pop_context()
 
-    @deprecated("`with obj.greenletbound()` is deprecated, use `with obj:` instead")
+    @deprecated(
+        "`with obj.greenletbound()` is deprecated, "
+        "use `with obj.contextbound()` instead"
+    )
     def greenletbound(self):
-        return self
+        return _ContextBound(self)
 
-    @deprecated("`with obj.contextbound()` is deprecated, use `with obj:` instead")
     def contextbound(self):
-        return self
+        """Can be used in combination with the `with` statement to
+        execute code while the objects are bound to the context.
+        """
+        return _ContextBound(self)
 
-    @deprecated("`with obj.threadbound()` is deprecated, use `with obj:` instead")
+    @deprecated(
+        "`with obj.threadbound()` is deprecated, use `with obj.contextbound()` instead"
+    )
     def threadbound(self):
-        return self
+        return _ContextBound(self)
 
 
 class Processor(ContextObject):
