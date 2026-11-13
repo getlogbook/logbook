@@ -18,6 +18,7 @@ from queue import Queue as ThreadQueue
 from threading import Lock, Thread
 
 from logbook.base import NOTSET, LogRecord, dispatch_record
+from logbook.concurrency import _register_at_fork_reinit_lock
 from logbook.handlers import Handler, WrapperHandler
 
 
@@ -82,6 +83,7 @@ class RedisHandler(Handler):
         self.flush_threshold = flush_threshold
         self.queue = []
         self.lock = Lock()
+        _register_at_fork_reinit_lock(self.lock)
         self._buffering = True
         self.push_method = push_method
 

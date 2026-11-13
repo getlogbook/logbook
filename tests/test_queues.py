@@ -8,7 +8,7 @@ import pytest
 
 import logbook
 
-from .fork_locks import fork
+from .fork_locks import fork, fork_while_held
 from .utils import LETTERS, missing, require_module, unused_tcp_address
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
@@ -704,6 +704,28 @@ def test_redis_handler_pushes_from_forked_child():
         wait_for_redis_messages(r, KEY, ["a"])
 
     fork(child)
+    handler.close()
+    r.delete(KEY)
+
+
+@require_module("redis")
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires os.fork")
+@pytest.mark.filterwarnings("ignore:This process:DeprecationWarning")
+def test_redis_handler_lock_held_by_another_thread_at_fork():
+    import redis
+
+    from logbook.queues import RedisHandler
+
+    KEY = f"redis-{os.getpid()}-fork-lock"
+    r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
+    r.delete(KEY)
+    handler = RedisHandler(key=KEY, flush_threshold=1, flush_time=60)
+
+    def child():
+        handler.emit(redis_record("a"))
+        wait_for_redis_messages(r, KEY, ["a"])
+
+    fork_while_held(handler.lock, child)
     handler.close()
     r.delete(KEY)
 
