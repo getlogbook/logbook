@@ -1,0 +1,1 @@
+Handlers and other stacked objects, such as :class:`~logbook.Flags` and :class:`~logbook.Processor`, can be pickled and copied again. Since 1.9.0 this raised :exc:`TypeError`.
