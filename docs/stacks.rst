@@ -34,6 +34,26 @@ statement):
         # this is managed globally
         ...
 
+``with handler:`` also closes the handler at the end of the block, so a
+:class:`~logbook.FileHandler` closes its file. To bind a handler that
+outlives the block, such as one bound for each request, use
+:meth:`~logbook.Handler.contextbound` and close the handler when you are done
+with it:
+
+.. code-block:: python
+
+    handler = FileHandler("application.log")
+
+
+    def handle_request(request):
+        with handler.contextbound():
+            # the handler stays open for the next request
+            ...
+
+
+    # when the application shuts down
+    handler.close()
+
 Alternatively you can also use `try`/`finally`:
 
 .. code-block:: python

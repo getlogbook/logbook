@@ -665,6 +665,11 @@ class FileHandler(StreamHandler):
 
     This is useful when the handler is used with a
     :class:`~logbook.FingersCrossedHandler` or something similar.
+
+    Used directly in a ``with`` statement, the handler closes its file at
+    the end of the block. For a handler that outlives the block, such as one
+    bound for each request, use :meth:`~logbook.Handler.contextbound` instead
+    and call :meth:`close` when you are done with it.
     """
 
     def __init__(
