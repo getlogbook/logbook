@@ -261,7 +261,7 @@ def test_group_handler_mail_combo(activation_strategy, logger):
 
 def test_mail_handler_arguments():
     patch_smtp = patch("smtplib.SMTP", autospec=True)
-    patch_load_cert_chain = patch("ssl.SSLContext.load_cert_chain", autospec=True)
+    patch_load_cert_chain = patch("ssl.SSLContext.load_cert_chain")
 
     with patch_load_cert_chain as mock_load_cert_chain:
         with patch_smtp as mock_smtp:
