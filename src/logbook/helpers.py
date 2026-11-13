@@ -195,7 +195,7 @@ def parse_iso8601(value):
         if "." in seconds:
             sec, usec = seconds.split(".")
             args.append(int(sec))
-            args.append(int(usec.ljust(6, "0")))
+            args.append(int(usec.ljust(6, "0")[:6]))
         else:
             args.append(int(seconds))
 

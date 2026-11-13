@@ -1,0 +1,1 @@
+:meth:`LogRecord.from_dict() <logbook.LogRecord.from_dict>` reads times with more than six fractional digits.
