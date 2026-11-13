@@ -81,6 +81,20 @@ def test_iso8601_truncates_extra_fraction_digits(value, microsecond):
     assert parse_iso8601(value) == datetime(2000, 1, 1, microsecond=microsecond)
 
 
+@pytest.mark.parametrize("offset", ["+24:00", "+00:60"])
+def test_iso8601_rejects_out_of_range_offset(offset):
+    from logbook.helpers import parse_iso8601
+
+    with pytest.raises(ValueError):
+        parse_iso8601(f"2000-01-01T12:00:00{offset}")
+
+
+def test_iso8601_accepts_largest_offset():
+    from logbook.helpers import parse_iso8601
+
+    assert parse_iso8601("2000-01-01T12:00:00+23:59") == datetime(1999, 12, 31, 12, 1)
+
+
 def test_iso8601_keeps_aware_offset():
     from logbook.helpers import format_iso8601
 
