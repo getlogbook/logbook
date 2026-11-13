@@ -1,4 +1,6 @@
+import copy
 import io
+import pickle
 
 import pytest
 
@@ -139,6 +141,26 @@ def test_default_handlers(logger):
         logger.warning("Aha!")
         captured = stream.getvalue()
     assert "WARNING: testlogger: Aha!" in captured
+
+
+@pytest.mark.parametrize("protocol", range(pickle.HIGHEST_PROTOCOL + 1))
+def test_handler_pickle(protocol, logger):
+    handler = pickle.loads(
+        pickle.dumps(logbook.TestHandler(level=logbook.WARNING), protocol)
+    )
+    with handler:
+        logger.info("Not handled")
+        logger.warning("Handled")
+    assert handler.formatted_records == ["[WARNING] testlogger: Handled"]
+
+
+@pytest.mark.parametrize("clone", [copy.copy, copy.deepcopy])
+def test_handler_copy(clone, logger):
+    handler = clone(logbook.TestHandler(level=logbook.WARNING))
+    with handler:
+        logger.info("Not handled")
+        logger.warning("Handled")
+    assert handler.formatted_records == ["[WARNING] testlogger: Handled"]
 
 
 def test_stream_handler_leaves_stack_when_close_fails():
