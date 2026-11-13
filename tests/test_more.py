@@ -97,6 +97,22 @@ def test_tagged(default_handler):
     assert "cmd message" in stringio
 
 
+def test_tagged_handler_iterator(test_handler):
+    from logbook.more import TaggingHandler, TaggingLogger
+
+    logger = TaggingLogger("name", ["cmd"])
+    handler = TaggingHandler(dict(cmd=iter([test_handler])))
+
+    with handler:
+        logger.cmd("first message")
+        logger.cmd("second message")
+
+    assert [record.message for record in test_handler.records] == [
+        "first message",
+        "second message",
+    ]
+
+
 def test_tagging_logger(default_handler):
     from logbook import StderrHandler
     from logbook.more import TaggingLogger

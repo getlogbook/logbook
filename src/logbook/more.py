@@ -155,6 +155,9 @@ class TaggingLogger(RecordDispatcher):
 class TaggingHandler(Handler):
     """A handler that logs for tags and dispatches based on those.
 
+    Each value in *handlers* is a handler or an iterable of handlers for
+    that tag.
+
     Example::
 
         import logbook
@@ -167,7 +170,7 @@ class TaggingHandler(Handler):
         Handler.__init__(self, NOTSET, filter, bubble)
         assert isinstance(handlers, dict)
         self._handlers = {
-            tag: [handler] if isinstance(handler, Handler) else handler
+            tag: [handler] if isinstance(handler, Handler) else list(handler)
             for (tag, handler) in handlers.items()
         }
 
