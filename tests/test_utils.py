@@ -62,6 +62,19 @@ def slow_timer(monkeypatch):
     return factory, timer
 
 
+def test_logged_if_slow_context_bound(test_handler, slow_timer):
+    """The slow-call record is logged in the context where the block was
+    entered, although the timer calls back from another thread."""
+    factory, _ = slow_timer
+    notifier = logged_if_slow("checking...")
+    with test_handler:
+        with notifier:
+            callback = factory.call_args.args[1]
+    callback()
+    [record] = test_handler.records
+    assert record.message == "checking..."
+
+
 def test_logged_if_slow_deprecated(test_handler, slow_timer):
     factory, timer = slow_timer
     with test_handler.applicationbound():
@@ -71,8 +84,8 @@ def test_logged_if_slow_deprecated(test_handler, slow_timer):
         assert len(seen) == 1
         assert seen[0].filename == __file__
         assert seen[0].lineno == lineno
-        assert factory.call_args.args[0] == 1
         with notifier:
+            assert factory.call_args.args[0] == 1
             timer.start.assert_called_once_with()
             factory.call_args.args[1]()
         timer.cancel.assert_called_once_with()
@@ -88,8 +101,8 @@ def test_logged_if_slow_callback_forwarding(slow_timer):
         notifier = logged_if_slow(
             "event {}", 42, value="kept", threshold=2.5, func=callback
         )
-    assert factory.call_args.args[0] == 2.5
     with notifier:
+        assert factory.call_args.args[0] == 2.5
         factory.call_args.args[1]()
     callback.assert_called_once_with("event {}", 42, value="kept")
     timer.start.assert_called_once_with()
@@ -126,8 +139,8 @@ def test_logged_if_slow_explicit_none_warns_and_preserves_dispatch(
         assert len(seen) == 1
         assert seen[0].filename == __file__
         assert seen[0].lineno == lineno
-        assert factory.call_args.args[0] == 2.5
         with notifier:
+            assert factory.call_args.args[0] == 2.5
             factory.call_args.args[1]()
     [record] = test_handler.records
     assert record.channel == "Slow"

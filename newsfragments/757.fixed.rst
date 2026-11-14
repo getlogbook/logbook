@@ -1,0 +1,1 @@
+:func:`~logbook.utils.logged_if_slow` ignored handlers, processors and flags bound with ``with handler:`` or ``push_context()``, so only application-bound handlers received its records.
