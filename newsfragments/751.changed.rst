@@ -1,0 +1,1 @@
+:class:`~logbook.more.TaggingHandler` accepts any iterable of handlers for a tag.
