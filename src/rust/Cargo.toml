@@ -11,6 +11,9 @@ license = { workspace = true }
 arc-swap = { workspace = true }
 pyo3 = { workspace = true }
 
+[build-dependencies]
+pyo3-build-config = { workspace = true }
+
 [lib]
 name = "logbook_rust"
 crate-type = ["cdylib"]

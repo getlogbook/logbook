@@ -29,6 +29,7 @@ version = "0.1.0"
 dependencies = [
  "arc-swap",
  "pyo3",
+ "pyo3-build-config",
 ]
 
 [[package]]

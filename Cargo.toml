@@ -20,3 +20,4 @@ debug = true
 [workspace.dependencies]
 arc-swap = "1.7"
 pyo3 = "0.30"
+pyo3-build-config = "0.30"

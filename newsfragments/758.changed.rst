@@ -1,0 +1,1 @@
+Logging calls are faster on Python 3.9 to 3.12, most noticeably calls that a logger's level filters out.
