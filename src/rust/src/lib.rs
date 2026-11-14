@@ -7,7 +7,7 @@ use arc_swap::{ArcSwap, ArcSwapOption};
 use contextvars::{PyContextVar, PyContextVarMethods};
 use pyo3::exceptions::{PyAssertionError, PyLookupError, PyNotImplementedError, PyTypeError};
 use pyo3::prelude::*;
-use pyo3::types::{PyIterator, PyString, PyTuple, PyType};
+use pyo3::types::{PyIterator, PyString, PySuper, PyTuple, PyType};
 use pyo3::{IntoPyObjectExt, intern};
 
 mod contextvars;
@@ -397,6 +397,16 @@ impl StackedObject {
     #[pyo3(signature = (*_args, **_kwargs), text_signature = "()")]
     fn __new__(_args: &Bound<'_, PyAny>, _kwargs: Option<&Bound<'_, PyAny>>) -> Self {
         Self
+    }
+
+    fn __getnewargs__<'py>(&self, py: Python<'py>) -> Bound<'py, PyTuple> {
+        PyTuple::empty(py)
+    }
+
+    fn __reduce_ex__<'py>(slf: &Bound<'py, Self>, protocol: i32) -> PyResult<Bound<'py, PyAny>> {
+        let py = slf.py();
+        PySuper::new(&py.get_type::<Self>(), slf)?
+            .call_method1(intern!(py, "__reduce_ex__"), (protocol.max(2),))
     }
 
     /// Pushes the stacked object to the context stack.
