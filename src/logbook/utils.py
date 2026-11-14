@@ -1,3 +1,4 @@
+import contextvars
 import functools
 import sys
 import threading
@@ -9,9 +10,14 @@ from .base import DEBUG, Logger
 
 class _SlowContextNotifier:
     def __init__(self, threshold, func):
-        self.timer = threading.Timer(threshold, func)
+        self.threshold = threshold
+        self.func = func
 
     def __enter__(self):
+        context = contextvars.copy_context()
+        self.timer = threading.Timer(
+            self.threshold, functools.partial(context.run, self.func)
+        )
         self.timer.start()
         return self
 
