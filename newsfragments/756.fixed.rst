@@ -1,0 +1,1 @@
+:class:`~logbook.ticketing.SQLAlchemyBackend` moved a ticket's ``last_occurrence_time`` back when an older record for it was written after a newer one, for example by a slower process.

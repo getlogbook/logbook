@@ -143,6 +143,28 @@ def test_ticket_insert_unrelated_integrity_error():
         handler.db.engine.dispose()
 
 
+@require_module("sqlalchemy")
+def test_ticket_keeps_latest_occurrence_time():
+    """A record can reach the database after a later one for the same ticket,
+    for example from a slower process or through a queue.
+    """
+    from logbook.ticketing import TicketingHandler
+
+    handler = TicketingHandler("sqlite:///")
+    try:
+        for occurrence_time in (datetime(2020, 1, 2), datetime(2020, 1, 1)):
+            record = logbook.LogRecord("test", logbook.WARNING, "message")
+            record.heavy_init()
+            record.time = occurrence_time
+            handler.emit(record)
+
+        [ticket] = handler.db.get_tickets()
+        assert ticket.last_occurrence_time == datetime(2020, 1, 2)
+    finally:
+        handler.close()
+        handler.db.engine.dispose()
+
+
 @pytest.fixture
 def couchdb_backend():
     from logbook.more import CouchDBBackend
