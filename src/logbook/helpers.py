@@ -26,7 +26,7 @@ _iso8601_re = re.compile(
     # date
     r"(\d{4})(?:-?(\d{2})(?:-?(\d{2}))?)?"
     # time
-    r"(?:T(\d{2}):(\d{2})(?::(\d{2}(?:\.\d+)?))?(Z|[+-]\d{2}:\d{2})?)?$"
+    r"(?:T(\d{2}):(\d{2})(?::(\d{2}(?:\.\d+)?))?(Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)?)?$"
 )
 _missing = object()
 
@@ -195,7 +195,7 @@ def parse_iso8601(value):
         if "." in seconds:
             sec, usec = seconds.split(".")
             args.append(int(sec))
-            args.append(int(usec.ljust(6, "0")))
+            args.append(int(usec.ljust(6, "0")[:6]))
         else:
             args.append(int(seconds))
 
