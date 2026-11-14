@@ -1,0 +1,1 @@
+:meth:`~logbook.Handler.contextbound`, ``threadbound()`` and ``greenletbound()`` no longer close the handler at the end of the ``with`` block. Since 1.9, a :class:`~logbook.FileHandler` bound for each request reopened its file every time.

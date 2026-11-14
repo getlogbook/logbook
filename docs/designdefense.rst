@@ -47,8 +47,8 @@ allowing it to work seamlessly across threaded and concurrent code alike. T
 There is a global stack (manipulated
 with :meth:`Handler.push_application`, :meth:`Handler.pop_application`, and
 :meth:`Handler.applicationbound`), and a stack based on contextvars (manipulated
-with :meth:`Handler.push_context`, :meth:`Handler.pop_context`, and the
-default :meth:`Handler` contextmanager).
+with :meth:`Handler.push_context`, :meth:`Handler.pop_context`,
+:meth:`Handler.contextbound`, and the default :meth:`Handler` contextmanager).
 
 Let's take a WSGI web application as first example.  When a request comes
 in your WSGI server will most likely do one of the following two things:
@@ -210,7 +210,7 @@ binding a handler to a thread:
             record.extra["path"] = environ["PATH_INFO"]
 
         with Processor(inject_request_info):
-            with my_handler:
+            with my_handler.contextbound():
                 # rest of the request code here
                 ...
 
