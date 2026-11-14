@@ -1,0 +1,1 @@
+Logging in a child process after ``os.fork()`` no longer hangs when another thread of the parent was logging at the time of the fork.
