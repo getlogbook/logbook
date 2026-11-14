@@ -471,6 +471,35 @@ where
     }
 }
 
+/// `Bound::getattr_opt` without its fallback for Python before 3.13, which
+/// raises and clears an AttributeError whenever the attribute is missing.
+fn getattr_opt<'py>(
+    obj: &Bound<'py, PyAny>,
+    attr_name: &Bound<'py, PyString>,
+) -> PyResult<Option<Bound<'py, PyAny>>> {
+    #[cfg(Py_3_13)]
+    {
+        obj.getattr_opt(attr_name)
+    }
+    #[cfg(not(Py_3_13))]
+    {
+        static GETATTR: pyo3::sync::PyOnceLock<Py<PyAny>> = pyo3::sync::PyOnceLock::new();
+        static MISSING: pyo3::sync::PyOnceLock<Py<PyAny>> = pyo3::sync::PyOnceLock::new();
+        let py = obj.py();
+        let getattr = GETATTR.import(py, "builtins", "getattr")?;
+        let missing = MISSING
+            .get_or_try_init(py, || {
+                py.import("builtins")?
+                    .getattr("object")?
+                    .call0()
+                    .map(Bound::unbind)
+            })?
+            .bind(py);
+        let rv = getattr.call1((obj, attr_name, missing))?;
+        Ok(if rv.is(missing) { None } else { Some(rv) })
+    }
+}
+
 #[pyclass(name = "group_reflected_property", module = "logbook._speedups")]
 pub struct PyGroupReflectedProperty {
     prop_name: Option<Py<PyString>>,
@@ -521,7 +550,7 @@ impl PyGroupReflectedProperty {
         };
         let attr_name = attr_name.bind(py);
 
-        let rv = instance.getattr_opt(attr_name)?;
+        let rv = getattr_opt(instance, attr_name)?;
         match (&self_.fallback, rv) {
             (Some(fallback), Some(rv)) if rv.ne(fallback)? => return Ok(rv.unbind()),
             (None, Some(rv)) => return Ok(rv.unbind()),
