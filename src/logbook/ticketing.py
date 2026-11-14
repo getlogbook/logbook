@@ -211,6 +211,8 @@ class SQLAlchemyBackend(BackendBase):
             self._record_ticket(record, data, hash, app_id)
 
     def _record_ticket(self, record, data, hash, app_id):
+        from sqlalchemy import case
+
         with self.engine.begin() as conn:
             q = self.tickets.select().where(self.tickets.c.record_hash == hash)
             row = conn.execute(q).one_or_none()
@@ -243,7 +245,13 @@ class SQLAlchemyBackend(BackendBase):
                 .where(self.tickets.c.ticket_id == ticket_id)
                 .values(
                     occurrence_count=self.tickets.c.occurrence_count + 1,
-                    last_occurrence_time=record.time,
+                    last_occurrence_time=case(
+                        (
+                            self.tickets.c.last_occurrence_time >= record.time,
+                            self.tickets.c.last_occurrence_time,
+                        ),
+                        else_=record.time,
+                    ),
                     solved=False,
                 )
             )
