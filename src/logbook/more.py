@@ -547,9 +547,17 @@ class DedupHandler(Handler):
         self.clear()
 
 
+@deprecated(
+    "RiemannHandler is deprecated because the riemann-client library it "
+    "needs is no longer maintained."
+)
 class RiemannHandler(Handler):
     """
     A handler that sends logs as events to Riemann.
+
+    .. deprecated:: 1.11
+
+       The riemann-client library it needs is no longer maintained.
     """
 
     def __init__(
