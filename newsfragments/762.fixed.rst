@@ -1,0 +1,1 @@
+A deprecation from :func:`~logbook.utils.deprecated` was not logged if another deprecation had already been logged from a caller with the same function name and line number, even in another file.
