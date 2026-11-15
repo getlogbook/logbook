@@ -196,9 +196,10 @@ class TestRiemannHandler:
     def test_happy_path(self, logger):
         from logbook.more import RiemannHandler
 
-        riemann_handler = RiemannHandler(
-            "127.0.0.1", 5555, message_type="test", level=logbook.INFO
-        )
+        with pytest.warns(DeprecationWarning, match="RiemannHandler is deprecated"):
+            riemann_handler = RiemannHandler(
+                "127.0.0.1", 5555, message_type="test", level=logbook.INFO
+            )
         null_handler = logbook.NullHandler()
         with null_handler.applicationbound():
             with riemann_handler:
@@ -222,20 +223,24 @@ class TestRiemannHandler:
     def test_incorrect_type(self):
         from logbook.more import RiemannHandler
 
-        with pytest.raises(RuntimeError):
+        with (
+            pytest.warns(DeprecationWarning, match="RiemannHandler is deprecated"),
+            pytest.raises(RuntimeError),
+        ):
             RiemannHandler("127.0.0.1", 5555, message_type="fancy_type")
 
     @require_module("riemann_client")
     def test_flush(self, logger):
         from logbook.more import RiemannHandler
 
-        riemann_handler = RiemannHandler(
-            "127.0.0.1",
-            5555,
-            message_type="test",
-            flush_threshold=2,
-            level=logbook.INFO,
-        )
+        with pytest.warns(DeprecationWarning, match="RiemannHandler is deprecated"):
+            riemann_handler = RiemannHandler(
+                "127.0.0.1",
+                5555,
+                message_type="test",
+                flush_threshold=2,
+                level=logbook.INFO,
+            )
         null_handler = logbook.NullHandler()
         with null_handler.applicationbound():
             with riemann_handler:

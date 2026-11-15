@@ -1,0 +1,1 @@
+:class:`~logbook.more.SlackHandler` is deprecated. It does not work with Slack apps created since February 2021.

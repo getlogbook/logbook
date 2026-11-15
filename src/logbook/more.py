@@ -264,10 +264,18 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
         self.tweet(self.format(record))
 
 
+@deprecated(
+    "SlackHandler is deprecated because it does not work with Slack apps "
+    "created since February 2021."
+)
 class SlackHandler(Handler, StringFormatterHandlerMixin):
     """A handler that logs to slack.  Requires that you sign up an
     application on slack and request an api token.  Furthermore the
     slacker library has to be installed.
+
+    .. deprecated:: 1.11
+
+       It does not work with Slack apps created since February 2021.
     """
 
     def __init__(
@@ -539,9 +547,17 @@ class DedupHandler(Handler):
         self.clear()
 
 
+@deprecated(
+    "RiemannHandler is deprecated because the riemann-client library it "
+    "needs is no longer maintained."
+)
 class RiemannHandler(Handler):
     """
     A handler that sends logs as events to Riemann.
+
+    .. deprecated:: 1.11
+
+       The riemann-client library it needs is no longer maintained.
     """
 
     def __init__(

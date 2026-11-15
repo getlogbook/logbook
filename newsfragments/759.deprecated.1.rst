@@ -1,0 +1,1 @@
+:class:`~logbook.more.RiemannHandler` is deprecated. The riemann-client library it needs is no longer maintained.
