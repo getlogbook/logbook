@@ -270,9 +270,7 @@ class MessageQueueHandler(Handler):
             raise RuntimeError(
                 "The kombu library is required for the MessageQueueHandler."
             )
-        if uri:
-            connection = kombu.Connection(uri)
-
+        connection = kombu.Connection(uri)
         self.queue = connection.SimpleQueue(queue)
 
     def export_record(self, record):
@@ -468,9 +466,7 @@ class MessageQueueSubscriber(SubscriberBase):
             import kombu
         except ImportError:
             raise RuntimeError("The kombu library is required.")
-        if uri:
-            connection = kombu.Connection(uri)
-
+        connection = kombu.Connection(uri)
         self.queue = connection.SimpleQueue(queue)
 
     def __del__(self):
