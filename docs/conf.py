@@ -3,8 +3,11 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import inspect
 from importlib.metadata import distribution
 from pathlib import Path
+
+from sphinx.util import inspect as sphinx_inspect
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -73,3 +76,27 @@ html_logo = "logbook-logo.png"
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
 }
+
+
+def _deprecated_class_signature(
+    app, what, name, obj, options, signature, return_annotation
+):
+    # @deprecated wraps a class's __new__ in a (*args, **kwargs) function, and
+    # autodoc reads the class signature from __new__ before __init__. A class
+    # with its own __new__ is left to autodoc, which follows __wrapped__.
+    if (
+        what == "class"
+        and hasattr(obj, "__deprecated__")
+        and not inspect.isfunction(inspect.unwrap(obj.__new__))
+        and obj.__init__ is not object.__init__
+    ):
+        init = sphinx_inspect.signature(obj.__init__, bound_method=True)
+        signature = sphinx_inspect.stringify_signature(
+            init, show_return_annotation=False, unqualified_typehints=True
+        )
+        return signature, return_annotation
+    return None
+
+
+def setup(app):
+    app.connect("autodoc-process-signature", _deprecated_class_signature)
