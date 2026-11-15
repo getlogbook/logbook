@@ -236,6 +236,15 @@ def test_deprecations_different_files(capture):
     assert len(capture.records) == 2
 
 
+def test_different_deprecations_same_line(capture):
+    @deprecated
+    def other_func(a):
+        return a
+
+    other_func(deprecated_func(1, 2))
+    assert len(capture.records) == 2
+
+
 def test_deprecation_message_different_sources(capture):
     def f(flag):
         if flag:

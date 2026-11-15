@@ -111,10 +111,10 @@ def forget_deprecation_locations():
 def _write_deprecations_if_needed(message, frame_correction):
     if not _local.enabled:
         return
-    caller_location = _get_caller_location(frame_correction=frame_correction + 1)
-    if caller_location not in _deprecation_locations:
+    key = (message, _get_caller_location(frame_correction=frame_correction + 1))
+    if key not in _deprecation_locations:
         _deprecation_logger.warning(message, frame_correction=frame_correction + 1)
-        _deprecation_locations.add(caller_location)
+        _deprecation_locations.add(key)
 
 
 def log_deprecation_message(message, frame_correction=0):
