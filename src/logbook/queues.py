@@ -13,13 +13,37 @@ import os
 import platform
 import sys
 import threading
+import warnings
 from queue import Empty, Full
 from queue import Queue as ThreadQueue
 from threading import Lock, Thread
+from typing import Any
 
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.concurrency import _register_at_fork_reinit_lock
 from logbook.handlers import Handler, WrapperHandler
+
+
+def __getattr__(name: str) -> Any:
+    if name == "RabbitMQHandler":
+        warnings.warn(
+            "logbook.queues.RabbitMQHandler is a deprecated alias to "
+            "logbook.queues.MessageQueueHandler",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return MessageQueueHandler
+    elif name == "RabbitMQSubscriber":
+        warnings.warn(
+            "logbook.queues.RabbitMQSubscriber is a deprecated alias to "
+            "logbook.queues.MessageQueueSubscriber",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return MessageQueueSubscriber
+    else:
+        msg = f"module '{__name__}' has no attribute '{name}'"
+        raise AttributeError(msg)
 
 
 class RedisHandler(Handler):
@@ -262,9 +286,6 @@ class MessageQueueHandler(Handler):
         self.queue.close()
 
 
-RabbitMQHandler = MessageQueueHandler
-
-
 class ZeroMQHandler(Handler):
     """A handler that acts as a ZeroMQ publisher, which publishes each record
     as json dump.  Requires the pyzmq library.
@@ -482,9 +503,6 @@ class MessageQueueSubscriber(SubscriberBase):
         rv.ack()
 
         return LogRecord.from_dict(log_record)
-
-
-RabbitMQSubscriber = MessageQueueSubscriber
 
 
 class ZeroMQSubscriber(SubscriberBase):
