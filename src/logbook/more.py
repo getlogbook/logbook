@@ -264,10 +264,18 @@ class TwitterHandler(Handler, StringFormatterHandlerMixin):
         self.tweet(self.format(record))
 
 
+@deprecated(
+    "SlackHandler is deprecated because it does not work with Slack apps "
+    "created since February 2021."
+)
 class SlackHandler(Handler, StringFormatterHandlerMixin):
     """A handler that logs to slack.  Requires that you sign up an
     application on slack and request an api token.  Furthermore the
     slacker library has to be installed.
+
+    .. deprecated:: 1.11
+
+       It does not work with Slack apps created since February 2021.
     """
 
     def __init__(
