@@ -13,13 +13,37 @@ import os
 import platform
 import sys
 import threading
+import warnings
 from queue import Empty, Full
 from queue import Queue as ThreadQueue
 from threading import Lock, Thread
+from typing import Any
 
 from logbook.base import NOTSET, LogRecord, dispatch_record
 from logbook.concurrency import _register_at_fork_reinit_lock
 from logbook.handlers import Handler, WrapperHandler
+
+
+def __getattr__(name: str) -> Any:
+    if name == "RabbitMQHandler":
+        warnings.warn(
+            "logbook.queues.RabbitMQHandler is a deprecated alias to "
+            "logbook.queues.MessageQueueHandler",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return MessageQueueHandler
+    elif name == "RabbitMQSubscriber":
+        warnings.warn(
+            "logbook.queues.RabbitMQSubscriber is a deprecated alias to "
+            "logbook.queues.MessageQueueSubscriber",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return MessageQueueSubscriber
+    else:
+        msg = f"module '{__name__}' has no attribute '{name}'"
+        raise AttributeError(msg)
 
 
 class RedisHandler(Handler):
@@ -244,7 +268,7 @@ class MessageQueueHandler(Handler):
             import kombu
         except ImportError:
             raise RuntimeError(
-                "The kombu library is required for the RabbitMQSubscriber."
+                "The kombu library is required for the MessageQueueHandler."
             )
         if uri:
             connection = kombu.Connection(uri)
@@ -260,9 +284,6 @@ class MessageQueueHandler(Handler):
 
     def close(self):
         self.queue.close()
-
-
-RabbitMQHandler = MessageQueueHandler
 
 
 class ZeroMQHandler(Handler):
@@ -482,9 +503,6 @@ class MessageQueueSubscriber(SubscriberBase):
         rv.ack()
 
         return LogRecord.from_dict(log_record)
-
-
-RabbitMQSubscriber = MessageQueueSubscriber
 
 
 class ZeroMQSubscriber(SubscriberBase):

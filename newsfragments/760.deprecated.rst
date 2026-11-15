@@ -1,0 +1,1 @@
+The ``RabbitMQHandler`` and ``RabbitMQSubscriber`` aliases in :mod:`logbook.queues` are deprecated. Use :class:`~logbook.queues.MessageQueueHandler` and :class:`~logbook.queues.MessageQueueSubscriber` instead.
