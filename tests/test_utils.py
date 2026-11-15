@@ -224,6 +224,18 @@ def test_deprecations_same_sources(capture):
     assert len(capture.records) == 1
 
 
+def test_deprecations_different_files(capture):
+    """Callers with the same function name and line number in different files
+    are different locations."""
+    for filename in ("first.py", "second.py"):
+        code = compile("def f():\n    deprecated_func(1, 2)\n", filename, "exec")
+        namespace = {"deprecated_func": deprecated_func}
+        exec(code, namespace)
+        namespace["f"]()
+
+    assert len(capture.records) == 2
+
+
 def test_deprecation_message_different_sources(capture):
     def f(flag):
         if flag:
