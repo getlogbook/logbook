@@ -244,7 +244,7 @@ class MessageQueueHandler(Handler):
             import kombu
         except ImportError:
             raise RuntimeError(
-                "The kombu library is required for the RabbitMQSubscriber."
+                "The kombu library is required for the MessageQueueHandler."
             )
         if uri:
             connection = kombu.Connection(uri)
