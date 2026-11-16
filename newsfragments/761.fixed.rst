@@ -1,0 +1,1 @@
+:class:`~logbook.queues.MessageQueueHandler` and :class:`~logbook.queues.MessageQueueSubscriber` no longer raise :exc:`UnboundLocalError` when created without a URI, and use kombu's default broker instead.

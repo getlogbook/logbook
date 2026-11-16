@@ -35,6 +35,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      rabbitmq:
+        image: rabbitmq:4
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     strategy:
       fail-fast: false
@@ -137,7 +146,7 @@ jobs:
       - name: "Create nox environment for ${{ matrix.python-version }} on ${{ matrix.arch }}"
         run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not rust' --install-only"
       - name: "Run nox targets for ${{ matrix.python-version }} on ${{ matrix.arch }}"
-        run: "uv run nox --python ${{ matrix.python-version }} --no-install -k 'not rust' -- -r aR -k 'not redis'"
+        run: "uv run nox --python ${{ matrix.python-version }} --no-install -k 'not rust' -- -r aR -k 'not redis and not rabbitmq'"
       - run: uv run coverage combine
       - run: uv run coverage xml
       - name: "Upload coverage to Codecov"
@@ -192,7 +201,7 @@ jobs:
       - name: "Create nox environment for ${{ matrix.python-version }}"
         run: "uv run nox --python ${{ matrix.python-version }} -v --install-only"
       - name: "Run nox targets for ${{ matrix.python-version }}"
-        run: "uv run nox --python ${{ matrix.python-version }} --no-install -- -r aR -k 'not redis'"
+        run: "uv run nox --python ${{ matrix.python-version }} --no-install -- -r aR -k 'not redis and not rabbitmq'"
       - name: "Convert coverage"
         run: |
           uv run coverage combine
@@ -274,7 +283,7 @@ jobs:
       - name: "Create nox environment"
         run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not nospeedups' --install-only"
       - name: "Run nox"
-        run: "uv run nox --python ${{ matrix.python-version }} --no-install -k 'not nospeedups' -- -r aR -k 'not redis'"
+        run: "uv run nox --python ${{ matrix.python-version }} --no-install -k 'not nospeedups' -- -r aR -k 'not redis and not rabbitmq'"
 
   alls-green:
     name: "all required checks passed"

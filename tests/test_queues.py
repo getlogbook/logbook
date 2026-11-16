@@ -433,6 +433,25 @@ def test_message_queue_subscriber_recv_timeout():
     assert subscriber.recv(0.01) is None
 
 
+@require_module("kombu")
+def test_message_queue_default_broker_rabbitmq(logger):
+    """Without a URI, the handler and subscriber use kombu's default broker,
+    RabbitMQ on localhost.
+    """
+    from logbook.queues import MessageQueueHandler, MessageQueueSubscriber
+
+    subscriber = MessageQueueSubscriber()
+    handler = MessageQueueHandler()
+    try:
+        with handler:
+            logger.warning("Hello")
+        record = subscriber.recv(5)
+    finally:
+        handler.close()
+        subscriber.close()
+    assert record.message == "Hello"
+
+
 @require_module("redis")
 def test_redis_handler():
     import redis

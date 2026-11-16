@@ -95,6 +95,7 @@ nox = [
 ]
 test = [
     "aiosmtpd>=1.4.6",
+    "kombu>=5.3.0",
     "pytest>=8.4.0",
     "pytest-rerunfailures>=15.1",
 ]
