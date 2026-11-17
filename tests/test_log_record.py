@@ -13,6 +13,30 @@ def test_exc_info_when_no_exceptions_exist(logger):
     assert "Traceback" not in captured.getvalue()
 
 
+def test_pull_information_when_no_exceptions_exist(logger):
+    with logbook.handlers.TestHandler() as handler:
+        logger.error("message", exc_info=True)
+    [record] = handler.records
+    record.pull_information()
+    assert record.exception_name is None
+    assert record.exception_message is None
+
+
+def test_pull_information_when_exception_str_fails(logger):
+    class BadStr(Exception):
+        def __str__(self):
+            raise ValueError("no str")
+
+    with logbook.handlers.TestHandler() as handler:
+        try:
+            raise BadStr
+        except BadStr:
+            logger.exception()
+    [record] = handler.records
+    record.pull_information()
+    assert record.exception_message == "<exception str() failed>"
+
+
 def test_exc_info_false():
     with logbook.handlers.TestHandler() as handler:
         logbook.debug("message here", exc_info=False)
