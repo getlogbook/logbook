@@ -870,7 +870,7 @@ class LogRecord:
     @cached_property
     def exception_name(self):
         """The name of the exception."""
-        if self.exc_info is not None:
+        if self.exc_info is not None and self.exc_info != (None, None, None):
             cls = self.exc_info[0]
             return cls.__module__ + "." + cls.__name__
 
@@ -882,7 +882,7 @@ class LogRecord:
     @cached_property
     def exception_message(self):
         """The message of the exception."""
-        if self.exc_info is not None:
+        if self.exc_info is not None and self.exc_info != (None, None, None):
             val = self.exc_info[1]
             return str(val)
 

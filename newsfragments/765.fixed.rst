@@ -1,0 +1,1 @@
+:class:`~logbook.FingersCrossedHandler`, :class:`~logbook.GroupHandler` and the queue handlers failed on records logged with ``exc_info=True`` outside an ``except`` block.
