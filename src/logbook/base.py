@@ -884,7 +884,10 @@ class LogRecord:
         """The message of the exception."""
         if self.exc_info is not None and self.exc_info != (None, None, None):
             val = self.exc_info[1]
-            return str(val)
+            try:
+                return str(val)
+            except Exception:
+                return "<exception str() failed>"
 
     @property
     def dispatcher(self):
