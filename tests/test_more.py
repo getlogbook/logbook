@@ -1,9 +1,12 @@
+import os
 import sys
 from io import StringIO
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
 import logbook
+import logbook.more
 
 from .utils import capturing_stderr_context, missing, require_module
 
@@ -60,6 +63,41 @@ def test_colorizing_support(logger):
         logger.debug("A debug message")
         lines = handler.stream.getvalue().rstrip("\n").splitlines()
         assert lines == ["An error", "A warning", "A debug message"]
+
+
+def test_colorized_stderr_handler_leaves_colorama_alone_outside_windows(monkeypatch):
+    """``colorama.init()`` replaces whichever of ``sys.stdout`` and
+    ``sys.stderr`` is not a terminal with a wrapper that strips ANSI codes, on
+    every OS. Calling it whenever colorama was installed defeated
+    ``force_color()`` and removed colors from other output to a pipe.
+    """
+    calls = []
+    colorama = ModuleType("colorama")
+    colorama.init = lambda: calls.append("init")
+    colorama.just_fix_windows_console = lambda: calls.append("just_fix")
+    monkeypatch.setitem(sys.modules, "colorama", colorama)
+    fake_os = SimpleNamespace(**vars(os))
+    fake_os.name = "posix"
+    monkeypatch.setattr(logbook.more, "os", fake_os)
+
+    logbook.more.ColorizedStderrHandler()
+
+    assert calls == []
+
+
+def test_colorized_stderr_handler_fixes_windows_console(monkeypatch):
+    calls = []
+    colorama = ModuleType("colorama")
+    colorama.init = lambda: calls.append("init")
+    colorama.just_fix_windows_console = lambda: calls.append("just_fix")
+    monkeypatch.setitem(sys.modules, "colorama", colorama)
+    fake_os = SimpleNamespace(**vars(os))
+    fake_os.name = "nt"
+    monkeypatch.setattr(logbook.more, "os", fake_os)
+
+    logbook.more.ColorizedStderrHandler()
+
+    assert calls == ["just_fix"]
 
 
 def test_tagged(default_handler):

@@ -424,8 +424,7 @@ class ColorizingStreamHandlerMixin:
 
 class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
     """A colorizing stream handler that writes to stderr.  It will only
-    colorize if a terminal was detected.  Note that this handler does
-    not colorize on Windows systems.
+    colorize if a terminal was detected.
 
     .. versionadded:: 0.3
     .. versionchanged:: 1.0
@@ -437,14 +436,13 @@ class ColorizedStderrHandler(ColorizingStreamHandlerMixin, StderrHandler):
     def __init__(self, *args, **kwargs):
         StderrHandler.__init__(self, *args, **kwargs)
 
-        # Try import colorama so that we work on Windows. colorama.init is a
-        # noop on other operating systems.
-        try:
-            import colorama
-        except ImportError:
-            pass
-        else:
-            colorama.init()
+        if os.name == "nt":
+            try:
+                import colorama
+            except ImportError:
+                pass
+            else:
+                colorama.just_fix_windows_console()
 
 
 class ExceptionHandler(Handler, StringFormatterHandlerMixin):

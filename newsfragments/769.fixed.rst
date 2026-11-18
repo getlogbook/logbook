@@ -1,0 +1,1 @@
+:class:`~logbook.more.ColorizedStderrHandler` stripped colors from everything the process wrote to ``sys.stdout`` or ``sys.stderr`` when they were not a terminal and `colorama <https://pypi.org/project/colorama>`__ was installed, including colors forced with :meth:`~logbook.more.ColorizingStreamHandlerMixin.force_color`.
