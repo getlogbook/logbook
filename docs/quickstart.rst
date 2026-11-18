@@ -67,11 +67,6 @@ On top of those there are a couple of handlers for special use cases:
 * :class:`logbook.queues.ThreadedWrapperHandler` for moving the actual
   handling of a handler into a background thread and using a queue to
   deliver records to that thread.
-* :class:`logbook.notifiers.GrowlHandler` and
-  :class:`logbook.notifiers.LibNotifyHandler` for logging to the OS X Growl
-  or the linux notification daemon.
-* :class:`logbook.notifiers.BoxcarHandler` for logging to boxcar.io.
-* :class:`logbook.more.TwitterHandler` for logging to twitter.
 * :class:`logbook.more.ExternalApplicationHandler` for logging to an
   external application such as the OS X ``say`` command.
 * :class:`logbook.ticketing.TicketingHandler` for creating tickets from
