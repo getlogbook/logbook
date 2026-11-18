@@ -528,6 +528,7 @@ class DedupHandler(Handler):
 
     def handle(self, record):
         if record.message not in self._message_to_count:
+            record.pull_information()
             self._unique_ordered_records.append(record)
         self._message_to_count[record.message] += 1
         return True

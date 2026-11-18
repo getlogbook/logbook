@@ -1,0 +1,1 @@
+:class:`~logbook.more.DedupHandler` emitted records without their traceback or call site, and with the thread name of the code that popped the handler.
