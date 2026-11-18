@@ -1,0 +1,1 @@
+:meth:`ZeroMQSubscriber.recv(timeout=0) <logbook.queues.ZeroMQSubscriber.recv>` returns ``None`` when no record is waiting, instead of raising ``zmq.Again``.
