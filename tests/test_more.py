@@ -191,6 +191,23 @@ def test_dedup_handler(logger):
     assert "message repeated 1 times: bar" in test_handler.records[1].message
 
 
+def test_dedup_handler_keeps_exception_and_caller(logger):
+    """DedupHandler emits records when it is popped, after each logging call
+    has closed its record and dropped the frames and exception information.
+    """
+    from logbook.more import DedupHandler
+
+    with logbook.TestHandler() as test_handler:
+        with DedupHandler():
+            try:
+                raise RuntimeError("bar")
+            except RuntimeError:
+                logger.exception("foo")
+    [record] = test_handler.records
+    assert record.func_name == "test_dedup_handler_keeps_exception_and_caller"
+    assert "RuntimeError: bar" in record.formatted_exception
+
+
 class TestRiemannHandler:
     @require_module("riemann_client")
     def test_happy_path(self, logger):
