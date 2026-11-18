@@ -1,4 +1,5 @@
 import re
+import sys
 
 import pytest
 
@@ -52,3 +53,11 @@ def test_test_handler_cache(active_handler, logger):
     logger.warning("Second line invalidates cache")
     assert len(active_handler.formatted_records) == 2
     assert cache is not active_handler.formatted_records
+
+
+def test_lineno(active_handler, logger):
+    """Records stay open after the log call while the calling frame moves on,
+    so the line number must not come from where the frame is when it is read."""
+    lineno = sys._getframe().f_lineno + 1
+    logger.warning("Hello World")
+    assert active_handler.records[0].lineno == lineno
