@@ -25,6 +25,10 @@ jobs:
     name: "Linux (${{ matrix.python-version }})"
     runs-on: "ubuntu-24.04"
 
+    env:
+      LOGBOOK_REDIS_HOST: localhost
+      LOGBOOK_RABBITMQ_URL: "amqp://guest:guest@localhost:5672//"
+
     services:
       redis:
         image: redis:8
@@ -146,7 +150,7 @@ jobs:
       - name: "Create nox environment for ${{ matrix.python-version }} on ${{ matrix.arch }}"
         run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not rust' --install-only"
       - name: "Run nox targets for ${{ matrix.python-version }} on ${{ matrix.arch }}"
-        run: "uv run nox --python ${{ matrix.python-version }} --no-install -k 'not rust' -- -r aR -k 'not redis and not rabbitmq'"
+        run: "uv run nox --python ${{ matrix.python-version }} --no-install -k 'not rust' -- -r aR"
       - run: uv run coverage combine
       - run: uv run coverage xml
       - name: "Upload coverage to Codecov"
@@ -201,7 +205,7 @@ jobs:
       - name: "Create nox environment for ${{ matrix.python-version }}"
         run: "uv run nox --python ${{ matrix.python-version }} -v --install-only"
       - name: "Run nox targets for ${{ matrix.python-version }}"
-        run: "uv run nox --python ${{ matrix.python-version }} --no-install -- -r aR -k 'not redis and not rabbitmq'"
+        run: "uv run nox --python ${{ matrix.python-version }} --no-install -- -r aR"
       - name: "Convert coverage"
         run: |
           uv run coverage combine
@@ -283,7 +287,7 @@ jobs:
       - name: "Create nox environment"
         run: "uv run nox --python ${{ matrix.python-version }} -v -k 'not nospeedups' --install-only"
       - name: "Run nox"
-        run: "uv run nox --python ${{ matrix.python-version }} --no-install -k 'not nospeedups' -- -r aR -k 'not redis and not rabbitmq'"
+        run: "uv run nox --python ${{ matrix.python-version }} --no-install -k 'not nospeedups' -- -r aR"
 
   alls-green:
     name: "all required checks passed"

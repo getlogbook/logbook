@@ -11,8 +11,14 @@ import logbook
 from .fork_locks import fork, fork_while_held
 from .utils import LETTERS, missing, require_module, unused_tcp_address
 
-REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
-REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
+REDIS_HOST = os.environ.get("LOGBOOK_REDIS_HOST")
+REDIS_PORT = int(os.environ.get("LOGBOOK_REDIS_PORT", "6379"))
+RABBITMQ_URL = os.environ.get("LOGBOOK_RABBITMQ_URL")
+
+# The Redis and RabbitMQ tests write to the server, so they only run when asked.
+requires_redis_server = pytest.mark.skipif(
+    not REDIS_HOST, reason="Needs a Redis server at LOGBOOK_REDIS_HOST."
+)
 
 
 @require_module("zmq")
@@ -434,12 +440,25 @@ def test_message_queue_subscriber_recv_timeout():
 
 
 @require_module("kombu")
-def test_message_queue_default_broker_rabbitmq(logger):
-    """Without a URI, the handler and subscriber use kombu's default broker,
-    RabbitMQ on localhost.
+@pytest.mark.skipif(
+    not RABBITMQ_URL, reason="Needs a RabbitMQ broker at LOGBOOK_RABBITMQ_URL."
+)
+def test_message_queue_default_broker_rabbitmq(logger, monkeypatch):
+    """Without a URI, the handler and subscriber leave the broker to kombu's
+    default. The test checks that and connects them to LOGBOOK_RABBITMQ_URL.
     """
+    import kombu
+
     from logbook.queues import MessageQueueHandler, MessageQueueSubscriber
 
+    uris = []
+    connection = kombu.Connection
+
+    def default_broker(uri):
+        uris.append(uri)
+        return connection(RABBITMQ_URL)
+
+    monkeypatch.setattr(kombu, "Connection", default_broker)
     subscriber = MessageQueueSubscriber()
     handler = MessageQueueHandler()
     try:
@@ -449,10 +468,12 @@ def test_message_queue_default_broker_rabbitmq(logger):
     finally:
         handler.close()
         subscriber.close()
+    assert uris == [None, None]
     assert record.message == "Hello"
 
 
 @require_module("redis")
+@requires_redis_server
 def test_redis_handler():
     import redis
 
@@ -461,7 +482,9 @@ def test_redis_handler():
     KEY = f"redis-{os.getpid()}"
     FIELDS = ["message", "host"]
     r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
-    redis_handler = RedisHandler(key=KEY, level=logbook.INFO, bubble=True)
+    redis_handler = RedisHandler(
+        REDIS_HOST, REDIS_PORT, key=KEY, level=logbook.INFO, bubble=True
+    )
     # We don't want output for the tests, so we can wrap everything in a
     # NullHandler
     null_handler = logbook.NullHandler()
@@ -495,7 +518,12 @@ def test_redis_handler():
     extra_fields = {"type": "test"}
     del redis_handler
     redis_handler = RedisHandler(
-        key=KEY, level=logbook.INFO, extra_fields=extra_fields, bubble=True
+        REDIS_HOST,
+        REDIS_PORT,
+        key=KEY,
+        level=logbook.INFO,
+        extra_fields=extra_fields,
+        bubble=True,
     )
 
     with null_handler.applicationbound():
@@ -521,6 +549,7 @@ def test_redis_handler():
 
 
 @require_module("redis")
+@requires_redis_server
 def test_redis_handler_lpush():
     """
     Test if lpush stores messages in the right order
@@ -534,7 +563,12 @@ def test_redis_handler_lpush():
 
     KEY = "lpushed-"
     redis_handler = RedisHandler(
-        key=KEY, push_method="lpush", level=logbook.INFO, bubble=True
+        REDIS_HOST,
+        REDIS_PORT,
+        key=KEY,
+        push_method="lpush",
+        level=logbook.INFO,
+        bubble=True,
     )
 
     with null_handler.applicationbound():
@@ -552,6 +586,7 @@ def test_redis_handler_lpush():
 
 
 @require_module("redis")
+@requires_redis_server
 def test_redis_handler_rpush():
     """
     Test if rpush stores messages in the right order
@@ -565,7 +600,12 @@ def test_redis_handler_rpush():
 
     KEY = "rpushed-" + str(os.getpid())
     redis_handler = RedisHandler(
-        key=KEY, push_method="rpush", level=logbook.INFO, bubble=True
+        REDIS_HOST,
+        REDIS_PORT,
+        key=KEY,
+        push_method="rpush",
+        level=logbook.INFO,
+        bubble=True,
     )
 
     with null_handler.applicationbound():
@@ -600,6 +640,7 @@ def wait_for_redis_messages(r, key, messages):
 
 
 @require_module("redis")
+@requires_redis_server
 def test_redis_handler_flushes_without_blocking_emit(monkeypatch):
     import redis
 
@@ -608,7 +649,9 @@ def test_redis_handler_flushes_without_blocking_emit(monkeypatch):
     KEY = f"redis-{os.getpid()}-flush"
     r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
     r.delete(KEY)
-    handler = RedisHandler(key=KEY, flush_threshold=1, flush_time=60)
+    handler = RedisHandler(
+        REDIS_HOST, REDIS_PORT, key=KEY, flush_threshold=1, flush_time=60
+    )
     entered = threading.Event()
     release = threading.Event()
     rpush = handler.redis.rpush
@@ -634,6 +677,7 @@ def test_redis_handler_flushes_without_blocking_emit(monkeypatch):
 
 
 @require_module("redis")
+@requires_redis_server
 def test_redis_handler_retries_failed_flush(monkeypatch, capsys):
     import redis
 
@@ -642,7 +686,7 @@ def test_redis_handler_retries_failed_flush(monkeypatch, capsys):
     KEY = f"redis-{os.getpid()}-retry"
     r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
     r.delete(KEY)
-    handler = RedisHandler(key=KEY, flush_time=0.01)
+    handler = RedisHandler(REDIS_HOST, REDIS_PORT, key=KEY, flush_time=0.01)
     failures = 2
     entered = threading.Event()
     release = threading.Event()
@@ -683,6 +727,7 @@ def test_redis_handler_retries_failed_flush(monkeypatch, capsys):
 
 
 @require_module("redis")
+@requires_redis_server
 def test_redis_handler_pushes_directly_when_not_buffering():
     import redis
 
@@ -691,14 +736,14 @@ def test_redis_handler_pushes_directly_when_not_buffering():
     KEY = f"redis-{os.getpid()}-direct"
     r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
     r.delete(KEY)
-    handler = RedisHandler(key=KEY, flush_time=60)
+    handler = RedisHandler(REDIS_HOST, REDIS_PORT, key=KEY, flush_time=60)
     handler.emit(redis_record("a"))
     handler.disable_buffering()
     handler.emit(redis_record("b"))
     assert redis_messages(r, KEY) == ["a", "b"]
     handler.close()
 
-    handler = RedisHandler(key=KEY, flush_time=60)
+    handler = RedisHandler(REDIS_HOST, REDIS_PORT, key=KEY, flush_time=60)
     handler.close()
     handler.emit(redis_record("c"))
     assert redis_messages(r, KEY) == ["a", "b", "c"]
@@ -706,6 +751,7 @@ def test_redis_handler_pushes_directly_when_not_buffering():
 
 
 @require_module("redis")
+@requires_redis_server
 @pytest.mark.skipif(not hasattr(os, "fork"), reason="requires os.fork")
 @pytest.mark.filterwarnings("ignore:This process:DeprecationWarning")
 def test_redis_handler_pushes_from_forked_child():
@@ -716,7 +762,9 @@ def test_redis_handler_pushes_from_forked_child():
     KEY = f"redis-{os.getpid()}-fork"
     r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
     r.delete(KEY)
-    handler = RedisHandler(key=KEY, flush_threshold=1, flush_time=60)
+    handler = RedisHandler(
+        REDIS_HOST, REDIS_PORT, key=KEY, flush_threshold=1, flush_time=60
+    )
 
     def child():
         handler.emit(redis_record("a"))
@@ -728,6 +776,7 @@ def test_redis_handler_pushes_from_forked_child():
 
 
 @require_module("redis")
+@requires_redis_server
 @pytest.mark.skipif(not hasattr(os, "fork"), reason="requires os.fork")
 @pytest.mark.filterwarnings("ignore:This process:DeprecationWarning")
 def test_redis_handler_lock_held_by_another_thread_at_fork():
@@ -738,7 +787,9 @@ def test_redis_handler_lock_held_by_another_thread_at_fork():
     KEY = f"redis-{os.getpid()}-fork-lock"
     r = redis.Redis(REDIS_HOST, REDIS_PORT, decode_responses=True)
     r.delete(KEY)
-    handler = RedisHandler(key=KEY, flush_threshold=1, flush_time=60)
+    handler = RedisHandler(
+        REDIS_HOST, REDIS_PORT, key=KEY, flush_threshold=1, flush_time=60
+    )
 
     def child():
         handler.emit(redis_record("a"))
