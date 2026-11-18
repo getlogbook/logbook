@@ -22,7 +22,7 @@ from .base import _record_time_from_utc, _record_time_to_utc
 
 
 def redirect_logging(set_root_logger_level=True):
-    """Permanently redirects logging to the stdlib.  This also
+    """Permanently redirects logging from the stdlib to Logbook.  This also
     removes all otherwise registered handlers on root logger of
     the logging system but leaves the other loggers untouched.
 
