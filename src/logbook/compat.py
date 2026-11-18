@@ -197,10 +197,11 @@ class LoggingHandler(logbook.Handler):
 
     Example usage::
 
-        from logbook.compat import LoggingHandler, warn
+        from logbook import warning
+        from logbook.compat import LoggingHandler
 
         with LoggingHandler():
-            warn("This goes to logging")
+            warning("This goes to logging")
     """
 
     def __init__(self, logger=None, level=logbook.NOTSET, filter=None, bubble=False):
