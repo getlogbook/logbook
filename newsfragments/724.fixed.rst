@@ -1,0 +1,1 @@
+:func:`~logbook.compat.redirect_logging` dropped the traceback of records sent with :class:`logging.handlers.SocketHandler` or :class:`logging.handlers.DatagramHandler`.
