@@ -1,0 +1,1 @@
+:class:`~logbook.FingersCrossedHandler` ignored ``batch_emit_reason`` and always passed ``'escalation'`` to the wrapped handler.

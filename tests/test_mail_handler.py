@@ -259,6 +259,25 @@ def test_group_handler_mail_combo(activation_strategy, logger):
     assert re.search(r"Message type:\s+DEBUG", related[1])
 
 
+def test_fingerscrossed_custom_mail_batch_reason(activation_strategy, logger):
+    class GroupedFingersCrossedHandler(logbook.FingersCrossedHandler):
+        batch_emit_reason = "group"
+
+    mail_handler = make_fake_mail_handler()
+    handler = GroupedFingersCrossedHandler(mail_handler)
+    with activation_strategy(handler):
+        logger.warning("The first record describes the group")
+        logger.error("The error flushes the group")
+
+    assert len(mail_handler.mails) == 1
+    mail = mail_handler.mails[0][2]
+    pieces = mail.split("Other log records in the same group:")
+    assert len(pieces) == 2
+    body, related = pieces
+    assert "The first record describes the group" in body
+    assert "The error flushes the group" in related
+
+
 def test_mail_handler_arguments():
     patch_smtp = patch("smtplib.SMTP", autospec=True)
     patch_load_cert_chain = patch("ssl.SSLContext.load_cert_chain")
