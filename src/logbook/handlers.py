@@ -1325,6 +1325,8 @@ class TestHandler(Handler, StringFormatterHandlerMixin):
         record.keep_open = True
         if self._force_heavy_init:
             record.heavy_init()
+        # lineno is read lazily.
+        record.lineno  # noqa: B018
         self.records.append(record)
 
     @property

@@ -1,0 +1,1 @@
+:class:`~logbook.TestHandler` records reported a later line of the function that logged as ``record.lineno``, instead of the line of the logging call.
