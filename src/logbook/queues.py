@@ -578,9 +578,10 @@ class ZeroMQSubscriber(SubscriberBase):
         if timeout is None:
             rv = self.socket.recv()
         elif not timeout:
-            rv = self.socket.recv(self._zmq.NOBLOCK)
-            if rv is None:
-                return
+            try:
+                rv = self.socket.recv(self._zmq.NOBLOCK)
+            except self._zmq.Again:
+                return None
         else:
             if not self._zmq.select([self.socket], [], [], timeout)[0]:
                 return

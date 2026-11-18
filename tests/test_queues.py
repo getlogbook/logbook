@@ -51,6 +51,20 @@ def test_zeromq_background_thread(logger, handlers, subscriber):
     assert test_handler.has_error("This is an error")
 
 
+@require_module("zmq")
+def test_zeromq_subscriber_recv_nonblocking(logger, handlers, subscriber):
+    for handler in handlers:
+        with handler:
+            logger.warning("Logging something")
+    assert subscriber.socket.poll(1000)
+    assert subscriber.recv(0).message == "Logging something"
+
+
+@require_module("zmq")
+def test_zeromq_subscriber_recv_nonblocking_empty(subscriber):
+    assert subscriber.recv(0) is None
+
+
 @missing("zmq")
 def test_missing_zeromq():
     from logbook.queues import ZeroMQHandler, ZeroMQSubscriber
