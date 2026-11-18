@@ -802,6 +802,7 @@ class ThreadedWrapperHandler(WrapperHandler):
         self.handler.close()
 
     def emit(self, record):
+        record.pull_information()
         item = (TWHThreadController.Command.emit, record)
         try:
             self.queue.put_nowait(item)
@@ -813,6 +814,8 @@ class ThreadedWrapperHandler(WrapperHandler):
         records = list(records)
         if not records:
             return
+        for record in records:
+            record.pull_information()
         item = (TWHThreadController.Command.emit_batch, records, reason)
         try:
             self.queue.put_nowait(item)

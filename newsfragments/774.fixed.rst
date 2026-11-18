@@ -1,0 +1,1 @@
+:class:`~logbook.queues.ThreadedWrapperHandler` passed records on without their traceback or call site, and with the worker thread's name.

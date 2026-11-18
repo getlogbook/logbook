@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import threading
 import time
 from queue import Queue
@@ -230,6 +231,81 @@ def test_threaded_wrapper_handler_error(logger, capsys):
     err = capsys.readouterr().err
     assert err.count("ValueError: emit failed") == 2
     assert err.count("Logged from file") == 2
+
+
+def test_threaded_wrapper_handler_delayed_error(logger, capsys):
+    """The handler fails after the logging call has returned, so the error
+    report must still name the logging call's file and line.
+    """
+    from logbook.queues import ThreadedWrapperHandler
+
+    release = threading.Event()
+
+    class SlowFailingTestHandler(logbook.TestHandler):
+        def emit(self, record):
+            assert release.wait(5)
+            raise ValueError("emit failed")
+
+    with ThreadedWrapperHandler(SlowFailingTestHandler()) as handler:
+        lineno = sys._getframe().f_lineno + 1
+        logger.warning("Failing")
+        release.set()
+
+    handler.close()
+
+    err = capsys.readouterr().err
+    assert f"Logged from file {__file__}, line {lineno}\n" in err
+
+
+def test_threaded_wrapper_handler_pulls_information(logger):
+    """The handler runs after the logging call has closed the record, which
+    clears its exception and frame.
+    """
+    from logbook.queues import ThreadedWrapperHandler
+
+    release = threading.Event()
+    thread_names = []
+
+    class BlockingTestHandler(logbook.TestHandler):
+        def emit(self, record):
+            assert release.wait(5)
+            thread_names.append(record.thread_name)
+            super().emit(record)
+
+    test_handler = BlockingTestHandler()
+    with ThreadedWrapperHandler(test_handler) as handler:
+        try:
+            raise ValueError("threaded exception")
+        except ValueError:
+            logger.exception("Failed")
+        release.set()
+
+    handler.close()
+
+    [record] = test_handler.records
+    assert "ValueError: threaded exception" in record.formatted_exception
+    assert record.func_name == "test_threaded_wrapper_handler_pulls_information"
+    assert thread_names == [threading.current_thread().name]
+
+
+def test_threaded_wrapper_handler_emit_batch_pulls_information():
+    from logbook.queues import ThreadedWrapperHandler
+
+    record = logbook.LogRecord("Test Logger", logbook.ERROR, "Failed", exc_info=True)
+    try:
+        raise ValueError("batched exception")
+    except ValueError:
+        record.heavy_init()
+
+    test_handler = logbook.TestHandler()
+    with ThreadedWrapperHandler(test_handler) as handler:
+        handler.emit_batch([record], "group")
+        record.close()
+
+    handler.close()
+
+    [record] = test_handler.records
+    assert "ValueError: batched exception" in record.formatted_exception
 
 
 def release_when_close_waits(monkeypatch, handler, release):
