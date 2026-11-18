@@ -1814,8 +1814,10 @@ class GMailHandler(MailHandler):
     Apps mail)::
 
        handler = GMailHandler(
-           "my_user@gmail.com", "mypassword", ["to_user@some_mail.com"], ...
+           "my_user@gmail.com", "password", ["to_user@some_mail.com"], ...
        )  # other arguments same as MailHandler
+
+    `password` must be an app password.
 
     .. versionadded:: 0.6.0
     """
