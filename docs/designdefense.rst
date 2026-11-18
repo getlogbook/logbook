@@ -138,7 +138,7 @@ Here such a setup in pseudocode:
         # this handler is now activated as the default handler for the
         # whole process.  We do not bubble up to the default handler
         # that logs to stderr.
-        with default_handler.applicationbound(bubble=False):
+        with default_handler.applicationbound():
             # now we initialize the GUI of the application
             initialize_gui()
             # at that point we can hook our own logger in that intercepts
