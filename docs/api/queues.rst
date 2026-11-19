@@ -3,13 +3,27 @@ Queue Support
 
 The queue support module makes it possible to add log records to a queue
 system.  This is useful for distributed setups where you want multiple
-processes to log to the same backend.  Currently supported are ZeroMQ as
-well as the :mod:`multiprocessing` :class:`~multiprocessing.Queue` class.
+processes to log to the same backend.
 
 .. module:: logbook.queues
 
 ZeroMQ
 ------
+
+:class:`ZeroMQHandler` and :class:`ZeroMQSubscriber` must use the same
+``multi``:
+
+===================  =========================  =========================
+``multi``            :class:`ZeroMQHandler`     :class:`ZeroMQSubscriber`
+===================  =========================  =========================
+``False`` (default)  binds a `PUB`_ socket      connects a `SUB`_ socket
+``True``             connects a `PUSH`_ socket  binds a `PULL`_ socket
+===================  =========================  =========================
+
+.. _PUB: https://zeromq.org/socket-api/#pub-socket
+.. _SUB: https://zeromq.org/socket-api/#sub-socket
+.. _PUSH: https://zeromq.org/socket-api/#push-socket
+.. _PULL: https://zeromq.org/socket-api/#pull-socket
 
 .. autoclass:: ZeroMQHandler
    :members:

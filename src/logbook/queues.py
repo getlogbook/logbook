@@ -55,7 +55,7 @@ class RedisHandler(Handler):
 
     Example setup::
 
-        handler = RedisHandler("http://127.0.0.1", port="9200", key="redis")
+        handler = RedisHandler("127.0.0.1", port=6379, key="redis")
 
     If your Redis instance is password protected, you can securely connect
     passing your password when creating a RedisHandler object.

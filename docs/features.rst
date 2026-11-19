@@ -94,9 +94,8 @@ It should be Fun
 Logging should be fun.  A good log setup makes debugging easier when
 things go rough.  For good results you really have to start using logging
 before things actually break.  Logbook comes with a couple of unusual log
-handlers to bring the fun back to logging.  You can log to your personal
-twitter feed, you can log to mobile devices, your desktop notification
-system and more.
+handlers to bring the fun back to logging.  You can log to mobile devices
+and more.
 
 Logbook in a Nutshell
 ---------------------
