@@ -1,0 +1,1 @@
+Add :meth:`logbook.NestedSetup.from_dict` to build logging setups from mappings, including configurations loaded from JSON or YAML files.
