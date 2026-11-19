@@ -1,6 +1,7 @@
 import functools
 import logging
 import logging.handlers
+import pickle
 import sys
 import warnings
 from datetime import datetime, timedelta, timezone
@@ -236,6 +237,31 @@ def test_redirect_replayed_record_keeps_source_metadata():
         54321,
         "origin-process",
     )
+
+
+def test_redirect_replayed_record_keeps_traceback():
+    try:
+        raise ValueError("job failed")
+    except ValueError:
+        source = logging.LogRecord(
+            "source", logging.ERROR, __file__, 1, "event", (), sys.exc_info()
+        )
+    data = logging.handlers.SocketHandler("localhost", 0).makePickle(source)
+    replayed = logging.makeLogRecord(pickle.loads(data[4:]))
+    record = logbook.compat.RedirectLoggingHandler().convert_record(replayed)
+    assert record.formatted_exception == source.exc_text
+
+
+def test_redirect_prefers_exception_info_to_cached_text():
+    try:
+        raise ValueError("job failed")
+    except ValueError:
+        source = logging.LogRecord(
+            "source", logging.ERROR, __file__, 1, "event", (), sys.exc_info()
+        )
+    source.exc_text = "previous formatter's exception text"
+    record = logbook.compat.RedirectLoggingHandler().convert_record(source)
+    assert record.formatted_exception.endswith("ValueError: job failed")
 
 
 def test_redirect_uses_frame_when_stdlib_caller_is_unknown(monkeypatch):
